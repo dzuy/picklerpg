@@ -10,9 +10,9 @@ This is the agreed build order from the supplied roadmap. Preserve the numbering
 
 **Phase 8 visual pass ready for playtest.** Steps 48–54 are implemented; step 47 has verified dimensions and player scale, with final feel awaiting playtest. See [PHASE-8.md](PHASE-8.md).
 
-Custom commands work alongside canned menus in full games and practice. Local and LLM parsers produce reviewed, validated shot intent; impossible contacts explain why rather than auto-substituting. Frequently played commands become quick actions. Roll/spin and fine player-side targets remain disclosed approximations. See [CUSTOM-SHOTS.md](CUSTOM-SHOTS.md).
+Custom commands work alongside canned menus in full games and practice. Local and LLM parsers produce reviewed, validated shot intent; impossible contacts explain why rather than auto-substituting. Frequently played commands become quick actions. Left/right spin, spin strength, topspin drop, and slice float now affect flight; fine player-side targets remain disclosed approximations. See [CUSTOM-SHOTS.md](CUSTOM-SHOTS.md).
 
-Phase 7 voice input is intentionally deferred. Current work prioritizes court scale, tactical camera, ball readability, motion, character clarity, and restrained environment polish.
+**Phase 7 voice increment implemented for playtest.** Added microphone input, local concise/richer commands, partner instructions, hands-free contact listening, and compact voice view. Live microphone accuracy, end-to-end latency, and whole-game voice acceptance remain open. See [PHASE-7.md](PHASE-7.md).
 
 ## Playtest decisions
 
@@ -264,21 +264,23 @@ Example:
        Eventually surface them as quick actions.
 ## Phase 7 — Voice-only mode
 - [ ] **41.** Speech-to-intent input
+       Browser adapter and validated voice intent implemented; live microphone verification pending.
 - [ ] **42.** Make voice commands fast enough that they don’t break rally flow
-- [ ] **43.** Support concise commands
+- [x] **43.** Support concise commands
     - “Drive middle.”
     - “Drop crosscourt.”
     - “Jam him.”
     - “Reset.”
-- [ ] **44.** Support richer commands
+- [x] **44.** Support richer commands
     - “Hard drive at her right hip.”
     - “Pull him wide and keep it soft.”
-- [ ] **45.** Add voice communication with your AI partner
+- [x] **45.** Add voice communication with your AI partner
     - “Target her backhand.”
     - “Crash when I drive.”
     - “Stop speeding up at him.”
 - [ ] **46.** Eventually support near-zero-UI voice mode
        Court + score + rally + voice.
+       Compact view and hands-free controls implemented; whole-game voice playtest pending.
 ## Phase 8 — Improve the 3D representation
 - [ ] **47.** Tune court dimensions and player scale until they feel unquestionably right
        Regulation dimensions and roughly 1.85 m capped athletes verified; courtside framing and ball display scale improved. Final feel awaits user playtest.

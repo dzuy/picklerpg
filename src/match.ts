@@ -1,3 +1,4 @@
+import type {PartnerCall} from './voice';
 import {validatePlayer,type DesignedPlayer} from './player-design';
 import {resolveBodyServe} from './engine/serve-body';
 import {commandIntent,canParseInstantly,parseLocalCommand,requestsBounce,validateCommand,COMMAND_SCHEMA} from './engine/custom-command';
@@ -25,6 +26,14 @@ export class Match {
  brainMode:'local'|'llm'=typeof window==='undefined'?'local':'llm';personality:Personality='Chess Player';intelligence=.8;memory=new OpponentMemory();brainStatus=typeof window==='undefined'?'Local opponent':'LLM with local fallback';thinking=false;partnerAutonomy=false;lastSnapshot:TacticalSnapshot|null=null;private request:AbortController|null=null;private generation=0;private observed=0;
  scoring=new DoublesScore();engine!:RallyEngine;point=0;seed=1741;lastResult:PointResult|null=null;private awarded=false;
  constructor(){this.startPoint()}
+ partnerInstructions:{backhand?:'jules'|'rio';soft?:'jules'|'rio';crash?:boolean}={};
+ partnerStatus='No partner instructions.';
+ instructPartner(call:PartnerCall){
+  if(call.kind==='clear'){this.partnerInstructions={};this.partnerStatus='Finn: instructions cleared.'}
+  else if(call.kind==='crash'){this.partnerInstructions.crash=true;this.partnerStatus='Finn: I’ll move forward when you drive, within my movement limits.'}
+  else {this.partnerInstructions[call.kind]=call.target;this.partnerStatus=call.kind==='backhand'?`Finn: I’ll look for ${call.target === 'jules'?'Jules':'Rio'}’s backhand.`:`Finn: I’ll favor soft shots instead of speed-ups at ${call.target === 'jules'?'Jules':'Rio'}.`}
+  this.partnerStatus+=' Applies from the next team contact; manual choices stay yours.';
+ }
  recommendationType:string|null=null;
  get state(){return this.engine.state} get shot(){return this.engine.shot} get availableIntents(){return this.engine.availableIntents}
  previewIntent(intent:unknown){return this.engine.previewIntent(intent)}
@@ -48,14 +57,14 @@ export class Match {
  }
  update(dt:number){if(this.replayIndex!==null){if(this.replayPlaying){this.replayElapsed+=dt;const start=this.replayFrames[0].simulationTime,last=this.replayFrames.at(-1)!.simulationTime,target=start+this.replayElapsed*1.5;while(this.replayIndex<this.replayFrames.length-1&&this.replayFrames[this.replayIndex+1].simulationTime<=target)this.replayIndex++;const a=this.replayFrames[this.replayIndex],b=this.replayFrames[this.replayIndex+1];this.replayAlpha=b&&b.simulationTime>a.simulationTime?Math.max(0,Math.min(1,(target-a.simulationTime)/(b.simulationTime-a.simulationTime))):0;if(target>=last){this.replayEndHold+=dt;if(this.replayEndHold>=.65){this.replayIndex=this.replayFrames.length-1;this.replayAlpha=0;this.replayPlaying=false;this.replayEndHold=0}}}return}this.engine.update(dt);this.replayClock+=dt;if(this.state.phase==='flight'&&this.replayClock>=1/30||this.replayFrames.length===0||this.replayFrames.at(-1)?.phase!==this.state.phase){this.replayClock=0;if(this.replayFrames.length<3000){this.replayFrames.push(this.snapshot());this.replayShots.push(structuredClone(this.shot))}};
   if(this.state.phase==='decision'&&this.state.possession==='away'&&!this.thinking&&!this.state.paused)this.decideOpponent();else if(this.state.phase==='decision'&&this.state.currentHitter==='partner'&&this.partnerAutonomy&&!this.thinking&&!this.state.paused)this.decidePartner();if(this.state.phase==='complete'&&!this.awarded){this.awarded=true;this.lastResult=this.state.result;if(!this.practice)this.scoring.award(this.state.result!.winner)}this.state.score={...this.scoring.score}}
- async submitCommand(text:string){
+ async submitCommand(text:string,source:'text'|'voice'='text'){
   if(this.customBusy)return;
   this.customDraft=text;
   const engine=this.engine,generation=this.generation,index=this.state.shotIndex;
-  await this.previewCommand(text,!canParseInstantly(text));
+  await this.previewCommand(text,!canParseInstantly(text),source);
   if(this.engine===engine&&this.generation===generation&&this.state.shotIndex===index&&this.state.phase==='decision'&&this.customPreview){this.playCustom();this.customDraft=''}
  }
- async previewCommand(text:string,useLLM=false){
+ async previewCommand(text:string,useLLM=false,source:'text'|'voice'='text'){
   if(this.state.phase!=='decision'||this.state.possession!=='home'||!this.currentContext)throw new Error('Wait for your team contact.');
   if(!text.trim()||text.length>300)throw new Error('Use 1–300 characters.');
   const engine=this.engine,index=this.state.shotIndex,actor=this.state.currentHitter!,generation=this.generation,c=structuredClone(this.currentContext);
@@ -63,10 +72,10 @@ export class Match {
   try{let parsed;
    if(useLLM){const response=await fetch('/api/command',{method:'POST',headers:{'Content-Type':'application/json'},signal:AbortSignal.timeout(30000),body:JSON.stringify({version:1,command:text,schema:COMMAND_SCHEMA,context:{actor,contact:c,players:this.state.players},options:[{}]})});if(!response.ok)throw new Error('Could not understand that shot right now. Try a simpler command.');parsed=validateCommand(await response.json())}else parsed=parseLocalCommand(text);
    if(this.engine!==engine||this.generation!==generation||this.state.shotIndex!==index||this.state.phase!=='decision')return;
-   const preview=commandIntent(parsed,actor,c,this.state.players);
+   const preview=commandIntent(parsed,actor,c,this.state.players);preview.intent.source=source;
    const deferred=requestsBounce(text);
    const shot=deferred?this.planAfterBounce(preview.intent,'Custom tactical choice',c,this.state.players,this.customIndex):this.plan(preview.intent,'Custom tactical choice',c,this.state.players,this.customIndex);
-   this.engine.offerCustom(shot);this.customPreview={...preview,text};this.customStatus='Shot understood.';
+   this.engine.offerCustom(shot);this.customPreview={...preview,text};this.customStatus=preview.note?`Shot understood. ${preview.note}`:'Shot understood.';
   }catch(e){if(this.engine===engine&&this.generation===generation&&this.state.shotIndex===index&&this.state.phase==='decision')this.customStatus=(e as Error).message}
   finally{if(this.engine===engine&&this.generation===generation)this.customBusy=false}
  }
@@ -130,17 +139,24 @@ export class Match {
  }
  private options(actor:PlayerId,c:ShotContext,players:PlayerState[],index:number,serveReceiver?:PlayerId):RallyShot[]{
   const hitter=players.find(p=>p.id===actor)!;if(hitter.team==='home'){this.currentContext=structuredClone(c);this.customIndex=index;this.customPreview=null;this.customStatus=''}
-  const policy=chooseOpponentShot(actor,c,players);if(hitter.team==='home')this.recommendationType=actor==='partner'?policy?.intent.type??null:null;
-  const menu=buildDecisionMenu(actor,c,players).map(o=>({intent:{...o.intent,source:hitter.team==='away'?'ai' as const:'menu' as const},reason:o.reason}));const choices=hitter.team==='home'?menu:policy?[policy,...menu.filter(o=>o.intent.type!==policy.intent.type)]:menu;
+  let policy=chooseOpponentShot(actor,c,players);
+  if(actor==='partner'){
+   if(this.partnerInstructions.soft){const soft=buildDecisionMenu(actor,c,players).find(o=>['dink','drop','reset','block'].includes(o.intent.type));if(soft)policy=soft}
+   if(policy&&this.partnerInstructions.backhand&&policy.intent.type!=='serve'){
+    const aimed=commandIntent({...parseLocalCommand(`${policy.intent.type} ${this.partnerInstructions.backhand} backhand`),pace:policy.intent.pace},actor,c,players);
+    policy={intent:aimed.intent,reason:'Finn follows your backhand instruction.'};
+   }
+  }if(hitter.team==='home')this.recommendationType=actor==='partner'?policy?.intent.type??null:null;
+  const menu=buildDecisionMenu(actor,c,players).map(o=>({intent:{...o.intent,source:hitter.team==='away'?'ai' as const:'menu' as const},reason:o.reason}));const choices=hitter.team==='home'?(actor==='partner'&&policy&&(this.partnerInstructions.backhand||this.partnerInstructions.soft)?[policy,...menu]:menu):policy?[policy,...menu.filter(o=>o.intent.type!==policy.intent.type)]:menu;
   const expanded=choices.flatMap(choice=>{
    if(choice.intent.type==='serve'&&hitter.team==='home')return [
     {intent:{...choice.intent,target:{kind:'zone' as const,zone:'crosscourt' as const,depth:'deep' as const},pace:'fast' as const,shape:'flat' as const,intendedNetClearance:.12,tacticalIntent:'pressure' as const,aggression:.75},reason:'Drive a firm, low serve to the back of the diagonal service box.'},
-    {intent:{...choice.intent,target:{kind:'zone' as const,zone:'crosscourt' as const,depth:'deep' as const},pace:'medium' as const,shape:'arc' as const,intendedNetClearance:.35,tacticalIntent:'pressure' as const,aggression:.65},reason:'Use a higher-margin topspin shape that still lands deep.'},
-    {intent:{...choice.intent,target:{kind:'zone' as const,zone:'wide' as const,depth:'deep' as const},pace:'medium' as const,shape:'flat' as const,intendedNetClearance:.18,tacticalIntent:'pressure' as const,aggression:.55},reason:'Pull the receiver toward the sideline with a wide slice serve.'},
+    {intent:{...choice.intent,target:{kind:'zone' as const,zone:'crosscourt' as const,depth:'deep' as const},pace:'medium' as const,shape:'arc' as const,spin:{side:'none' as const,vertical:'topspin' as const,strength:'strong' as const},intendedNetClearance:.35,tacticalIntent:'pressure' as const,aggression:.65},reason:'Use strong topspin to pull a higher-margin serve down into the back of the box.'},
+    {intent:{...choice.intent,target:{kind:'zone' as const,zone:'wide' as const,depth:'deep' as const},pace:'medium' as const,shape:'flat' as const,spin:{side:'right' as const,vertical:'slice' as const,strength:'medium' as const},intendedNetClearance:.18,tacticalIntent:'pressure' as const,aggression:.55},reason:'Use right slice to bend the serve toward the sideline.'},
     {intent:{...choice.intent,target:{kind:'zone' as const,zone:'wide' as const,depth:'transition' as const},pace:'soft' as const,shape:'arc' as const,intendedNetClearance:.3,tacticalIntent:'sustain' as const,aggression:.3},reason:'Change the rhythm with a shorter serve near the outside corner.'},
     {intent:{...choice.intent,target:{kind:'zone' as const,zone:'crosscourt' as const,depth:'deep' as const},pace:'soft' as const,shape:'arc' as const,intendedNetClearance:2.5,tacticalIntent:'sustain' as const,aggression:.2},reason:'Send a high lob serve deep to change the receiver’s contact point.'},
     {intent:{...choice.intent,target:{kind:'zone' as const,zone:'wide' as const,depth:'deep' as const},pace:'fast' as const,shape:'flat' as const,intendedNetClearance:.12,tacticalIntent:'pressure' as const,aggression:.85},reason:'Trade margin for pace and drive the serve toward the outside line.'},
-    {intent:{...choice.intent,target:{kind:'zone' as const,zone:'crosscourt' as const,depth:'transition' as const},pace:'medium' as const,shape:'arc' as const,intendedNetClearance:.45,tacticalIntent:'sustain' as const,aggression:.4},reason:'Use topspin and shorter depth to disrupt the receiver’s setup.'},
+    {intent:{...choice.intent,target:{kind:'zone' as const,zone:'crosscourt' as const,depth:'transition' as const},pace:'medium' as const,shape:'arc' as const,spin:{side:'none' as const,vertical:'topspin' as const,strength:'medium' as const},intendedNetClearance:.45,tacticalIntent:'sustain' as const,aggression:.4},reason:'Use topspin and shorter depth to disrupt the receiver’s setup.'},
     ...(serveReceiver?[{intent:{...choice.intent,target:{kind:'player' as const,playerId:serveReceiver,aim:'body' as const},pace:'fast' as const,shape:'flat' as const,intendedNetClearance:.12,tacticalIntent:'pressure' as const,aggression:.8},reason:'Jam the designated receiver with a legal body serve.'}]:[]),
    ];
    return choice.intent.type==='serve'?[choice]:[choice,{intent:{...choice.intent,target:{kind:'zone' as const,zone:'wide' as const,depth:['drop','reset','dink','block'].includes(choice.intent.type)?'kitchen' as const:'deep' as const}},reason:choice.reason+' Aim wider to move the defenders.'}];
@@ -207,7 +223,8 @@ export class Match {
    }
   }
   const duration=legs.reduce((n,l)=>n+l.duration,0);
-  const positions=planPositions({players,intent,endpoint:legs.at(-1)!.to,receiver:null,completedShots:index,duration});
+  const positioningPlayers=this.partnerInstructions.crash&&intent.actor==='you'&&intent.type==='drive'?players.map(p=>p.id==='partner'?{...p,tendencies:{...p.tendencies,kitchenApproach:1}}:p):players;
+  const positions=planPositions({players:positioningPlayers,intent,endpoint:legs.at(-1)!.to,receiver:null,completedShots:index,duration});
   if(bodyServe&&intent.target.kind==='player'){const id=intent.target.playerId;positions[id]={...players.find(p=>p.id===id)!.position}}
   if(dodge)positions[dodge.id]=dodge.position;
   if(receiver&&receiveFeet)positions[receiver]=receiveFeet;

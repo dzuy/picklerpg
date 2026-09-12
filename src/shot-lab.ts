@@ -6,7 +6,7 @@ import {generateTrajectory,type GeneratedTrajectory} from './engine/trajectory';
 import {Simulation} from './simulation';
 import {sampleLeg,sampleVelocity} from './engine/rally-engine';
 import {contactIssue,SHOT_FAMILIES,type ShotContext} from './engine/shot-families';
-import type {GameState,RallyShot,ShotType,Vec3,ShotTarget,ShotIntent} from './engine/model';
+import type {GameState,RallyShot,ShotType,Vec3,ShotTarget,ShotIntent,SpinIntent} from './engine/model';
 export const LAB_TYPES:ShotType[]=['serve','drive','drop','dink','volley','reset','lob','overhead','counter','return','block'];
 export type LabCondition='typical'|'low'|'kitchen';
 export function labSetup(type:ShotType,condition:LabCondition='typical'):{context:ShotContext;landing:Vec3}{
@@ -24,7 +24,7 @@ export class ShotLab {
  opponentSituation='off';opponentAggression=.7;opponentDecision:OpponentDecision|null=null;
  difficultyPreset='comfortable';comparison:{skill:number;quality:number;dispersion:number}[]=[];
  variance=false;seed=1;skill=70;balance=1;incomingSpeed=12;execution:ShotExecution|null=null;
- pace:ShotIntent['pace']|'default'='default';shape:ShotIntent['shape']|'default'='default';clearance=.12;tactic:ShotIntent['tacticalIntent']='sustain';aggression=.5;generated:GeneratedTrajectory|null=null;target:ShotTarget|null=null;opponentLayout:'balanced'|'left'|'right'='balanced';opponentHand:'right'|'left'='right';type:ShotType='drive';condition:LabCondition='typical';state!:GameState;shot!:RallyShot;issue:string|null=null;private elapsed=0;
+ pace:ShotIntent['pace']|'default'='default';shape:ShotIntent['shape']|'default'='default';spinSide:SpinIntent['side']='none';verticalSpin:SpinIntent['vertical']='none';spinStrength:SpinIntent['strength']='medium';clearance=.12;tactic:ShotIntent['tacticalIntent']='sustain';aggression=.5;generated:GeneratedTrajectory|null=null;target:ShotTarget|null=null;opponentLayout:'balanced'|'left'|'right'='balanced';opponentHand:'right'|'left'='right';type:ShotType='drive';condition:LabCondition='typical';state!:GameState;shot!:RallyShot;issue:string|null=null;private elapsed=0;
  constructor(){this.reset()}
  reset(){
   const contextual=this.decisionSituation!=='off';const ai=!contextual&&this.opponentSituation!=='off';
@@ -37,7 +37,7 @@ export class ShotLab {
   const target:ShotTarget=this.target??{kind:'zone',zone:'crosscourt',depth:Math.abs(defaultLanding.z)<2?'kitchen':'deep'};
   if(target.kind==='player')this.state.players.find(p=>p.id===target.playerId)!.handedness=this.opponentHand;
   let family=SHOT_FAMILIES[this.type];
-  let intent:ShotIntent={schemaVersion:1,actor:'you',type:this.type,target,pace:this.pace==='default'?(family.speed>=10?'fast':'soft'):this.pace,shape:this.shape==='default'?(this.type==='overhead'?'descending':family.lift>=1?'arc':'flat'):this.shape,intendedNetClearance:this.clearance,tacticalIntent:this.tactic,aggression:this.aggression,source:'menu'};
+  let intent:ShotIntent={schemaVersion:1,actor:'you',type:this.type,target,pace:this.pace==='default'?(family.speed>=10?'fast':'soft'):this.pace,shape:this.shape==='default'?(this.type==='overhead'?'descending':family.lift>=1?'arc':'flat'):this.shape,intendedNetClearance:this.clearance,tacticalIntent:this.tactic,aggression:this.aggression,source:'menu',...(this.spinSide!=='none'||this.verticalSpin!=='none'?{spin:{side:this.spinSide,vertical:this.verticalSpin,strength:this.spinStrength}}:{})};
   this.decisionOptions=[];
   if(contextual){
    this.decisionOptions=buildDecisionMenu('you',context,this.state.players);

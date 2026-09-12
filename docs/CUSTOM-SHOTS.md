@@ -2,7 +2,7 @@
 
 In Full game or pattern practice, every home decision includes Your custom shot. Describe the shot, choose Instant local parser or Language model, and press Preview command. Review shot family, semantic target, pace and any approximation notes, then press Play custom shot. Menus stay available throughout. Nothing automatically submits an interpretation.
 
-The local parser handles lob, roll, overhead/smash, dink, drop, reset, block, counter, volley, return, serve, drive/rip/jam/body bag/speed-up. Targets include middle, wide, line, crosscourt, open gap, left/right player and Jules/Rio; aim can be body, feet, backhand or behind. Left/right mean world/screen x, not player handedness. Local ambiguous pronouns ask for a player name or side. It is deliberately a small parser, not arbitrary language understanding.
+The local parser handles lob, roll, overhead/smash, dink, drop, reset, block, counter, volley, return, serve, drive/rip/jam/body bag/speed-up, topspin, slice, and side spin. Targets include middle, wide, line, crosscourt, open gap, left/right player and Jules/Rio; aim can be body, feet, backhand or behind. A direction next to “spin,” “slice,” or “curve” controls ball bend; a direction next to “player” or “opponent” controls the target. Light, medium, and strong change spin intensity. Local ambiguous pronouns ask for a player name or side. It is deliberately a small parser, not arbitrary language understanding.
 
 Language model mode uses the existing server/Codex-plan provider or configured API provider. It returns a strict four-field description, not game state. The client validates this and maps it to canonical ShotIntent, then generates and validates a custom shot from the unchanged contact. Actor is always the current hitter. Illegal shots receive an explanation, never an automatic substitute. The model parser may interpret ambiguous wording imperfectly; review is mandatory. Timed-out or failed language calls report an error and suggest local parsing, without silently guessing.
 
@@ -10,7 +10,7 @@ Roll is a drive on a bounced contact or a volley on an airborne contact. Spin is
 
 After a command is played twice, it becomes a quick action. At most five frequent actions display, from up to 30 command strings remembered during the session. Clicking one reinterprets/revalidates it for the current contact before offering Play. Records are in memory only and clear on refresh. Unknown sophisticated LLM-only wording may still require selecting Language model again rather than the quick local path.
 
-Testing covers parsing, strict schema, off-menu lob, fixed contact until commit, impossible overhead, roll disclosure, body-target execution and stale LLM results after reset. Existing regression suites also pass. Endpoint and provider setup use the same local service; restart it after updating server code.
+Testing covers parsing, strict schema, off-menu lob, fixed contact until commit, impossible overhead, curved side spin, topspin drop, exact spin interception, body-target execution and stale LLM results after reset. Existing regression suites also pass. Endpoint and provider setup use the same local service; restart it after updating server code.
 
 ## Updated interaction: automatic interpretation and direct play
 

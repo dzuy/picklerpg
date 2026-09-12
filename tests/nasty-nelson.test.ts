@@ -5,7 +5,7 @@ import {canParseInstantly,parseLocalCommand} from '../src/engine/custom-command'
 import {resolveBodyServe} from '../src/engine/serve-body';
 import {sampleLeg} from '../src/engine/rally-engine';
 test('Nasty Nelson phrase routes locally to a fast body serve',()=>{
- const text='nasty nelson the left side player';assert.ok(canParseInstantly(text));assert.deepEqual(parseLocalCommand(text),{shot:'serve',target:'left',aim:'body',pace:'fast'});
+ const text='nasty nelson the left side player';assert.ok(canParseInstantly(text));assert.deepEqual(parseLocalCommand(text),{shot:'serve',target:'left',aim:'body',pace:'fast',spin:'none',spinDirection:'none',spinStrength:'medium'});
 });
 test('body serve executes against specified opponent; mid-rally it is rejected',async()=>{
  const m=new Match();const left=m.state.players.filter(p=>p.team==='away').sort((a,b)=>a.position.x-b.position.x)[0];

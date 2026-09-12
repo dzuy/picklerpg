@@ -6,10 +6,11 @@ export function resolveBodyServe(leg:FlightLeg,player:PlayerState,seed:number):{
  const roll=((Math.imul(seed^0x51ed270b,1664525)+1013904223)>>>0)/4294967296;
  const dodges=overlap&&roll<reaction;
  if(overlap&&!dodges)return {leg,hit:true};
- // Extend the same parabola beyond the body target to its first ground contact.
- const a=4*leg.arc,b=leg.to.y-leg.from.y+a,c=leg.from.y-.037;
- const t=a>1e-8?(b+Math.sqrt(b*b+4*a*c))/(2*a):-c/b;
- const scale=Math.max(1.001,t);
- const landing={x:leg.from.x+(leg.to.x-leg.from.x)*scale,y:.037,z:leg.from.z+(leg.to.z-leg.from.z)*scale};
- return {hit:false,leg:{...leg,to:landing,duration:leg.duration*scale,arc:leg.arc*scale*scale,bounceAtEnd:true},dodge:dodges?{...player.position,x:player.position.x+(leg.to.x>=player.position.x?-.65:.65)}:undefined};
+ // Extend the same curved flight beyond the body target to its first ground contact.
+ const point=(t:number)=>({x:leg.from.x+(leg.to.x-leg.from.x)*t+4*(leg.sideCurve??0)*t*(1-t),y:leg.from.y+(leg.to.y-leg.from.y)*t+4*leg.arc*t*(1-t)+8*(leg.verticalSpin??0)*t*t*(1-t),z:leg.from.z+(leg.to.z-leg.from.z)*t});
+ let low=1,high=1.25;while(point(high).y>.037&&high<8)high*=1.35;
+ for(let i=0;i<60;i++){const middle=(low+high)/2;if(point(middle).y>.037)low=middle;else high=middle}
+ const scale=Math.max(1.001,high),raw=point(scale),vertical=leg.verticalSpin??0;
+ const landing={...raw,y:.037};
+ return {hit:false,leg:{...leg,to:landing,duration:leg.duration*scale,arc:leg.arc*scale*scale-2*vertical*scale*scale+2*vertical*scale*scale*scale,sideCurve:(leg.sideCurve??0)*scale*scale,verticalSpin:vertical*scale*scale*scale,bounceAtEnd:true},dodge:dodges?{...player.position,x:player.position.x+(leg.to.x>=player.position.x?-.65:.65)}:undefined};
 }

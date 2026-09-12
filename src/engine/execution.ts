@@ -1,7 +1,7 @@
 import {skillBenchmark} from './skill-benchmarks';
 import {contactDifficulty} from './difficulty';
 import {COURT,type FlightLeg,type PlayerState} from './model';
-import {generateTrajectory,interceptFlight,type GeneratedTrajectory} from './trajectory';
+import {generateTrajectory,interceptFlight,sampleFlight,type GeneratedTrajectory} from './trajectory';
 import type {ShotContext} from './shot-families';
 export interface ExecutionConditions {seed:number; balance:number}
 export interface ShotExecution {intended:GeneratedTrajectory; leg:FlightLeg; seed:number; quality:number; skill:number; difficulty:string[]; mishit:boolean; dispersion:number; endpointError:number; outcome:'net'|'out'|'in'|'intercept'; actualEndpoint:FlightLeg['to']}
@@ -33,8 +33,8 @@ export function executeShot(value:unknown,context:ShotContext,players:PlayerStat
  leg.arc=Math.max(0,leg.arc+random()*liftError*errorScale);
  leg.duration*=1+random()*(1-quality)*.15;
  const actualEndpoint={...leg.to};
- const t=leg.from.z/(leg.from.z-leg.to.z),x=leg.from.x+(leg.to.x-leg.from.x)*t;
- const height=leg.from.y+(leg.to.y-leg.from.y)*t+4*leg.arc*t*(1-t);
+ const t=leg.from.z/(leg.from.z-leg.to.z),point=sampleFlight(leg,t),x=point.x;
+ const height=point.y;
  const net=COURT.netCenter+(COURT.netSideline-COURT.netCenter)*(x/(COURT.width/2))**2;
  const hitsNet=t>0&&t<1&&Math.abs(x)<=COURT.netWidth/2&&height-.037<=net;
  const out=Math.abs(leg.to.x)>COURT.width/2+.037||Math.abs(leg.to.z)>COURT.length/2+.037;

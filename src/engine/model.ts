@@ -10,15 +10,19 @@ export const TARGET_DEPTHS = ['kitchen','transition','deep'] as const;
 export const PLAYER_AIMS = ['body','feet','backhand-side'] as const;
 export const PACES = ['soft','medium','fast'] as const;
 export const SHAPES = ['arc','flat','descending'] as const;
+export const SPIN_SIDES = ['none','left','right'] as const;
+export const VERTICAL_SPINS = ['none','topspin','slice'] as const;
+export const SPIN_STRENGTHS = ['light','medium','strong'] as const;
 export const TACTICS = ['pressure','advance','neutralize','finish','sustain'] as const;
 export const INPUT_SOURCES = ['menu','script','text','voice','ai'] as const;
 export type ShotTarget =
  | {kind:'zone'; zone:typeof TARGET_ZONES[number]; depth:typeof TARGET_DEPTHS[number]}
  | {kind:'player'; playerId:PlayerId; aim:typeof PLAYER_AIMS[number]};
+export interface SpinIntent {side:typeof SPIN_SIDES[number];vertical:typeof VERTICAL_SPINS[number];strength:typeof SPIN_STRENGTHS[number]}
 export interface ShotIntent {
  schemaVersion:1; actor:PlayerId; type:ShotType; target:ShotTarget;
  pace:typeof PACES[number]; shape:typeof SHAPES[number]; intendedNetClearance:number;
- tacticalIntent:typeof TACTICS[number]; aggression:number; source:typeof INPUT_SOURCES[number];
+ tacticalIntent:typeof TACTICS[number]; aggression:number; source:typeof INPUT_SOURCES[number]; spin?:SpinIntent;
 }
 export const SKILLS = ['serve','return','drive','drop','dink','reset','volley','counter','overhead','movement','hands'] as const;
 export type PlayerSkills = Record<typeof SKILLS[number],number>;
@@ -35,7 +39,7 @@ export type RallyEvent =
  | {type:'shot'; time:number; shotIndex:number; intent:ShotIntent; contact:Vec3}
  | {type:'bounce'; time:number; shotIndex:number; position:Vec3}
  | {type:'point-end'; time:number; result:PointResult};
-export interface FlightLeg { from:Vec3; to:Vec3; duration:number; arc:number; bounceAtEnd?:boolean }
+export interface FlightLeg { from:Vec3; to:Vec3; duration:number; arc:number; sideCurve?:number; verticalSpin?:number; bounceAtEnd?:boolean }
 export interface RallyShot { feedback?:{skill:number;quality:number;difficulty:string[];deviation:number;mishit:boolean};recommendation?:string; resolution?: {receiver:PlayerId|null; bounced:boolean; movementZ?:number; result?:PointResult}; aimPoint:Vec3; intent:ShotIntent; title:string; description:string; cue:string; actor:PlayerId; contact:Vec3; legs:FlightLeg[]; positions:Record<PlayerId,Vec3> }
 
 export type Team = 'home' | 'away';

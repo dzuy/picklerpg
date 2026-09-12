@@ -27,6 +27,20 @@ test('interception is an exact slice of the generated parabola, not a new path',
  const {intent,context,players}=input();const original=generateTrajectory(intent,context,players).leg;const t=.7,cut=interceptFlight(original,t);
  for(const u of [0,.2,.5,1]){const a=sampleLeg(original,u*t),b=sampleLeg(cut,u);assert.ok(Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z)<1e-8)}assert.equal(cut.duration,original.duration*t);assert.equal(cut.bounceAtEnd,false);
 });
+test('side spin curves left or right and strong spin bends farther',()=>{
+ const {intent,context,players}=input(),at=.5;
+ const plain=generateTrajectory(intent,context,players).leg;
+ const make=(side:'left'|'right',strength:'light'|'strong')=>generateTrajectory({...intent,spin:{side,vertical:'none',strength}},context,players).leg;
+ const light=make('right','light'),strong=make('right','strong'),left=make('left','strong');
+ const baseline=sampleLeg(plain,at).x,lightOffset=sampleLeg(light,at).x-baseline,strongOffset=sampleLeg(strong,at).x-baseline,leftOffset=sampleLeg(left,at).x-baseline;
+ assert.ok(lightOffset>0);assert.ok(strongOffset>lightOffset*2);assert.ok(leftOffset<0);const endpoint=sampleLeg(strong,1);assert.ok(Math.hypot(endpoint.x-strong.to.x,endpoint.y-strong.to.y,endpoint.z-strong.to.z)<1e-12);
+});
+test('topspin pulls the late flight down and preserves exact spin interception',()=>{
+ const {intent,context,players}=input(),plain=generateTrajectory({...intent,intendedNetClearance:.5},context,players).leg;
+ const top=generateTrajectory({...intent,intendedNetClearance:.5,spin:{side:'left',vertical:'topspin',strength:'strong'}},context,players).leg;
+ assert.ok(sampleLeg(top,.82).y<sampleLeg(plain,.82).y);assert.ok(sampleLeg(top,.82).x<sampleLeg(plain,.82).x);
+ const t=.68,cut=interceptFlight(top,t);for(const u of [0,.2,.5,.8,1]){const a=sampleLeg(top,u*t),b=sampleLeg(cut,u);assert.ok(Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z)<1e-8)}
+});
 test('default guided rally runs generated serve, return, drive, block and overhead',()=>{
  const sim=new Simulation();const snapshots=[];
  for(let i=0;i<1000&&sim.state.phase!=='complete';i++){

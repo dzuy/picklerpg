@@ -1,4 +1,5 @@
 import {parseShotIntent,sameShotIntent} from './shot-intent';
+import {sampleFlight,sampleFlightVelocity} from './trajectory';
 import {COURT, SKILLS, type Contact, type GameState, type PlayerId, type RallyProvider, type RallyShot, type RallyStage, type ShotIntent, type Vec3, type FlightLeg} from './model';
 
 const PLAYER_IDS:PlayerId[]=['you','partner','opponent-left','opponent-right'];
@@ -6,15 +7,13 @@ const near=(a:Vec3,b:Vec3)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z)<1e-7;
 const finitePoint=(p:Vec3)=>p&&[p.x,p.y,p.z].every(Number.isFinite);
 
 export function sampleLeg(leg:FlightLeg,t:number):Vec3 {
- const u=Math.max(0,Math.min(1,t));
- return {x:leg.from.x+(leg.to.x-leg.from.x)*u,z:leg.from.z+(leg.to.z-leg.from.z)*u,y:leg.from.y+(leg.to.y-leg.from.y)*u+4*leg.arc*u*(1-u)};
+ return sampleFlight(leg,t);
 }
 
 /** Analytic derivative of the authored path, in metres per simulation second.
  * Playback speed and decision pauses do not change the incoming tactical velocity. */
 export function sampleVelocity(leg:FlightLeg,t:number):Vec3 {
- const u=Math.max(0,Math.min(1,t));
- return {x:(leg.to.x-leg.from.x)/leg.duration,y:(leg.to.y-leg.from.y+4*leg.arc*(1-2*u))/leg.duration,z:(leg.to.z-leg.from.z)/leg.duration};
+ return sampleFlightVelocity(leg,t);
 }
 
 /** Opening stages depend on completed contacts; later stages depend on tactical state. */
@@ -82,7 +81,7 @@ export class RallyEngine {
    if(!shot.legs?.length||!near(shot.legs[0].from,shot.contact))throw new Error('Flight must begin at contact.');
    for(let i=0;i<shot.legs.length;i++){
     const leg=shot.legs[i];
-    if(!finitePoint(leg.from)||!finitePoint(leg.to)||!Number.isFinite(leg.duration)||leg.duration<=0||!Number.isFinite(leg.arc)||leg.arc<0||(i>0&&!near(shot.legs[i-1].to,leg.from)))throw new Error('Invalid or disconnected flight legs.');
+    if(!finitePoint(leg.from)||!finitePoint(leg.to)||!Number.isFinite(leg.duration)||leg.duration<=0||!Number.isFinite(leg.arc)||!Number.isFinite(leg.sideCurve??0)||!Number.isFinite(leg.verticalSpin??0)||(i>0&&!near(shot.legs[i-1].to,leg.from)))throw new Error('Invalid or disconnected flight legs.');
    }
    if(PLAYER_IDS.some(id=>!finitePoint(shot.positions?.[id])))throw new Error('Missing player movement target.');
   }
