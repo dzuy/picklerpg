@@ -1,0 +1,43 @@
+import {SKILLS,type PlayerSkills} from './engine/model';
+import {PLAYER_PROFILES} from './engine/player-profiles';
+export const APPEARANCE_OPTIONS={face:['oval','round','angular'],hairStyle:['short','curls','ponytail','none'],hat:['cap','backwards','visor','headband','none'],glasses:['none','sport','round'],top:['jersey','tank'],bottom:['shorts','skirt'],accessory:['none','wristband','watch']} as const;
+export interface Appearance {
+ face:typeof APPEARANCE_OPTIONS.face[number];hairStyle:typeof APPEARANCE_OPTIONS.hairStyle[number];hat:typeof APPEARANCE_OPTIONS.hat[number];glasses:typeof APPEARANCE_OPTIONS.glasses[number];
+ top:typeof APPEARANCE_OPTIONS.top[number];bottom:typeof APPEARANCE_OPTIONS.bottom[number];accessory:typeof APPEARANCE_OPTIONS.accessory[number];
+ skin:string;hair:string;jersey:string;accent:string;shoes:string;paddle:string;
+}
+export interface DesignedPlayer {id:string;name:string;appearance:Appearance;skills:PlayerSkills;handedness:'left'|'right'}
+export interface PlayerLibrary {version:1;activeId:string|null;players:DesignedPlayer[]}
+export const PLAYER_STORAGE_KEY='pickle-rpg-players-v1';
+export const DEFAULT_APPEARANCE:Appearance={face:'oval',hairStyle:'short',hat:'cap',glasses:'none',skin:'#dba67f',hair:'#493629',jersey:'#f3dc86',accent:'#214d43',top:'jersey',bottom:'shorts',accessory:'wristband',shoes:'#214d43',paddle:'#214d43'};
+export function newPlayer(id:string=crypto.randomUUID()):DesignedPlayer{return {id,name:'New player',appearance:{...DEFAULT_APPEARANCE},skills:{...PLAYER_PROFILES.you.skills},handedness:'right'}}
+export function validatePlayer(value:unknown):DesignedPlayer{
+ if(!value||typeof value!=='object')throw new Error('Invalid player record.');
+ const p=value as DesignedPlayer;
+ if(typeof p.id!=='string'||!p.id||p.id.length>100)throw new Error('Invalid player ID.');
+ if(typeof p.name!=='string'||!p.name.trim()||p.name.trim().length>24)throw new Error('Use a player name of 1–24 characters.');
+ if(p.handedness!=='left'&&p.handedness!=='right')throw new Error('Choose a playing hand.');
+ if(!p.appearance||!p.skills)throw new Error('Player appearance or skills are missing.');
+ // Older saved players gain new outfit options without losing their design.
+ const appearance={...p.appearance,top:p.appearance.top??'jersey',bottom:p.appearance.bottom??'shorts',accessory:p.appearance.accessory??'wristband',shoes:p.appearance.shoes??p.appearance.accent,paddle:p.appearance.paddle??p.appearance.accent};
+ for(const [key,options] of Object.entries(APPEARANCE_OPTIONS))if(!(options as readonly string[]).includes(appearance[key as keyof Appearance]))throw new Error('Unknown appearance option.');
+ for(const key of ['skin','hair','jersey','accent','shoes','paddle'] as const)if(!/^#[0-9a-f]{6}$/i.test(appearance[key]))throw new Error('Choose a valid color.');
+ for(const key of SKILLS)if(!Number.isInteger(p.skills[key])||p.skills[key]<0||p.skills[key]>100)throw new Error('Skills must be whole numbers from 0 to 100.');
+ return {id:p.id,name:p.name.trim(),handedness:p.handedness,appearance:{face:p.appearance.face,hairStyle:p.appearance.hairStyle,hat:p.appearance.hat,glasses:p.appearance.glasses,skin:p.appearance.skin,hair:p.appearance.hair,jersey:p.appearance.jersey,accent:p.appearance.accent,top:appearance.top,bottom:appearance.bottom,accessory:appearance.accessory,shoes:appearance.shoes,paddle:appearance.paddle},skills:Object.fromEntries(SKILLS.map(key=>[key,p.skills[key]])) as PlayerSkills};
+}
+export function parseLibrary(raw:string|null):PlayerLibrary{
+ if(raw===null)return {version:1,activeId:null,players:[]};
+ const value=JSON.parse(raw);
+ if(value?.version!==1||!Array.isArray(value.players)||value.players.length>100)throw new Error('Saved players could not be read.');
+ const players:DesignedPlayer[]=value.players.map(validatePlayer);
+ if(new Set(players.map(p=>p.id)).size!==players.length)throw new Error('Saved players have duplicate IDs.');
+ if(value.activeId!==null&&!players.some(p=>p.id===value.activeId))throw new Error('The selected player is missing.');
+ return {version:1,activeId:value.activeId,players};
+}
+export function savePlayer(storage:Pick<Storage,'setItem'>,library:PlayerLibrary,draft:DesignedPlayer,activate=false):PlayerLibrary{
+ const player=validatePlayer(draft),players=library.players.filter(p=>p.id!==player.id);
+ if(players.length>=100)throw new Error('This roster is full (100 players).');
+ const next:PlayerLibrary={version:1,activeId:activate?player.id:library.activeId,players:[...players,player]};
+ // Commit to memory only after storage succeeds, so quota errors cannot lose data.
+ storage.setItem(PLAYER_STORAGE_KEY,JSON.stringify(next));return structuredClone(next);
+}

@@ -1,0 +1,157 @@
+import {ballDisplayScale,bouncePulse,cameraBlend} from './scene-readability';
+import {athletePose} from './athlete-motion';
+import type {DesignedPlayer} from './player-design';
+import * as THREE from 'three';
+import {CourtTrees} from './trees';
+import {createPickleball} from './pickleball';
+import {createAthlete, animateAthlete, disposeAthlete, setAthleteHandedness} from './athlete';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {COURT, type GameState, type PlayerId, type RallyShot, sampleLeg} from './simulation';
+export class CourtScene {
+ private reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
+ private previousRenderTime=0;
+ private heightGuide=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]),new THREE.LineBasicMaterial({color:'#eefb8c',transparent:true,opacity:.4}));
+ private speedStreak=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]),new THREE.LineBasicMaterial({color:'#e6fa42',transparent:true,opacity:.7}));
+ private bounceRing=new THREE.Mesh(new THREE.RingGeometry(.82,1,40),new THREE.MeshBasicMaterial({color:'#f0ff91',transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false}));
+ private trees=new CourtTrees();
+ private motion=new Map<PlayerId,{x:number;z:number;distance:number;time:number}>();
+ private serveBubble=document.createElement('div');
+ private scene=new THREE.Scene(); private camera=new THREE.PerspectiveCamera(38,1,.1,160); private renderer:THREE.WebGLRenderer;
+ private controls:OrbitControls;private customizedView=false;
+ private players=new Map<PlayerId,THREE.Group>();private ball:THREE.Group;private ballHalo:THREE.Mesh;private shadow:THREE.Mesh;private trail:THREE.Line;private trailDots:THREE.Points;private target:THREE.Mesh;private labels=new Map<PlayerId,HTMLDivElement>();private cameraDistance=50;private guides=true;private lastShot:RallyShot|null=null;private previewShot:RallyShot|null=null;private lastOpponentShot:RallyShot|null=null;
+ constructor(private host:HTMLElement){
+  this.serveBubble.className='serve-bubble';this.serveBubble.hidden=true;this.serveBubble.setAttribute('role','status');host.append(this.serveBubble);
+  this.scene.background=new THREE.Color('#b9cdbd');this.scene.fog=new THREE.Fog('#b9cdbd',35,68);
+  this.renderer=new THREE.WebGLRenderer({antialias:true});this.renderer.setPixelRatio(Math.min(devicePixelRatio,2));this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;this.renderer.outputColorSpace=THREE.SRGBColorSpace;this.renderer.toneMapping=THREE.ACESFilmicToneMapping;this.renderer.toneMappingExposure=1.08;host.append(this.renderer.domElement);
+  this.renderer.domElement.setAttribute('aria-label','Interactive 3D pickleball court. Drag to rotate, pinch or scroll to zoom, and use two fingers or right-drag to move the view.');this.renderer.domElement.setAttribute('role','img');
+  this.renderer.domElement.style.touchAction='none';
+  this.controls=new OrbitControls(this.camera,this.renderer.domElement);this.controls.enableDamping=true;this.controls.dampingFactor=.09;this.controls.enablePan=true;this.controls.screenSpacePanning=true;this.controls.rotateSpeed=.65;this.controls.zoomSpeed=.8;this.controls.panSpeed=.55;this.controls.minDistance=6;this.controls.maxDistance=90;this.controls.minPolarAngle=.08;this.controls.maxPolarAngle=Math.PI*.49;this.controls.touches.ONE=THREE.TOUCH.ROTATE;this.controls.touches.TWO=THREE.TOUCH.DOLLY_PAN;
+  this.controls.addEventListener('start',()=>{this.customizedView=true});
+  this.scene.add(new THREE.HemisphereLight('#fffbea','#567563',2.35));const sun=new THREE.DirectionalLight('#fff4d2',3.4);sun.position.set(-9,18,10);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-14,right:14,top:14,bottom:-14});sun.shadow.bias=-.00045;this.scene.add(sun);
+  this.box(100,.15,100,0,-.22,0,'#b9cdbd');this.box(12,.16,21,0,-.1,0,'#3e705d');this.box(COURT.width+.32,.04,COURT.length+.32,0,-.005,0,'#316f69');this.box(COURT.width,.03,COURT.length,0,.025,0,'#27898e');this.box(COURT.width,.012,COURT.kitchen*2,0,.047,0,'#75b69f');
+  const w=COURT.width,l=COURT.length,k=COURT.kitchen,t=COURT.line;
+  for(const x of [-w/2+t/2,w/2-t/2])this.box(t,.009,l,x,.06,0,'#f8f3d9');
+  for(const z of [-l/2+t/2,l/2-t/2])this.box(w,.009,t,0,.06,z,'#f8f3d9');
+  for(const sign of [-1,1]){this.box(w,.009,t,0,.06,sign*(k-t/2),'#f8f3d9');this.box(t,.009,l/2-k,0,.06,sign*(k+(l/2-k)/2),'#f8f3d9')}
+  this.net();this.environment();this.scene.add(this.trees.group);
+  const configs:[PlayerId,string,string][]=[['you','#f3dc86','YOU'],['partner','#d8ebb0','FINN'],['opponent-left','#ec8058','JULES'],['opponent-right','#c95f4d','RIO']];
+  for(const [id,color,label] of configs){const player=createAthlete(id,color);this.players.set(id,player);this.scene.add(player);const div=document.createElement('div');div.className='player-label '+(id==='you'?'is-you':'');div.dataset.name=label;div.textContent=label;host.append(div);this.labels.set(id,div)}
+  this.ball=createPickleball();this.scene.add(this.ball);
+  this.ballHalo=new THREE.Mesh(new THREE.SphereGeometry(.16,12,8),new THREE.MeshBasicMaterial({color:'#efff72',transparent:true,opacity:.035,depthWrite:false,blending:THREE.AdditiveBlending}));this.ballHalo.renderOrder=24;this.scene.add(this.ballHalo);
+  this.shadow=new THREE.Mesh(new THREE.CircleGeometry(.15,28),new THREE.MeshBasicMaterial({color:'#17362b',transparent:true,opacity:.34,depthWrite:false}));this.shadow.rotation.x=-Math.PI/2;this.scene.add(this.shadow);
+  const trailGeometry=new THREE.BufferGeometry();this.trail=new THREE.Line(trailGeometry,new THREE.LineDashedMaterial({color:'#efff70',transparent:true,opacity:.98,dashSize:.24,gapSize:.07,linewidth:2,depthTest:false}));this.trail.renderOrder=20;this.scene.add(this.trail);
+  this.trailDots=new THREE.Points(trailGeometry,new THREE.PointsMaterial({color:'#efff70',size:2.5,sizeAttenuation:false,transparent:true,opacity:.92,depthTest:false}));this.trailDots.renderOrder=21;this.trailDots.visible=false;this.scene.add(this.trailDots);
+  this.target=new THREE.Mesh(new THREE.RingGeometry(.28,.32,48),new THREE.MeshBasicMaterial({color:'#edff7f',side:THREE.DoubleSide}));this.target.rotation.x=-Math.PI/2;this.scene.add(this.target);
+  this.bounceRing.rotation.x=-Math.PI/2;this.scene.add(this.heightGuide,this.speedStreak,this.bounceRing);
+  new ResizeObserver(()=>this.resize()).observe(host);this.resize();
+ }
+ private box(w:number,h:number,d:number,x:number,y:number,z:number,color:string){const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color,roughness:1}));mesh.position.set(x,y,z);mesh.receiveShadow=true;this.scene.add(mesh);return mesh}
+ private net(){
+  const points:THREE.Vector3[]=[];const top=(x:number)=>COURT.netCenter+(COURT.netSideline-COURT.netCenter)*(x/(COURT.width/2))**2;
+  for(let x=-COURT.netWidth/2;x<=COURT.netWidth/2;x+=.11)points.push(new THREE.Vector3(x,.05,0),new THREE.Vector3(x,top(x),0));
+  for(let y=.09;y<.87;y+=.09)points.push(new THREE.Vector3(-COURT.netWidth/2,y,0),new THREE.Vector3(COURT.netWidth/2,y,0));
+  this.scene.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(points),new THREE.LineBasicMaterial({color:'#244539',transparent:true,opacity:.8})));
+  const curve=new THREE.CatmullRomCurve3(Array.from({length:41},(_,i)=>{const x=-COURT.netWidth/2+i*COURT.netWidth/40;return new THREE.Vector3(x,top(x),0)}));this.scene.add(new THREE.Mesh(new THREE.TubeGeometry(curve,40,.021,6,false),new THREE.MeshStandardMaterial({color:'#fff9e0'})));
+  for(const x of [-COURT.netWidth/2,COURT.netWidth/2]){
+   const post=new THREE.Mesh(new THREE.CylinderGeometry(.044,.052,1.03,20),new THREE.MeshStandardMaterial({color:'#203e33',metalness:.5,roughness:.45}));post.position.set(x,.515,0);post.castShadow=true;this.scene.add(post);
+   this.box(.19,.045,.24,x,.045,0,'#294c40');this.box(.10,.025,.10,x,1.035,0,'#bec6af');
+   this.box(.10,.035,.035,x+.055,.79,.025,'#7c9584');
+  }this.box(.032,COURT.netCenter,.015,0,COURT.netCenter/2,.01,'#fff9e0');
+ }
+ private environment(){
+  for(const x of [-4.6,4.6]){
+   // Slatted seats and backs, supported by a dark metal frame.
+   for(let i=0;i<4;i++)this.box(.115,.075,2.2,x-.225+i*.15,.49,-4.5,'#c7a77c').castShadow=true;
+   for(const z of [-5.3,-3.7]){
+    this.box(.07,.48,.07,x-.22,.24,z,'#365744');this.box(.07,.86,.07,x+.27,.43,z,'#365744');
+    this.box(.56,.06,.07,x,.38,z,'#365744');
+   }
+   for(const y of [.68,.83])this.box(.07,.105,2.2,x+.27,y,-4.5,'#c7a77c').castShadow=true;
+   const bottle=new THREE.Mesh(new THREE.CylinderGeometry(.046,.047,.21,16),new THREE.MeshStandardMaterial({color:x<0?'#e3b754':'#db7655',metalness:.3,roughness:.38}));
+   bottle.position.set(x,.64,-5.2);bottle.castShadow=true;this.scene.add(bottle);
+   this.box(.055,.035,.055,x,.76,-5.2,'#294b40');
+  }
+ }
+ setPlayerDesign(player:DesignedPlayer|null){
+  const old=this.players.get('you')!;const avatar=createAthlete('you','#f3dc86',player?.appearance);
+  avatar.position.copy(old.position);avatar.rotation.copy(old.rotation);this.scene.remove(old);disposeAthlete(old);
+  this.players.set('you',avatar);this.scene.add(avatar);this.motion.delete('you');
+  const label=this.labels.get('you')!;label.dataset.name=player?.name??'YOU';
+  label.classList.remove('is-thinking');label.removeAttribute('aria-label');label.textContent=label.dataset.name;
+ }
+ setCamera(distance:number){this.cameraDistance=Math.max(0,Math.min(100,distance));if(this.customizedView){const pose=this.cameraPose();const radius=pose.position.distanceTo(pose.look);const direction=this.camera.position.clone().sub(this.controls.target).normalize();this.camera.position.copy(this.controls.target).addScaledVector(direction,radius);this.controls.update()}else this.updateCamera()}
+ resetCamera(distance=50){this.cameraDistance=Math.max(0,Math.min(100,distance));this.customizedView=false;this.updateCamera()}
+ setGuides(value:boolean){this.guides=value}
+ setShotPreview(shot:RallyShot|null){this.previewShot=shot;this.lastShot=null}
+ private resize(){const w=this.host.clientWidth,h=this.host.clientHeight;if(!w||!h)return;this.renderer.setSize(w,h);this.camera.aspect=w/h;if(this.customizedView)this.camera.updateProjectionMatrix();else this.updateCamera()}
+ private cameraPose(){
+  const t=this.cameraDistance/100,aspect=this.camera.aspect;
+  // Close: behind the team, looking through the net toward the opponents.
+  // Far: gain height faster than distance for a downward tactical view.
+  const near=t<.5,u=near?t*2:(t-.5)*2;
+  const y=THREE.MathUtils.lerp(near?5.2:17.5,near?17.5:27.5,u);
+  const z=THREE.MathUtils.lerp(near?17.5:19.8,near?19.8:7.5,u);
+  const look=new THREE.Vector3(0,near?THREE.MathUtils.lerp(.6,0,u):0,near?THREE.MathUtils.lerp(-.5,.1,u):.1);
+  const position=new THREE.Vector3(0,y,z);
+  // Preserve the viewing angle when backing up to fit a narrow screen.
+  if(aspect<1.15)position.sub(look).multiplyScalar(1.15/aspect).add(look);
+  return {position,look};
+ }
+ private updateCamera(){
+  const {position,look}=this.cameraPose();this.camera.zoom=1.15;this.camera.position.copy(position);this.controls.target.copy(look);this.camera.lookAt(look);this.camera.updateProjectionMatrix();this.controls.update();
+ }
+ render(state:GameState,time:number,shot:RallyShot,serveCall:string|null=null){
+  const renderDt=this.previousRenderTime?Math.max(0,time-this.previousRenderTime):0;this.previousRenderTime=time;
+  if(state.simulationTime===0&&state.shotHistory.length===0)this.lastOpponentShot=null;
+  const actualShotByOpponent=state.players.find(player=>player.id===shot.actor)?.team==='away';
+  if(state.phase==='flight'&&actualShotByOpponent)this.lastOpponentShot=shot;
+  const retainedOpponentShot=state.phase==='decision'&&state.possession==='home'&&!this.previewShot?this.lastOpponentShot:null;
+  const displayShot=this.previewShot??retainedOpponentShot??shot;
+  const serving=serveCall!==null&&state.phase==='decision'&&shot.intent.type==='serve';
+  this.serveBubble.hidden=!serving;
+  if(serving){
+   const server=state.players.find(p=>p.id===shot.actor)!;
+   const point=new THREE.Vector3(server.position.x,2.7,server.position.z).project(this.camera);
+   const text=serveCall.replaceAll('–','-');
+   if(this.serveBubble.textContent!==text)this.serveBubble.textContent=text;
+   this.serveBubble.style.left=`${Math.max(45,Math.min(this.host.clientWidth-45,(point.x*.5+.5)*this.host.clientWidth))}px`;
+   this.serveBubble.style.top=`${Math.max(48,Math.min(this.host.clientHeight-20,(-point.y*.5+.5)*this.host.clientHeight))}px`;
+  }
+  for(const p of state.players){
+   const mesh=this.players.get(p.id)!;mesh.position.set(p.position.x,p.position.y,p.position.z);mesh.rotation.y=p.facing;setAthleteHandedness(mesh,p.handedness);
+   const previous=this.motion.get(p.id),step=previous?Math.hypot(p.position.x-previous.x,p.position.z-previous.z):0;
+   const advanced=!!previous&&state.simulationTime>previous.time;
+   const distance=previous&&state.simulationTime>=previous.time?previous.distance+(advanced&&step<1?step:0):0;
+   // Retain the last movement flag during a pause for a frozen, reproducible pose.
+   const moving=advanced?step>.0001&&step<1:previous?.time===state.simulationTime&&!!mesh.userData.moving;
+   mesh.userData.moving=state.simulationTime===0?false:moving;
+   const pose=athletePose(p,state,shot,distance,mesh.userData.moving);animateAthlete(mesh,pose);
+   this.motion.set(p.id,{x:p.position.x,z:p.position.z,distance,time:state.simulationTime});
+   this.labels.get(p.id)!.dataset.reaction=pose.reaction??'';
+   const projected=new THREE.Vector3(p.position.x,2.2,p.position.z).project(this.camera);const label=this.labels.get(p.id)!;const thinking=state.phase==='decision'&&state.currentHitter===p.id;if(thinking&&!label.classList.contains('is-thinking')){label.classList.add('is-thinking');label.setAttribute('aria-label',`${label.dataset.name} is thinking`);label.innerHTML='<i></i><i></i><i></i>'}else if(!thinking&&label.classList.contains('is-thinking')){label.classList.remove('is-thinking');label.removeAttribute('aria-label');label.textContent=label.dataset.name!}label.style.left=`${(projected.x*.5+.5)*this.host.clientWidth}px`;label.style.top=`${(-projected.y*.5+.5)*this.host.clientHeight}px`;
+  }
+  this.ball.position.set(state.ball.position.x,state.ball.position.y,state.ball.position.z);this.ballHalo.position.copy(this.ball.position);this.ballHalo.scale.setScalar(1);this.ball.rotation.x=state.simulationTime*3.2;this.ball.rotation.z=state.simulationTime*2.1;this.shadow.position.set(state.ball.position.x,.056,state.ball.position.z);const shadowScale=1+state.ball.position.y*.22;this.shadow.scale.setScalar(shadowScale);(this.shadow.material as THREE.MeshBasicMaterial).opacity=Math.max(.1,.36-state.ball.position.y*.055);
+  if(this.lastShot!==displayShot){this.lastShot=displayShot;const points=displayShot.legs.flatMap(leg=>Array.from({length:41},(_,i)=>{const p=sampleLeg(leg,i/40);return new THREE.Vector3(p.x,p.y,p.z)}));const geometry=new THREE.BufferGeometry().setFromPoints(points);this.trail.geometry.dispose();this.trail.geometry=geometry;this.trailDots.geometry=geometry;this.trail.computeLineDistances()}
+  const opponentShot=state.players.find(player=>player.id===displayShot.actor)?.team==='away';
+  (this.trail.material as THREE.LineDashedMaterial).color.set(opponentShot?'#ff3b32':'#efff58');const dots=this.trailDots.material as THREE.PointsMaterial;dots.color.set(opponentShot?'#ff3b32':'#efff70');dots.size=opponentShot?3.6:2.4;
+  const opponentThinking=state.phase==='decision'&&state.possession==='away';
+  const showingDecisionPath=!!this.previewShot||!!retainedOpponentShot;
+  this.trail.visible=this.guides&&!opponentThinking&&(state.phase==='flight'||showingDecisionPath);this.trailDots.visible=this.trail.visible;const destination=displayShot.aimPoint;this.target.rotation.x=destination.y>.1?0:-Math.PI/2;this.target.position.set(destination.x,Math.max(.058,destination.y),destination.z);this.target.visible=this.guides&&state.phase==='decision'&&!!this.previewShot;
+  if(!this.customizedView){const base=this.cameraPose().look,tracking=state.phase==='flight'?new THREE.Vector3(THREE.MathUtils.clamp(state.ball.position.x*.045,-.24,.24),0,THREE.MathUtils.clamp(state.ball.position.z*.025,-.3,.3)):new THREE.Vector3();const desired=base.add(tracking),delta=desired.clone().sub(this.controls.target).multiplyScalar(cameraBlend(state.paused?0:renderDt,this.reducedMotion.matches));this.controls.target.add(delta);this.camera.position.add(delta)}
+  this.controls.update();
+  const ballScale=ballDisplayScale(this.camera.position.distanceTo(this.ball.position),this.host.clientHeight,this.camera.fov,this.camera.zoom);
+  this.ball.scale.setScalar(ballScale);this.ball.position.y=Math.max(this.ball.position.y,.058+.092*ballScale);this.ballHalo.position.copy(this.ball.position);this.ballHalo.scale.setScalar(ballScale);
+  const height=this.heightGuide.geometry.attributes.position as THREE.BufferAttribute;
+  height.setXYZ(0,this.ball.position.x,.062,this.ball.position.z);height.setXYZ(1,this.ball.position.x,this.ball.position.y,this.ball.position.z);height.needsUpdate=true;this.heightGuide.geometry.computeBoundingSphere();
+  this.heightGuide.visible=this.guides&&state.phase==='flight'&&state.ball.position.y>.3;
+  const streak=this.speedStreak.geometry.attributes.position as THREE.BufferAttribute;
+  const velocity=state.ball.velocity;const speed=Math.hypot(velocity.x,velocity.y,velocity.z),duration=Math.min(.035,.5/Math.max(1,speed));
+  streak.setXYZ(0,this.ball.position.x,this.ball.position.y,this.ball.position.z);streak.setXYZ(1,this.ball.position.x-velocity.x*duration,Math.max(.06,this.ball.position.y-velocity.y*duration),this.ball.position.z-velocity.z*duration);streak.needsUpdate=true;this.speedStreak.geometry.computeBoundingSphere();
+  this.speedStreak.visible=this.guides&&state.phase==='flight'&&speed>7;
+  const bounce=[...state.rallyHistory].reverse().find(event=>event.type==='bounce');
+  const pulse=bounce?bouncePulse(state.simulationTime-bounce.time):null;
+  this.bounceRing.visible=!!pulse;
+  if(pulse&&bounce?.type==='bounce'){this.bounceRing.position.set(bounce.position.x,.065,bounce.position.z);this.bounceRing.scale.setScalar(pulse.radius);this.bounceRing.material.opacity=pulse.opacity}
+  this.trees.update(this.camera,this.ball.position,[...this.players.values()].map(player=>player.position.clone().add(new THREE.Vector3(0,1,0))));this.renderer.render(this.scene,this.camera);
+ }
+}

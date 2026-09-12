@@ -1,0 +1,10 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {ShotLab,labSetup} from '../src/shot-lab';
+import {contactDifficulty} from '../src/engine/difficulty';
+import {ARCHETYPES} from '../src/engine/player-profiles';
+import {Match} from '../src/match';
+test('62 versus 92 comparison keeps intent and improves execution spread',()=>{const lab=new ShotLab();lab.select('drop','typical');assert.equal(lab.comparison.length,2);assert.ok(lab.comparison[1].quality>lab.comparison[0].quality);assert.ok(lab.comparison[1].dispersion<lab.comparison[0].dispersion);});
+test('contact difficulty responds to stretch, backward movement and low backhand on both ends',()=>{const lab=new ShotLab(),p=lab.state.players[0],c=labSetup('drive').context;const base=contactDifficulty(c,p);assert.ok(contactDifficulty({...c,feet:{...c.feet,x:-1}},p).penalty>base.penalty);assert.ok(contactDifficulty({...c,movementZ:2},p).penalty>base.penalty);const low={...c,contact:{...c.contact,y:.3},feet:{...c.feet,x:1.7}};assert.ok(contactDifficulty(low,p).labels.includes('Low backhand'));p.handedness='left';assert.ok(!contactDifficulty(low,p).labels.includes('Low backhand'));});
+test('archetypes affect match players and persist across restart without auto home shots',()=>{for(const key of Object.keys(ARCHETYPES) as (keyof typeof ARCHETYPES)[]){const m=new Match();m.lineup.partner=key;m.reset();assert.deepEqual(m.state.players[1].skills,ARCHETYPES[key].skills);assert.equal(m.state.phase,'decision');}});
+test('difficulty previews preserve legal context or show unavailable',()=>{for(const preset of ['comfortable','stretched','backhand','backward','feet']){const lab=new ShotLab();lab.difficultyPreset=preset;lab.select('drop','typical');assert.equal(lab.issue,null);assert.ok(lab.comparison.length);lab.play();lab.update(10);assert.equal(lab.state.phase,'complete')}});

@@ -1,0 +1,271 @@
+Phase 1 — Turn the 5-shot prototype into a real rally engine
+1. Replace the scripted sequence with a reusable rally state machine
+   - serve
+   - return
+   - third
+   - fourth
+   - transition
+   - kitchen exchange
+   - attack/counter/reset
+   - point end
+2. Create a canonical game-state object
+   - ball position / height / velocity
+   - four player positions
+   - player facing / handedness
+   - score
+   - current hitter
+   - team possession
+   - rally history
+   - shot history
+   - player skills
+   - opponent tendencies
+3. Create a canonical shot-intent object
+   Every input method should eventually resolve to this:
+   - shot type
+   - target player / target zone
+   - pace
+   - trajectory / shape
+   - tactical intent
+   - aggression level
+4. Build basic shot families
+   - serve
+   - drive
+   - drop
+   - dink
+   - volley
+   - reset
+   - lob
+   - overhead
+   - counter
+5. Build targeting
+   - middle
+   - crosscourt
+   - line
+   - wide
+   - body
+   - feet
+   - backhand side
+   - open court
+6. Make trajectories generated from shot intent instead of hard-coded animation paths
+7. Add execution variance
+   Separate:
+   - tactical choice
+   - execution quality
+   Execution should depend on:
+   - player skill
+   - ball difficulty
+   - contact height
+   - movement/balance
+   - fatigue later
+   - controlled randomness
+Phase 2 — Make a complete playable point
+8. Automatic positioning between contacts
+   No manual positioning decisions yet.
+9. Opponent shot selection
+   Start rule-based if needed before LLM integration.
+10. Contextual decision menus
+       Only show sensible shots for the current situation.
+11. Skip uninteresting decisions
+       Let obvious neutral exchanges animate automatically.
+12. Point-ending logic
+    - winner
+    - net
+    - out
+    - double bounce
+    - failed return
+    - unreturned attack
+13. Real pickleball scoring
+    - doubles serve rotation
+    - server numbers
+    - side-out scoring
+    - game to 11 / win by 2
+14. Play a full game against one generic opponent team
+That is probably the next major milestone:
+I can play an unscripted game of pickleball entirely by making tactical shot decisions.
+
+Phase 3 — Player skill system
+15. Create initial player ratings
+       Keep the first version compact:
+    - serve
+    - return
+    - drive
+    - drop
+    - dink
+    - reset
+    - volley
+    - counter
+    - overhead
+    - movement
+    - hands
+16. Make ratings visibly matter
+       A 92 drop player and a 62 drop player should create noticeably different outcomes.
+17. Add shot difficulty
+       Same character should perform differently on:
+    - comfortable forehand
+    - stretched forehand
+    - low backhand
+    - moving backward
+    - transition ball at feet
+18. Add player archetypes
+    - attacker
+    - right-side setup player
+    - grinder
+    - all-court
+    - defensive/reset specialist
+19. Add partner skill and tendencies
+       Partner should not feel like an extension of the user.
+Phase 4 — LLM opponent brain
+20. Define the structured tactical snapshot sent to the LLM
+21. Have the LLM choose opponent intent
+       The LLM chooses what it wants to do.
+       The simulation determines whether it succeeds.
+22. Never allow the LLM to alter physical game state directly
+23. Add short-term match memory
+       Opponents recognize:
+    - repeated drives
+    - preferred targets
+    - weak backhand
+    - frequent speed-ups
+    - aggressive crashing
+    - predictable patterns
+24. Let opponents adapt during the match
+25. Create opponent personalities
+       Examples:
+    - Banger
+    - Grinder
+    - Technician
+    - Gambler
+    - Wall
+    - Chess Player
+26. Vary tactical intelligence independently from physical skill
+This is when the game should start feeling like:
+I’m playing pickleball against ChatGPT.
+
+Phase 5 — Pattern-rep game design
+27. Create a pattern library
+       Examples:
+    - pressure middle → weak block → finish
+    - third-shot drive → fifth-shot drop
+    - pull opponent wide → attack gap
+    - dink behind middle-shading player
+    - attack high ball / reset low ball
+    - target weak backhand
+    - counter aggressive speed-up
+    - one-up/one-back exploitation
+28. Generate variations of the same pattern
+       Do not repeat identical setups.
+29. Add guided practice mode
+       The current prototype is already essentially the first version of this.
+30. Add free-play mode
+       No declared lesson. Patterns emerge naturally.
+31. Track pattern exposure
+       Not just wins/losses:
+    - situations encountered
+    - choices made
+    - recurring tactical mistakes
+    - successful recognitions
+32. Add lightweight post-point feedback
+       Keep it short:
+    - Good choice
+    - Risky
+    - Better target available
+    - Correct idea, poor execution
+33. Add optional deeper replay analysis
+       Never force it during play.
+Phase 6 — Free-form shot selection
+34. Add text command input
+Example:
+“Body bag the right player with a hard drive.”
+
+35. LLM parses free-form language into shot intent
+36. Support natural pickleball language
+    - rip it middle
+    - dink behind him
+    - jam her right hip
+    - drop to his backhand
+    - roll at her feet
+    - lob the left player
+37. Validate commands against current game state
+       The player cannot magically overhead an ankle-high ball.
+38. Handle impossible commands gracefully
+       Infer closest valid intent or explain briefly.
+39. Allow menu + custom input simultaneously
+       Menus remain the fast default.
+       Free-form is the creative escape hatch.
+40. Learn frequently used custom tactics
+       Eventually surface them as quick actions.
+Phase 7 — Voice-only mode
+41. Speech-to-intent input
+42. Make voice commands fast enough that they don’t break rally flow
+43. Support concise commands
+    - “Drive middle.”
+    - “Drop crosscourt.”
+    - “Jam him.”
+    - “Reset.”
+44. Support richer commands
+    - “Hard drive at her right hip.”
+    - “Pull him wide and keep it soft.”
+45. Add voice communication with your AI partner
+    - “Target her backhand.”
+    - “Crash when I drive.”
+    - “Stop speeding up at him.”
+46. Eventually support near-zero-UI voice mode
+       Court + score + rally + voice.
+Phase 8 — Improve the 3D representation
+47. Tune court dimensions and player scale until they feel unquestionably right
+48. Tune tactical camera
+       Probably more important than character art.
+49. Improve ball readability
+    - arc
+    - bounce
+    - height
+    - speed
+    - shadows
+    - trajectory visibility
+50. Add subtle camera behavior
+       Small reframing only.
+       Never disorient the player.
+51. Replace placeholders with stylized low-poly/cartoon athletes
+52. Improve basic swing animations
+       Prioritize readability over realism.
+53. Add recognizable reactions
+    - jammed
+    - stretched
+    - late
+    - pop-up
+    - overhead finish
+54. Add simple environments
+       Do not overbuild venues.
+Phase 9 — RPG / progression layer
+Only after the core strategy game is genuinely fun.
+55. Player creation / roster
+56. Skill progression
+57. Different partners
+58. Opponent teams
+59. Tournament ladder
+60. Unlock harder tactical patterns
+61. Player strengths/weaknesses
+62. Stamina/fatigue
+63. Scouting
+64. Longer-term tendencies and style development
+What I would tell Codex not to build yet
+Do not prioritize:
+- photorealistic graphics
+- sophisticated physical paddle collision
+- motion capture
+- equipment simulation
+- large environments
+- crowds
+- cosmetics
+- multiplayer
+- manual player movement
+- complex RPG inventory
+- character creator
+- dozens of stats
+- advanced positioning controls
+Those are all downstream.
+The next three milestones should be:
+Milestone 1: Turn the existing scripted 5-shot sequence into a reusable shot/rally engine.
+Milestone 2: Play one complete unscripted point using contextual decisions.
+Milestone 3: Play a complete game against an AI opponent whose decisions respond to the tactical state.
+Once those three work, you have the actual game. Everything after that makes it deeper or prettier.

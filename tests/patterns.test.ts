@@ -1,0 +1,7 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {Match} from '../src/match';
+import {PATTERNS,assessChoice} from '../src/engine/patterns';
+test('all pattern setups vary and offer live legal user decisions',()=>{for(const p of PATTERNS){const m=new Match();m.startPractice(p.id);assert.equal(m.state.phase,'decision');assert.ok(m.availableIntents.length);const before={...m.state.ball.position};m.startPractice(p.id);assert.notDeepEqual(m.state.ball.position,before);assert.equal(m.state.bounces,2)}});
+test('practice plays to a real result without score changes and retains choices/replay',()=>{for(const p of PATTERNS){const m=new Match();m.startPractice(p.id);for(let i=0;i<20000&&m.state.phase!=='complete';i++){if(m.state.phase==='decision'&&m.state.possession==='home')m.submitIntent(m.availableIntents[0]);m.update(.2)}assert.equal(m.state.phase,'complete',p.id);assert.deepEqual(m.scoring.score,{home:0,away:0});assert.ok(m.records.length);assert.ok(m.replayFrames.length);assert.equal(m.replayFrames.length,m.replayShots.length);const before=m.snapshot();m.replayIndex=0;m.update(10);assert.deepEqual(m.snapshot(),before);m.nextPoint();assert.equal(m.replayIndex,null);assert.ok(m.records.length)}});
+test('feedback uses contact/intent not winner and free play records patterns',()=>{const m=new Match();const state=m.snapshot();state.ball.position.y=.3;assert.equal(assessChoice(state,{...m.availableIntents[0],type:'drive'},'height').label,'Risky');m.submitIntent(m.availableIntents[0]);assert.ok(m.records.length);});

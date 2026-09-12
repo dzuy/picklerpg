@@ -1,0 +1,23 @@
+{
+  "art/characters/riley/riley.blend": "6f695794948d40858ca6c7ea9e9acdb1749040b8c6e4ea7d174093fbaa21e2ab",
+  "art/characters/riley/README.md": "86da45266fa9d6fd7743afa5fc77ed1c63640027b015c0ba4e05ceac67a113d7",
+  "art/characters/riley/build_riley.py": "86196cde25d4807433ab60ae106af73207f3870d7f0ba7beb5244ff2a348730a",
+  "art/characters/riley/validate.mjs": "27727fff83c9e54b2f6f9d47c07b80ff41663f6d32aee3499883ddabc80df223",
+  "art/characters/riley/asset-report.json": "9029f454d14075c87997c618b8a7608bfd7171476a8ca819a7c516f1abdec9ac",
+  "art/characters/riley/export-validation.json": "0035276239c34d952603bfbb631cc745f1290ffb500e9f546c7ecc2f1d8e20d8",
+  "art/characters/riley/reference.png": "1a07c0f4abedb00a92d454e3d082cf6c97b49bdcd53c1a448d2ca50091691e42",
+  "art/characters/riley/previews/back.png": "f6f6b86226cad3cfada622351063d792c2074ac7a66d73661fcb9daad5b65dd1",
+  "art/characters/riley/previews/front.png": "ffdbad0cd7be4195ec07767a6dd44cf1bb6a62a8622af724fefb2dbcd4aea4a6",
+  "art/characters/riley/previews/rig-forehand-check.png": "262f1aaf028b03b031169a93b82003ef1e33954d51c8d688ec12c2a8233770ab",
+  "art/characters/riley/previews/rig-overhead-check.png": "af1fe5ab5b8080595a9a9cea71420931af120fa1b23a97f60be56f408ecd49b6",
+  "art/characters/riley/previews/rig-ready-check.png": "d5134ee526779bbc34720834601f250cad40456b491c8e4dc65bc265a7087486",
+  "art/characters/riley/previews/rig-shuffle-check.png": "7aec14b30dae079d7d2a2057a90d9f891467f7c2456da87d2a41582ca83b9f30",
+  "art/characters/riley/previews/side.png": "53eed9800cb9de686395cc1abf06b3d977187181516e2a54e097a42d430aa939",
+  "art/characters/riley/previews/tactical.png": "afc67125aeb3dd5d04e649bc3e205c1b6ecfbacbf622dd3ad83e7aa84a68561c",
+  "art/characters/riley/previews/three-quarter.png": "7ee32b5a8b980301ad4421aa30ea52aff344adcc0b4cb3b3ade448eaabcd8afc",
+  "public/models/riley/glasses.glb": "cc70b7b8b841e07ef20182ced4376ae166099d0212509615e27e5e37c8ee6b1b",
+  "public/models/riley/hat_visor.glb": "7ff3e95406afcdd973a3a8f911b21ce4a116a655606057edff01c89d75fc7c4e",
+  "public/models/riley/riley.glb": "6115e95d758c3657e91f66496b889a00f62a2b539c4dc308cdff0362b4c2fdb8",
+  "riley-review.html": "4430d686c392f32a81dfe689dad1f71fa72c40a724025f263cd95ec4e8ad511d",
+  "riley-sheet.html": "8f922efa58fd272b7270edb146dadfead1e933612332b47886de5d3b9a828f77"
+}

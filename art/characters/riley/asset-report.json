@@ -1,0 +1,127 @@
+{
+  "schema": "pickle-rpg.modular-player.v1",
+  "triangles": 10988,
+  "paddle_triangles": 224,
+  "bones": [
+    "root",
+    "pelvis",
+    "spine",
+    "chest",
+    "neck",
+    "head",
+    "ponytail",
+    "clavicle.L",
+    "upper_arm.L",
+    "forearm.L",
+    "hand.L",
+    "thigh.L",
+    "shin.L",
+    "foot.L",
+    "toe.L",
+    "clavicle.R",
+    "upper_arm.R",
+    "forearm.R",
+    "hand.R",
+    "thigh.R",
+    "shin.R",
+    "foot.R",
+    "toe.R",
+    "paddle_socket"
+  ],
+  "modules": [
+    {
+      "name": "body_base",
+      "slot": "body",
+      "triangles": 3984,
+      "materials": [
+        "MAT_skin"
+      ]
+    },
+    {
+      "name": "head_base",
+      "slot": "head_face",
+      "triangles": 3349,
+      "materials": [
+        "MAT_skin",
+        "MAT_inner_ear",
+        "MAT_ivory",
+        "MAT_eyes_brows",
+        "MAT_grip",
+        "MAT_mouth"
+      ]
+    },
+    {
+      "name": "eyebrows_01",
+      "slot": "eyebrows",
+      "triangles": 40,
+      "materials": [
+        "MAT_hair"
+      ]
+    },
+    {
+      "name": "hair_ponytail_01",
+      "slot": "hair",
+      "triangles": 842,
+      "materials": [
+        "MAT_hair",
+        "MAT_accessory"
+      ]
+    },
+    {
+      "name": "top_tank_01",
+      "slot": "top",
+      "triangles": 273,
+      "materials": [
+        "MAT_top",
+        "MAT_ivory"
+      ]
+    },
+    {
+      "name": "bottom_skort_01",
+      "slot": "bottom",
+      "triangles": 520,
+      "materials": [
+        "MAT_bottom",
+        "MAT_ivory"
+      ]
+    },
+    {
+      "name": "socks_01",
+      "slot": "socks",
+      "triangles": 472,
+      "materials": [
+        "MAT_ivory",
+        "MAT_accessory"
+      ]
+    },
+    {
+      "name": "shoes_01",
+      "slot": "shoes",
+      "triangles": 1196,
+      "materials": [
+        "MAT_ivory",
+        "MAT_sole",
+        "MAT_shoe_accent"
+      ]
+    },
+    {
+      "name": "wristbands_01",
+      "slot": "wrist_accessory",
+      "triangles": 88,
+      "materials": [
+        "MAT_accessory"
+      ]
+    },
+    {
+      "name": "paddle_01",
+      "slot": "paddle",
+      "triangles": 224,
+      "materials": [
+        "MAT_paddle_color",
+        "MAT_paddle_face",
+        "MAT_grip"
+      ]
+    }
+  ],
+  "unweighted_vertices": 0
+}
