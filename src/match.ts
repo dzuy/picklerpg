@@ -4,7 +4,7 @@ import {validatePlayer,type DesignedPlayer} from './player-design';
 import {resolveBodyServe} from './engine/serve-body';
 import {commandIntent,canParseInstantly,parseLocalCommand,requestsBounce,validateCommand,COMMAND_SCHEMA} from './engine/custom-command';
 import {PATTERNS,recognizePatterns,assessChoice,type PatternId,type PracticeRecord} from './engine/patterns';
-import {OpponentMemory,tacticalSnapshot,localDecision,requestStrategy,type OpponentStrategy,type Personality,type TacticalSnapshot} from './engine/opponent-brain';
+import {OpponentMemory,tacticalSnapshot,localDecision,intendedReceiver,type OpponentChoiceHistory,requestStrategy,type OpponentStrategy,type Personality,type TacticalSnapshot} from './engine/opponent-brain';
 import {PLAYER_PROFILES,ARCHETYPES} from './engine/player-profiles';
 import {RallyEngine,sampleLeg,sampleVelocity} from './engine/rally-engine';
 import {COURT,type FlightLeg,type PlayerState,type PlayerId,type RallyShot,type RallyProvider,type ShotIntent,type ShotType,type PointResult,type Vec3} from './engine/model';
@@ -135,7 +135,7 @@ export class Match {
  }
  previewIntent(intent:unknown){return this.engine.previewIntent(intent)}
  snapshot(){return this.engine.snapshot()}
- reset(){this.stopReplay();this.gameReplay=[];this.customPreview=null;this.customBusy=false;this.customStatus='';this.queuedReceptionIntent=null;this.queuedReceptionShot=null;this.request?.abort();this.request=null;this.strategy=undefined;this.strategyPoint=-1;this.generation++;this.thinking=false;this.memory=new OpponentMemory();this.observed=0;this.scoring=new DoublesScore();this.point=0;this.lastResult=null;this.startPoint()}
+ reset(){this.opponentChoices=[];this.stopReplay();this.gameReplay=[];this.customPreview=null;this.customBusy=false;this.customStatus='';this.queuedReceptionIntent=null;this.queuedReceptionShot=null;this.request?.abort();this.request=null;this.strategy=undefined;this.strategyPoint=-1;this.generation++;this.thinking=false;this.memory=new OpponentMemory();this.observed=0;this.scoring=new DoublesScore();this.point=0;this.lastResult=null;this.startPoint()}
  nextPoint(){if(this.state.phase!=='complete'||this.scoring.winner)throw new Error('Finish the current point first.');this.point++;this.variation++;this.startPoint()}
  submitIntent(intent:unknown){const before=this.snapshot(),actualShotIndex=before.shotIndex;if(this.practice)before.shotIndex+=before.shotHistory.length?2:0;this.engine.submitIntent(intent);if(before.possession==='home'){const selected=this.shot.intent;for(const pattern of this.practice?[this.practice]:recognizePatterns(before)){const assessment=assessChoice(before,selected,pattern);const row={pattern,...assessment,intent:structuredClone(selected),shotIndex:actualShotIndex};this.records.push(row);this.pointRecords.push(row)}this.records=this.records.slice(-500)}}
  startPractice(id:PatternId|null){this.practice=id;this.variation++;this.reset()}
@@ -258,9 +258,11 @@ export class Match {
    this.brainStatus=this.strategy?`Keeping strategy · ${this.strategy.name}`:'Local fallback · strategy unavailable';
   }).finally(()=>{clearTimeout(timer);if(this.request===controller)this.request=null;});
  }
+ private opponentChoices:OpponentChoiceHistory[]=[];
  private decideOpponent(){
   const snapshot=tacticalSnapshot(this.state,this.availableIntents,this.memory,this.personality,this.intelligence);this.lastSnapshot=snapshot;
-  const choice=localDecision(snapshot,this.brainMode==='llm'?this.strategy:undefined);
+  const choice=localDecision(snapshot,this.brainMode==='llm'?this.strategy:undefined,{seed:(this.seed+this.point*104729+this.state.shotIndex*7919)>>>0,recent:this.opponentChoices});
+  const intent=snapshot.options[choice];this.opponentChoices.push({intent:structuredClone(intent),receiver:intendedReceiver(snapshot,intent)});this.opponentChoices=this.opponentChoices.slice(-8);
   this.engine.submitIntent({...snapshot.options[choice],source:'ai'});
  }
  private decidePartner(){
@@ -328,7 +330,7 @@ export class Match {
    ];
    return choice.intent.type==='serve'?[choice]:[choice,{intent:{...choice.intent,target:{kind:'zone' as const,zone:'wide' as const,depth:['drop','reset','dink','block'].includes(choice.intent.type)?'kitchen' as const:'deep' as const}},reason:choice.reason+' Aim wider to move the defenders.'}];
   });
-  if(hitter.team==='home'&&!choices.some(choice=>choice.intent.type==='serve')){
+  if(!choices.some(choice=>choice.intent.type==='serve')){
    const zones=['middle','crosscourt','line','open-court'] as const;
    for(const choice of choices){
     const depth=['drop','reset','dink','block'].includes(choice.intent.type)?'kitchen' as const:'deep' as const;

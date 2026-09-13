@@ -39,3 +39,23 @@ test('background strategy biases legal choices without changing execution skills
  const before=structuredClone(snapshot);
  assert.equal(localDecision(snapshot,STRATEGIES[0]),0);assert.equal(localDecision(snapshot,STRATEGIES[3]),1);assert.deepEqual(snapshot,before);
 });
+
+test('local opponents vary shot families and defenders while remaining seed reproducible',async()=>{
+ const {intendedReceiver}=await import('../src/engine/opponent-brain');
+ const m=new Match(),base={...m.availableIntents[0],actor:'opponent-left' as const};
+ const options=(['dink','drop'] as const).flatMap(type=>(['you','partner'] as const).map(playerId=>({...base,type,target:{kind:'player' as const,playerId,aim:'feet' as const}})));
+ const snapshot=tacticalSnapshot(m.state,options,m.memory,'Technician',.8);
+ function run(){const recent:{intent:typeof options[number];receiver:string|null}[]=[],chosen:number[]=[];for(let i=0;i<120;i++){const choice=localDecision(snapshot,undefined,{seed:1741+i*7919,recent});chosen.push(choice);recent.push({intent:options[choice],receiver:intendedReceiver(snapshot,options[choice])});if(recent.length>8)recent.shift()}return chosen}
+ const choices=run();assert.deepEqual(choices,run());assert.equal(new Set(choices).size,4);
+ const partner=choices.filter(i=>options[i].target.playerId==='partner').length;assert.ok(partner>35&&partner<85,`partner received ${partner}/120`);
+ const drops=choices.filter(i=>options[i].type==='drop').length;assert.ok(drops>30&&drops<90);
+ const repeated=Array.from({length:8},()=>({intent:options[0],receiver:'you'}));
+ for(let seed=0;seed<100;seed++)assert.notEqual(localDecision(snapshot,undefined,{seed,recent:repeated}),0,'breaks an entrenched identical-shot pattern');
+});
+
+test('variation retains forced shots and clear tactical finish opportunities',()=>{
+ const m=new Match(),base=m.availableIntents[0];
+ const snapshot=tacticalSnapshot(m.state,[{...base,type:'overhead'},{...base,type:'dink'}],m.memory,'Banger',.8);snapshot.ball.position.y=2.2;
+ for(let seed=0;seed<100;seed++)assert.equal(localDecision(snapshot,undefined,{seed,recent:[]}),0);
+ const only={...snapshot,options:[base]};assert.equal(localDecision(only,undefined,{seed:99,recent:Array.from({length:8},()=>({intent:base,receiver:'partner'}))}),0);
+});

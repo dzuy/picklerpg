@@ -106,7 +106,8 @@ test('every playable incoming rally shot pauses at the net and accepts a queued 
   if(m.state.phase==='decision')m.submitIntent(m.availableIntents[0]);m.update(.05);if(m.state.phase==='complete'&&!m.scoring.winner)m.nextPoint();
  }
  assert.equal(found,true);assert.ok(Math.abs(m.state.ball.position.z)<1e-9);assert.equal(m.state.paused,true);
- const command=m.canLetBounce?'let it bounce then dink far left':'volley far left';await m.queueReceptionCommand(command);
+ const soft=m.receptionOptions.some(option=>option.timing==='bounce'&&option.intent.type==='dink')?'dink':'drop';
+ const command=m.canLetBounce?`let it bounce then ${soft} far left`:'volley far left';await m.queueReceptionCommand(command);
  let exposedSecondDecision=false;for(let frame=0;frame<2000&&!m.state.shotHistory.some(intent=>intent.source==='text');frame++){m.update(.02);if(m.state.phase==='decision')exposedSecondDecision=true;await Promise.resolve()}
  const shot=m.state.shotHistory.find(intent=>intent.source==='text');assert.ok(shot);assert.equal(shot.target.kind,'zone');if(shot.target.kind==='zone')assert.equal(shot.target.zone,'far-left');
  assert.equal(exposedSecondDecision,false);

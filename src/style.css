@@ -509,3 +509,24 @@ body .shot-panel-expand[hidden]{display:none!important}
 .game-end-rule{font-size:10px;color:#718268;margin:17px 0 28px;letter-spacing:1.2px}
 .game-end-actions{display:flex;gap:12px}.game-end-actions button{flex:1;border:1px solid #9aaf86;border-radius:12px;background:transparent;color:#244f43;padding:17px 12px;font:inherit;font-weight:750;cursor:pointer}#game-end-new{background:#244f43;color:#fff;border-color:#244f43}.game-end-actions button:focus-visible{outline:3px solid #90af63;outline-offset:4px}.game-end-actions button:disabled{opacity:.4;cursor:default}
 @media(max-width:500px){.game-end-card{padding:27px 19px}.game-end-emblem{font-size:42px;margin:12px 0}.game-end-subtitle{font-size:12px}.game-end-score div>span{font-size:13px}.game-end-actions{flex-direction:column-reverse}.game-end-actions button{min-height:52px}}
+
+/* Portrait artwork and touch-friendly image controls for the main menu. */
+body[data-screen=start] #app{display:none!important}
+#start-screen[hidden]{display:none!important}
+body[data-screen=start]{overflow:hidden;background:#001331}
+#start-screen{position:relative;isolation:isolate;display:flex;justify-content:center;width:100%;height:100dvh;min-height:0;max-width:none;padding:0;overflow:clip;background:#001331}
+#start-screen::before{content:'';position:absolute;inset:-40px;z-index:-1;background:linear-gradient(#00133166,#001331bb),url('/images/start/background.png') center/cover;filter:blur(28px)}
+.start-stage{position:relative;width:min(100%,56.28dvh);height:100%;background:#00183f;box-shadow:0 0 70px #0007}
+.start-background{display:block;width:100%;height:auto;max-height:100%;object-fit:contain;object-position:top;pointer-events:none;user-select:none;mask-image:linear-gradient(#000 82%,transparent 100%)}
+.start-accessible-title{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.start-actions{position:absolute;left:11%;right:11%;bottom:max(5%,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:clamp(40px,8dvh,72px)}
+.start-actions button{display:block;width:100%;min-height:44px;margin:0;padding:0;border:0;border-radius:14px;background:transparent;cursor:pointer;touch-action:manipulation;transition:transform .15s ease,filter .15s ease;-webkit-tap-highlight-color:transparent}
+#start-roster{width:84%;align-self:center;position:relative;top:clamp(-48px,-5dvh,-24px)}
+.start-actions img{display:block;width:100%;height:auto;user-select:none;filter:drop-shadow(0 5px 8px #00133180)}
+.start-actions button:focus-visible{outline:3px solid #dfff35;outline-offset:5px}
+@media(hover:hover){.start-actions button:hover{transform:scale(1.035);filter:brightness(1.1)}}
+.start-actions button:active{transform:scale(.96)}
+.start-actions button:disabled{opacity:.5;cursor:wait}
+.start-loading{position:absolute;bottom:1%;left:0;right:0;margin:0;text-align:center;color:white;font-size:12px;text-shadow:0 2px 4px #001331}
+.start-loading:empty{display:none}
+@media(prefers-reduced-motion:reduce){.start-actions button{transition:none}}

@@ -1,3 +1,4 @@
+import {MatchSetup} from './match-setup';
 import {randomLineup} from './random-lineup';
 import {describePointResult} from './point-result';
 import {choiceCopy} from './shot-choice';
@@ -21,6 +22,12 @@ import './style.css';
 import {CourtScene} from './scene';
 import {preloadAthletes} from './athlete';
 const app=document.querySelector<HTMLDivElement>('#app')!;
+let onStartScreen=true;
+document.body.dataset.screen='start';
+const startScreen=document.createElement('main');startScreen.id='start-screen';startScreen.setAttribute('aria-labelledby','start-title');
+startScreen.innerHTML=`<h1 id="start-title" class="start-accessible-title">PickleBash</h1><div class="start-stage"><img class="start-background" src="/images/start/background.png" alt="" fetchpriority="high"><nav class="start-actions" aria-label="Main menu"><button id="start-new-game" aria-label="Start Game" disabled><img src="/images/start/start.png" alt="" draggable="false"></button><button id="start-roster" aria-label="Roster" disabled><img src="/images/start/roster.png" alt="" draggable="false"></button></nav><p class="start-loading" role="status">Getting the court ready…</p></div>`;
+document.body.append(startScreen);
+
 app.innerHTML=`
 <header class="header"><a class="brand" href="/" aria-label="Pickle RPG home"><span class="brand-ball">⠿</span> PICKLE<span>RPG</span></a><button id="open-settings" class="header-icon" aria-label="Settings" title="Settings" aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9.2 3-.6 2.2-1.5.9L4.9 6 2.8 9.6l1.6 1.6v1.7l-1.6 1.6 2.1 3.6 2.2-.2 1.5.9.6 2.2h4.2l.6-2.2 1.5-.9 2.2.2 2.1-3.6-1.6-1.6v-1.7l1.6-1.6L17.7 6l-2.2.1-1.5-.9-.6-2.2Z"/><circle cx="11.3" cy="12" r="3"/></svg></button></header>
 <main><section class="play-section">
@@ -127,6 +134,7 @@ function syncVoice(){
 const creator=new PlayerCreator(player=>{
  match.practice=null;match.setPlayerDesign(player);scene.setPlayerDesign(player);
  syncRosterNames();
+ if(onStartScreen)showMatchSetup();
  lastUI='';updateUI();
 },id=>{for(const slot of courtSlots)if(match.getPlayerDesign(slot)?.id===id){match.substitutePlayer(slot,null);scene.substitutePlayer(slot,null)}syncRosterNames()});
 // Lift the court framing above the decision dock without changing the user's orbit.
@@ -270,7 +278,7 @@ function saveControls(){try{localStorage.setItem('pickle-rpg-controls-v1',JSON.s
 scene.setCamera(100-cameraDistance);
 byId('guides').addEventListener('change',e=>{guides=(e.target as HTMLInputElement).checked;byId('guides-state').textContent=guides?'On':'Off';scene.setGuides(guides);saveControls()});
 byId('partner-autonomy').addEventListener('change',e=>{match.partnerAutonomy=(e.target as HTMLInputElement).checked;byId('partner-autonomy-state').textContent=match.partnerAutonomy?'On':'Off';lastUI='';saveControls();updateUI()});
-document.addEventListener('keydown',event=>{if(settingsDialog.open||creator.dialog.open||gameEnd.open)return;if(match.replayIndex!==null){if(event.key==='Escape'){event.preventDefault();closeReplay()}else if(event.code==='Space'&&!(event.target instanceof HTMLElement&&event.target.closest('button,input'))){event.preventDefault();match.replayPlaying?match.pauseReplay():match.resumeReplay()}return;}if(event.target instanceof HTMLElement&&event.target.closest('button, input, select, textarea, a'))return;if(event.code==='Space'){event.preventDefault();match.state.phase==='decision'?submit():match.state.phase==='complete'?(!match.scoring.winner?(match.nextPoint(),lastUI='',updateUI()):reset()):pause()}if(event.key.toLowerCase()==='r')reset()});
+document.addEventListener('keydown',event=>{if(onStartScreen||settingsDialog.open||creator.dialog.open||gameEnd.open)return;if(match.replayIndex!==null){if(event.key==='Escape'){event.preventDefault();closeReplay()}else if(event.code==='Space'&&!(event.target instanceof HTMLElement&&event.target.closest('button,input'))){event.preventDefault();match.replayPlaying?match.pauseReplay():match.resumeReplay()}return;}if(event.target instanceof HTMLElement&&event.target.closest('button, input, select, textarea, a'))return;if(event.code==='Space'){event.preventDefault();match.state.phase==='decision'?submit():match.state.phase==='complete'?(!match.scoring.winner?(match.nextPoint(),lastUI='',updateUI()):reset()):pause()}if(event.key.toLowerCase()==='r')reset()});
 function updateUI(){updateMatchUI()}
 
 function choiceButton(intent:ShotIntent,index:number){const copy=choiceCopy(intent);return `<button class="shot-button match-choice" data-choice="${index}" data-traits="${shotTraits(intent)}">${shotIcon(intent,index)}<span><strong>${copy.name}</strong><span class="choice-target">${copy.detail}</span>${match.shot.actor==='partner'&&match.recommendationType===intent.type?'<small>Finn recommends</small>':''}</span><span aria-hidden="true">↗</span></button>`}
@@ -368,10 +376,10 @@ const gameEnd=document.createElement('dialog');gameEnd.id='game-end';gameEnd.set
 gameEnd.innerHTML=`<div class="game-end-card"><div class="game-end-kicker">GARDEN COURT · GAME COMPLETE</div><div class="game-end-emblem" aria-hidden="true">✦</div><p class="game-end-label">THE WINNERS</p><h1 id="game-end-title"></h1><p class="game-end-subtitle">A game worth playing. A win worth celebrating.</p><div class="game-end-score" aria-label="Final score"><div><strong id="game-end-home-score"></strong><span id="game-end-home-names"></span></div><span class="game-end-dash" aria-hidden="true">–</span><div><strong id="game-end-away-score"></strong><span id="game-end-away-names"></span></div></div><p class="game-end-rule">FINAL SCORE · FIRST TO 11, WIN BY 2</p><div class="game-end-actions"><button id="game-end-replay" type="button">▶ Full Game Replay</button><button id="game-end-new" type="button">New Game ↗</button></div></div>`;
 document.body.append(gameEnd);
 gameEnd.addEventListener('cancel',event=>event.preventDefault());
-byId('game-end-new').addEventListener('click',()=>{gameEnd.close();match.reset();showPanel('play');lastUI='';updateUI()});
+byId('game-end-new').addEventListener('click',()=>{gameEnd.close();showStartScreen()});
 byId('game-end-replay').addEventListener('click',()=>{gameEnd.close();match.startGameReplay();showPanel('play');lastUI='';updateUI();replayOverlay.hidden=false;byId('replay-position').focus()});
 function syncGameEnd(){
- const visible=!!match.scoring.winner&&match.replayIndex===null&&!creator.dialog.open&&!settingsDialog.open&&!playerDrawer.open;
+ const visible=!onStartScreen&&!!match.scoring.winner&&match.replayIndex===null&&!creator.dialog.open&&!settingsDialog.open&&!playerDrawer.open;
  if(!visible){if(gameEnd.open)gameEnd.close();return}
  const names=playerNames(),home=`${names.you} & ${names.partner}`,away=`${names['opponent-left']} & ${names['opponent-right']}`;
  byId('game-end-title').textContent=`${match.scoring.winner==='home'?home:away} win!`;
@@ -423,10 +431,33 @@ function syncPointResult(dt:number){
  if(resultElapsed>=10){resultExpired=true;banner.hidden=true;document.querySelector('.court-wrap')?.classList.remove('has-result');if(!match.scoring.winner)advancePoint()}
 }
 
+const matchup=new MatchSetup(players=>{
+ for(const slot of courtSlots){match.lineup[slot]=playerArchetype(players[slot]);match.substitutePlayer(slot,players[slot]);scene.substitutePlayer(slot,players[slot])}
+ syncRosterNames();matchup.hide();enterCourt();
+},()=>showStartScreen());
+function showMatchSetup(){
+ onStartScreen=true;document.body.dataset.screen='setup';app.inert=true;startScreen.hidden=true;targetPicker.sync(false);
+ matchup.show(creator.savedPlayers,courtSlots.map(slot=>match.getPlayerDesign(slot)));
+}
+function showStartScreen(){
+ matchup.hide();
+ voice.stop();voiceHandsFree=false;voiceHandsFreeInput.checked=false;match.stopReplay();
+ onStartScreen=true;document.body.dataset.screen='start';app.inert=true;startScreen.hidden=false;targetPicker.sync(false);byId('start-new-game').focus();
+}
+function enterCourt(fresh=true){
+ if(fresh){match.practice=null;reset()}
+ onStartScreen=false;document.body.dataset.screen='court';app.inert=false;startScreen.hidden=true;showPanel('play');lastUI='';updateUI();byId('open-settings').focus();
+}
+byId('start-new-game').addEventListener('click',showMatchSetup);
+byId('start-roster').addEventListener('click',()=>creator.open());
+document.querySelector('.brand')!.addEventListener('click',event=>{event.preventDefault();showStartScreen()});
+startScreen.querySelectorAll<HTMLButtonElement>('button').forEach(button=>button.disabled=false);
+startScreen.querySelector('.start-loading')!.textContent='';app.inert=true;
 updateUI();let previous:number|undefined;function frame(now:number){
+ if(onStartScreen){previous=now;requestAnimationFrame(frame);return}
  const realDt=previous===undefined?0:Math.max(0,Math.min((now-previous)/1000,.1)),dt=realDt*speed;if(!creator.dialog.open)match.update(match.replayPlaying?realDt:dt);previous=now;updateUI();syncPointResult(realDt);syncGameEnd();syncVoice();
  const replay=match.replayView();syncReplayUI(replay);scene.setGuides(guides&&!replay);scene.render(replay?.state??match.state,now/1000,replay?.shot??match.shot,!match.practice&&!replay?match.scoring.call:null);targetPicker.sync(document.body.dataset.panel==='play'&&!settingsDialog.open&&!creator.dialog.open);requestAnimationFrame(frame)
 }requestAnimationFrame(frame);
 // Optional browser-native tools use the exact same validated simulation entry point.
 const context=(document as Document & {modelContext?:{registerTool:(tool:unknown)=>Promise<void>|void}}).modelContext;
-if(context?.registerTool){for(const tool of [{name:'read_pickleball_state',description:'Read the current match and available shot intent.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true},execute:()=>structuredClone({match:{score:match.scoring,point:match.point},state:match.snapshot(),availableIntents:match.availableIntents})},{name:'play_pickleball_shot',description:'Submit a shot intent during a decision pause.',inputSchema:{type:'object',properties:{intent:SHOT_INTENT_SCHEMA},required:['intent'],additionalProperties:false},execute:(input:{intent:unknown})=>{if(match.state.possession!=='home')throw new Error('Opponent is choosing.');match.submitIntent(input.intent);updateUI();return structuredClone(match.state)}}]){try{Promise.resolve(context.registerTool(tool)).catch(console.warn)}catch(error){console.warn(error)}}}
+if(context?.registerTool){for(const tool of [{name:'read_pickleball_state',description:'Read the current match and available shot intent.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true},execute:()=>structuredClone({match:{score:match.scoring,point:match.point},state:match.snapshot(),availableIntents:match.availableIntents})},{name:'play_pickleball_shot',description:'Submit a shot intent during a decision pause.',inputSchema:{type:'object',properties:{intent:SHOT_INTENT_SCHEMA},required:['intent'],additionalProperties:false},execute:(input:{intent:unknown})=>{if(onStartScreen)throw new Error('Start a new game first.');if(match.state.possession!=='home')throw new Error('Opponent is choosing.');match.submitIntent(input.intent);updateUI();return structuredClone(match.state)}}]){try{Promise.resolve(context.registerTool(tool)).catch(console.warn)}catch(error){console.warn(error)}}}

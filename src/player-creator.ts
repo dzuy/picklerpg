@@ -145,6 +145,7 @@ export class PlayerCreator {
  }
  get savedPlayers(){return structuredClone(this.library.players)}
  get activePlayer(){const player=this.library.players.find(p=>p.id===this.library.activeId);return player?structuredClone(player):null}
+ createPlayer(){this.open();this.switchDraft(()=>{this.loadDraft(newPlayer());this.showEditor()})}
  editPlayer(player:DesignedPlayer|null){this.open();this.showEditor();if(player&&player.id!==this.draft.id)this.switchDraft(()=>this.loadDraft(player))}
  open(){if(!this.dialog.open)this.dialog.showModal();this.showRoster()}
 
