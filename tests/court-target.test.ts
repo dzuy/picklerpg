@@ -4,7 +4,7 @@ import {Match} from '../src/match';
 import {COURT} from '../src/engine/model';
 import {parseShotIntent} from '../src/engine/shot-intent';
 import {executeShot} from '../src/engine/execution';
-import {ShotLab,labSetup} from '../src/shot-lab';
+import {PreparedShotFixture,preparedContact} from './helpers/prepared-shot';
 
 test('exact court targets preserve sideline coordinates and pass through execution',()=>{
  const match=new Match();match.startPractice('middle');
@@ -25,7 +25,7 @@ test('target selection rejects own court, invalid coordinates and incompatible c
  match.playTargetShot('drop',{x:.42,z:-1.2});assert.throws(()=>match.targetShot('drop',{x:0,z:-2}),/contact/);
 });
 test('higher shot skill reduces average error around the same exact target',()=>{
- const lab=new ShotLab(),context=labSetup('drive').context;
+ const lab=new PreparedShotFixture(),context=preparedContact('drive').context;
  const intent={...lab.shot.intent,target:{kind:'point' as const,x:.37,z:-5.17}};
  const average=(skill:number)=>{lab.state.players[0].skills.drive=skill;let sum=0;for(let seed=0;seed<400;seed++){const shot=executeShot(intent,context,lab.state.players,{seed,balance:1});assert.deepEqual(shot.intended.aimPoint,{x:.37,y:.037,z:-5.17});sum+=shot.endpointError}return sum/400};
  assert.ok(average(95)<average(40)*.5);

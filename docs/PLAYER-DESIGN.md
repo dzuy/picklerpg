@@ -69,7 +69,7 @@ Detail refinement: replaced elliptical eyes with rounded rectangular pills, expo
 
 ### Modular wardrobe and reference presets
 
-The creator now offers eight reference-inspired starting looks: Ema, Leo, Maya,
+The creator now offers eight reference-inspired starting looks: Emma, Leo, Maya,
 Jax, Zoe, Cal, Rina, and Sam. Boy/girl styling chooses starting hair and clothing;
 all parts remain available for either style. Appearance presets do not alter skills.
 

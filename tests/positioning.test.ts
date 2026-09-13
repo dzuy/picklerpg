@@ -1,8 +1,10 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {planPositions,type PositioningContext} from '../src/engine/positioning';
-import {Simulation,COURT} from '../src/simulation';
-function setup():PositioningContext{const sim=new Simulation();return {players:sim.snapshot().players,intent:sim.availableIntents[0],endpoint:{x:-2,y:.75,z:-6},receiver:'opponent-left',completedShots:0,duration:1}}
+import {COURT} from '../src/engine/model';
+import {RallyEngine} from '../src/engine/rally-engine';
+import {pressureMiddle} from './helpers/pressure-middle';
+function setup():PositioningContext{const sim=new RallyEngine(pressureMiddle);return {players:sim.snapshot().players,intent:sim.availableIntents[0],endpoint:{x:-2,y:.75,z:-6},receiver:'opponent-left',completedShots:0,duration:1}}
 test('serve holds serving team deep and receiver prepares at the ball',()=>{
  const c=setup(),before=structuredClone(c),p=planPositions(c);
  assert.ok(p.you.z>=COURT.length/2);assert.ok(p.partner.z>=COURT.length/2);
@@ -25,10 +27,4 @@ test('volley receiver stays behind kitchen on either side',()=>{
  const c=setup();c.endpoint={x:1,y:1.3,z:-2};const away=planPositions(c);assert.ok(away['opponent-left'].z<=-COURT.kitchen-.2);
  c.intent.actor='opponent-left';c.receiver='you';c.endpoint.z=2;assert.ok(planPositions(c).you.z>=COURT.kitchen+.2);
  assert.throws(()=>planPositions({...c,receiver:'opponent-right'}));
-});
-test('automatic positioning stays frozen at decisions and paused playback',()=>{
- const sim=new Simulation(),before=sim.snapshot().players;sim.update(1);assert.deepEqual(sim.state.players,before);
- sim.submitIntent(sim.availableIntents[0]);sim.update(.1);const moving=sim.snapshot().players;assert.notDeepEqual(moving,before);
- sim.state.paused=true;sim.update(1);assert.deepEqual(sim.state.players,moving);
- sim.reset();assert.deepEqual(sim.state.players,before);
 });

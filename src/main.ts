@@ -9,17 +9,15 @@ import {AvatarThumbnails} from './avatar-preview';
 import {localRecognition} from './local-voice';
 import {VoiceInput,browserRecognition,voiceCommand,voiceContactReady} from './voice';
 import {PlayerCreator} from './player-creator';
+import {summarizeSkills} from './player-skill-summary';
 import {PATTERNS} from './engine/patterns';
 import {PERSONALITIES} from './engine/opponent-brain';
 import {PLAYER_PROFILES,ARCHETYPES} from './engine/player-profiles';
 import {Match} from './match';
-import {ShotLab,LAB_TYPES,type LabCondition} from './shot-lab';
 import {SHOT_FAMILIES} from './engine/shot-families';
-import {sameShotIntent,parseShotIntent} from './engine/shot-intent';
-import type {PlayerId,ShotIntent,ShotType,ShotTarget} from './engine/model';
+import type {PlayerId,ShotIntent} from './engine/model';
 import {SHOT_INTENT_SCHEMA,targetLabel} from './engine/shot-intent';
 import './style.css';
-import {Simulation,RALLY} from './simulation';
 import {CourtScene} from './scene';
 import {preloadAthletes} from './athlete';
 const app=document.querySelector<HTMLDivElement>('#app')!;
@@ -30,17 +28,15 @@ app.innerHTML=`
 
 
 <div class="rally-strip"><div class="eyebrow">THE PATTERN <span>01 / PRESSURE THE MIDDLE</span></div><ol id="timeline">${['Serve','Deep return','Drive middle','High block','Overhead'].map((s,i)=>`<li data-step="${i}"><span class="step-number">${i+1}</span><span>${s}</span></li>`).join('')}</ol></div>
-</section><aside><button id="back-to-play" class="back-to-play">← Back to play</button><div class="aside-heading"><span class="eyebrow">PATTERN 01</span><span class="difficulty">INTERMEDIATE +</span></div><h2>Pressure.<br>Pop-up.<br><em>Put-away.</em></h2><p class="pattern-description">Create a weak ball through the middle. Recognize your chance to finish.</p><div class="aside-divider"></div><div id="decision" aria-live="polite"></div><div class="coach"><span class="coach-icon">✳</span><div><div class="eyebrow">COURT SENSE</div><p id="cue"></p></div></div><div class="aside-foot"><span class="script-dot"></span> Scripted opponents <span>·</span> Automatic positioning</div><section id="match-panel" hidden></section><section id="lab-panel" hidden><div class="eyebrow">SHOT LAB</div><h2>Meet your<br><em>shot options.</em></h2><p class="pattern-description">Compare one shot at a time from a prepared contact. No opponent response or scoring.</p><details open><summary>Your decision menu</summary><label for="decision-situation">Your contact</label><select id="decision-situation"><option value="off">Off — free shot exploration</option><option value="serve">Serve</option><option value="return">Return after bounce</option><option value="drive">Deep bounced ball</option><option value="reset">Low transition ball</option><option value="counter">Incoming attack</option><option value="dink">Kitchen exchange</option><option value="overhead">High put-away</option></select><label for="decision-choice">Available shot</label><select id="decision-choice" disabled></select><p id="decision-reason" role="status"></p></details><details><summary>Opponent decisions</summary><label for="opponent-situation">Opponent contact</label><select id="opponent-situation"><option value="off">Off — your shot</option><option value="pressure">Incoming attack</option><option value="low">Low transition ball</option><option value="high">High put-away</option><option value="return">Serve return</option><option value="deep">Deep bounced ball</option><option value="dink">Kitchen exchange</option></select><label for="opponent-aggression">Opponent style</label><select id="opponent-aggression"><option value="0.7">Aggressive</option><option value="0.3">Patient</option></select><p id="opponent-reason" role="status"></p><p>Prepared opponent contact: play the selected response from the far side. This is a single decision, not a full point.</p></details><label for="family">Shot family</label><select id="family">${LAB_TYPES.map(type=>`<option value="${type}" ${type==='drive'?'selected':''}>${SHOT_FAMILIES[type].name}</option>`).join('')}</select><label for="condition">Contact condition</label><select id="condition"><option value="typical">Typical contact</option><option value="low">Ankle-high contact</option><option value="kitchen">Inside kitchen, before bounce</option></select><label for="target-choice">Target</label><select id="target-choice"><option value="default">Family default</option><option value="middle">Middle seam</option><option value="crosscourt">Crosscourt</option><option value="line">Down the line</option><option value="wide">Wide</option><option value="open-court">Open court</option><option value="body">Body</option><option value="feet">Feet</option><option value="backhand-side">Backhand side</option></select><div id="zone-controls" hidden><label for="target-depth">Target depth</label><select id="target-depth"><option value="deep">Deep</option><option value="transition">Transition</option><option value="kitchen">Kitchen</option></select></div><div id="player-controls" hidden><label for="target-player">Opponent</label><select id="target-player"><option value="opponent-left">Jules</option><option value="opponent-right">Rio</option></select><label for="opponent-hand">Opponent handedness</label><select id="opponent-hand"><option value="right">Right-handed</option><option value="left">Left-handed</option></select></div><label for="opponent-layout">Opponent positions</label><select id="opponent-layout"><option value="balanced">Balanced</option><option value="left">Both shading left</option><option value="right">Both shading right</option></select><details id="flight-controls"><summary>Flight intent</summary><label for="intent-pace">Pace</label><select id="intent-pace"><option value="default">Family default</option><option value="soft">Soft</option><option value="medium">Medium</option><option value="fast">Fast</option></select><label for="intent-shape">Shape</label><select id="intent-shape"><option value="default">Family default</option><option value="flat">Flat</option><option value="arc">Arc</option><option value="descending">Descending</option></select><label for="intent-clearance">Requested net clearance</label><select id="intent-clearance"><option value="0.12">0.12 m</option><option value="0.4">0.40 m</option><option value="0.8">0.80 m</option><option value="1.5">1.50 m</option></select><label for="intent-tactic">Tactical purpose</label><select id="intent-tactic"><option value="sustain">Sustain</option><option value="pressure">Pressure</option><option value="advance">Advance</option><option value="neutralize">Neutralize</option><option value="finish">Finish</option></select><label for="intent-aggression">Aggression</label><select id="intent-aggression"><option value="0">Low</option><option value="0.5" selected>Balanced</option><option value="1">High</option></select></details><details><summary>Execution</summary><label for="difficulty-preset">Contact difficulty</label><select id="difficulty-preset"><option value="comfortable">Comfortable forehand</option><option value="stretched">Stretched forehand</option><option value="backhand">Low backhand</option><option value="backward">Moving backward</option><option value="feet">Transition ball at feet</option></select><p id="rating-comparison"></p><label for="execution-enabled">Execution variance</label><select id="execution-enabled"><option value="off">Off — ideal flight</option><option value="on">On — sampled flight</option></select><label for="execution-skill">Player skill</label><select id="execution-skill"><option value="40">3.0 benchmark · skill 40</option><option value="70" selected>4.0 benchmark · skill 70</option><option value="90">5.0 benchmark · skill 90</option><option value="95">Advanced · skill 95</option></select><label for="execution-balance">Balance</label><select id="execution-balance"><option value="1">Set</option><option value="0.5">Moving</option><option value="0">Stretched</option></select><label for="incoming-speed">Incoming pace</label><select id="incoming-speed"><option value="5">Soft</option><option value="12" selected>Medium</option><option value="25">Fast</option></select><button id="execution-sample">New execution sample</button><p id="execution-stats" role="status"></p><p>Target marker shows your intent. The flight guide shows execution. Replay keeps the same sample.</p></details><p id="family-description"></p><p id="lab-reason" role="status"></p><button id="lab-play" class="shot-button">Play shot ↗</button><p id="lab-stats"></p><p class="guided-note">Targets respond to opponent positions. These single-shot previews do not predict a winner.</p></section></aside></main><footer><span>READ THE COURT. MAKE THE CALL.</span><span><kbd>Space</kbd> play shot / pause <kbd>R</kbd> restart</span></footer><dialog id="game-settings" aria-labelledby="settings-title"><div class="settings-heading"><div><div class="eyebrow">GAME CONTROLS</div><h2 id="settings-title">Settings</h2></div><button id="close-settings" aria-label="Close settings">✕</button></div><section class="settings-lineup" aria-labelledby="settings-lineup-title"><h3 id="settings-lineup-title">Players on court</h3><p>Choose a player to substitute immediately.</p><div id="settings-player-slots"></div><p id="substitution-status" role="status"></p></section><p>Set your preferred pace for every game.</p><label for="speed">Default playback speed</label><select id="speed"><option value="0.975">0.65× · Slower</option><option value="1.125" selected>0.75× · Default</option><option value="1.5">1× · Normal</option><option value="2.25">1.5× · Faster</option></select><p class="settings-help">Changes animation speed. Every team contact still waits for your choice.</p><label class="settings-toggle" for="guides"><span>Flight guide<small>Show the ball path and target marker.</small></span><input id="guides" type="checkbox" role="switch" checked></label><label class="settings-toggle" for="show-player-names"><span>Show player names<small>Display name labels above players on the court.</small></span><input id="show-player-names" type="checkbox" role="switch" checked></label><nav class="settings-destinations" aria-label="More game options"><button data-panel="settings">Game setup <span aria-hidden="true">→</span></button><button data-panel="insights">Session review <span aria-hidden="true">→</span></button></nav><button id="done-settings" class="shot-button">Done</button></dialog>`;
-document.querySelector('label[for="intent-clearance"]')!.insertAdjacentHTML('beforebegin','<label for="intent-spin-side">Side curve</label><select id="intent-spin-side"><option value="none">None</option><option value="left">Curve left</option><option value="right">Curve right</option></select><label for="intent-vertical-spin">Vertical spin</label><select id="intent-vertical-spin"><option value="none">None</option><option value="topspin">Topspin · faster drop</option><option value="slice">Slice · longer float</option></select><label for="intent-spin-strength">Spin strength</label><select id="intent-spin-strength"><option value="light">Light</option><option value="medium" selected>Medium</option><option value="strong">Strong</option></select>');
-document.querySelector('#game-settings .settings-heading')!.insertAdjacentHTML('afterend','<div id="settings-primary-controls"><label for="mode">Game type</label><select id="mode" aria-label="Game type"><option value="match" selected>Full game · doubles</option><option value="rally">Guided rally</option><option value="lab">Shot lab</option></select><button id="restart" class="settings-restart">Restart current game <span aria-hidden="true">↻</span></button></div>');
-document.querySelector('#settings-primary-controls')!.insertAdjacentHTML('afterend','<label class="settings-toggle partner-autonomy-setting" for="partner-autonomy"><span>Partner auto-play<small>Let your partner choose their own shots when the ball comes to them.</small></span><span class="settings-switch-control"><strong id="partner-autonomy-state">Off</strong><input id="partner-autonomy" type="checkbox" role="switch"></span></label>');
+</section><aside><button id="back-to-play" class="back-to-play">← Back to play</button><div class="aside-heading"><span class="eyebrow">PATTERN 01</span><span class="difficulty">INTERMEDIATE +</span></div><h2>Pressure.<br>Pop-up.<br><em>Put-away.</em></h2><p class="pattern-description">Create a weak ball through the middle. Recognize your chance to finish.</p><div class="aside-divider"></div><div id="decision" aria-live="polite"></div><div class="coach"><span class="coach-icon">✳</span><div><div class="eyebrow">COURT SENSE</div><p id="cue"></p></div></div><div class="aside-foot"><span class="script-dot"></span> Scripted opponents <span>·</span> Automatic positioning</div><section id="match-panel" hidden></section></aside></main><footer><span>READ THE COURT. MAKE THE CALL.</span><span><kbd>Space</kbd> play shot / pause <kbd>R</kbd> restart</span></footer><dialog id="game-settings" aria-labelledby="settings-title"><div class="settings-heading"><h2 id="settings-title">Settings</h2><button id="close-settings" aria-label="Close settings">✕</button></div><section class="settings-lineup" aria-labelledby="settings-lineup-title"><h3 id="settings-lineup-title">Current Players</h3><div id="settings-player-slots"></div></section><label class="settings-toggle" for="guides"><span>Flight guide<small>Show the ball path and target marker.</small></span><span class="settings-switch-control"><strong id="guides-state">On</strong><input id="guides" type="checkbox" role="switch" checked></span></label><label class="settings-toggle" for="show-player-names"><span>Show player names<small>Display name labels above players on the court.</small></span><span class="settings-switch-control"><strong id="show-player-names-state">On</strong><input id="show-player-names" type="checkbox" role="switch" checked></span></label></dialog>`;
+document.querySelector('#game-settings .settings-lineup')!.insertAdjacentHTML('afterend','<button id="restart" class="settings-restart">Restart current game <span aria-hidden="true">↻</span></button><label class="settings-toggle" for="partner-autonomy"><span>Partner auto-play<small>Let your partner choose their own shots when the ball comes to them.</small></span><span class="settings-switch-control"><strong id="partner-autonomy-state">Off</strong><input id="partner-autonomy" type="checkbox" role="switch"></span></label>');
 app.insertAdjacentHTML('beforeend','<dialog id="shot-drawer" aria-labelledby="shot-drawer-title"><div class="drawer-heading"><div><div class="eyebrow">SHOT MENU</div><h2 id="shot-drawer-title">More options</h2></div><button id="close-shot-drawer" aria-label="Close more options">✕</button></div><p id="shot-drawer-description">Other playable choices for this contact.</p><div id="more-options-list"></div></dialog>');
 app.insertAdjacentHTML('beforeend','<dialog id="player-drawer" aria-labelledby="player-drawer-title"><div class="drawer-heading"><div><div class="eyebrow">PLAYER PROFILE</div><h2 id="player-drawer-title"></h2></div><button id="close-player-drawer" aria-label="Close player profile">✕</button></div><div class="player-profile-portrait"><img id="player-drawer-portrait" alt=""></div><button type="button" id="edit-player-design" hidden>Edit Design ↗</button><p id="player-drawer-description"></p><div id="player-drawer-meta"></div><dl id="player-drawer-skills" class="player-skill-drawer"></dl></dialog>');
 await preloadAthletes();
-const guided=new Simulation();const match=new Match();let sim:Simulation|Match=match;const lab=new ShotLab();let mode='match';let scene:CourtScene;
+const match=new Match();let scene:CourtScene;
 try{scene=new CourtScene(document.querySelector('#court')!,id=>openPlayerDrawer(id))}catch(error){document.querySelector('#court')!.innerHTML='<div class="webgl-error"><h2>3D rendering is unavailable</h2><p>Enable hardware acceleration in your browser, then reload to play.</p></div>';throw error}
 const byId=(id:string)=>document.getElementById(id)!;
-let speed=1.125,guides=true,showPlayerNames=true,cameraDistance=50,lastUI='';
+const speed=1.125;let guides=true,showPlayerNames=true,cameraDistance=50,lastUI='';
 const voicePanel=document.createElement('section');voicePanel.className='voice-controls';
 voicePanel.innerHTML=`<div class="voice-actions"><span id="voice-mic-dock" hidden><button id="voice-speak" type="button" aria-label="Speak a shot" title="Speak a shot" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/></svg></button></span><label><input id="voice-handsfree" type="checkbox"> Hands-free</label></div><p id="voice-status" role="status"></p><div id="voice-recovery" hidden><label>Game address <input id="voice-address" readonly aria-label="Game address"></label><button id="voice-copy-address" type="button">Copy game address</button><span id="voice-copy-status" role="status"></span></div><p id="voice-partner-status"></p>`;
 document.querySelector('.court-wrap')!.insertAdjacentElement('afterend',voicePanel);
@@ -70,7 +66,7 @@ const localFactory=localRecognition(),browserFactory=browserRecognition();
 const voiceFactory=localFactory??browserFactory;
 const voice=new VoiceInput(voiceFactory,()=>({engine:match.engine,key:voiceToken(),target:'jules'}),async(text,context)=>{
  const captured=context as {engine:Match['engine'];key:string;target:'jules'|'rio'};
- if(mode!=='match'||settingsDialog.open||creator.dialog.open||match.replayIndex!==null||captured.engine!==match.engine||captured.key!==voiceToken()){voiceStatus('The contact changed. Say your command again.');return}
+ if(settingsDialog.open||creator.dialog.open||match.replayIndex!==null||captured.engine!==match.engine||captured.key!==voiceToken()){voiceStatus('The contact changed. Say your command again.');return}
  try{
   const command=voiceCommand(text,captured.target);voiceStatus('');
   if(command.kind==='partner'){match.instructPartner(command.call);byId('voice-partner-status').textContent=match.partnerStatus}
@@ -105,7 +101,7 @@ voiceHandsFreeInput.addEventListener('change',event=>{unlockChime();voiceHandsFr
 document.addEventListener('keydown',event=>{if(event.key==='Escape'){voice.stop();voiceHandsFree=false;voiceHandsFreeInput.checked=false;setVoiceFocus(false);voiceStatus('')}});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){voice.stop();voiceHandsFree=false;voiceHandsFreeInput.checked=false;voiceStatus('')}});
 function syncVoice(){
- voicePanel.hidden=mode!=='match';
+ voicePanel.hidden=false;
  const dock=byId('voice-mic-dock'),focused=document.body.classList.contains('voice-focus');
  const inputRow=document.querySelector('.custom-input-row');
  const micParent=!focused&&inputRow?inputRow:dock;
@@ -117,8 +113,8 @@ function syncVoice(){
  const toggleParent=!focused&&composer?composer:voicePanel;
  if(voiceHandsFreeLabel.parentElement!==toggleParent)toggleParent.append(voiceHandsFreeLabel);
  const key=voiceToken();const changed=voiceContextKey!==key||voiceEngine!==match.engine;if(voiceEngine!==match.engine)voiceAttempt=null;voiceEngine=match.engine;
- const blocked=mode!=='match'||settingsDialog.open||creator.dialog.open||shotDrawer.open||playerDrawer.open||match.replayIndex!==null||document.hidden;
- if(blocked){if(voice.active){voice.stop();voiceStatus('')}voiceHandsFree=false;voiceHandsFreeInput.checked=false;if(mode!=='match')setVoiceFocus(false)}
+ const blocked=settingsDialog.open||creator.dialog.open||shotDrawer.open||playerDrawer.open||match.replayIndex!==null||document.hidden;
+ if(blocked){if(voice.active){voice.stop();voiceStatus('')}voiceHandsFree=false;voiceHandsFreeInput.checked=false}
  else if(changed&&voice.active){voice.stop();voiceStatus('')}
  voiceMeter.hidden=voice.phase!=='listening'||!localFactory;
  voiceThinking.hidden=voice.phase!=='transcribing'&&!match.customBusy;
@@ -131,7 +127,7 @@ function syncVoice(){
 const creator=new PlayerCreator(player=>{
  match.practice=null;match.setPlayerDesign(player);scene.setPlayerDesign(player);
  syncRosterNames();
- (byId('mode') as HTMLSelectElement).value='match';byId('mode').dispatchEvent(new Event('change'));
+ lastUI='';updateUI();
 },id=>{for(const slot of courtSlots)if(match.getPlayerDesign(slot)?.id===id){match.substitutePlayer(slot,null);scene.substitutePlayer(slot,null)}syncRosterNames()});
 // Lift the court framing above the decision dock without changing the user's orbit.
 const decisionDock=document.querySelector('main > aside') as HTMLElement;
@@ -178,9 +174,9 @@ byId('back-to-play').addEventListener('click',()=>{showPanel('play');byId('open-
 document.body.classList.add('match-mode');byId('match-panel').hidden=false;byId('restart').title='Restart the game (R)';byId('restart').setAttribute('aria-label','Restart Game');showPanel('play');
 
 
-function submit(){if(mode==='match'&&targetPicker.active)return;if(mode==='lab'){if(!lab.issue)lab.play();lastUI='';updateUI();return}if(sim.state.phase==='decision'&&(mode!=='match'||sim.state.possession==='home')){sim.submitIntent(sim.availableIntents[0]);updateUI()}}
-function reset(){voice.stop();voiceAttempt=null;mode==='lab'?lab.reset():sim.reset();lastUI='';updateUI()}
-function pause(){const state=mode==='lab'?lab.state:sim.state;if(mode==='match'&&match.receptionDecision)return;if(state.phase==='flight'){state.paused=!state.paused;lastUI='';updateUI()}}
+function submit(){if(targetPicker.active)return;if(match.state.phase==='decision'&&match.state.possession==='home'){match.submitIntent(match.availableIntents[0]);updateUI()}}
+function reset(){voice.stop();voiceAttempt=null;match.reset();lastUI='';updateUI()}
+function pause(){if(match.receptionDecision)return;if(match.state.phase==='flight'){match.state.paused=!match.state.paused;lastUI='';updateUI()}}
 byId('restart').addEventListener('click',()=>{reset();closeSettings()});
 const settingsDialog=byId('game-settings') as HTMLDialogElement;
 const shotDrawer=byId('shot-drawer') as HTMLDialogElement;
@@ -200,9 +196,9 @@ function openShotDrawer(){if(shotDrawerCloseTimer)window.clearTimeout(shotDrawer
 function closeShotDrawer(){if(!shotDrawer.open||shotDrawer.classList.contains('is-closing'))return;shotDrawer.classList.add('is-closing');const delay=matchMedia('(prefers-reduced-motion: reduce)').matches?0:180;shotDrawerCloseTimer=window.setTimeout(()=>{shotDrawer.close();shotDrawer.classList.remove('is-closing');shotDrawerCloseTimer=undefined},delay)}
 function openPlayerDrawer(id:PlayerId){
  if(playerDrawerCloseTimer)window.clearTimeout(playerDrawerCloseTimer);playerDrawer.classList.remove('is-closing');
- const state=mode==='lab'?lab.state:sim.state,player=state.players.find(candidate=>candidate.id===id);if(!player)return;
+ const player=match.state.players.find(candidate=>candidate.id===id);if(!player)return;
  const names=playerNames();
- const archetype=mode==='match'&&match.lineup[id]?ARCHETYPES[match.lineup[id]!] : PLAYER_PROFILES[id];
+ const archetype=match.lineup[id]?ARCHETYPES[match.lineup[id]!] : PLAYER_PROFILES[id];
  const portrait=byId('player-drawer-portrait') as HTMLImageElement;
  portrait.alt=`Close-up of ${names[id]}`;
  try{profilePortraits??=new AvatarThumbnails(512);portrait.src=profilePortraits.get(scene.getPlayerAppearance(id),'profile');portrait.parentElement!.hidden=false}catch{portrait.parentElement!.hidden=true}
@@ -214,9 +210,12 @@ function openPlayerDrawer(id:PlayerId){
 }
 function closePlayerDrawer(){if(!playerDrawer.open||playerDrawer.classList.contains('is-closing'))return;playerDrawer.classList.add('is-closing');const delay=matchMedia('(prefers-reduced-motion: reduce)').matches?0:180;playerDrawerCloseTimer=window.setTimeout(()=>{playerDrawer.close();playerDrawer.classList.remove('is-closing');playerDrawerCloseTimer=undefined},delay)}
 const courtSlots:PlayerId[]=['you','partner','opponent-left','opponent-right'];
-const slotLabels:Record<PlayerId,string>={you:'You',partner:'Partner','opponent-left':'Opponent 1','opponent-right':'Opponent 2'};
+const slotLabels:Record<PlayerId,string>={you:'You',partner:'Partner','opponent-left':'Left-side opponent','opponent-right':'Right-side opponent'};
 function playerNames():Record<PlayerId,string>{return {you:match.getPlayerDesign('you')?.name??'You',partner:match.getPlayerDesign('partner')?.name??'Finn','opponent-left':match.getPlayerDesign('opponent-left')?.name??'Jules','opponent-right':match.getPlayerDesign('opponent-right')?.name??'Rio'}}
 function syncRosterNames(){const names=playerNames();document.querySelector('.score-row-home > span')!.textContent=`${names.you} & ${names.partner}`;document.querySelector('.score-row-away > span')!.textContent=`${names['opponent-left']} & ${names['opponent-right']}`}
+const selectableArchetypes=['banger','dinker','lobber','allCourt'] as const;
+function playerArchetype(player:DesignedPlayer){return selectableArchetypes.reduce((best,key)=>{const distance=Object.keys(player.skills).reduce((sum,skill)=>{const delta=player.skills[skill as keyof typeof player.skills]-ARCHETYPES[key].skills[skill as keyof typeof player.skills];return sum+delta*delta},0);return distance<best.distance?{key,distance}:best},{key:'allCourt' as typeof selectableArchetypes[number],distance:Infinity}).key}
+function playerOptionLabel(player:DesignedPlayer,archetype:keyof typeof ARCHETYPES=playerArchetype(player)){return `${player.name} • ${ARCHETYPES[archetype].name} • ${summarizeSkills(player.skills).estimatedDupr.toFixed(2)}`}
 function renderSettingsPlayers(){
  const host=byId('settings-player-slots');host.replaceChildren();
  const saved=creator.savedPlayers;
@@ -229,30 +228,29 @@ function renderSettingsPlayers(){
   const controls=document.createElement('div'),label=document.createElement('label'),select=document.createElement('select');
   label.htmlFor=`substitute-${id}`;label.textContent=slotLabels[id];select.id=label.htmlFor;select.setAttribute('aria-label',`Player for ${slotLabels[id]}`);
   const current=match.getPlayerDesign(id),choices=new Map<string,DesignedPlayer>();
-  select.add(new Option(`Default · ${{you:'You',partner:'Finn','opponent-left':'Jules','opponent-right':'Rio'}[id]}`,''));
-  for(const [title,players] of [['Your saved players',saved],['Starting lineup',presets]] as const){const group=document.createElement('optgroup');group.label=title;for(const p of players){choices.set(p.id,p);group.append(new Option(p.name,p.id))}select.append(group)}
-  if(current&&!choices.has(current.id)){choices.set(current.id,current);select.add(new Option(current.name,current.id))}
+  if(id==='you')select.add(new Option('Default · You',''));
+  for(const player of saved){choices.set(player.id,player);select.add(new Option(playerOptionLabel(player),player.id))}
+  const startingGroup=document.createElement('optgroup');startingGroup.label='Starting lineup';
+  for(const preset of presets){const player=current?.name===preset.name&&!saved.some(savedPlayer=>savedPlayer.id===current.id)?current:preset;const archetype=player===current&&match.lineup[id]?match.lineup[id]!:playerArchetype(player);choices.set(player.id,player);startingGroup.append(new Option(playerOptionLabel(player,archetype),player.id))}
+  select.append(startingGroup);
   select.value=current?.id??'';
   select.addEventListener('change',()=>{
    const selected=choices.get(select.value)??null;
    if((match.getPlayerDesign(id)?.id??'')===(selected?.id??''))return;
-   match.substitutePlayer(id,selected);scene.substitutePlayer(id,selected);
-   if(mode!=='match'){const player=(mode==='lab'?lab.state:sim.state).players.find(p=>p.id===id),replacement=match.state.players.find(p=>p.id===id)!;if(player){player.skills={...replacement.skills};player.handedness=replacement.handedness}}
+   match.lineup[id]=selected?playerArchetype(selected):undefined;match.substitutePlayer(id,selected);scene.substitutePlayer(id,selected);
    const updatedNames=playerNames();syncRosterNames();
-   byId('substitution-status').textContent=`${updatedNames[id]} is now playing as ${slotLabels[id].toLowerCase()}.`;lastUI='';updateUI();
+   lastUI='';updateUI();
    portrait.alt=`${updatedNames[id]} portrait`;
    try{portrait.src=profilePortraits!.get(scene.getPlayerAppearance(id),'profile');portrait.hidden=false}catch{portrait.hidden=true}
-   specialty.textContent=selected?'Selected player skills':(match.lineup[id]?ARCHETYPES[match.lineup[id]!].description:'Default player skills');
   });
-  const specialty=document.createElement('small');const profile=match.lineup[id]?ARCHETYPES[match.lineup[id]!]:null;
-  specialty.textContent=profile?profile.name+' · '+profile.description:'Custom player';
-  controls.append(label,select,specialty);row.append(portrait,controls);host.append(row);
+  if(id==='you'||id==='partner')controls.append(label);
+  controls.append(select);row.append(portrait,controls);host.append(row);
  }
 }
 function openSettings(){renderSettingsPlayers();if(settingsCloseTimer)window.clearTimeout(settingsCloseTimer);settingsDialog.classList.remove('is-closing');if(!settingsDialog.open)settingsDialog.showModal()}
 function closeSettings(){if(!settingsDialog.open||settingsDialog.classList.contains('is-closing'))return;settingsDialog.classList.add('is-closing');const delay=matchMedia('(prefers-reduced-motion: reduce)').matches?0:180;settingsCloseTimer=window.setTimeout(()=>{settingsDialog.close();settingsDialog.classList.remove('is-closing');settingsCloseTimer=undefined},delay)}
 byId('open-settings').addEventListener('click',openSettings);
-for(const id of ['close-settings','done-settings'])byId(id).addEventListener('click',closeSettings);
+byId('close-settings').addEventListener('click',closeSettings);
 settingsDialog.addEventListener('click',event=>{if(event.target===settingsDialog)closeSettings()});
 settingsDialog.addEventListener('cancel',event=>{event.preventDefault();closeSettings()});
 byId('close-shot-drawer').addEventListener('click',closeShotDrawer);
@@ -262,65 +260,16 @@ byId('close-player-drawer').addEventListener('click',closePlayerDrawer);
 byId('edit-player-design').addEventListener('click',()=>{if(playerDrawerCloseTimer)window.clearTimeout(playerDrawerCloseTimer);playerDrawer.close();playerDrawer.classList.remove('is-closing');creator.editPlayer(match.playerDesign)});
 playerDrawer.addEventListener('click',event=>{if(event.target===playerDrawer)closePlayerDrawer()});
 playerDrawer.addEventListener('cancel',event=>{event.preventDefault();closePlayerDrawer()});
-try{const saved=JSON.parse(localStorage.getItem('pickle-rpg-controls-v1')??'null');if(saved&&typeof saved==='object'){if(saved.speedVersion===2&&saved.playbackBase===1.5&&[.975,1.125,1.5,2.25].includes(saved.speed))speed=saved.speed;if(typeof saved.guides==='boolean')guides=saved.guides;if(typeof saved.showPlayerNames==='boolean')showPlayerNames=saved.showPlayerNames;if(typeof saved.partnerAutonomy==='boolean')match.partnerAutonomy=saved.partnerAutonomy;if(typeof saved.cameraDistance==='number'&&Number.isFinite(saved.cameraDistance)&&saved.cameraDistance>=0&&saved.cameraDistance<=100)cameraDistance=saved.cameraDistance}}catch{/* Defaults remain usable when storage is unavailable or invalid. */}
-(byId('speed') as HTMLSelectElement).value=String(speed);(byId('guides') as HTMLInputElement).checked=guides;(byId('partner-autonomy') as HTMLInputElement).checked=match.partnerAutonomy;byId('partner-autonomy-state').textContent=match.partnerAutonomy?'On':'Off';scene.setGuides(guides);
-(byId('show-player-names') as HTMLInputElement).checked=showPlayerNames;scene.setPlayerNames(showPlayerNames);
-byId('show-player-names').addEventListener('change',e=>{showPlayerNames=(e.target as HTMLInputElement).checked;scene.setPlayerNames(showPlayerNames);saveControls()});
+try{const saved=JSON.parse(localStorage.getItem('pickle-rpg-controls-v1')??'null');if(saved&&typeof saved==='object'){if(typeof saved.guides==='boolean')guides=saved.guides;if(typeof saved.showPlayerNames==='boolean')showPlayerNames=saved.showPlayerNames;if(typeof saved.partnerAutonomy==='boolean')match.partnerAutonomy=saved.partnerAutonomy;if(typeof saved.cameraDistance==='number'&&Number.isFinite(saved.cameraDistance)&&saved.cameraDistance>=0&&saved.cameraDistance<=100)cameraDistance=saved.cameraDistance}}catch{/* Defaults remain usable when storage is unavailable or invalid. */}
+(byId('guides') as HTMLInputElement).checked=guides;byId('guides-state').textContent=guides?'On':'Off';(byId('partner-autonomy') as HTMLInputElement).checked=match.partnerAutonomy;byId('partner-autonomy-state').textContent=match.partnerAutonomy?'On':'Off';scene.setGuides(guides);
+(byId('show-player-names') as HTMLInputElement).checked=showPlayerNames;byId('show-player-names-state').textContent=showPlayerNames?'On':'Off';scene.setPlayerNames(showPlayerNames);
+byId('show-player-names').addEventListener('change',e=>{showPlayerNames=(e.target as HTMLInputElement).checked;byId('show-player-names-state').textContent=showPlayerNames?'On':'Off';scene.setPlayerNames(showPlayerNames);saveControls()});
 function saveControls(){try{localStorage.setItem('pickle-rpg-controls-v1',JSON.stringify({speed,guides,showPlayerNames,cameraDistance,partnerAutonomy:match.partnerAutonomy,playbackBase:1.5,speedVersion:2}))}catch{/* Settings still apply for this visit. */}}
-byId('speed').addEventListener('change',e=>{speed=Number((e.target as HTMLSelectElement).value);saveControls()});
 scene.setCamera(100-cameraDistance);
-byId('guides').addEventListener('change',e=>{guides=(e.target as HTMLInputElement).checked;scene.setGuides(guides);saveControls()});
+byId('guides').addEventListener('change',e=>{guides=(e.target as HTMLInputElement).checked;byId('guides-state').textContent=guides?'On':'Off';scene.setGuides(guides);saveControls()});
 byId('partner-autonomy').addEventListener('change',e=>{match.partnerAutonomy=(e.target as HTMLInputElement).checked;byId('partner-autonomy-state').textContent=match.partnerAutonomy?'On':'Off';lastUI='';saveControls();updateUI()});
-document.addEventListener('keydown',event=>{if(settingsDialog.open||creator.dialog.open)return;if(match.replayIndex!==null){if(event.key==='Escape'){event.preventDefault();closeReplay()}else if(event.code==='Space'&&!(event.target instanceof HTMLElement&&event.target.closest('button,input'))){event.preventDefault();match.replayPlaying?match.pauseReplay():match.resumeReplay()}return;}if(event.target instanceof HTMLElement&&event.target.closest('button, input, select, textarea, a'))return;if(event.code==='Space'){event.preventDefault();mode==='lab'?(lab.state.phase==='flight'?pause():submit()):sim.state.phase==='decision'?submit():sim.state.phase==='complete'?(mode==='match'&&!match.scoring.winner?(match.nextPoint(),lastUI='',updateUI()):reset()):pause()}if(event.key.toLowerCase()==='r')reset()});
-byId('mode').addEventListener('change',e=>{mode=(e.target as HTMLSelectElement).value;showPanel('play');sim=mode==='match'?match:guided;document.body.classList.toggle('match-mode',mode==='match');byId('match-panel').hidden=mode!=='match';byId('restart').title=mode==='match'?'Restart the game (R)':'Restart the rally (R)';document.body.classList.toggle('lab-mode',mode==='lab');byId('lab-panel').hidden=mode!=='lab';reset()});
-function selectLab(){
- lab.difficultyPreset=(byId('difficulty-preset') as HTMLSelectElement).value;
- lab.decisionSituation=(byId('decision-situation') as HTMLSelectElement).value;
- lab.opponentSituation=(byId('opponent-situation') as HTMLSelectElement).value;lab.opponentAggression=Number((byId('opponent-aggression') as HTMLSelectElement).value);
- lab.variance=(byId('execution-enabled') as HTMLSelectElement).value==='on';lab.skill=Number((byId('execution-skill') as HTMLSelectElement).value);lab.balance=Number((byId('execution-balance') as HTMLSelectElement).value);lab.incomingSpeed=Number((byId('incoming-speed') as HTMLSelectElement).value);
-
- lab.pace=(byId('intent-pace') as HTMLSelectElement).value as typeof lab.pace;lab.shape=(byId('intent-shape') as HTMLSelectElement).value as typeof lab.shape;lab.spinSide=(byId('intent-spin-side') as HTMLSelectElement).value as typeof lab.spinSide;lab.verticalSpin=(byId('intent-vertical-spin') as HTMLSelectElement).value as typeof lab.verticalSpin;lab.spinStrength=(byId('intent-spin-strength') as HTMLSelectElement).value as typeof lab.spinStrength;lab.clearance=Number((byId('intent-clearance') as HTMLSelectElement).value);lab.tactic=(byId('intent-tactic') as HTMLSelectElement).value as typeof lab.tactic;lab.aggression=Number((byId('intent-aggression') as HTMLSelectElement).value);
-
- const choice=(byId('target-choice') as HTMLSelectElement).value;
- const playerTarget=['body','feet','backhand-side'].includes(choice);
- byId('player-controls').hidden=!playerTarget;byId('zone-controls').hidden=playerTarget||choice==='default';
- lab.target=choice==='default'?null:playerTarget?{kind:'player',playerId:(byId('target-player') as HTMLSelectElement).value,aim:choice} as ShotTarget:{kind:'zone',zone:choice,depth:(byId('target-depth') as HTMLSelectElement).value} as ShotTarget;
- lab.opponentLayout=(byId('opponent-layout') as HTMLSelectElement).value as typeof lab.opponentLayout;lab.opponentHand=(byId('opponent-hand') as HTMLSelectElement).value as typeof lab.opponentHand;
- lab.select((byId('family') as HTMLSelectElement).value as ShotType,(byId('condition') as HTMLSelectElement).value as LabCondition);lastUI='';updateUI()}
-for(const id of ['difficulty-preset','decision-situation','opponent-situation','opponent-aggression','execution-enabled','execution-skill','execution-balance','incoming-speed','target-choice','target-depth','target-player','opponent-hand','opponent-layout','intent-pace','intent-shape','intent-spin-side','intent-vertical-spin','intent-spin-strength','intent-clearance','intent-tactic','intent-aggression'])byId(id).addEventListener('change',selectLab);
-byId('decision-choice').addEventListener('change',()=>{const option=lab.decisionOptions.find(o=>o.intent.type===(byId('decision-choice') as HTMLSelectElement).value);if(option){lab.chooseIntent(option.intent);lastUI='';updateUI()}});
-byId('execution-sample').addEventListener('click',()=>{lab.seed=(lab.seed+1)>>>0;selectLab()});
-byId('family').addEventListener('change',selectLab);byId('condition').addEventListener('change',selectLab);byId('lab-play').addEventListener('click',submit);
-function updateUI(){
- if(mode!=='match'){byId('court-result').hidden=true;document.querySelector('.court-wrap')?.classList.remove('has-result')}
- if(mode==='match'){updateMatchUI();return}
- if(mode==='lab'){
-  const state=lab.state,key=`lab:${lab.type}:${lab.condition}:${state.phase}:${state.paused}`;if(key===lastUI)return;lastUI=key;
-  const choice=byId('decision-choice') as HTMLSelectElement;choice.innerHTML=lab.decisionOptions.map(o=>`<option value="${o.intent.type}" ${o.intent.type===lab.shot.intent.type?'selected':''}>${o.label}</option>`).join('');choice.disabled=!lab.decisionOptions.length||state.phase!=='decision';
-  byId('decision-reason').textContent=lab.decisionOptions.find(o=>o.intent.type===lab.shot.intent.type)?.reason??'Choose a prepared contact to see contextual options.';
-  (byId('opponent-situation') as HTMLSelectElement).disabled=lab.decisionSituation!=='off';
-  byId('opponent-reason').textContent=lab.opponentDecision?`${SHOT_FAMILIES[lab.opponentDecision.intent.type].name}: ${lab.opponentDecision.reason}`:'';
-  for(const id of ['family','condition','target-choice','target-depth','target-player','opponent-hand','opponent-layout','intent-pace','intent-shape','intent-spin-side','intent-vertical-spin','intent-spin-strength','intent-clearance','intent-tactic','intent-aggression'])(byId(id) as HTMLSelectElement).disabled=lab.opponentSituation!=='off'||lab.decisionSituation!=='off';
-  byId('family-description').textContent=lab.shot.description+' Target: '+targetLabel(lab.shot.intent.target)+'.';byId('lab-reason').textContent=lab.issue??(state.phase==='complete'?(lab.execution?.outcome==='net'?'Shot stopped at the net. Replay or try a new sample.':lab.shot.legs[0].bounceAtEnd?'Shot landed. Replay it or try another family.':'Target reached. No opponent response simulated.'):'Contact is suitable for this family.');
-  (byId('lab-play') as HTMLButtonElement).disabled=!!lab.issue||state.phase==='flight';byId('lab-play').textContent=state.phase==='complete'?'Replay shot ↺':'Play shot ↗';
-  byId('rating-comparison').textContent=lab.comparison.map(c=>`Skill ${c.skill}: quality ${(c.quality*100).toFixed(0)}%, spread ±${c.dispersion.toFixed(2)} m`).join(' · ');
-  byId('execution-stats').textContent=lab.execution?`Sample ${lab.seed} · Execution quality ${(lab.execution.quality*100).toFixed(0)}% · Endpoint deviation ${lab.execution.endpointError.toFixed(2)} m · ${lab.execution.outcome==='net'?'Net contact':lab.execution.outcome==='out'?'Out':lab.execution.outcome==='in'?'In court':'Target-plane preview'}`:'Ideal execution';
-  const spin=lab.shot.intent.spin,spinLabel=spin&&(spin.side!=='none'||spin.vertical!=='none')?` · Spin: ${spin.strength} ${[spin.side!=='none'?`${spin.side} curve`:'',spin.vertical!=='none'?spin.vertical:''].filter(Boolean).join(' + ')}`:'';
-  byId('lab-stats').textContent=`Contact height: ${lab.shot.contact.y.toFixed(2)} m · ${lab.issue?'Unavailable':`Flight: ${lab.shot.legs[0].duration.toFixed(2)} s · Intended peak: ${lab.generated!.apex.toFixed(2)} m · Intended net clearance: ${lab.generated!.netClearance.toFixed(2)} m${spinLabel}`}`;
-  return;
- }
-
- const s=sim.state;const key=`${s.phase}:${s.shotIndex}:${s.paused}`;if(key===lastUI)return;lastUI=key;
- const shot=sim.shot,decision=s.phase==='decision',done=s.phase==='complete';
- byId('score-home').textContent=String(s.score.home);byId('score-away').textContent=String(s.score.away);
- 
- document.querySelectorAll<HTMLElement>('[data-step]').forEach(el=>{const i=Number(el.dataset.step);el.className=done||i<s.shotIndex?'finished':i===s.shotIndex?'current':'';el.querySelector('.step-number')!.textContent=done||i<s.shotIndex?'✓':String(i+1);if(i===s.shotIndex)el.setAttribute('aria-current','step');else el.removeAttribute('aria-current')});
- byId('cue').textContent=done?'The drive earned an attackable fourth ball. The overhead finished it. In live play, a drive can also invite a strong counter—read the response before committing.':shot.cue;
- const badge=done?'PATTERN COMPLETE':decision?'YOUR DECISION':shot.actor==='you'?'YOUR SHOT':'OPPONENT RESPONSE';
- const titles:Record<number,string>={0:'Start with depth.',2:'Find the seam.',4:'Take your chance.'};
- byId('decision').innerHTML=done?`<div class="decision-label won">✓ ${badge}</div><h3>That’s the pattern.</h3><p class="decision-description">Middle pressure → high block → overhead winner.</p><div class="result-stats"><div><strong>5</strong><span>shots</span></div><div><strong>3</strong><span>decisions</span></div><div><strong>+1</strong><span>point</span></div></div><button id="shot-button" class="shot-button replay">Play it again <span>↺</span></button>`:`<div class="decision-label ${decision?'':'playing'}"><span>${decision?'Ⅱ':'↗'}</span> ${badge} <span class="shot-count">${s.shotIndex+1} / 5</span></div><h3>${decision?titles[s.shotIndex]:shot.title}</h3><p class="decision-description">${shot.description}</p>${decision?`<button id="shot-button" class="shot-button"><span><small>${s.shotIndex===0?'SERVE':s.shotIndex===2?'THIRD SHOT':'ATTACK'}</small>${shot.title}</span><span class="arrow">↗</span></button><div class="shot-meta"><span>${shot.intent.pace.toUpperCase()} PACE</span><span>${targetLabel(shot.intent.target).toUpperCase()}</span></div><p class="guided-note">One shot is available in this guided pattern.</p>`:`<div class="watching"><span class="watching-ball"></span><span>${s.paused?'Rally paused':'Watch the court'}<small>${s.paused?'Press Space to resume.':'Play stops before your next contact.'}</small></span></div>`}`;
- byId('shot-button')?.addEventListener('click',done?reset:submit);
-}
+document.addEventListener('keydown',event=>{if(settingsDialog.open||creator.dialog.open)return;if(match.replayIndex!==null){if(event.key==='Escape'){event.preventDefault();closeReplay()}else if(event.code==='Space'&&!(event.target instanceof HTMLElement&&event.target.closest('button,input'))){event.preventDefault();match.replayPlaying?match.pauseReplay():match.resumeReplay()}return;}if(event.target instanceof HTMLElement&&event.target.closest('button, input, select, textarea, a'))return;if(event.code==='Space'){event.preventDefault();match.state.phase==='decision'?submit():match.state.phase==='complete'?(!match.scoring.winner?(match.nextPoint(),lastUI='',updateUI()):reset()):pause()}if(event.key.toLowerCase()==='r')reset()});
+function updateUI(){updateMatchUI()}
 
 function choiceButton(intent:ShotIntent,index:number){const copy=choiceCopy(intent);return `<button class="shot-button match-choice" data-choice="${index}" data-traits="${shotTraits(intent)}">${shotIcon(intent,index)}<span><strong>${copy.name}</strong><span class="choice-target">${copy.detail}</span>${match.shot.actor==='partner'&&match.recommendationType===intent.type?'<small>Finn recommends</small>':''}</span><span aria-hidden="true">↗</span></button>`}
 function pointResultCopy(){
@@ -414,7 +363,7 @@ function updateMatchUI(){
  });
 }
 function syncReplayUI(replay:ReturnType<Match['replayView']>){
- replayOverlay.hidden=!replay||mode!=='match'||document.body.dataset.panel!=='play';
+ replayOverlay.hidden=!replay||document.body.dataset.panel!=='play';
  if(!replay)return;
  const slider=byId('replay-position') as HTMLInputElement;
  const first=match.replayFrames[0]?.simulationTime??0,total=((match.replayFrames.at(-1)?.simulationTime??first)-first)/1.5;
@@ -427,17 +376,17 @@ function syncReplayUI(replay:ReturnType<Match['replayView']>){
 const targetPicker=new TargetPicker(match,scene);
 let resultEngine:Match['engine']|null=null,resultElapsed=0,resultExpired=false;
 function advancePoint(){
- if(mode!=='match'||match.state.phase!=='complete'||match.replayIndex!==null)return;
+ if(match.state.phase!=='complete'||match.replayIndex!==null)return;
  match.scoring.winner?match.reset():match.nextPoint();byId('court-result').hidden=true;lastUI='';updateUI();
 }
 byId('next-point').addEventListener('click',advancePoint);
 byId('open-replay').addEventListener('click',()=>{
- if(mode!=='match'||match.state.phase!=='complete')return;
+ if(match.state.phase!=='complete')return;
  match.startReplay();byId('court-result').hidden=true;lastUI='';updateUI();replayOverlay.hidden=false;byId('replay-position').focus();
 });
 function syncPointResult(dt:number){
  const banner=byId('court-result');
- if(mode!=='match'||match.state.phase!=='complete'){resultEngine=null;resultElapsed=0;resultExpired=false;banner.hidden=true;document.querySelector('.court-wrap')?.classList.remove('has-result');return}
+ if(match.state.phase!=='complete'){resultEngine=null;resultElapsed=0;resultExpired=false;banner.hidden=true;document.querySelector('.court-wrap')?.classList.remove('has-result');return}
  if(resultEngine!==match.engine){resultEngine=match.engine;resultElapsed=0;resultExpired=false}
  const visible=!resultExpired&&match.replayIndex===null&&document.body.dataset.panel==='play'&&!settingsDialog.open&&!creator.dialog.open&&!playerDrawer.open&&!document.hidden;
  banner.hidden=!visible;document.querySelector('.court-wrap')?.classList.toggle('has-result',visible);
@@ -450,9 +399,9 @@ function syncPointResult(dt:number){
 }
 
 updateUI();let previous:number|undefined;function frame(now:number){
- const realDt=previous===undefined?0:Math.max(0,Math.min((now-previous)/1000,.1)),dt=realDt*speed;if(!creator.dialog.open){if(mode==='lab')lab.update(dt);else if(mode==='match'&&match.replayPlaying)match.update(realDt);else sim.update(dt)}previous=now;updateUI();syncPointResult(realDt);syncVoice();
- const replay=mode==='match'?match.replayView():null;syncReplayUI(replay);scene.setGuides(guides&&(mode!=='lab'||!lab.issue)&&!replay);scene.render(replay?.state??(mode==='lab'?lab.state:sim.state),now/1000,replay?.shot??(mode==='lab'?lab.shot:sim.shot),mode==='match'&&!match.practice&&!replay?match.scoring.call:null);targetPicker.sync(mode==='match'&&document.body.dataset.panel==='play'&&!settingsDialog.open&&!creator.dialog.open);requestAnimationFrame(frame)
+ const realDt=previous===undefined?0:Math.max(0,Math.min((now-previous)/1000,.1)),dt=realDt*speed;if(!creator.dialog.open)match.update(match.replayPlaying?realDt:dt);previous=now;updateUI();syncPointResult(realDt);syncVoice();
+ const replay=match.replayView();syncReplayUI(replay);scene.setGuides(guides&&!replay);scene.render(replay?.state??match.state,now/1000,replay?.shot??match.shot,!match.practice&&!replay?match.scoring.call:null);targetPicker.sync(document.body.dataset.panel==='play'&&!settingsDialog.open&&!creator.dialog.open);requestAnimationFrame(frame)
 }requestAnimationFrame(frame);
 // Optional browser-native tools use the exact same validated simulation entry point.
 const context=(document as Document & {modelContext?:{registerTool:(tool:unknown)=>Promise<void>|void}}).modelContext;
-if(context?.registerTool){for(const tool of [{name:'read_pickleball_state',description:'Read the current rally and available shot intent.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true},execute:()=>structuredClone({mode,match:mode==='match'?{score:match.scoring,point:match.point}:null,opponentDecision:mode==='lab'?lab.opponentDecision:null,execution:mode==='lab'?lab.execution:null,trajectory:mode==='lab'?lab.generated:null,state:mode==='lab'?lab.state:sim.snapshot(),availableIntents:mode==='lab'?(lab.issue||lab.state.phase!=='decision'?[]:(lab.decisionOptions.length?lab.decisionOptions.map(o=>o.intent):[lab.shot.intent])):sim.availableIntents})},{name:'play_pickleball_shot',description:'Submit the available shot intent during a decision pause.',inputSchema:{type:'object',properties:{intent:SHOT_INTENT_SCHEMA},required:['intent'],additionalProperties:false},execute:(input:{intent:unknown})=>{if(mode==='lab'){if(lab.decisionOptions.length)lab.chooseIntent(input.intent);if(lab.state.phase!=='decision'||!sameShotIntent(parseShotIntent(input.intent),lab.shot.intent))throw new Error('Choose the available lab shot.');lab.play()}else {if(mode==='match'&&sim.state.possession!=='home')throw new Error('Opponent is choosing.');sim.submitIntent(input.intent)};updateUI();return structuredClone(mode==='lab'?lab.state:sim.state)}}]){try{Promise.resolve(context.registerTool(tool)).catch(console.warn)}catch(error){console.warn(error)}}}
+if(context?.registerTool){for(const tool of [{name:'read_pickleball_state',description:'Read the current match and available shot intent.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true},execute:()=>structuredClone({match:{score:match.scoring,point:match.point},state:match.snapshot(),availableIntents:match.availableIntents})},{name:'play_pickleball_shot',description:'Submit a shot intent during a decision pause.',inputSchema:{type:'object',properties:{intent:SHOT_INTENT_SCHEMA},required:['intent'],additionalProperties:false},execute:(input:{intent:unknown})=>{if(match.state.possession!=='home')throw new Error('Opponent is choosing.');match.submitIntent(input.intent);updateUI();return structuredClone(match.state)}}]){try{Promise.resolve(context.registerTool(tool)).catch(console.warn)}catch(error){console.warn(error)}}}

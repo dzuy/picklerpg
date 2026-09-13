@@ -15,7 +15,6 @@ import {chooseOpponentShot} from './engine/opponent-policy';
 import {executeShot} from './engine/execution';
 import {interceptFlight,reboundFlight,outBallContinuation} from './engine/trajectory';
 import {planPositions} from './engine/positioning';
-import {pressureMiddle} from './scenarios/pressure-middle';
 import {DoublesScore,other} from './engine/scoring';
 
 export type TargetServeStyle='flat'|'topspin'|'slice'|'lob'|'shallow';
@@ -41,7 +40,7 @@ export class Match {
   if(id==='you')this.designedPlayer=player;else if(player)this.substitutes[id]=player;else delete this.substitutes[id];
   const current=this.state.players.find(p=>p.id===id)!;
   const profile=this.lineup[id]?ARCHETYPES[this.lineup[id]!]:PLAYER_PROFILES[id];
-  current.skills={...(player?.skills??profile.skills)};current.handedness=player?.handedness??pressureMiddle.setup().players.find(p=>p.id===id)!.handedness;
+  current.skills={...(player?.skills??profile.skills)};current.handedness=player?.handedness??'right';
   current.tendencies=structuredClone(profile.tendencies);
   this.request?.abort();this.request=null;this.strategy=undefined;this.strategyPoint=-1;this.generation++;this.thinking=false;
  }
@@ -251,7 +250,7 @@ export class Match {
  }
  private startPoint(){
   this.awarded=false;this.observed=0;this.queuedReceptionIntent=null;this.queuedReceptionShot=null;this.pointRecords=[];this.replayFrames=[];this.replayShots=[];this.replayIndex=null;this.replayPlaying=false;this.replayClock=0;this.replayElapsed=0;this.replayAlpha=0;this.replayEndHold=0;
-  const players=pressureMiddle.setup().players;
+  const players:PlayerState[]=(Object.keys(PLAYER_PROFILES) as PlayerId[]).map(id=>({id,position:{x:0,y:0,z:0},team:id==='you'||id==='partner'?'home':'away',handedness:'right',facing:id==='you'||id==='partner'?0:Math.PI,skills:{...PLAYER_PROFILES[id].skills},tendencies:{...PLAYER_PROFILES[id].tendencies}}));
   for(const p of players){const side=p.team==='home'?1:-1,right=this.scoring.right[p.team]===p.id;p.position={x:(right?1:-1)*side*1.5,y:0,z:side*7};const profile=this.lineup[p.id]?ARCHETYPES[this.lineup[p.id]!]:PLAYER_PROFILES[p.id];p.tendencies=structuredClone(profile.tendencies);p.skills=structuredClone(profile.skills);const design=this.getPlayerDesign(p.id);if(design){p.skills={...design.skills};p.handedness=design.handedness}}
   const server=players.find(p=>p.id===this.scoring.server)!;
   // Only the diagonally designated receiver may return serve.

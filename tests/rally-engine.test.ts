@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {RallyEngine, classifyStage} from '../src/engine/rally-engine';
 import {COURT, type RallyProvider, type RallyShot, type ShotType, type GameState} from '../src/engine/model';
-import {pressureMiddle} from '../src/scenarios/pressure-middle';
+import {pressureMiddle} from './helpers/pressure-middle';
 
 function advance(engine:RallyEngine){engine.update(100)}
 /** Procedurally supplies one contact at a time; deliberately no fixed shot array. */

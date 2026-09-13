@@ -1,9 +1,10 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {resolveTarget,type TargetContext} from '../src/engine/targeting';
-import {Simulation,COURT,type ShotTarget} from '../src/simulation';
-import {ShotLab} from '../src/shot-lab';
-function context():TargetContext{const players=new Simulation().state.players;players[2].position={x:-1.4,y:0,z:-2.7};players[3].position={x:1.4,y:0,z:-2.7};return {actor:'you',contact:{x:1.1,y:.8,z:5},players,shotType:'drive'}}
+import {COURT,type ShotTarget} from '../src/engine/model';
+import {pressureMiddle} from './helpers/pressure-middle';
+import {PreparedShotFixture} from './helpers/prepared-shot';
+function context():TargetContext{const players=pressureMiddle.setup().players;players[2].position={x:-1.4,y:0,z:-2.7};players[3].position={x:1.4,y:0,z:-2.7};return {actor:'you',contact:{x:1.1,y:.8,z:5},players,shotType:'drive'}}
 const zone=(name:'middle'|'crosscourt'|'line'|'wide'|'open-court',depth:'deep'|'kitchen'|'transition'='deep'):ShotTarget=>({kind:'zone',zone:name,depth});
 test('zones distinguish seam, same-side line, crosscourt, width and depth',()=>{
  const c=context();assert.equal(resolveTarget(zone('middle'),c).point.x,0);assert.equal(resolveTarget(zone('line'),c).point.x,1.1);assert.ok(resolveTarget(zone('crosscourt'),c).point.x<0);assert.ok(resolveTarget(zone('wide'),c).point.x<resolveTarget(zone('crosscourt'),c).point.x);
@@ -34,8 +35,8 @@ test('invalid serve, teammate, same-side player and nonfinite geometry are rejec
  c.shotType='serve';assert.throws(()=>resolveTarget(zone('line'),c),/diagonally/);assert.throws(()=>resolveTarget(zone('crosscourt','kitchen'),c),/kitchen/);assert.throws(()=>resolveTarget({kind:'player',playerId:'opponent-right',aim:'feet'},c),/service-box/);assert.ok(resolveTarget(zone('crosscourt'),c).point.z<-COURT.kitchen);
  c.shotType='drive';c.players[3].position.z=2;assert.throws(()=>resolveTarget({kind:'player',playerId:'opponent-right',aim:'feet'},c),/across/);c.contact.x=NaN;assert.throws(()=>resolveTarget(zone('middle'),c),/Contact/);
 });
-test('lab routes target intent to actual endpoints; body ends without a bounce',()=>{
- const lab=new ShotLab();lab.target={kind:'player',playerId:'opponent-right',aim:'body'};lab.reset();assert.equal(lab.issue,null);assert.equal(lab.shot.legs[0].to.y,1.05);lab.play();lab.update(20);assert.equal(lab.state.bounces,0);assert.equal(lab.state.ball.position.y,1.05);assert.deepEqual(lab.state.score,{home:0,away:0});
+test('prepared shots route target intent to actual endpoints; body ends without a bounce',()=>{
+ const lab=new PreparedShotFixture();lab.target={kind:'player',playerId:'opponent-right',aim:'body'};lab.reset();assert.equal(lab.issue,null);assert.equal(lab.shot.legs[0].to.y,1.05);lab.play();lab.update(20);assert.equal(lab.state.bounces,0);assert.equal(lab.state.ball.position.y,1.05);assert.deepEqual(lab.state.score,{home:0,away:0});
  lab.target=zone('open-court');lab.opponentLayout='right';lab.reset();const x=lab.shot.aimPoint.x;lab.opponentLayout='left';lab.reset();assert.ok(x<0&&lab.shot.aimPoint.x>0);
  lab.target={kind:'player',playerId:'opponent-left',aim:'feet'};lab.select('serve','typical');assert.match(lab.issue!,/service-box/);assert.throws(()=>lab.play());
 });

@@ -1,15 +1,15 @@
-import {buildDecisionMenu,type DecisionOption} from './engine/decision-menu';
-import {parseShotIntent,sameShotIntent} from './engine/shot-intent';
-import {chooseOpponentShot,type OpponentDecision} from './engine/opponent-policy';
-import {executeShot,type ShotExecution} from './engine/execution';
-import {generateTrajectory,type GeneratedTrajectory} from './engine/trajectory';
-import {Simulation} from './simulation';
-import {sampleLeg,sampleVelocity} from './engine/rally-engine';
-import {contactIssue,SHOT_FAMILIES,type ShotContext} from './engine/shot-families';
-import type {GameState,RallyShot,ShotType,Vec3,ShotTarget,ShotIntent,SpinIntent} from './engine/model';
-export const LAB_TYPES:ShotType[]=['serve','drive','drop','dink','volley','reset','lob','overhead','counter','return','block','flick'];
-export type LabCondition='typical'|'low'|'kitchen';
-export function labSetup(type:ShotType,condition:LabCondition='typical'):{context:ShotContext;landing:Vec3}{
+import {buildDecisionMenu,type DecisionOption} from '../../src/engine/decision-menu';
+import {parseShotIntent,sameShotIntent} from '../../src/engine/shot-intent';
+import {chooseOpponentShot,type OpponentDecision} from '../../src/engine/opponent-policy';
+import {executeShot,type ShotExecution} from '../../src/engine/execution';
+import {generateTrajectory,type GeneratedTrajectory} from '../../src/engine/trajectory';
+import {RallyEngine,sampleLeg,sampleVelocity} from '../../src/engine/rally-engine';
+import {pressureMiddle} from './pressure-middle';
+import {contactIssue,SHOT_FAMILIES,type ShotContext} from '../../src/engine/shot-families';
+import type {GameState,RallyShot,ShotType,Vec3,ShotTarget,ShotIntent,SpinIntent} from '../../src/engine/model';
+export const SHOT_TYPES:ShotType[]=['serve','drive','drop','dink','volley','reset','lob','overhead','counter','return','block','flick'];
+export type ContactCondition='typical'|'low'|'kitchen';
+export function preparedContact(type:ShotType,condition:ContactCondition='typical'):{context:ShotContext;landing:Vec3}{
  const family=SHOT_FAMILIES[type];const near=['dink','volley','counter','block','flick'].includes(type);
  const z=type==='serve'?7:near?2.7:type==='overhead'?3.5:5.4;
  const height=type==='overhead'?2.35:type==='reset'||type==='dink'?.4:type==='volley'||type==='counter'||type==='block'?1.15:.75;
@@ -19,18 +19,18 @@ export function labSetup(type:ShotType,condition:LabCondition='typical'):{contex
  return {context,landing:{x:-1.2,y:.037,z:['drop','dink','reset','block'].includes(type)?-1.25:-5.5}};
 }
 /** Isolated shot preview: no rally outcome, score award or opponent policy. */
-export class ShotLab {
+export class PreparedShotFixture {
  decisionSituation='off';decisionChoice:ShotType|null=null;decisionOptions:DecisionOption[]=[];
  opponentSituation='off';opponentAggression=.7;opponentDecision:OpponentDecision|null=null;
  difficultyPreset='comfortable';comparison:{skill:number;quality:number;dispersion:number}[]=[];
  variance=false;seed=1;skill=70;balance=1;incomingSpeed=12;execution:ShotExecution|null=null;
- pace:ShotIntent['pace']|'default'='default';shape:ShotIntent['shape']|'default'='default';spinSide:SpinIntent['side']='none';verticalSpin:SpinIntent['vertical']='none';spinStrength:SpinIntent['strength']='medium';clearance=.12;tactic:ShotIntent['tacticalIntent']='sustain';aggression=.5;generated:GeneratedTrajectory|null=null;target:ShotTarget|null=null;opponentLayout:'balanced'|'left'|'right'='balanced';opponentHand:'right'|'left'='right';type:ShotType='drive';condition:LabCondition='typical';state!:GameState;shot!:RallyShot;issue:string|null=null;private elapsed=0;
+ pace:ShotIntent['pace']|'default'='default';shape:ShotIntent['shape']|'default'='default';spinSide:SpinIntent['side']='none';verticalSpin:SpinIntent['vertical']='none';spinStrength:SpinIntent['strength']='medium';clearance=.12;tactic:ShotIntent['tacticalIntent']='sustain';aggression=.5;generated:GeneratedTrajectory|null=null;target:ShotTarget|null=null;opponentLayout:'balanced'|'left'|'right'='balanced';opponentHand:'right'|'left'='right';type:ShotType='drive';condition:ContactCondition='typical';state!:GameState;shot!:RallyShot;issue:string|null=null;private elapsed=0;
  constructor(){this.reset()}
  reset(){
   const contextual=this.decisionSituation!=='off';const ai=!contextual&&this.opponentSituation!=='off';
   const prepared:ShotType=this.opponentSituation==='high'?'overhead':this.opponentSituation==='low'?'reset':this.opponentSituation==='return'?'return':this.opponentSituation==='deep'?'drive':this.opponentSituation==='dink'?'dink':'counter';
-  const {context,landing:defaultLanding}=labSetup(contextual?this.decisionSituation as ShotType:ai?prepared:this.type,contextual||ai?'typical':this.condition);let landing=defaultLanding;context.incomingSpeed=this.incomingSpeed;this.issue=contactIssue(this.type,context);
-  this.state=new Simulation().snapshot();this.state.rallyHistory=[];this.state.ball.position={...context.contact};this.state.stage=this.type==='serve'?'serve':'transition';
+  const {context,landing:defaultLanding}=preparedContact(contextual?this.decisionSituation as ShotType:ai?prepared:this.type,contextual||ai?'typical':this.condition);let landing=defaultLanding;context.incomingSpeed=this.incomingSpeed;this.issue=contactIssue(this.type,context);
+  this.state=new RallyEngine(pressureMiddle).snapshot();this.state.rallyHistory=[];this.state.ball.position={...context.contact};this.state.stage=this.type==='serve'?'serve':'transition';
   this.state.players[0].position={...context.feet};this.state.players[1].position.z=2.8;
   this.state.players[2].position={x:-1.4,y:0,z:-2.7};this.state.players[3].position={x:1.4,y:0,z:-2.7};
   if(this.opponentLayout!=='balanced'){const shift=this.opponentLayout==='left'?-1:1;this.state.players[2].position.x=shift*1.1;this.state.players[3].position.x=shift*2.4}
@@ -73,7 +73,7 @@ export class ShotLab {
   if(this.state.phase!=='decision'||!this.decisionOptions.some(o=>sameShotIntent(o.intent,intent)))throw new Error('Choose an available shot at this contact.');
   this.decisionChoice=intent.type;this.reset();
  }
- select(type:ShotType,condition:LabCondition){this.type=type;this.condition=condition;this.reset()}
+ select(type:ShotType,condition:ContactCondition){this.type=type;this.condition=condition;this.reset()}
  play(){if(this.issue)throw new Error(this.issue);this.reset();this.state.phase='flight';this.state.ball.velocity=sampleVelocity(this.shot.legs[0],0)}
  update(dt:number){if(this.state.phase!=='flight'||this.state.paused)return;this.elapsed=Math.min(this.shot.legs[0].duration,this.elapsed+dt);this.state.elapsed=this.elapsed;this.state.simulationTime=this.elapsed;this.state.ball.velocity=sampleVelocity(this.shot.legs[0],this.elapsed/this.shot.legs[0].duration);this.state.ball.position=sampleLeg(this.shot.legs[0],this.elapsed/this.shot.legs[0].duration);if(this.elapsed>=this.shot.legs[0].duration){this.state.phase='complete';this.state.bounces=this.shot.legs[0].bounceAtEnd?1:0;this.state.currentHitter=null;this.state.possession=null;this.state.ball.velocity={x:0,y:0,z:0}}}
 }

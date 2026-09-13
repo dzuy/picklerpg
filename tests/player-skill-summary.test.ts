@@ -20,7 +20,7 @@ test('starting players reflect their advertised specialties',()=>{
  assert.ok(meters('Jax').Speed>=90);
  assert.ok(meters('Zoe').Control>meters('Zoe').Power+20);
  assert.ok(meters('Cal').Hands>meters('Cal').Power+15);
- for(const name of ['Ema','Sam'])assert.ok(Math.max(...Object.values(meters(name)))-Math.min(...Object.values(meters(name)))<10);
+ for(const name of ['Emma','Sam'])assert.ok(Math.max(...Object.values(meters(name)))-Math.min(...Object.values(meters(name)))<10);
 });
 test('estimates respect game benchmark endpoints and reward balanced skills',()=>{
  const uniform=(n:number)=>Object.fromEntries(SKILLS.map(key=>[key,n])) as ReturnType<typeof newPlayer>['skills'];

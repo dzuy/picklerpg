@@ -1,15 +1,14 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {Simulation,RALLY,SKILLS} from '../src/simulation';
-import {sampleVelocity} from '../src/engine/rally-engine';
-import {pressureMiddle} from '../src/scenarios/pressure-middle';
-import type {PlayerState,Vec3} from '../src/engine/model';
+import {RallyEngine,sampleVelocity} from '../src/engine/rally-engine';
+import {RALLY,pressureMiddle} from './helpers/pressure-middle';
+import {SKILLS,type PlayerState,type Vec3} from '../src/engine/model';
 const close=(actual:number,expected:number)=>assert.ok(Math.abs(actual-expected)<1e-8,`${actual} != ${expected}`);
 const closeVector=(actual:Vec3,expected:Vec3)=>{for(const key of ['x','y','z'] as const)close(actual[key],expected[key])};
-function complete(sim:Simulation){for(let i=0;i<10&&sim.state.phase!=='complete';i++){if(sim.state.phase==='decision')sim.submitIntent(sim.availableIntents[0]);sim.update(100)}}
+function complete(sim:RallyEngine){for(let i=0;i<10&&sim.state.phase!=='complete';i++){if(sim.state.phase==='decision')sim.submitIntent(sim.availableIntents[0]);sim.update(100)}}
 
 test('snapshot is versioned, JSON serializable, complete and detached',()=>{
- const sim=new Simulation(pressureMiddle);const snapshot=sim.snapshot();
+ const sim=new RallyEngine(pressureMiddle);const snapshot=sim.snapshot();
  assert.equal(snapshot.schemaVersion,2);assert.deepEqual(JSON.parse(JSON.stringify(snapshot)),snapshot);
  assert.equal(snapshot.currentHitter,'you');assert.equal(snapshot.possession,'home');assert.equal(snapshot.simulationTime,0);
  assert.deepEqual(snapshot.ball.velocity,{x:0,y:0,z:0});
@@ -19,7 +18,7 @@ test('snapshot is versioned, JSON serializable, complete and detached',()=>{
 });
 
 test('velocity matches change in position and flips vertically at a bounce',()=>{
- const sim=new Simulation(pressureMiddle);sim.submitIntent(sim.availableIntents[0]);sim.update(.4);
+ const sim=new RallyEngine(pressureMiddle);sim.submitIntent(sim.availableIntents[0]);sim.update(.4);
  const before={...sim.state.ball.position};const velocity={...sim.state.ball.velocity};sim.update(.00001);
  for(const key of ['x','y','z'] as const)assert.ok(Math.abs((sim.state.ball.position[key]-before[key])/.00001-velocity[key])<.001);
  sim.reset();sim.submitIntent(sim.availableIntents[0]);const first=RALLY[0].legs[0];assert.ok(sampleVelocity(first,1).y<0);sim.update(first.duration);
@@ -27,7 +26,7 @@ test('velocity matches change in position and flips vertically at a bounce',()=>
 });
 
 test('decision pause retains incoming velocity and freezes simulation time and events',()=>{
- const sim=new Simulation(pressureMiddle);sim.submitIntent(sim.availableIntents[0]);sim.update(100);
+ const sim=new RallyEngine(pressureMiddle);sim.submitIntent(sim.availableIntents[0]);sim.update(100);
  assert.equal(sim.state.phase,'decision');closeVector(sim.state.ball.velocity,sampleVelocity(RALLY[1].legs.at(-1)!,1));
  const contact=sim.state.rallyHistory.at(-1)!;assert.equal(contact.type,'contact');if(contact.type==='contact')closeVector(contact.incomingVelocity,sim.state.ball.velocity);
  const frozen=sim.snapshot();sim.update(50);assert.deepEqual(sim.snapshot(),frozen);
@@ -35,7 +34,7 @@ test('decision pause retains incoming velocity and freezes simulation time and e
 });
 
 test('rally events are ordered, shot-correlated, time-based and finalized once',()=>{
- const sim=new Simulation(pressureMiddle);complete(sim);const {rallyHistory,shotHistory}=sim.state;
+ const sim=new RallyEngine(pressureMiddle);complete(sim);const {rallyHistory,shotHistory}=sim.state;
  assert.deepEqual(rallyHistory.map(e=>e.type),['rally-start','contact','shot','bounce','contact','shot','bounce','contact','shot','contact','shot','contact','shot','bounce','point-end']);
  assert.deepEqual(rallyHistory.filter(e=>e.type==='shot').map(e=>e.intent),shotHistory);
  assert.deepEqual(rallyHistory.filter(e=>e.type==='contact').map(e=>e.hitter),['you','opponent-left','you','opponent-right','you']);
@@ -49,12 +48,12 @@ test('rally events are ordered, shot-correlated, time-based and finalized once',
 
 test('profile data and left handedness survive play and reset without cross-player leakage',()=>{
  const provider={...pressureMiddle,setup(){const setup=pressureMiddle.setup();setup.players[0].handedness='left';setup.players[0].facing=.15;setup.players[0].skills.drop=92;setup.players[1].skills.drop=62;setup.players[2].tendencies.aggression=.9;return setup}};
- const sim=new Simulation(provider);complete(sim);sim.reset();assert.equal(sim.state.players[0].handedness,'left');assert.equal(sim.state.players[0].facing,.15);assert.equal(sim.state.players[0].skills.drop,92);assert.equal(sim.state.players[1].skills.drop,62);assert.equal(sim.state.players[2].tendencies.aggression,.9);
+ const sim=new RallyEngine(provider);complete(sim);sim.reset();assert.equal(sim.state.players[0].handedness,'left');assert.equal(sim.state.players[0].facing,.15);assert.equal(sim.state.players[0].skills.drop,92);assert.equal(sim.state.players[1].skills.drop,62);assert.equal(sim.state.players[2].tendencies.aggression,.9);
 });
 
 test('invalid profile values are rejected before replacing a valid game state',()=>{
  let mutate:(player:PlayerState)=>void=()=>{};
- const sim=new Simulation({...pressureMiddle,setup(){const setup=pressureMiddle.setup();mutate(setup.players[0]);return setup}});
+ const sim=new RallyEngine({...pressureMiddle,setup(){const setup=pressureMiddle.setup();mutate(setup.players[0]);return setup}});
  const before=sim.snapshot();
  for(const change of [(p:PlayerState)=>p.skills.drive=101,(p:PlayerState)=>p.skills.drop=NaN,(p:PlayerState)=>p.tendencies.aggression=-.1,(p:PlayerState)=>p.facing=Infinity]){mutate=change;assert.throws(()=>sim.reset(),/valid players/);assert.deepEqual(sim.snapshot(),before)}
 });

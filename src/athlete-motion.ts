@@ -1,4 +1,4 @@
-import type {GameState,PlayerState,RallyShot} from './simulation';
+import type {GameState,PlayerState,RallyShot} from './engine/model';
 export type SwingStyle='ready'|'serve'|'forehand'|'backhand'|'soft'|'lob'|'overhead';
 export type Reaction='Stretched'|'Jammed'|'Late'|'Pop-up'|'Overhead finish'|null;
 export interface AthletePose {style:SwingStyle;reaction:Reaction;armX:number;armY:number;armZ:number;elbow:number;wrist:number;offArm:number;torso:number;lean:number;crouch:number;stride:number;celebrate:boolean;shoulderLift?:number}

@@ -5,7 +5,7 @@ import {Match} from '../src/match';
 import {newPlayer} from '../src/player-design';
 import {ARCHETYPES} from '../src/engine/player-profiles';
 import {chooseOpponentShot} from '../src/engine/opponent-policy';
-import {labSetup} from '../src/shot-lab';
+import {preparedContact} from './helpers/prepared-shot';
 test('random lineup preserves the saved user and stays stable across points and restarts',()=>{
  const match=new Match(),saved=newPlayer('saved-me');saved.name='My player';saved.skills.drive=91;match.setPlayerDesign(saved);
  const roster=randomLineup(()=>.3);
@@ -29,7 +29,7 @@ test('specialists retain strong strengths and weaknesses with bounded random var
  }
 });
 test('lob specialist chooses a playable high lob from a settled deep contact',()=>{
- const setup=labSetup('drive'),match=new Match(),players=match.state.players;
+ const setup=preparedContact('drive'),match=new Match(),players=match.state.players;
  const player=players[0];player.skills={...ARCHETYPES.lobber.skills};player.tendencies={...ARCHETYPES.lobber.tendencies};
  const choice=chooseOpponentShot(player.id,{...setup.context,incomingSpeed:5},players)!;
  assert.equal(choice.intent.type,'lob');assert.equal(choice.intent.intendedNetClearance,2.5);

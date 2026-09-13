@@ -16,7 +16,7 @@ const roleSkills:Record<string,PlayerSkills>={
 };
 const look=(name:string,role:string,color:string,appearance:Partial<Appearance>):PlayerLook=>({name,role,skills:{...roleSkills[role]},appearance:{...DEFAULT_APPEARANCE,face:'oval',skin:'#ffbe91',hair:'#754732',hat:'none',jersey:color,accent:color,hatColor:color,bottomColor:color,shoes:color,paddle:color,...appearance}});
 export const LOOKS:PlayerLook[]=[
- look('Ema','All-around','#fa6796',{presentation:'girl',hairStyle:'ponytail',top:'tank',bottom:'skirt'}),
+ look('Emma','All-around','#fa6796',{presentation:'girl',hairStyle:'ponytail',top:'tank',bottom:'skirt'}),
  look('Leo','Power player','#4285df',{presentation:'boy',hairStyle:'short',hat:'cap',top:'jersey',bottom:'shorts',bottomColor:'#fff7ef'}),
  look('Maya','Strategist','#efbf43',{presentation:'girl',skin:'#b7784c',hair:'#252429',hairStyle:'bun',glasses:'square',top:'tank',bottom:'skirt',bottomColor:'#343439'}),
  look('Jax','Fast moves','#e85860',{presentation:'boy',hair:'#efc568',hairStyle:'side-part',top:'jersey',bottom:'shorts',bottomColor:'#343439'}),

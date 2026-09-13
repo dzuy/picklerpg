@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {COURT} from './simulation';
+import {COURT} from './engine/model';
 
 /** Test the segment, not an infinite ray: trees behind play must stay visible. */
 export function treeBlocksView(bounds: THREE.Box3, camera: THREE.Vector3, targets: THREE.Vector3[]) {

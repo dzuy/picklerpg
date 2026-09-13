@@ -1,5 +1,5 @@
-import {SKILLS} from '../engine/model';
-import type {Vec3, PlayerId, ShotIntent, ShotType, RallyShot, RallyProvider} from '../engine/model';
+import {SKILLS} from '../../src/engine/model';
+import type {Vec3, PlayerId, ShotIntent, ShotType, RallyShot, RallyProvider} from '../../src/engine/model';
 const p=(x:number,z:number,y=0):Vec3=>({x,y,z});
 const positions=(you:Vec3,partner:Vec3,left:Vec3,right:Vec3):Record<PlayerId,Vec3>=>({you,partner,'opponent-left':left,'opponent-right':right});
 const start=positions(p(1.35,7.08),p(-1.5,6.95),p(-1.7,-6.55),p(1.6,-2.6));
@@ -19,13 +19,13 @@ export const RALLY:RallyShot[]=[
 /** Authored paths remain a fixture until generated execution is built in items 4–7. */
 export const pressureMiddle:RallyProvider = {
  setup:()=>({
-  players:(Object.keys(start) as PlayerId[]).map(id=>({id,position:{...start[id]},team:id==='you'||id==='partner'?'home':'away',handedness:'right',facing:id==='you'||id==='partner'?0:Math.PI,skills:Object.fromEntries(SKILLS.map(skill=>[skill,70])) as import('../engine/model').PlayerSkills,tendencies:{aggression:.5,middlePreference:.5,kitchenApproach:.5}})),
+  players:(Object.keys(start) as PlayerId[]).map(id=>({id,position:{...start[id]},team:id==='you'||id==='partner'?'home':'away',handedness:'right',facing:id==='you'||id==='partner'?0:Math.PI,skills:Object.fromEntries(SKILLS.map(skill=>[skill,70])) as import('../../src/engine/model').PlayerSkills,tendencies:{aggression:.5,middlePreference:.5,kitchenApproach:.5}})),
   contact:{options:[structuredClone(RALLY[0])]},
  }),
  next(state){
   if(state.shotHistory.length===RALLY.length) return {kind:'point-end',result:{winner:'home',reason:'winner'}};
   const shot=RALLY[state.shotHistory.length];
-  if(!shot) throw new Error('Guided scenario has no next contact.');
+  if(!shot) throw new Error('Fixture has no next contact.');
   return {kind:'contact',contact:{options:[structuredClone(shot)]}};
  }
 };

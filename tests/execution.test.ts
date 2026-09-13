@@ -1,8 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {executeShot} from '../src/engine/execution';
-import {ShotLab,labSetup} from '../src/shot-lab';
-function setup(){const lab=new ShotLab();return {intent:lab.shot.intent,players:lab.state.players,context:labSetup('drive').context}}
+import {PreparedShotFixture,preparedContact} from './helpers/prepared-shot';
+function setup(){const lab=new PreparedShotFixture();return {intent:lab.shot.intent,players:lab.state.players,context:preparedContact('drive').context}}
 test('execution replays by seed, preserves intent and does not mutate inputs',()=>{
  const {intent,players,context}=setup(),before=structuredClone({intent,players,context});
  const run=(seed:number)=>executeShot(intent,context,players,{seed,balance:1});
@@ -36,8 +36,8 @@ test('a shot that fails to cross the net plane is a fault for the hitter',()=>{
  }
  assert.ok(failedCrossings>0,'Expected low-skill samples that never crossed the net');
 });
-test('lab plays the sampled flight, preserves target and replays the same sample',()=>{
- const lab=new ShotLab();lab.variance=true;lab.balance=0;lab.reset();const result=structuredClone(lab.execution);
+test('prepared fixture plays the sampled flight, preserves target and replays the same sample',()=>{
+ const lab=new PreparedShotFixture();lab.variance=true;lab.balance=0;lab.reset();const result=structuredClone(lab.execution);
  assert.deepEqual(lab.shot.aimPoint,lab.generated!.aimPoint);assert.deepEqual(lab.shot.legs[0],result!.leg);
  lab.play();lab.update(10);assert.equal(lab.state.phase,'complete');assert.ok(Math.hypot(lab.state.ball.position.x-result!.leg.to.x,lab.state.ball.position.y-result!.leg.to.y,lab.state.ball.position.z-result!.leg.to.z)<1e-8);
  lab.play();assert.deepEqual(lab.execution,result);lab.seed++;lab.reset();assert.notDeepEqual(lab.execution,result);

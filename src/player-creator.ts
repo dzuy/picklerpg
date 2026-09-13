@@ -29,7 +29,7 @@ export class PlayerCreator {
   const active=this.library.players.find(p=>p.id===this.library.activeId);
   if(active)this.draft=structuredClone(active);this.baseline=JSON.stringify(this.draft);
   this.dialog.id='player-creator';this.dialog.setAttribute('aria-labelledby','creator-title');
-  this.dialog.innerHTML=`<section class="player-roster-page" aria-labelledby="roster-title"><div class="roster-top"><div><span class="eyebrow">PLAYER DESIGNER</span><h1 id="roster-title">Your roster</h1><p>Browse players or create someone new.</p></div><div class="roster-cheer" aria-hidden="true">Good players.<br>Brighter rallies.<svg viewBox="0 0 70 80" fill="none"><ellipse cx="40" cy="29" rx="22" ry="26" fill="currentColor" transform="rotate(35 40 29)"/><path d="m27 48-17 22" stroke="currentColor" stroke-width="12" stroke-linecap="round"/><g fill="#fafbf3"><circle cx="38" cy="13" r="3"/><circle cx="49" cy="23" r="3"/><circle cx="29" cy="27" r="3"/><circle cx="40" cy="38" r="3"/><circle cx="53" cy="36" r="3"/></g></svg></div><button type="button" data-roster-close>Back to court</button></div><div class="roster-actions"><button type="button" data-create-player>+ Create new player</button><button type="button" data-resume hidden>Continue editing</button></div><p data-roster-status role="status"></p><h2>Saved &amp; created players</h2><div data-saved-roster class="roster-grid"></div><h2>Starting Lineup</h2><div data-default-roster class="roster-grid"></div></section><div class="creator-topline"><button type="button" data-back-roster>← Roster</button><span>PICKLE RPG <i>·</i> CREATE PLAYER</span><button type="button" data-close aria-label="Close Player Design">← &nbsp; Back to court</button></div>
+  this.dialog.innerHTML=`<section class="player-roster-page" aria-labelledby="roster-title"><div class="roster-top"><div><h1 id="roster-title">Your roster</h1></div><div class="roster-cheer" aria-hidden="true">Good players.<br>Brighter rallies.<svg viewBox="0 0 70 80" fill="none"><ellipse cx="40" cy="29" rx="22" ry="26" fill="currentColor" transform="rotate(35 40 29)"/><path d="m27 48-17 22" stroke="currentColor" stroke-width="12" stroke-linecap="round"/><g fill="#fafbf3"><circle cx="38" cy="13" r="3"/><circle cx="49" cy="23" r="3"/><circle cx="29" cy="27" r="3"/><circle cx="40" cy="38" r="3"/><circle cx="53" cy="36" r="3"/></g></svg></div><button type="button" class="creator-close" data-close aria-label="Return to main game" title="Return to main game">×</button></div><div class="roster-actions"><button type="button" data-create-player>+ Create new player</button><button type="button" data-resume hidden>Continue editing</button></div><p data-roster-status role="status"></p><section data-saved-section><h2>Saved &amp; created players</h2><div data-saved-roster class="roster-grid"></div></section><h2>Starting Lineup</h2><div data-default-roster class="roster-grid"></div></section><div class="creator-topline"><button type="button" data-back-roster>← Roster</button><span>PICKLE RPG <i>·</i> CREATE PLAYER</span><button type="button" class="creator-close" data-close aria-label="Return to main game" title="Return to main game">×</button></div>
   <div class="creator-layout"><section class="creator-stage" aria-label="Avatar preview"><div class="creator-heading"><h2 id="creator-title">Create<br>Your Player.</h2><p>Different players.<br>A brighter court.</p></div>
 
   <div class="creator-preview"></div><div class="creator-plinth"></div>
@@ -59,14 +59,13 @@ export class PlayerCreator {
   <div id="skills-panel" role="tabpanel" aria-labelledby="skills-tab" hidden><p class="creator-intro">Adjust every skill from 0 to 100. Your meters and estimated rating update as you edit.</p><div class="creator-summary skills-summary">${['Power','Control','Speed','Hands'].map(name=>`<div><span>${name}</span><meter aria-label="${name} summary" min="0" max="100" value="70" data-summary="${name}" title="${SUMMARY_SKILLS[name as keyof typeof SUMMARY_SKILLS].map(title).join(', ')}"></meter><output data-summary-value="${name}"></output></div>`).join('')}</div><div class="creator-rating"><span>Estimated DUPR</span><strong data-dupr></strong><small>Game estimate from all 11 skills · not an official rating.</small></div><label for="creator-preset">Start from an archetype<select id="creator-preset"><option value="">Custom skills</option>${Object.entries(ARCHETYPES).map(([id,p])=>`<option value="${id}">${p.name}</option>`).join('')}</select></label><div class="creator-skills">${SKILLS.map(skill=>`<div class="creator-skill"><label for="skill-${skill}">${title(skill)}<output for="skill-${skill}" id="value-${skill}">70</output></label><input id="skill-${skill}" data-skill="${skill}" type="range" min="0" max="100" step="1" aria-describedby="help-${skill}"><small id="help-${skill}">${skillHelp[skill]}</small></div>`).join('')}</div><p class="creator-intro">Rating guide: 0 → 2.0 · 70 → 3.5 (typical) · 80 → 4.0 (strong) · 90 → 5.0 (advanced) · 95 → 6.0 (pro) · 100 → 8.0. Your rating combines all 11 skills.</p></div>
   <div class="creator-delete-confirm" hidden><p data-delete-message></p><button type="button" data-cancel-delete>Keep player</button><button type="button" data-confirm-delete>Delete player permanently</button></div>
   <div class="creator-confirm" hidden><p>Discard unsaved changes to switch players?</p><button type="button" data-keep>Keep editing</button><button type="button" data-discard>Discard and continue</button></div>
-  <div class="creator-footer"><button type="button" data-delete hidden>Delete player</button><p data-status role="status"></p><div><button type="button" data-save>Save Player &nbsp; →</button><button type="button" class="creator-primary" data-play>Save & play ↗</button></div><small>Saved in this browser. Save & play starts a new full game.</small></div></section></div>`;
+  <div class="creator-footer"><button type="button" data-delete hidden>Delete player</button><p data-status role="status"></p><div><button type="button" data-save>Save Player &nbsp; →</button></div><small>Saved in this browser.</small></div></section></div>`;
   document.body.append(this.dialog);
   this.setupAppearancePages();
-  this.el('[data-close]').addEventListener('click',()=>this.dialog.close());
+  this.dialog.querySelectorAll<HTMLButtonElement>('[data-close]').forEach(button=>button.addEventListener('click',()=>this.dialog.close()));
   this.el('[data-delete]').addEventListener('click',()=>{const player=this.library.players.find(p=>p.id===this.draft.id);if(!player||this.loadError)return;this.el('[data-delete-message]').textContent=`Delete “${player.name}”? This removes the saved player and any unsaved edits. This cannot be undone.`;this.el('.creator-confirm').hidden=true;this.pending=null;this.el('.creator-delete-confirm').hidden=false;this.el('[data-cancel-delete]').focus()});
   this.el('[data-cancel-delete]').addEventListener('click',()=>{this.el('.creator-delete-confirm').hidden=true;this.el('[data-delete]').focus()});
   this.el('[data-confirm-delete]').addEventListener('click',()=>this.removePlayer());
-  this.el('[data-roster-close]').addEventListener('click',()=>this.dialog.close());
   this.el('[data-back-roster]').addEventListener('click',()=>this.showRoster());
   this.el('[data-create-player]').addEventListener('click',()=>{this.showEditor();this.switchDraft(()=>this.loadDraft(newPlayer()))});
   this.el('[data-resume]').addEventListener('click',()=>this.showEditor());
@@ -86,7 +85,7 @@ export class PlayerCreator {
   const tabs=Array.from(this.dialog.querySelectorAll<HTMLButtonElement>('[data-tab]'));
   const selectTab=(tab:HTMLButtonElement)=>{for(const button of tabs){const selected=button===tab;button.setAttribute('aria-selected',String(selected));button.tabIndex=selected?0:-1;this.el(`#${button.dataset.tab}-panel`).hidden=!selected}};
   for(const tab of tabs){tab.addEventListener('click',()=>selectTab(tab));tab.addEventListener('keydown',event=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(event.key)){event.preventDefault();const next=tabs[event.key==='Home'?0:event.key==='End'?1:tab===tabs[0]?1:0];selectTab(next);next.focus()}})}
-  this.el('[data-save]').addEventListener('click',()=>this.save(false));this.el('[data-play]').addEventListener('click',()=>this.save(true));
+  this.el('[data-save]').addEventListener('click',()=>this.save(false));
   this.fill();
  }
  private setupAppearancePages(){
@@ -159,9 +158,13 @@ export class PlayerCreator {
   this.el('[data-resume]').hidden=JSON.stringify(this.draft)===this.baseline;
   this.el('[data-roster-status]').textContent=this.loadError;
   const saved=this.el('[data-saved-roster]'),defaults=this.el('[data-default-roster]');saved.replaceChildren();defaults.replaceChildren();
-  if(!this.library.players.length){const empty=document.createElement('p');empty.textContent='No saved players yet. Create your first player above.';saved.append(empty)}
+  this.el('[data-saved-section]').hidden=this.library.players.length===0;
   const card=(player:DesignedPlayer,role:string,isDefault:boolean)=>{
    const article=document.createElement('article');article.className='roster-card';
+   const edit=()=>{this.showEditor();this.switchDraft(()=>this.loadDraft(player))};
+   article.tabIndex=0;article.setAttribute('role','button');article.setAttribute('aria-label',`Edit ${player.name}`);
+   article.addEventListener('click',event=>{if((event.target as HTMLElement).closest('button,summary,a,input,select,textarea'))return;edit()});
+   article.addEventListener('keydown',event=>{if(event.target===article&&(event.key==='Enter'||event.key===' ')){event.preventDefault();edit()}});
    const themeIndex=LOOKS.findIndex(look=>look.name===player.name);
    const themes=[['#ff9389','All court.\nAll fun.'],['#78aff2','Power changes\ngames.'],['#ffda73','Think\nahead.'],['#95dfc0','Fast moves.\nBig plays.'],['#c5a3f2','Small details.\nBig wins.'],['#b0d2a7','Defend and\ndeliver.'],['#d1a0ef','Creativity keeps\nyou ahead.'],['#a5dfc4','Any court.\nAny day.']];
    const [color,motto]=themes[themeIndex<0?Math.abs(player.name.length)%themes.length:themeIndex];
@@ -178,7 +181,6 @@ export class PlayerCreator {
    const details=document.createElement('details'),label=document.createElement('summary');label.textContent='View all skills';details.append(label);
    for(const skill of SKILLS){const line=document.createElement('div');line.className='roster-skill';const name=document.createElement('span');name.textContent=title(skill);const meter=document.createElement('meter');meter.min=0;meter.max=100;meter.value=player.skills[skill];meter.setAttribute('aria-label',title(skill));meter.title=skillLevel(player.skills[skill]);const value=document.createElement('span');value.textContent=String(player.skills[skill]);line.append(name,meter,value);details.append(line)}article.append(details);
    const actions=document.createElement('div');actions.className='roster-card-actions';
-   if(!isDefault){const edit=document.createElement('button');edit.type='button';edit.textContent='Edit';edit.addEventListener('click',()=>{this.showEditor();this.switchDraft(()=>this.loadDraft(player))});actions.append(edit)}
    const play=document.createElement('button');play.type='button';play.className='roster-play';play.textContent='▶  Play as '+player.name;play.disabled=!isDefault&&!!this.loadError;
    play.addEventListener('click',()=>{if(isDefault){this.onPlay(structuredClone(player));this.dialog.close()}else{this.showEditor();this.switchDraft(()=>{this.loadDraft(player);this.save(true)})}});actions.append(play);
    article.append(actions);return article;
@@ -194,7 +196,7 @@ export class PlayerCreator {
  private removePlayer(){
   if(this.loadError)return;
   const id=this.draft.id;if(!this.library.players.some(p=>p.id===id))return;
-  try{this.library=deletePlayer(localStorage,this.library,id);this.pending=null;this.el('.creator-delete-confirm').hidden=true;this.el('.creator-confirm').hidden=true;this.onDelete(id);this.loadDraft(this.activePlayer??this.library.players[0]??newPlayer());this.showRoster();this.el('[data-roster-status]').textContent='Player deleted.'}catch{this.el('[data-status]').textContent='Could not delete the player. Your saved roster is unchanged.'}
+  try{this.library=deletePlayer(localStorage,this.library,id);this.pending=null;this.el('.creator-delete-confirm').hidden=true;this.el('.creator-confirm').hidden=true;this.onDelete(id);this.loadDraft(this.activePlayer??this.library.players[0]??newPlayer());this.showRoster();this.el('[data-roster-status]').textContent=this.library.players.length?'Player deleted.':''}catch{this.el('[data-status]').textContent='Could not delete the player. Your saved roster is unchanged.'}
  }
  private fill(){
   this.el('#creator-title').innerHTML=this.library.players.some(p=>p.id===this.draft.id)?'Edit<br>Your Player.':'Create<br>Your Player.';
@@ -205,18 +207,18 @@ export class PlayerCreator {
   this.input('#creator-catchphrase').value=this.draft.catchphrase??'';
   this.syncAppearance();
   this.input('#creator-preset').value='';this.fillSkills();this.updateCaption();this.updateSummary();
-  this.el('[data-status]').textContent=this.loadError||'Create your player, then save it to your roster.';
-  for(const selector of ['[data-save]','[data-play]'])(this.el(selector) as HTMLButtonElement).disabled=!!this.loadError;
+  this.el('[data-status]').textContent=this.loadError;
+  (this.el('[data-save]') as HTMLButtonElement).disabled=!!this.loadError;
  }
  private fillSkills(){this.input('#creator-preset').value=Object.entries(ARCHETYPES).find(([,p])=>SKILLS.every(key=>p.skills[key]===this.draft.skills[key]))?.[0]??'';for(const skill of SKILLS){this.input(`#skill-${skill}`).value=String(this.draft.skills[skill]);this.el(`#value-${skill}`).textContent=String(this.draft.skills[skill]);this.el(`#help-${skill}`).textContent=skillLevel(this.draft.skills[skill])+' · '+skillHelp[skill]}}
  private updateCaption(){this.el('[data-preview-name]').textContent=this.draft.name.trim()||'Your player'}
- private changed(){this.el('[data-status]').textContent=this.loadError||(JSON.stringify(this.draft)===this.baseline?'No unsaved changes.':'Unsaved changes · close and reopen to keep editing.')}
+ private changed(){this.el('[data-status]').textContent=this.loadError}
  private refreshPreview(){if(!this.dialog.open||this.dialog.dataset.view==='roster'||this.previewFailed)return;try{this.preview??=new AvatarPreview(this.el('.creator-preview'));this.preview.setPlayer(this.draft)}catch{this.previewFailed=true;this.el('.creator-preview').textContent='3D preview is unavailable. You can still edit and save your player.'}}
  private save(play:boolean){
   if(this.loadError)return;
   try{
    this.library=savePlayer(localStorage,this.library,this.draft,play);this.draft=structuredClone(this.library.players.find(p=>p.id===this.draft.id)!);this.baseline=JSON.stringify(this.draft);this.fill();
-   this.pending=null;this.el('.creator-confirm').hidden=true;this.el('[data-status]').textContent='Player saved. Save & play applies it to a new game.';
+   this.pending=null;this.el('.creator-confirm').hidden=true;this.el('[data-status]').textContent='Player saved.';
    if(play){this.onPlay(structuredClone(this.draft));this.dialog.close()}else this.showRoster()
   }catch(error){this.el('[data-status]').textContent=error instanceof Error&&error.name==='QuotaExceededError'?'Browser storage is full. Your edits are still here; the player was not saved.':error instanceof Error?error.message:'Could not save. Your edits are still here.'}
  }

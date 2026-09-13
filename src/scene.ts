@@ -6,7 +6,8 @@ import {CourtTrees} from './trees';
 import {createPickleball} from './pickleball';
 import {createAthlete, animateAthlete, disposeAthlete, setAthleteHandedness} from './athlete';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
-import {COURT, type GameState, type PlayerId, type RallyShot, sampleLeg} from './simulation';
+import {COURT, type GameState, type PlayerId, type RallyShot} from './engine/model';
+import {sampleLeg} from './engine/rally-engine';
 export class CourtScene {
  onCourtTap:((point:{x:number;z:number;playerId?:PlayerId})=>boolean)|null=null;
  private selectedTarget:{x:number;z:number}|null=null;
@@ -30,7 +31,7 @@ export class CourtScene {
  constructor(private host:HTMLElement,private selectPlayer:(id:PlayerId)=>void=()=>{}){
   this.serveBubble.className='serve-bubble';this.serveBubble.hidden=true;this.serveBubble.setAttribute('role','status');host.append(this.serveBubble);
   this.pausedBallMarker.className='paused-ball-marker';this.pausedBallMarker.hidden=true;this.pausedBallMarker.setAttribute('role','img');this.pausedBallMarker.setAttribute('aria-label','Ball location — play paused');host.append(this.pausedBallMarker);
-  this.scene.background=new THREE.Color('#b9cdbd');this.scene.fog=new THREE.Fog('#b9cdbd',35,68);
+  this.scene.background=new THREE.Color('#b9cdbd');
   this.renderer=new THREE.WebGLRenderer({antialias:true});this.renderer.setPixelRatio(Math.min(devicePixelRatio,2));this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;this.renderer.outputColorSpace=THREE.SRGBColorSpace;this.renderer.toneMapping=THREE.ACESFilmicToneMapping;this.renderer.toneMappingExposure=1.08;host.append(this.renderer.domElement);
   this.renderer.domElement.setAttribute('aria-label','Interactive 3D pickleball court. Drag to rotate, pinch or scroll to zoom, and use two fingers or right-drag to move the view.');this.renderer.domElement.setAttribute('role','img');
   this.renderer.domElement.style.touchAction='none';

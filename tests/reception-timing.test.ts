@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {Match} from '../src/match';
-import {ShotLab,labSetup} from '../src/shot-lab';
+import {PreparedShotFixture,preparedContact} from './helpers/prepared-shot';
 import {executeShot} from '../src/engine/execution';
 import {receptionTiming,receptionRoll,swingMissChance} from '../src/engine/reception-timing';
 test('movement and hands independently determine whether a rushed ball can be reached',()=>{
@@ -22,7 +22,7 @@ test('low hands produce many more swing misses across deterministic seeds',()=>{
  assert.equal(receptionRoll(42,player),receptionRoll(42,player));
 });
 test('late contacts increase actual mishits while prepared contacts stay more reliable',()=>{
- const lab=new ShotLab(),context=labSetup('drive').context;
+ const lab=new PreparedShotFixture(),context=preparedContact('drive').context;
  lab.state.players[0].skills.hands=30;
  const count=(timingPressure:number)=>Array.from({length:500},(_,seed)=>executeShot(lab.shot.intent,{...context,timingPressure},lab.state.players,{seed,balance:1}).mishit).filter(Boolean).length;
  assert.ok(count(1)>count(0)+60);
