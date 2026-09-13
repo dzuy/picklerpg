@@ -12,10 +12,10 @@ const iconPaths:Record<string,string>={
  glasses:'M2 8h8v7H3Zm12 0h8l-1 7h-7ZM10 10h4',hat:'M4 14V11a8 8 0 0 1 16 0v3ZM4 14l-3 3h16l3-3',
  top:'m8 3-6 4 3 5 3-2v11h8V10l3 2 3-5-6-4q-4 4-8 0Z',
  bottom:'M7 3h10l4 18H3Zm5 7v11',shoes:'m4 8 4 5 5 2h6l3 3v3H2V10Z',paddle:'M8 2h8l3 4v9l-5 4v3h-4v-3l-5-4V6Z',accessory:'M9 2h6v5H9Zm-1 5h8v10H8Zm1 10h6v5H9Z',style:'M5 12v9M12 7v14M19 2v19'};
-const rowIcon=(key:string)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${iconPaths[key]??iconPaths.hair}"/></svg>`;
+const rowIcon=(key:string)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${iconPaths[key==='expression'?'face':key==='paddleShape'?'paddle':key==='shoeStyle'?'shoes':key==='glassesColor'?'glasses':key]??iconPaths.hair}"/></svg>`;
 const outfitColors=['#fa6796','#4285df','#efbf43','#e85860','#ac7bd8','#36936c','#424247','#fff7ef','#203e6a','#ed8d3c','#80cdd2','#754732','#a6c64c'];
 const equipmentColors=['#315d58','#f56794','#41617a','#303d3e','#ece4ce','#ffffff','#17191e','#ed8d3c','#efbf43','#ac7bd8','#e85860','#4285df','#80cdd2'];
-const labels:Record<string,string>={jersey:'T-shirt',backwards:'Cap back',sport:'Sport shades','side-part':'Side part','pleated-skirt':'Pleated skirt','long-shorts':'Long shorts'};
+const labels:Record<string,string>={jersey:'T-shirt',backwards:'Cap back',sport:'Sport shades','side-part':'Side part','pleated-skirt':'Pleated skirt','long-shorts':'Long shorts','high-top':'High tops','slip-on':'Slip-ons','cat-eye':'Cat eye'};
 const title=(text:string)=>labels[text]??text.charAt(0).toUpperCase()+text.slice(1);
 const skillHelp:Record<typeof SKILLS[number],string>={serve:'Start the point with reliable placement.',return:'Control the return after the bounce.',drive:'Execute fast, attacking groundstrokes.',drop:'Land a soft shot in the kitchen.',dink:'Control soft exchanges at the net.',reset:'Take pace off an incoming attack.',volley:'Strike cleanly before the bounce.',counter:'Redirect an attack into pressure.',overhead:'Finish high balls with control.',movement:'Reach more balls around the court.',hands:'Handle fast exchanges at the net.'};
 
@@ -29,11 +29,11 @@ export class PlayerCreator {
   const active=this.library.players.find(p=>p.id===this.library.activeId);
   if(active)this.draft=structuredClone(active);this.baseline=JSON.stringify(this.draft);
   this.dialog.id='player-creator';this.dialog.setAttribute('aria-labelledby','creator-title');
-  this.dialog.innerHTML=`<section class="player-roster-page" aria-labelledby="roster-title"><div class="roster-top"><div><h1 id="roster-title">Your roster</h1></div><div class="roster-cheer" aria-hidden="true">Good players.<br>Brighter rallies.<svg viewBox="0 0 70 80" fill="none"><ellipse cx="40" cy="29" rx="22" ry="26" fill="currentColor" transform="rotate(35 40 29)"/><path d="m27 48-17 22" stroke="currentColor" stroke-width="12" stroke-linecap="round"/><g fill="#fafbf3"><circle cx="38" cy="13" r="3"/><circle cx="49" cy="23" r="3"/><circle cx="29" cy="27" r="3"/><circle cx="40" cy="38" r="3"/><circle cx="53" cy="36" r="3"/></g></svg></div><button type="button" class="creator-close" data-close aria-label="Return to main game" title="Return to main game">×</button></div><div class="roster-actions"><button type="button" data-create-player>+ Create new player</button><button type="button" data-resume hidden>Continue editing</button></div><p data-roster-status role="status"></p><section data-saved-section><h2>Saved &amp; created players</h2><div data-saved-roster class="roster-grid"></div></section><h2>Starting Lineup</h2><div data-default-roster class="roster-grid"></div></section><div class="creator-topline"><button type="button" data-back-roster>← Roster</button><span>PICKLE RPG <i>·</i> CREATE PLAYER</span><button type="button" class="creator-close" data-close aria-label="Return to main game" title="Return to main game">×</button></div>
-  <div class="creator-layout"><section class="creator-stage" aria-label="Avatar preview"><div class="creator-heading"><h2 id="creator-title">Create<br>Your Player.</h2><p>Different players.<br>A brighter court.</p></div>
+  this.dialog.innerHTML=`<section class="player-roster-page" aria-labelledby="roster-title"><div class="roster-top"><div><h1 id="roster-title">Your roster</h1></div><div class="roster-cheer" aria-hidden="true">Good players.<br>Brighter rallies.<svg viewBox="0 0 70 80" fill="none"><ellipse cx="40" cy="29" rx="22" ry="26" fill="currentColor" transform="rotate(35 40 29)"/><path d="m27 48-17 22" stroke="currentColor" stroke-width="12" stroke-linecap="round"/><g fill="#fafbf3"><circle cx="38" cy="13" r="3"/><circle cx="49" cy="23" r="3"/><circle cx="29" cy="27" r="3"/><circle cx="40" cy="38" r="3"/><circle cx="53" cy="36" r="3"/></g></svg></div><button type="button" class="creator-close" data-close aria-label="Return to main game" title="Return to main game">×</button></div><div class="roster-actions"><button type="button" data-create-player>+ Create new player</button><button type="button" data-resume hidden>Continue editing</button></div><p data-roster-status role="status"></p><section data-saved-section><h2>Saved &amp; created players</h2><div data-saved-roster class="roster-grid"></div></section><h2>Starting Lineup</h2><div data-default-roster class="roster-grid"></div></section><div class="creator-topline"><button type="button" data-back-roster>← Roster</button><span>PICKLE RPG <i>·</i> CREATE PLAYER</span></div>
+  <div class="creator-layout"><section class="creator-stage" aria-label="Avatar preview"><div class="creator-heading"><h2 id="creator-title">Create Your Player</h2><p>Different players.<br>A brighter court.</p></div>
 
   <div class="creator-preview"></div><div class="creator-plinth"></div>
-  <div class="creator-identity"><label for="creator-name">PLAYER NAME<input id="creator-name" type="text" inputmode="text" enterkeyhint="done" autocapitalize="words" maxlength="24" autocomplete="off" placeholder="Name your player"></label><label class="creator-catchphrase-label" for="creator-catchphrase">CATCHPHRASE<input id="creator-catchphrase" type="text" inputmode="text" enterkeyhint="done" maxlength="60" autocomplete="off" placeholder="Your game. Your way."></label>
+  <div class="creator-identity"><label for="creator-name">PLAYER NAME<input id="creator-name" type="text" inputmode="text" enterkeyhint="done" autocapitalize="words" maxlength="24" autocomplete="off" placeholder="Name your player"></label><label class="creator-catchphrase-label" for="creator-catchphrase">CATCHPHRASE<input id="creator-catchphrase" type="text" inputmode="text" enterkeyhint="done" maxlength="60" autocomplete="off"></label>
   <label class="style-heading">PLAY STYLE <span>(OPTIONAL)</span></label><div class="creator-style-chips"><button type="button" data-style="allCourt">All-Court</button><button type="button" data-style="attacker">Power</button><button type="button" data-style="defender">Quick Hands</button><button type="button" data-style="setup">Strategic</button></div>
   <blockquote>“Small moves.<br>Big plans.”</blockquote><div class="creator-summary">${['Power','Control','Speed','Hands'].map(name=>`<div><span>${name}</span><meter aria-label="${name} summary" min="0" max="100" value="70" data-summary="${name}" title="${SUMMARY_SKILLS[name as keyof typeof SUMMARY_SKILLS].map(title).join(', ')}"></meter><output data-summary-value="${name}"></output></div>`).join('')}</div>
   </div>
@@ -44,17 +44,22 @@ export class PlayerCreator {
   ${this.colorRow('hair','Hair Color',['#754732','#252429','#efc568','#b85b34','#814cac','#b8babc'])}
   ${this.colorRow('skin','Skin Tone',['#f0cbae','#e7af8c','#c8926e','#ad7553','#875338','#543c32'])}
   ${this.optionRow('glasses','Glasses','∞')}
+  ${this.colorRow('glassesColor','Frame Color',equipmentColors)}
+  ${this.colorRow('lensColor','Lens Color',['#b7dce5','#242630','#234650','#754732','#efbf43','#ac7bd8','#f56794','#4285df'])}
   ${this.optionRow('hat','Hat / Visor','⌒')}
   ${this.colorRow('hatColor','Hat Color',outfitColors)}
   ${this.optionRow('top','Top','♧')}
   ${this.colorRow('jersey','Top Color',outfitColors)}
   ${this.optionRow('bottom','Bottom','▱')}
   ${this.colorRow('bottomColor','Bottom Color',outfitColors)}
-  ${this.colorRow('shoes','Shoes',equipmentColors)}
-  ${this.colorRow('paddle','Paddle',equipmentColors)}
+  ${this.optionRow('shoeStyle','Shoe Style','')}
+  ${this.colorRow('shoes','Shoe Color',equipmentColors)}
+  ${this.colorRow('paddle','Paddle Color',equipmentColors)}
   ${this.optionRow('accessory','Accessories','◇')}
   ${this.colorRow('accent','Accessories Color',['#315d58','#f56794','#41617a','#303d3e','#ece4ce'])}
   <div class="creator-option-row"><span class="row-label">Playing hand</span><div class="creator-choices hand-choices" role="group" aria-label="Playing hand">${(['right','left'] as const).map(hand=>`<button type="button" data-hand="${hand}" aria-label="${title(hand)}-handed" title="${title(hand)}-handed" aria-pressed="false"><img alt="" data-hand-thumb="${hand}"><span class="hand-badge" aria-hidden="true">${hand==='right'?'R':'L'}</span></button>`).join('')}</div></div>
+  ${this.optionRow('expression','Expression','')}
+  ${this.optionRow('paddleShape','Paddle Shape','')}
   </div></div>
   <div id="skills-panel" role="tabpanel" aria-labelledby="skills-tab" hidden><p class="creator-intro">Adjust every skill from 0 to 100. Your meters and estimated rating update as you edit.</p><div class="creator-summary skills-summary">${['Power','Control','Speed','Hands'].map(name=>`<div><span>${name}</span><meter aria-label="${name} summary" min="0" max="100" value="70" data-summary="${name}" title="${SUMMARY_SKILLS[name as keyof typeof SUMMARY_SKILLS].map(title).join(', ')}"></meter><output data-summary-value="${name}"></output></div>`).join('')}</div><div class="creator-rating"><span>Estimated DUPR</span><strong data-dupr></strong><small>Game estimate from all 11 skills · not an official rating.</small></div><label for="creator-preset">Start from an archetype<select id="creator-preset"><option value="">Custom skills</option>${Object.entries(ARCHETYPES).map(([id,p])=>`<option value="${id}">${p.name}</option>`).join('')}</select></label><div class="creator-skills">${SKILLS.map(skill=>`<div class="creator-skill"><label for="skill-${skill}">${title(skill)}<output for="skill-${skill}" id="value-${skill}">70</output></label><input id="skill-${skill}" data-skill="${skill}" type="range" min="0" max="100" step="1" aria-describedby="help-${skill}"><small id="help-${skill}">${skillHelp[skill]}</small></div>`).join('')}</div><p class="creator-intro">Rating guide: 0 → 2.0 · 70 → 3.5 (typical) · 80 → 4.0 (strong) · 90 → 5.0 (advanced) · 95 → 6.0 (pro) · 100 → 8.0. Your rating combines all 11 skills.</p></div>
   <div class="creator-delete-confirm" hidden><p data-delete-message></p><button type="button" data-cancel-delete>Keep player</button><button type="button" data-confirm-delete>Delete player permanently</button></div>
@@ -78,7 +83,7 @@ export class PlayerCreator {
   this.dialog.querySelectorAll<HTMLButtonElement>('[data-choice]').forEach(button=>button.addEventListener('click',()=>{if(button.dataset.key==='presentation')this.draft.appearance=applyPresentation(this.draft.appearance,button.dataset.choice as Appearance['presentation']);else Object.assign(this.draft.appearance,{[button.dataset.key!]:button.dataset.choice});this.syncAppearance();this.refreshPreview();this.changed()}));
   this.dialog.querySelectorAll<HTMLInputElement>('[data-color]').forEach(control=>{const apply=()=>{if(this.draft.appearance[control.dataset.color as keyof Appearance]===control.value)return;Object.assign(this.draft.appearance,{[control.dataset.color!]:control.value});this.syncAppearance();this.refreshPreview();this.changed()};control.addEventListener('input',apply);control.addEventListener('change',apply)});
   this.dialog.querySelectorAll<HTMLButtonElement>('[data-style]').forEach(button=>button.addEventListener('click',()=>{this.draft.skills={...ARCHETYPES[button.dataset.style as keyof typeof ARCHETYPES].skills};this.fillSkills();this.updateSummary();this.changed()}));
-  this.el('[data-randomize]').addEventListener('click',()=>{const pick=<T,>(items:readonly T[])=>items[Math.floor(Math.random()*items.length)];const look=pick(LOOKS);this.draft.appearance={...look.appearance,hairStyle:pick(APPEARANCE_OPTIONS.hairStyle),hat:pick(APPEARANCE_OPTIONS.hat.filter(value=>value!=='beanie'&&value!=='bucket')),glasses:pick(APPEARANCE_OPTIONS.glasses),top:pick(APPEARANCE_OPTIONS.top),bottom:pick(APPEARANCE_OPTIONS.bottom.filter(value=>value!=='skort')),accessory:pick(APPEARANCE_OPTIONS.accessory)};this.syncAppearance();this.refreshPreview();this.changed()});
+  this.el('[data-randomize]').addEventListener('click',()=>{const pick=<T,>(items:readonly T[])=>items[Math.floor(Math.random()*items.length)];const look=pick(LOOKS);this.draft.appearance={...look.appearance,expression:pick(APPEARANCE_OPTIONS.expression),paddleShape:pick(APPEARANCE_OPTIONS.paddleShape),hairStyle:pick(APPEARANCE_OPTIONS.hairStyle),hat:pick(APPEARANCE_OPTIONS.hat.filter(value=>value!=='beanie'&&value!=='bucket')),glasses:pick(APPEARANCE_OPTIONS.glasses),glassesColor:pick(equipmentColors),shoeStyle:pick(APPEARANCE_OPTIONS.shoeStyle),top:pick(APPEARANCE_OPTIONS.top),bottom:pick(APPEARANCE_OPTIONS.bottom.filter(value=>value!=='skort')),accessory:pick(APPEARANCE_OPTIONS.accessory)};this.syncAppearance();this.refreshPreview();this.changed()});
   this.dialog.querySelectorAll<HTMLButtonElement>('[data-hand]').forEach(button=>button.addEventListener('click',()=>{this.draft.handedness=button.dataset.hand as 'left'|'right';this.syncAppearance();this.refreshPreview();this.changed()}));
   this.dialog.querySelectorAll<HTMLInputElement>('[data-skill]').forEach(control=>control.addEventListener('input',()=>{const key=control.dataset.skill as typeof SKILLS[number];this.draft.skills[key]=Number(control.value);this.el(`#value-${key}`).textContent=control.value;this.el(`#help-${key}`).textContent=skillLevel(Number(control.value))+' · '+skillHelp[key];this.input('#creator-preset').value='';this.updateSummary();this.changed()}));
   this.input('#creator-preset').addEventListener('change',()=>{const preset=ARCHETYPES[this.input('#creator-preset').value as keyof typeof ARCHETYPES];if(preset){this.draft.skills={...preset.skills};this.fillSkills();this.updateSummary();this.changed()}});
@@ -91,15 +96,9 @@ export class PlayerCreator {
  private setupAppearancePages(){
   const track=this.el('.creator-options');
   const rows=Array.from(track.children);
-  const groups=[{name:'Hair',rows:[0,1]},{name:'Face',rows:[3,2]},{name:'Headwear',rows:[4,5]},{name:'Top',rows:[6,7]},{name:'Bottom',rows:[8,9]},{name:'Shoes',rows:[10]},{name:'Paddle & hand',rows:[14,11]},{name:'Accessories',rows:[12,13]}];
+  const groups=[{name:'Hair',rows:[0,1]},{name:'Expression',rows:[18]},{name:'Glasses',rows:[3,4,5]},{name:'Headwear',rows:[6,7]},{name:'Skin Tone',rows:[2]},{name:'Top',rows:[8,9]},{name:'Bottom',rows:[10,11]},{name:'Shoes',rows:[12,13]},{name:'Paddle & hand',rows:[19,14,17]},{name:'Accessories',rows:[15,16]}];
   const pages=groups.map((group,index)=>{
    const page=document.createElement('section');page.className='appearance-page';page.id=`appearance-page-${index}`;page.setAttribute('aria-label',group.name);
-   if(group.name==='Shoes'){
-    const key=group.name==='Shoes'?'shoes':'paddle';
-    const item=document.createElement('div');item.className='appearance-item-preview';
-    item.innerHTML=`<img alt="${title(key)}" data-thumb-key="${key}" data-thumb-value="${LOOKS[0].appearance[key]}">`;
-    page.append(item);
-   }
    for(const row of group.rows)page.append(rows[row]);track.append(page);return page;
   });
   const nav=document.createElement('nav');nav.className='appearance-pagination';nav.setAttribute('aria-label','Appearance pages');
@@ -131,7 +130,7 @@ export class PlayerCreator {
  private loadThumbnails(){if(this.thumbnailsReady)return;try{
   this.thumbnails??=new AvatarThumbnails();
   this.dialog.querySelectorAll<HTMLImageElement>('[data-hand-thumb]').forEach(img=>img.src=this.thumbnails!.get(LOOKS[0].appearance,`hand-${img.dataset.handThumb}`));
-  this.dialog.querySelectorAll<HTMLImageElement>('[data-thumb-key]').forEach(img=>{let appearance={...LOOKS[0].appearance,[img.dataset.thumbKey!]:img.dataset.thumbValue!};if(img.dataset.thumbKey==='presentation')appearance=applyPresentation(appearance,img.dataset.thumbValue as Appearance['presentation']);if(['face','hairStyle','glasses'].includes(img.dataset.thumbKey!))appearance.hat='none';img.src=this.thumbnails!.get(appearance,img.dataset.thumbKey!)});
+  this.dialog.querySelectorAll<HTMLImageElement>('[data-thumb-key]').forEach(img=>{let appearance={...LOOKS[0].appearance,[img.dataset.thumbKey!]:img.dataset.thumbValue!};if(img.dataset.thumbKey==='presentation')appearance=applyPresentation(appearance,img.dataset.thumbValue as Appearance['presentation']);if(['face','hairStyle','glasses','expression'].includes(img.dataset.thumbKey!))appearance.hat='none';if(img.dataset.thumbKey==='expression')appearance.glasses='none';img.src=this.thumbnails!.get(appearance,img.dataset.thumbKey!)});
   this.dialog.querySelectorAll<HTMLImageElement>('[data-portrait]').forEach(img=>img.src=this.thumbnails!.get(LOOKS[Number(img.dataset.portrait)].appearance,'full'));this.thumbnailsReady=true;
  }catch{/* Text labels remain usable if thumbnail rendering is unavailable. */}}
  private updateSummary(){const {meters,estimatedDupr}=summarizeSkills(this.draft.skills);
@@ -150,7 +149,7 @@ export class PlayerCreator {
 
  private showEditor(){
   this.dialog.dataset.view='editor';this.dialog.setAttribute('aria-labelledby','creator-title');
-  this.el('#creator-title').innerHTML=this.library.players.some(p=>p.id===this.draft.id)?'Edit<br>Your Player.':'Create<br>Your Player.';
+  this.el('#creator-title').innerHTML=this.library.players.some(p=>p.id===this.draft.id)?'Edit Your Player':'Create Your Player';
   this.refreshPreview();this.loadThumbnails();this.el('[data-back-roster]').focus();
  }
  private showRoster(){
@@ -199,7 +198,7 @@ export class PlayerCreator {
   try{this.library=deletePlayer(localStorage,this.library,id);this.pending=null;this.el('.creator-delete-confirm').hidden=true;this.el('.creator-confirm').hidden=true;this.onDelete(id);this.loadDraft(this.activePlayer??this.library.players[0]??newPlayer());this.showRoster();this.el('[data-roster-status]').textContent=this.library.players.length?'Player deleted.':''}catch{this.el('[data-status]').textContent='Could not delete the player. Your saved roster is unchanged.'}
  }
  private fill(){
-  this.el('#creator-title').innerHTML=this.library.players.some(p=>p.id===this.draft.id)?'Edit<br>Your Player.':'Create<br>Your Player.';
+  this.el('#creator-title').innerHTML=this.library.players.some(p=>p.id===this.draft.id)?'Edit Your Player':'Create Your Player';
   this.el('.creator-delete-confirm').hidden=true;
   this.el('[data-delete]').hidden=!this.library.players.some(p=>p.id===this.draft.id);
   (this.el('[data-delete]') as HTMLButtonElement).disabled=!!this.loadError;

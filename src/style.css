@@ -442,7 +442,7 @@ body.match-mode[data-panel=play] #match-panel #open-replay{width:100%;min-height
 .target-picker{position:fixed;z-index:45;width:min(266px,calc(70vw - 11.2px));pointer-events:none;filter:drop-shadow(0 8px 18px #122b3540)}
 .target-picker[hidden]{display:none}
  .target-wheel{position:relative;width:100%;aspect-ratio:1;margin:auto;border:2px solid #d6dec2;border-radius:50%;overflow:visible;background:transparent;pointer-events:auto}
-.target-wheel .target-slice{position:absolute;inset:0;width:100%;height:100%;padding:0;border:0;border-radius:0;background:#f8f8e8b3;color:#173f36;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;touch-action:manipulation}
+.target-wheel .target-slice{position:absolute;inset:0;width:100%;height:100%;padding:0;border:0;border-radius:0;background:#f8f8e8d1;color:#173f36;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;touch-action:manipulation}
 .target-slice-content{position:absolute;width:64px;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:0;text-align:center;pointer-events:none}
 .target-slice-label{font-size:11px;line-height:12px;font-weight:800;max-width:64px;text-wrap:balance}
 .target-wheel .target-slice .shot-visual{display:block;width:56px;height:56px;flex:none;border-radius:0;background:none}
@@ -491,5 +491,5 @@ body .shot-panel-expand[hidden]{display:none!important}
 @media(prefers-reduced-motion:reduce){#game-settings .settings-switch-control input,#game-settings .settings-switch-control input::after{transition:none}}
 
 /* Keep team names legible inside the compact scoreboard. */
-.score-row>span{font-size:11px}
-@media(max-width:760px){.score-row>span{font-size:10px}}
+.score-row>span{font-size:13px}
+@media(max-width:760px){.score-row>span{font-size:13px}}

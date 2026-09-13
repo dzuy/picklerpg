@@ -14,6 +14,27 @@ export function treeBlocksView(bounds: THREE.Box3, camera: THREE.Vector3, target
  return false;
 }
 
+/** Stable park scatter: visually irregular without moving between page loads. */
+export function parkTreePlacements(){
+ const placements:[number,number,number][]=[];
+ let seed=0x51a7b3;const random=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
+ const scatter=(count:number,minRadius:number,maxRadius:number,minSpacing:number)=>{
+  let attempts=0;
+  while(count>0&&attempts++<2000){
+   // Independent angles deliberately allow loose clusters and open pockets.
+   const angle=random()*Math.PI*2,radius=minRadius+Math.pow(random(),.82)*(maxRadius-minRadius);
+   const x=Math.cos(angle)*radius,z=Math.sin(angle)*radius;
+   const outsideCourt=Math.abs(x)>COURT.width/2+2.5||Math.abs(z)>COURT.length/2+2.5;
+   const spaced=placements.every(([px,pz])=>Math.hypot(x-px,z-pz)>minSpacing);
+   if(!outsideCourt||!spaced)continue;
+   placements.push([x,z,.68+random()*.62]);count--;
+  }
+ };
+ scatter(18,9,27,2.2);
+ scatter(36,23,78,2.8);
+ return placements;
+}
+
 export class CourtTrees {
  readonly group=new THREE.Group();
  private trees:{root:THREE.Group;bounds:THREE.Box3;materials:THREE.MeshStandardMaterial[];opacity:number}[]=[];
@@ -22,15 +43,17 @@ export class CourtTrees {
  constructor(){
   const trunkGeometry=new THREE.CylinderGeometry(.14,.23,2.7,10);
   const crownGeometry=new THREE.IcosahedronGeometry(1,2);
-  const placements=[[-7.8,-9,1],[-8.5,-2,.88],[-7.6,5,1.06],[-6.8,11,.92],[7.8,-9,.94],[8.4,-2,1.08],[7.7,5,.9],[6.8,11,1.02],[-3.4,-12,1.05],[3.4,-12,.9],[-3.4,13,.94],[3.4,13,1.06]];
+  const placements=parkTreePlacements();
   for(const [index,[x,z,scale]] of placements.entries()){
    const root=new THREE.Group();root.position.set(x,-.13,z);root.scale.setScalar(scale);
-   const materials=['#78634b',index%2?'#568267':'#426f55','#6b9370'].map(color=>new THREE.MeshStandardMaterial({color,roughness:1,transparent:true}));
+   const foliage=['#426f55','#4f7c5c','#568267','#638c65'];
+   const materials=['#78634b',foliage[index%foliage.length],index%3?'#6b9370':'#789d70'].map(color=>new THREE.MeshStandardMaterial({color,roughness:1,transparent:true}));
    const trunk=new THREE.Mesh(trunkGeometry,materials[0]);trunk.position.y=1.35;root.add(trunk);
    for(const [cx,cy,cz,r] of [[0,3.25,0,1.35],[-.65,2.75,.15,.95],[.65,2.95,-.2,1.05],[.1,4.1,.05,.85]]){
     const crown=new THREE.Mesh(crownGeometry,materials[cy>3.5?2:1]);crown.position.set(cx,cy,cz);crown.scale.set(r,r*.93,r);root.add(crown);
    }
-   root.traverse(object=>{if(object instanceof THREE.Mesh){object.castShadow=true;object.receiveShadow=true}});
+   const near=Math.hypot(x,z)<24;
+   root.traverse(object=>{if(object instanceof THREE.Mesh){object.castShadow=near;object.receiveShadow=true}});
    this.group.add(root);root.updateWorldMatrix(true,true);
    // Extra clearance starts the fade before foliage touches an athlete or ball.
    const bounds=new THREE.Box3().setFromObject(root).expandByScalar(.55);

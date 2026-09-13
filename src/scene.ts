@@ -25,13 +25,13 @@ export class CourtScene {
  private pausedBallMarker=document.createElement('div');
  private ballScreenPosition=new THREE.Vector3();
  private trajectoryArrow=new THREE.Mesh(new THREE.ConeGeometry(.36,1,12).translate(0,-.5,0),new THREE.MeshBasicMaterial({color:'#efff58',depthTest:false,depthWrite:false}));
- private scene=new THREE.Scene(); private camera=new THREE.PerspectiveCamera(38,1,.1,160); private renderer:THREE.WebGLRenderer;
+ private scene=new THREE.Scene(); private camera=new THREE.PerspectiveCamera(38,1,.1,180); private renderer:THREE.WebGLRenderer;
  private controls:OrbitControls;private customizedView=false;
  private players=new Map<PlayerId,THREE.Group>();private ball:THREE.Group;private ballHalo:THREE.Mesh;private shadow:THREE.Mesh;private trail:THREE.Line;private trailDots:THREE.Points;private target:THREE.Mesh;private labels=new Map<PlayerId,HTMLDivElement>();private cameraDistance=50;private guides=true;private lastShot:RallyShot|null=null;private previewShot:RallyShot|null=null;private lastOpponentShot:RallyShot|null=null;
  constructor(private host:HTMLElement,private selectPlayer:(id:PlayerId)=>void=()=>{}){
   this.serveBubble.className='serve-bubble';this.serveBubble.hidden=true;this.serveBubble.setAttribute('role','status');host.append(this.serveBubble);
   this.pausedBallMarker.className='paused-ball-marker';this.pausedBallMarker.hidden=true;this.pausedBallMarker.setAttribute('role','img');this.pausedBallMarker.setAttribute('aria-label','Ball location — play paused');host.append(this.pausedBallMarker);
-  this.scene.background=new THREE.Color('#b9cdbd');
+  const horizonColor=new THREE.Color('#b9cdbd');this.scene.background=horizonColor;this.scene.fog=new THREE.Fog(horizonColor,105,172);
   this.renderer=new THREE.WebGLRenderer({antialias:true});this.renderer.setPixelRatio(Math.min(devicePixelRatio,2));this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;this.renderer.outputColorSpace=THREE.SRGBColorSpace;this.renderer.toneMapping=THREE.ACESFilmicToneMapping;this.renderer.toneMappingExposure=1.08;host.append(this.renderer.domElement);
   this.renderer.domElement.setAttribute('aria-label','Interactive 3D pickleball court. Drag to rotate, pinch or scroll to zoom, and use two fingers or right-drag to move the view.');this.renderer.domElement.setAttribute('role','img');
   this.renderer.domElement.style.touchAction='none';
@@ -54,7 +54,7 @@ export class CourtScene {
   this.controls=new OrbitControls(this.camera,this.renderer.domElement);this.controls.enableDamping=true;this.controls.dampingFactor=.09;this.controls.enablePan=true;this.controls.screenSpacePanning=true;this.controls.rotateSpeed=.65;this.controls.zoomSpeed=.8;this.controls.panSpeed=.55;this.controls.minDistance=6;this.controls.maxDistance=90;this.controls.minPolarAngle=.08;this.controls.maxPolarAngle=Math.PI*.40;this.controls.touches.ONE=THREE.TOUCH.ROTATE;this.controls.touches.TWO=THREE.TOUCH.DOLLY_PAN;
   this.controls.addEventListener('start',()=>{this.customizedView=true});
   this.scene.add(new THREE.HemisphereLight('#fffbea','#567563',2.35));const sun=new THREE.DirectionalLight('#fff4d2',3.4);sun.position.set(-9,18,10);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-14,right:14,top:14,bottom:-14});sun.shadow.bias=-.00045;this.scene.add(sun);
-  this.box(100,.15,100,0,-.22,0,'#b9cdbd');this.box(12,.16,21,0,-.1,0,'#3e705d');this.box(COURT.width+.32,.04,COURT.length+.32,0,-.005,0,'#316f69');this.box(COURT.width,.03,COURT.length,0,.025,0,'#27898e');this.box(COURT.width,.012,COURT.kitchen*2,0,.047,0,'#75b69f');
+  this.box(340,.15,340,0,-.22,0,'#789b70');this.box(12,.16,21,0,-.1,0,'#3e705d');this.box(COURT.width+.32,.04,COURT.length+.32,0,-.005,0,'#316f69');this.box(COURT.width,.03,COURT.length,0,.025,0,'#27898e');this.box(COURT.width,.012,COURT.kitchen*2,0,.047,0,'#75b69f');
   const w=COURT.width,l=COURT.length,k=COURT.kitchen,t=COURT.line;
   for(const x of [-w/2+t/2,w/2-t/2])this.box(t,.009,l,x,.06,0,'#f8f3d9');
   for(const z of [-l/2+t/2,l/2-t/2])this.box(w,.009,t,0,.06,z,'#f8f3d9');

@@ -31,10 +31,10 @@ export class AvatarThumbnails {
   if(category==='full'||category==='presentation'||category.startsWith('hand-')){y=.78;z=-3.2;x=-.4}
   if(category==='top'){y=.64;z=-1.15}
   if(category==='bottom'){y=.40;z=-1.0}
-  if(category==='shoes'){y=.13;z=-.8;x=-.12}
-  if(category==='paddle'){y=.29;z=-1.25;x=.36;targetX=.36}
+  if(category==='shoes'||category==='shoeStyle'){y=.12;z=.045;x=-.9}
+  if(category==='paddle'||category==='paddleShape'){y=.29;z=-1.25;x=.36;targetX=.36}
   if(category==='accessory'){y=.46;z=-.9;x=.28;targetX=.28}
-  this.camera.position.set(x,y+.035,z);this.camera.lookAt(targetX,y,0);
+  this.camera.position.set(x,y+.035,z);this.camera.lookAt(targetX,y,category==='shoes'||category==='shoeStyle'?.045:0);
   const watch=category==='accessory'&&appearance.accessory==='watch'?avatar.getObjectByName('option-watch'):null;
   if(watch){avatar.updateMatrixWorld(true);const center=new THREE.Box3().setFromObject(watch).getCenter(new THREE.Vector3());this.camera.position.set(center.x-.08,center.y+.04,center.z-.52);this.camera.lookAt(center)}
   this.renderer.render(this.scene,this.camera);

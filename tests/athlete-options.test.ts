@@ -54,3 +54,44 @@ test('both shorts lengths enclose the covered thigh vertices through leg poses',
   }
  }
 });
+
+test('shorter neck lowers the head without scaling the face or its accessories',()=>{
+ const model=clone(asset.scene),head=model.getObjectByName('head')!,neck=model.getObjectByName('neck')!;
+ model.updateMatrixWorld(true);
+ const before=head.getWorldPosition(new THREE.Vector3()),neckPosition=neck.getWorldPosition(new THREE.Vector3()),scale=head.getWorldScale(new THREE.Vector3());
+ dressAthlete(model,{...LOOKS[2].appearance,hat:'none',glasses:'hexagon'});model.updateMatrixWorld(true);
+ const after=head.getWorldPosition(new THREE.Vector3());
+ assert.ok(Math.abs(after.distanceTo(neckPosition)/before.distanceTo(neckPosition)-.7)<1e-6);
+ assert.ok(head.getWorldScale(new THREE.Vector3()).distanceTo(scale)<1e-6);
+ assert.ok(after.y<before.y);
+ const glasses=model.getObjectByName('option-glasses-hexagon')!;
+ assert.ok(glasses.getWorldScale(new THREE.Vector3()).distanceTo(new THREE.Vector3(1,1,1))<1e-6);
+});
+
+test('shoe styles and frame colors survive saving, with defaults for existing players',()=>{
+ for(const shoeStyle of APPEARANCE_OPTIONS.shoeStyle){
+  const player=newPlayer('wardrobe');player.appearance={...player.appearance,shoeStyle,glasses:'cat-eye',glassesColor:'#ed8d3c',lensColor:'#ac7bd8',hairStyle:'mohawk'};
+  assert.deepEqual(validatePlayer(JSON.parse(JSON.stringify(player))),player);
+ }
+ const legacy=JSON.parse(JSON.stringify(newPlayer('legacy')));delete legacy.appearance.shoeStyle;delete legacy.appearance.glassesColor;delete legacy.appearance.lensColor;
+ assert.equal(validatePlayer(legacy).appearance.lensColor,'#b7dce5');
+ assert.equal(validatePlayer(legacy).appearance.shoeStyle,'court');assert.equal(validatePlayer(legacy).appearance.glassesColor,'#25272d');
+ assert.throws(()=>validatePlayer({...legacy,appearance:{...legacy.appearance,glassesColor:'orange'}}));
+});
+
+
+test('expressions replace original eyes and mouth, and paddles retain their grip',()=>{
+ for(const expression of APPEARANCE_OPTIONS.expression){
+  const model=clone(asset.scene);dressAthlete(model,{...LOOKS[0].appearance,expression});
+  assert.ok(model.getObjectByName(`option-expression-${expression}`));
+  model.getObjectByName('head_base')!.traverse(o=>{if(o instanceof THREE.Mesh&&['MAT_grip','MAT_mouth','MAT_tongue'].includes((o.material as THREE.Material).name))assert.equal(o.visible,false)});
+ }
+ for(const paddleShape of APPEARANCE_OPTIONS.paddleShape){
+  const model=clone(asset.scene);dressAthlete(model,{...LOOKS[0].appearance,paddleShape});
+  if(paddleShape!=='rectangular')assert.ok(model.getObjectByName(`option-paddle-${paddleShape}`));
+  model.getObjectByName('paddle_01')!.traverse(o=>{if(o instanceof THREE.Mesh)assert.equal(o.visible,(o.material as THREE.Material).name==='MAT_grip'||paddleShape==='rectangular')});
+  const player=newPlayer('shapes');player.appearance={...player.appearance,paddleShape,expression:'confident'};assert.deepEqual(validatePlayer(JSON.parse(JSON.stringify(player))),player);
+ }
+ const legacy=JSON.parse(JSON.stringify(newPlayer('legacy')));delete legacy.appearance.expression;delete legacy.appearance.paddleShape;
+ assert.equal(validatePlayer(legacy).appearance.expression,'happy');assert.equal(validatePlayer(legacy).appearance.paddleShape,'rectangular');
+});

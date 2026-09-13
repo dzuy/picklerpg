@@ -270,3 +270,7 @@
 #player-creator .creator-close{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;min-height:44px;padding:0;border:1px solid #d7dfd0;border-radius:50%;background:#f2f4ea;color:#315648;font-size:25px;font-weight:300;line-height:1}
 #player-creator .roster-top>.creator-close{margin-left:0}
 #player-creator .creator-topline>.creator-close{position:absolute;right:0}
+
+/* Keep the creator title on one line at each layout size. */
+#player-creator .creator-heading h2{white-space:nowrap;font-size:clamp(22px,2.5vw,40px)}
+@media(max-width:760px){#player-creator .creator-heading h2{font-size:clamp(15px,4.1vw,20px);letter-spacing:-.5px}}
