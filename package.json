@@ -8,7 +8,8 @@
     "build": "tsc --noEmit && vite build",
     "test": "node --import tsx --test tests/*.test.ts",
     "preview": "vite preview --host 127.0.0.1",
-    "opponent-server": "node --env-file-if-exists=.env.local server/opponent.mjs"
+    "opponent-server": "node --env-file-if-exists=.env.local server/opponent.mjs",
+    "start": "node server/production.mjs"
   },
   "dependencies": {
     "@huggingface/transformers": "^4.2.0",
