@@ -28,6 +28,14 @@ test('samples produce net misses without repairing clearance and can land out',(
  }
  assert.ok(outcomes.has('net'));assert.ok(outcomes.has('out'));assert.ok(outcomes.has('in'));
 });
+test('a shot that fails to cross the net plane is a fault for the hitter',()=>{
+ const {intent,players,context}=setup();players[0].skills.drive=0;let failedCrossings=0;
+ for(let seed=0;seed<1000;seed++){
+  const result=executeShot(intent,context,players,{seed,balance:0});
+  if(result.actualEndpoint.z*context.contact.z>=0){failedCrossings++;assert.equal(result.outcome,'out')}
+ }
+ assert.ok(failedCrossings>0,'Expected low-skill samples that never crossed the net');
+});
 test('lab plays the sampled flight, preserves target and replays the same sample',()=>{
  const lab=new ShotLab();lab.variance=true;lab.balance=0;lab.reset();const result=structuredClone(lab.execution);
  assert.deepEqual(lab.shot.aimPoint,lab.generated!.aimPoint);assert.deepEqual(lab.shot.legs[0],result!.leg);

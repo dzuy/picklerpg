@@ -76,3 +76,55 @@ test('hands-free waits for team contacts but always offers next-point listening'
  assert.equal(voiceContactReady({phase:'flight',possession:'home',currentHitter:'you'},false),false);
  assert.equal(voiceContactReady({phase:'complete',possession:'home',currentHitter:'partner'},true),true);
 });
+test('speech service network failure survives end events and stops without retrying',()=>{
+ const r=new FakeRecognition(),status:string[]=[];const voice=new VoiceInput(()=>r,()=>0,()=>assert.fail(),text=>status.push(text));
+ voice.start();r.onerror?.({error:'network'});r.onend?.();
+ assert.equal(voice.active,false);assert.equal(voice.failure,'network');assert.equal(r.starts,1);
+ assert.match(status.at(-1)!,/speech recognition service/);assert.doesNotMatch(status.at(-1)!,/permission denied/);
+ voice.start();assert.equal(voice.failure,null);assert.equal(voice.active,true);voice.stop();
+});
+test('blocked speech service is distinct from denied microphone permission',()=>{
+ const r=new FakeRecognition(),status:string[]=[];const voice=new VoiceInput(()=>r,()=>0,()=>assert.fail(),text=>status.push(text));
+ voice.start();r.onerror?.({error:'service-not-allowed'});assert.match(status.at(-1)!,/blocked its speech recognition service/);assert.equal(voice.failure,'service-not-allowed');
+});
+test('flat serve and narrowly matched speech mistakes use local intent with flat shape',async()=>{
+ const old=fetch;globalThis.fetch=async()=>{throw new Error('Flat serve should never call the LLM')};
+ try{
+  for(const text of ['serve flat','Sir flat.','surf flat']){
+   const command=voiceCommand(text,'jules');assert.equal(command.kind,'shot');if(command.kind!=='shot')continue;
+   assert.equal(command.text,'serve flat');assert.equal(canParseInstantly(command.text),true);
+   const m=new Match();await m.submitCommand(command.text,'voice');assert.equal(m.state.phase,'flight');assert.equal(m.shot.intent.type,'serve');assert.equal(m.shot.intent.shape,'flat');assert.equal(m.shot.intent.source,'voice');
+  }
+  assert.deepEqual(voiceCommand('sir can you hear me','jules'),{kind:'shot',text:'sir can you hear me'});
+ }finally{globalThis.fetch=old}
+});
+test('local model progress updates retain the same cancellable voice session',()=>{
+ const r=new FakeRecognition() as FakeRecognition & {onstatus?:(message:string)=>void},status:string[]=[];
+ const voice=new VoiceInput(()=>r,()=>0,()=>assert.fail(),text=>status.push(text));voice.start();r.onstatus?.('Loading local voice model');assert.equal(voice.active,true);assert.equal(status.at(-1),'Loading local voice model');voice.stop();r.onstatus?.('Late update');assert.notEqual(status.at(-1),'Late update');
+});
+test('a second mic action finishes recognition without cancelling its final transcript',()=>{
+ const r=new FakeRecognition() as FakeRecognition & {stop:()=>void};let finishes=0;r.stop=()=>{finishes++};const heard:string[]=[];
+ const voice=new VoiceInput(()=>r,()=>0,text=>heard.push(text),()=>{});voice.start();assert.equal(voice.phase,'listening');voice.finish();assert.equal(voice.phase,'transcribing');assert.equal(finishes,1);assert.equal(r.aborts,0);r.emit('serve flat');assert.deepEqual(heard,['serve flat']);assert.equal(voice.phase,'idle');assert.equal(r.aborts,1);
+});
+
+ test('ordinary serve descriptions execute locally without a command service',async()=>{
+  const original=fetch;let requests=0;globalThis.fetch=async()=>{requests++;throw new Error('Unexpected command service request')};
+  try{
+   for(const phrase of ['Regular serve.','normal serve','standard serve','basic serve','plain serve','default serve','a regular serve please']){
+    const command=voiceCommand(phrase,'jules');assert.equal(command.kind,'shot');if(command.kind!=='shot')continue;
+    assert.equal(canParseInstantly(command.text),true,phrase);
+    const match=new Match();await match.submitCommand(command.text,'voice');
+    assert.equal(match.state.phase,'flight',phrase);assert.equal(match.shot.intent.type,'serve');assert.equal(match.shot.intent.source,'voice');assert.equal(match.shot.intent.pace,'medium');
+   }
+   assert.equal(requests,0);
+   for(const phrase of ['not a regular serve','regular serve or lob','regular serve with unpredictable placement'])assert.equal(canParseInstantly(phrase),false);
+  }finally{globalThis.fetch=original}
+ });
+
+test('partial transcripts update the input callback but never play and ignore cancelled sessions',()=>{
+ const r=new FakeRecognition(),partial:unknown[]=[],played:string[]=[];
+ const voice=new VoiceInput(()=>r,()=>42,text=>played.push(text),()=>{},()=>{},(text,context)=>partial.push({text,context}));
+ voice.start();r.emit('regular',false);assert.deepEqual(partial,[{text:'regular',context:42}]);assert.deepEqual(played,[]);
+ r.emit('regular serve');assert.deepEqual(played,['regular serve']);r.emit('late',false);assert.equal(partial.length,1);
+ voice.start();voice.stop();r.emit('cancelled',false);assert.equal(partial.length,1);
+});

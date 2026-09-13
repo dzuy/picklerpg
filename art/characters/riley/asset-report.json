@@ -1,6 +1,6 @@
 {
   "schema": "pickle-rpg.modular-player.v1",
-  "triangles": 10988,
+  "triangles": 4964,
   "paddle_triangles": 224,
   "bones": [
     "root",
@@ -32,7 +32,7 @@
     {
       "name": "body_base",
       "slot": "body",
-      "triangles": 3984,
+      "triangles": 2008,
       "materials": [
         "MAT_skin"
       ]
@@ -40,20 +40,19 @@
     {
       "name": "head_base",
       "slot": "head_face",
-      "triangles": 3349,
+      "triangles": 664,
       "materials": [
         "MAT_skin",
-        "MAT_inner_ear",
-        "MAT_ivory",
-        "MAT_eyes_brows",
         "MAT_grip",
-        "MAT_mouth"
+        "MAT_blush",
+        "MAT_mouth",
+        "MAT_tongue"
       ]
     },
     {
       "name": "eyebrows_01",
       "slot": "eyebrows",
-      "triangles": 40,
+      "triangles": 88,
       "materials": [
         "MAT_hair"
       ]
@@ -61,7 +60,7 @@
     {
       "name": "hair_ponytail_01",
       "slot": "hair",
-      "triangles": 842,
+      "triangles": 436,
       "materials": [
         "MAT_hair",
         "MAT_accessory"
@@ -70,7 +69,7 @@
     {
       "name": "top_tank_01",
       "slot": "top",
-      "triangles": 273,
+      "triangles": 236,
       "materials": [
         "MAT_top",
         "MAT_ivory"
@@ -79,7 +78,7 @@
     {
       "name": "bottom_skort_01",
       "slot": "bottom",
-      "triangles": 520,
+      "triangles": 164,
       "materials": [
         "MAT_bottom",
         "MAT_ivory"
@@ -88,7 +87,7 @@
     {
       "name": "socks_01",
       "slot": "socks",
-      "triangles": 472,
+      "triangles": 264,
       "materials": [
         "MAT_ivory",
         "MAT_accessory"
@@ -97,11 +96,10 @@
     {
       "name": "shoes_01",
       "slot": "shoes",
-      "triangles": 1196,
+      "triangles": 792,
       "materials": [
-        "MAT_ivory",
-        "MAT_sole",
-        "MAT_shoe_accent"
+        "MAT_shoe_accent",
+        "MAT_ivory"
       ]
     },
     {

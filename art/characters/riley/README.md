@@ -1,6 +1,6 @@
-# Riley modular character v1
+# Riley blocky modular character
 
-Blender-authored, rigged Riley asset based on the supplied Riley orthographic reference sheet. The model uses geometric hair, simple facial shapes, a rose tank and skort, striped socks, chunky sneakers and a separate paddle. No texture images are required at runtime.
+Blender-authored, rigged Riley asset based on the supplied Riley orthographic reference sheet. The September 12 blocky redesign uses an oversized chamfered square head, dark rounded rectangular pill eyes, blush cheeks, parted angular hair and a stepped ponytail, a bright pink tank and skort, short chunky limbs, striped socks, layered block sneakers and a wide octagonal paddle. No texture images are required at runtime.
 
 ## Deliverables
 
@@ -16,9 +16,9 @@ Open `/riley-review.html` on the running Vite server to orbit the GLB, switch vi
 
 ## Asset contract
 
-Schema: `pickle-rpg.modular-player.v1`. Units are metres. Blender uses Z-up with the face toward -Y; glTF export uses Y-up with the face toward +Z. Ground contact is near Y=0 in Three.js. The neutral asset is approximately 1.907 m tall including hair.
+Schema: `pickle-rpg.modular-player.v1`. Units are metres. Blender uses Z-up with the face toward -Y; glTF export uses Y-up with the face toward +Z. Ground contact is near Y=0 in Three.js. The neutral asset is approximately 1.596 m tall including hair.
 
-The main export has **10,988 triangles**, including the **224-triangle paddle**, ten active modules and 24 bones. Material boundaries become 23 skinned mesh primitives in Three.js. Flat normals increase exported vertex count; the triangle count remains within budget. The optional glasses add 496 triangles; the visor adds 52.
+The main export has **4,964 triangles**, including the **224-triangle paddle**, ten active modules and 24 bones. Material boundaries become 21 skinned mesh primitives in Three.js. Flat normals increase exported vertex count; the triangle count remains within budget. The optional glasses add 208 triangles; the visor adds 176.
 
 | Slot | Blender object | Color channels |
 |---|---|---|
@@ -39,7 +39,7 @@ Each module exports `module_slot` and `rig_schema` in glTF extras. Materials exp
 
 ## Skeleton and swapping
 
-`root → pelvis → spine → chest → neck → head`; paired clavicle/upper-arm/forearm/hand and thigh/shin/foot/toe chains; a ponytail bone; a `paddle_socket` child of the right hand. The arms are in a relaxed A-pose. Knee and elbow rings blend weights across joints. Waist clothing follows the pelvis; lower skirt rings also blend toward the thighs. Eyes and brows follow the head. The paddle follows the hand socket.
+`root → pelvis → spine → chest → neck → head`; paired clavicle/upper-arm/forearm/hand and thigh/shin/foot/toe chains; a ponytail bone; a `paddle_socket` child of the right hand. The arms are in a relaxed A-pose. Arms and legs use separate rigid chamfered segments at the joints. Waist clothing follows the pelvis; lower skirt rings also blend toward the thighs. Eyes and brows follow the head. The paddle follows the hand socket.
 
 For additional hairstyles, outfits or faces, preserve the skeleton's names, rest transforms and scale. Author a replacement in place around this body, add the same armature modifier and weight it to the existing bones. Export the module with the shared rig selected. Do not create a new rest pose for each outfit.
 
@@ -64,4 +64,16 @@ node art/characters/riley/validate.mjs
 
 The build creates the `.blend`, all GLBs, the asset report and renders. Validation parses the actual GLBs with the game's Three.js version and verifies self-contained exports, normalized weights, valid bone indices, bind-pose stability, triangle budget, named slots and upright metre-scale bounds.
 
-The render cameras and studio are excluded from all exports. All body and garment geometry uses flat shading; only iris/pupil optics use limited smooth shading. Palette values are converted from sRGB to linear when authoring Blender materials so runtime color controls retain the intended hex values.
+The render cameras and studio are excluded from all exports. All body and garment geometry uses flat shading; the eyes are flat rounded rectangular pills. Palette values are converted from sRGB to linear when authoring Blender materials so runtime color controls retain the intended hex values.
+
+The bone names and hierarchy are preserved, with shorter lower-body rest transforms. Always use the regenerated glasses and visor exports with this model. Current hairstyle and garment selections still share the Riley base mesh; the full reference lineup and facial-expression library are visual direction, not additional exported modules.
+
+Proportion refinement: head, face, hair and head accessories retain their exact dimensions. Torso and arm lengths are reduced by 28%; the leg section above the shoes uses 0.50 vertical scale instead of 0.78. Sneaker dimensions are preserved. Arm vertices shorten along their bone axes to retain chunky thickness; hands and paddle move with the revised wrist. All three exports share the shortened rest rig.
+
+Detail refinement: the eyes use flat rounded-rectangle outlines, with straight sides and rounded corners. The complete head assembly is lifted 0.055 m and the neck extended to expose a small neck gap. Arms and legs retain the compact lengths and thickness, with three-segment rounded bevels; torso, head and shoe geometry are unchanged.
+
+Face-size refinement: pill eyes enlarged 18% in width and height; smile and tongue enlarged 20% around the existing mouth center. Shapes and facial spacing are retained.
+
+Outfit/paddle refinement: the skort hem and side stripes extend 2.25 cm lower (approximately 25% longer below the waistband). The paddle has parallel sides, matching top/bottom widths and small symmetric clipped corners, with a slightly taller rectangular face; its handle stays attached at the same wrist socket.
+
+Sweatband refinement: cuffs extend approximately twice as far along each forearm, keeping the wrist opening and thickness unchanged.

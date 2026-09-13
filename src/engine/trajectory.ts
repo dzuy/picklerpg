@@ -22,7 +22,17 @@ export function generateTrajectory(value:unknown,context:ShotContext,players:Pla
  const intent=parseShotIntent(value),family=SHOT_FAMILIES[intent.type];
  const actor=players.find(p=>p.id===intent.actor);if(!actor)throw new Error('Unknown hitter.');
  const resolved=resolveTarget(intent.target,{actor:intent.actor,contact:context.contact,players,shotType:intent.type});
- const base=buildFamilyFlight(intent.type,context,resolved.point,resolved.kind);
+ if(intent.technique==='atp'){
+  if(intent.type!=='drive'||context.opening!=='rally'||!context.twoBounceSatisfied)throw new Error('ATP is available during a rally, after the opening bounces.');
+  if(Math.abs(context.contact.x)<=COURT.netWidth/2+.08)throw new Error('ATP needs the ball wider than the net post.');
+  if(resolved.kind!=='landing'||resolved.point.x*context.contact.x<=0)throw new Error('Aim the ATP deep on the same side as the contact.');
+  const base=buildFamilyFlight(intent.type,context,resolved.point,resolved.kind);
+  const leg:FlightLeg={...base,arc:.06,duration:base.duration/({soft:.7,medium:1,fast:1.3}[intent.pace])};
+  const crossing=sampleFlight(leg,context.contact.z/(context.contact.z-resolved.point.z));
+  if(Math.abs(crossing.x)<=COURT.netWidth/2+.08)throw new Error('This angle would hit the post. Wait for a wider ATP contact.');
+  return {intent,leg,aimPoint:{...resolved.point},apex:flightApex(leg),netClearance:crossing.y-COURT.netSideline};
+ }
+ const base=buildFamilyFlight(intent.type,context,resolved.point,resolved.kind,intent.type==='serve'&&(intent.target.kind==='point'||resolved.kind==='intercept'));
  const pace={soft:.7,medium:1,fast:1.3}[intent.pace];
  const tactical={pressure:1.05,advance:.9,neutralize:.8,finish:1.1,sustain:1}[intent.tacticalIntent];
  const aggression=.9+intent.aggression*.2;
@@ -32,7 +42,7 @@ export function generateTrajectory(value:unknown,context:ShotContext,players:Pla
  const sideCurve=sideMagnitude*sideDirection*Math.cos(actor.facing);
  const verticalSpin=intent.spin?.vertical==='topspin'?-.22*strength:intent.spin?.vertical==='slice'?.16*strength:0;
  const hangTime=intent.spin?.vertical==='slice'?1+.06*strength:intent.spin?.vertical==='topspin'?1-.025*strength:1;
- const duration=Math.max(.22,base.duration/(pace*tactical*aggression)*hangTime);
+ const duration=Math.max(.22,base.duration/(pace*tactical*aggression)*hangTime*((intent.type==='lob'||intent.type==='serve')?1+Math.max(0,intent.intendedNetClearance-3)*.1:1));
  const t=context.contact.z/(context.contact.z-resolved.point.z);
  const x=context.contact.x+(resolved.point.x-context.contact.x)*t+4*sideCurve*t*(1-t);
  const net=COURT.netCenter+(COURT.netSideline-COURT.netCenter)*(x/(COURT.width/2))**2;
@@ -57,4 +67,24 @@ export function reboundFlight(leg:FlightLeg):FlightLeg{
  if(!leg.bounceAtEnd)throw new Error('Only a landing can rebound.');
  const dx=leg.to.x-leg.from.x,dz=leg.to.z-leg.from.z,length=Math.hypot(dx,dz);
  return {from:{...leg.to},to:{x:leg.to.x+dx/length*.45,y:.75,z:leg.to.z+dz/length*.45},duration:.38,arc:.2,sideCurve:(leg.sideCurve??0)*.2,verticalSpin:0};
+}
+
+/** Dead-ball follow-through: preserve landing momentum beyond the court edges. */
+export function outBallContinuation(landing:FlightLeg):FlightLeg[]{
+ if(!landing.bounceAtEnd)return [];
+ const velocity=sampleFlightVelocity(landing,1),gravity=9.81;
+ let vx=velocity.x*.8,vz=velocity.z*.8,vy=Math.max(.35,Math.abs(velocity.y)*.5),from={...landing.to};
+ const legs:FlightLeg[]=[];
+ for(let bounce=0;bounce<3;bounce++){
+  const duration=2*vy/gravity;
+  const to={x:from.x+vx*duration,y:from.y,z:from.z+vz*duration};
+  legs.push({from,to,duration,arc:gravity*duration*duration/8,bounceAtEnd:true});
+  from={...to};vx*=.65;vz*=.65;vy*=.45;
+ }
+ // Short decreasing roll segments make the final stop gradual, not a wall impact.
+ for(let step=0;step<6;step++){
+  const duration=.1,to={x:from.x+vx*duration*.75,y:from.y,z:from.z+vz*duration*.75};
+  legs.push({from,to,duration,arc:0});from={...to};vx*=.5;vz*=.5;
+ }
+ return legs;
 }

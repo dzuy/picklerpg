@@ -7,10 +7,10 @@ import {Simulation} from './simulation';
 import {sampleLeg,sampleVelocity} from './engine/rally-engine';
 import {contactIssue,SHOT_FAMILIES,type ShotContext} from './engine/shot-families';
 import type {GameState,RallyShot,ShotType,Vec3,ShotTarget,ShotIntent,SpinIntent} from './engine/model';
-export const LAB_TYPES:ShotType[]=['serve','drive','drop','dink','volley','reset','lob','overhead','counter','return','block'];
+export const LAB_TYPES:ShotType[]=['serve','drive','drop','dink','volley','reset','lob','overhead','counter','return','block','flick'];
 export type LabCondition='typical'|'low'|'kitchen';
 export function labSetup(type:ShotType,condition:LabCondition='typical'):{context:ShotContext;landing:Vec3}{
- const family=SHOT_FAMILIES[type];const near=['dink','volley','counter','block'].includes(type);
+ const family=SHOT_FAMILIES[type];const near=['dink','volley','counter','block','flick'].includes(type);
  const z=type==='serve'?7:near?2.7:type==='overhead'?3.5:5.4;
  const height=type==='overhead'?2.35:type==='reset'||type==='dink'?.4:type==='volley'||type==='counter'||type==='block'?1.15:.75;
  const context:ShotContext={contact:{x:1.1,y:height,z},feet:{x:.7,y:0,z:z+.35},bounced:family.mode!=='volley',opening:type==='serve'?'serve':type==='return'?'return':'rally',twoBounceSatisfied:type!=='serve'&&type!=='return',incomingSpeed:12};

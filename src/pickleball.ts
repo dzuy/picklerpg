@@ -31,8 +31,8 @@ function perforate(material: THREE.Material) {
 
 export function createPickleball() {
  const ball=new THREE.Group();ball.name='perforated-pickleball';
- const outside=new THREE.MeshStandardMaterial({color:'#d6f52b',emissive:'#9fb900',emissiveIntensity:.12,roughness:.43,metalness:0});
- const inside=new THREE.MeshStandardMaterial({color:'#839c16',roughness:.8,side:THREE.BackSide});
+ const outside=new THREE.MeshStandardMaterial({color:'#b6ff16',emissive:'#76ff00',emissiveIntensity:.3,roughness:.43,metalness:0});
+ const inside=new THREE.MeshStandardMaterial({color:'#5b9510',roughness:.8,side:THREE.BackSide});
  const depth=new THREE.MeshDepthMaterial({depthPacking:THREE.RGBADepthPacking});
  for(const material of [outside,inside,depth])perforate(material);
  const geometry=new THREE.SphereGeometry(RADIUS,64,48);
@@ -43,7 +43,7 @@ export function createPickleball() {
  const outerRadius=RADIUS*Math.sin(HOLE_ANGLE);
  const innerRadius=(RADIUS-THICKNESS)*Math.sin(HOLE_ANGLE);
  const wallGeometry=new THREE.CylinderGeometry(outerRadius,innerRadius,THICKNESS*Math.cos(HOLE_ANGLE),20,1,true);
- const wallMaterial=new THREE.MeshStandardMaterial({color:'#afca21',roughness:.55,side:THREE.DoubleSide});
+ const wallMaterial=new THREE.MeshStandardMaterial({color:'#8fce12',roughness:.55,side:THREE.DoubleSide});
  const up=new THREE.Vector3(0,1,0);
  for(const direction of holeDirections){
   const wall=new THREE.Mesh(wallGeometry,wallMaterial);

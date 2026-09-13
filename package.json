@@ -11,12 +11,21 @@
     "opponent-server": "node --env-file-if-exists=.env.local server/opponent.mjs"
   },
   "dependencies": {
+    "@huggingface/transformers": "^4.2.0",
     "three": "^0.180.0"
   },
   "devDependencies": {
     "@types/three": "^0.180.0",
+    "tsx": "^4.20.5",
     "typescript": "^5.9.2",
-    "vite": "^7.1.5",
-    "tsx": "^4.20.5"
+    "vite": "^7.1.5"
+  },
+  "overrides": {
+    "@huggingface/transformers": {
+      "sharp": "^0.35.4",
+      "onnxruntime-node": {
+        "adm-zip": "^0.6.1"
+      }
+    }
   }
 }

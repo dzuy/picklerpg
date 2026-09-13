@@ -22,10 +22,10 @@ def mat(name,h):
     rgb=[v/12.92 if v<=.04045 else ((v+.055)/1.055)**2.4 for v in m.diffuse_color[:3]]
     p.inputs['Base Color'].default_value=(*rgb,1); p.inputs['Roughness'].default_value=.83
     m['customization_channel']=name.removeprefix('MAT_'); return m
-skin=mat('MAT_skin','EBA477'); hair=mat('MAT_hair','493026'); rose=mat('MAT_top','B95F71')
-bottom=mat('MAT_bottom','B95F71'); shoe=mat('MAT_shoe_accent','CF8091'); acc=mat('MAT_accessory','CC7687')
+skin=mat('MAT_skin','FFBE91'); hair=mat('MAT_hair','754732'); rose=mat('MAT_top','FA6796')
+bottom=mat('MAT_bottom','FA6796'); shoe=mat('MAT_shoe_accent','F56794'); acc=mat('MAT_accessory','F56794')
 white=mat('MAT_ivory','F4EEE5'); rubber=mat('MAT_sole','DED8D0'); dark=mat('MAT_paddle_face','303234')
-edge=mat('MAT_paddle_color','CB7487'); black=mat('MAT_grip','232727'); iris=mat('MAT_eyes_brows','39241D')
+edge=mat('MAT_paddle_color','F56794'); black=mat('MAT_grip','232727'); iris=mat('MAT_eyes_brows','232727')
 lip=mat('MAT_mouth','9C4E3F'); earinner=mat('MAT_inner_ear','D58464')
 meshes=[]; bindings={}
 def mesh(name,verts,faces,material,bone=None):
@@ -64,11 +64,11 @@ def tube(name,points,radii,material,bone=None,n=10):
         for j in range(n):fs.append((i*n+j,i*n+(j+1)%n,(i+1)*n+(j+1)%n,(i+1)*n+j))
     fs.extend([tuple(reversed(range(n))),tuple((len(points)-1)*n+j for j in range(n))])
     return mesh(name,vs,fs,material,bone)
-def box(name,loc,scale,material,bone=None,bevel=.01):
+def box(name,loc,scale,material,bone=None,bevel=.01,bevel_segments=1):
     bpy.ops.mesh.primitive_cube_add(size=1,location=loc); o=bpy.context.object;o.name=name;o.scale=scale
     bpy.ops.object.transform_apply(location=False,rotation=False,scale=True);move(o);o.data.materials.append(material)
     if bevel:
-        mod=o.modifiers.new('Authored chamfer','BEVEL');mod.width=bevel;mod.segments=1
+        mod=o.modifiers.new('Authored chamfer','BEVEL');mod.width=bevel;mod.segments=bevel_segments
         bpy.ops.object.modifier_apply(modifier=mod.name)
     meshes.append(o)
     if bone:bindings[o.name]=bone
@@ -99,143 +99,119 @@ for s,side in [(1,'L'),(-1,'R')]:
     bone('toe.'+side,(s*.15,-.12,.07),(s*.15,-.2,.07),'foot.'+side)
 bone('paddle_socket',( -.475,-.026,.755),(-.48,-.026,.61),'hand.R')
 bpy.ops.object.mode_set(mode='OBJECT');rig.show_in_front=True;rig.data.display_type='OCTAHEDRAL'
-rig['schema']='pickle-rpg.modular-player.v1';rig['forward']='-Y in Blender; +Z in glTF';rig['height_m']=1.907
+rig['schema']='pickle-rpg.modular-player.v1';rig['forward']='-Y in Blender; +Z in glTF';rig['height_m']=2.07
 
-# Athletic base: closely spaced rings around knees/elbows support deformation.
-loft('body_base',[(0,0,z,w,d) for z,w,d in [(.82,.14,.085),(.87,.151,.091),(.93,.122,.077),(.99,.099,.065),(1.05,.103,.068),(1.12,.126,.077),(1.20,.141,.082),(1.26,.155,.072),(1.30,.133,.06),(1.32,.092,.052),(1.34,.048,.043)]],skin,n=32)
-loft('body_neck',[(0,.003,1.29,.052,.047),(0,.003,1.34,.05,.043),(0,0,1.39,.048,.043),(0,0,1.45,.055,.05)],skin,'neck',n=20)
-for s,side in [(1,'L'),(-1,'R')]:
-    arm=[]
-    for t,r in [(0,.068),(.13,.064),(.34,.054),(.46,.047),(.5,.046),(.54,.047),(.68,.045),(.85,.035),(1,.028)]:
-        arm.append((s*(.18+.25*t),-.012*t,1.29-.45*t,r,r*.88))
-    loft('body_arm.'+side,list(reversed(arm)),skin,n=20)
-    ell('body_deltoid.'+side,(s*.18,0,1.274),(.067,.06,.056),skin,'upper_arm.'+side,16,8)
-    loft('body_leg.'+side,[(s*x,y,z,w,d) for x,y,z,w,d in [(.15,0,.16,.035,.038),(.15,0,.23,.040,.043),(.143,0,.34,.050,.053),(.135,-.012,.45,.046,.048),(.128,-.022,.50,.048,.05),(.126,-.024,.52,.051,.052),(.124,-.02,.55,.054,.056),(.116,-.01,.63,.061,.065),(.103,0,.75,.071,.075),(.095,0,.85,.076,.079)]],skin,n=24)
-    ell('hand_palm.'+side,(s*.455,-.016,.796),(.041,.028,.062),skin,'hand.'+side,16,10)
-    for j in range(4):
-        x=s*(.434+j*.016)
-        tube('hand_finger_%d.%s'%(j,side),[(x,-.019,.783),(x+s*.012,-.028,.744),(x+s*.007,-.043,.735)],[.010,.009,.007],skin,'hand.'+side,n=8)
-    tube('hand_thumb.'+side,[(s*.431,-.026,.81),(s*.413,-.048,.78),(s*.421,-.056,.766)],[.014,.012,.01],skin,'hand.'+side,n=8)
+# Ultra-blocky modular silhouette: chamfered solids with rigid joint segments.
+def segment(name,a,b,width,depth,material,binding):
+    a,b=Vector(a),Vector(b)
+    soft_limb=name.startswith(('body_arm','body_leg'))
+    o=box(name,(a+b)/2,(width,depth,(b-a).length),material,binding,.038 if soft_limb else .022,3 if soft_limb else 1)
+    o.rotation_euler=(b-a).to_track_quat('Z','Y').to_euler()
+    return o
 
-# Tapered chin / cheek / temple rings, fuller cranium, flattened face plane.
-headrings=[(1.405,.054,.070),(1.423,.090,.105),(1.447,.126,.124),(1.477,.157,.145),(1.516,.179,.158),(1.56,.192,.169),(1.61,.198,.175),(1.66,.196,.177),(1.71,.190,.177),(1.76,.170,.163),(1.805,.129,.127),(1.83,.07,.078),(1.84,.015,.022)]
-head=loft('head_base',[(0,.003,z,w,d) for z,w,d in headrings],skin,'head',n=32)
-# Small ears and inset inner planes.
-for s in [-1,1]:
-    ell('face_ear_'+str(s),(s*.196,.005,1.566),(.034,.026,.049),skin,'head',12,8)
-    ell('face_ear_inner_'+str(s),(s*.213,-.018,1.566),(.014,.009,.029),earinner,'head',10,6)
-    # Broad white eyes, dark upper lashes, oversized iris and tiny highlights.
-    outline=[(-1,0),(-.76,.65),(-.28,1),(.27,.97),(.73,.55),(1,.05),(.72,-.64),(.2,-.9),(-.35,-.81),(-.81,-.4)]
-    vs=[(s*.087,-.176,1.61)]
-    for x,z in outline:vs.append((s*.087+x*.059,-.154+abs(x)*.009,1.61+z*.041))
-    eye=mesh('face_eye_white_'+str(s),vs,[(0,j+1,(j+1)%len(outline)+1) for j in range(len(outline))],white,'head')
-    ell('face_iris_'+str(s),(s*.081,-.177,1.608),(.029,.009,.035),iris,'head',20,12,True)
-    ell('face_pupil_'+str(s),(s*.078,-.184,1.609),(.018,.004,.027),black,'head',16,10,True)
-    ell('face_eye_glint_'+str(s),(s*.073-.008,-.189,1.627),(.010,.003,.012),white,'head',12,8,True)
-    ribbon('face_upper_lid_'+str(s),[(s*.027,-.174,1.627),(s*.052,-.174,1.645),(s*.094,-.172,1.652),(s*.137,-.160,1.634),(s*.153,-.146,1.649)],.006,iris,'head')
-    # Separate chunky brows have an intentional friendly arch.
-    tube('eyebrow_'+('L' if s==1 else 'R'),[(s*.038,-.167,1.699),(s*.091,-.17,1.713),(s*.139,-.151,1.70)],[.012,.014,.010],hair,'head',n=4)
-mesh('face_nose',[(-.022,-.159,1.575),(.022,-.159,1.575),(0,-.202,1.549),(-.018,-.176,1.54),(.018,-.176,1.54),(0,-.168,1.597)],[(0,5,2),(5,1,2),(0,2,3),(2,1,4),(3,2,4)],skin,'head')
-ribbon('face_smile',[(-.045,-.139,1.495),(-.022,-.151,1.489),(0,-.156,1.487),(.023,-.15,1.491),(.045,-.138,1.499)],.0027,lip,'head')
+def rect_loft(name,rings,material,binding):
+    # Eight-sided rectangular rings keep broad flat faces and clipped corners.
+    verts=[]
+    for z,w,d in rings:
+        c=.025
+        verts.extend([(x,y,z) for x,y in [(-w+c,-d),(w-c,-d),(w,-d+c),(w,d-c),(w-c,d),(-w+c,d),(-w,d-c),(-w,-d+c)]])
+    faces=[tuple(reversed(range(8))),tuple((len(rings)-1)*8+j for j in range(8))]
+    for k in range(len(rings)-1):
+        for j in range(8):faces.append((k*8+j,k*8+(j+1)%8,(k+1)*8+(j+1)%8,(k+1)*8+j))
+    return mesh(name,verts,faces,material,binding)
 
-# Hair shell follows the cranium but opens above the eyes.
-vs=[];n=24
-levels=[1.47,1.52,1.58,1.64,1.70,1.75,1.80,1.83,1.85,1.865]
-for z in levels:
-    pair=next(((a,b) for a,b in zip(headrings,headrings[1:]) if a[0]<=z<=b[0]),(headrings[-2],headrings[-1]))
-    a0,b0=pair;f=max(0,min(1,(z-a0[0])/(b0[0]-a0[0])))
-    rx=a0[1]+f*(b0[1]-a0[1])+.024;ry=a0[2]+f*(b0[2]-a0[2])+.024
-    if z==levels[-1]:rx=ry=.004
-    for j in range(n):
-        angle=j*math.tau/n;vs.append((rx*math.cos(angle),.005+ry*math.sin(angle),z))
-fs=[]
-for k in range(len(levels)-1):
-    for j in range(n):
-        angle=(j+.5)*math.tau/n;line=1.465+.265*max(0,-math.sin(angle))
-        if (levels[k]+levels[k+1])*.5<line:continue
-        a=k*n+j;b=k*n+(j+1)%n;c=(k+1)*n+(j+1)%n;d=(k+1)*n+j
-        fs.extend([(a,b,c),(a,c,d)])
-fs.append(tuple((len(levels)-1)*n+j for j in range(n)))
-mesh('hair_cap_01',vs,fs,hair,'head')
-# Faceted broad forelocks sweep from crown to temples, with pointed side locks.
-loft('hair_front_sweep_01',[(-.171,-.076,1.445,.002,.003),(-.184,-.113,1.58,.026,.037),(-.171,-.131,1.704,.045,.043),(-.111,-.12,1.786,.074,.05),(-.017,-.066,1.829,.053,.057)],hair,'head',n=7)
-loft('hair_front_sweep_02',[(.176,-.067,1.463,.008,.012),(.183,-.111,1.597,.023,.025),(.173,-.139,1.72,.029,.037),(.092,-.12,1.789,.064,.042),(.025,-.08,1.818,.05,.049)],hair,'head',n=7)
-loft('hair_ponytail_01',[(-.21,.24,1.30,.005,.012),(-.19,.278,1.4,.086,.067),(-.18,.285,1.51,.092,.070),(-.11,.243,1.60,.068,.073),(-.075,.242,1.72,.10,.090),(0,.222,1.86,.105,.089),(-.013,.165,1.96,.074,.061),(-.017,.119,1.94,.04,.043)],hair,'ponytail',n=9)
-ell('hair_root_01',(0,.128,1.828),(.071,.087,.079),hair,'head',12,8)
-loft('hair_tie_01',[(0,.125,1.857,.079,.073),(0,.125,1.887,.074,.069)],acc,'head',n=12,caps=False)
+def front_prism(name,outline,y,depth,material,binding):
+    verts=[(x,yy,z) for yy in [y,y+depth] for x,z in outline];n=len(outline)
+    return mesh(name,verts,[tuple(reversed(range(n))),tuple(range(n,n*2))]+[(j,(j+1)%n,(j+1)%n+n,j+n) for j in range(n)],material,binding)
 
-# Tank has an open curved neckline, shoulder straps and open armholes.
-tankrings=[(1.025,.108,.074),(1.052,.111,.077),(1.10,.121,.083),(1.17,.145,.092),(1.23,.158,.094)]
-vs=[];n=32
-for k,(z,rx,ry) in enumerate(tankrings):
-    for j in range(n):
-        angle=j*math.tau/n;x=rx*math.cos(angle);y=ry*math.sin(angle)
-        if k==len(tankrings)-1:
-            base=1.235 if y<0 else 1.26
-            ztop=base+(.078 if y<0 else .053)*max(0,1-((abs(x)-.102)/.052)**2)
-        else:ztop=z
-        vs.append((x,y,ztop))
-fs=[]
-for k in range(len(tankrings)-1):
-    for j in range(n):fs.append((k*n+j,k*n+(j+1)%n,(k+1)*n+(j+1)%n,(k+1)*n+j))
-# Bridge front and back over each shoulder, preserving real neck and arm openings.
-last=(len(tankrings)-1)*n
-for frontids,backids in [([27,28,29],[5,4,3]),([19,20,21],[13,12,11])]:
-    mids=[]
-    for j in frontids:
-        mids.append(len(vs));vs.append((vs[last+j][0],0,1.33))
-    for i in range(2):
-        fs.extend([(last+frontids[i],last+frontids[i+1],mids[i+1],mids[i]),(mids[i],mids[i+1],last+backids[i+1],last+backids[i])])
-mesh('top_tank_01',vs,fs,rose)
-mesh('top_mark_01',[(.062,-.091,1.17),(.077,-.091,1.20),(.092,-.091,1.17)],[(0,1,2)],white,'chest')
-loft('bottom_skort_01',[(0,0,.755,.222,.132),(0,0,.776,.218,.132),(0,0,.82,.205,.126),(0,0,.89,.175,.109),(0,0,.939,.125,.081),(0,0,.967,.122,.08)],bottom,n=32,caps=False)
-loft('bottom_waistband_01',[(0,0,.933,.13,.084),(0,0,.968,.123,.082)],bottom,'pelvis',n=32,caps=False)
-for s,side in [(1,'L'),(-1,'R')]:
-    loft('bottom_liner.'+side,[(s*.085,0,.758,.063,.071),(s*.076,0,.88,.062,.073)],bottom,'thigh.'+side,n=16)
-    stripe=[]
-    for z,rx,ry in [(.757,.225,.135),(.776,.221,.135),(.82,.208,.129),(.89,.178,.112),(.938,.128,.084)]:
-        for angle in [-.48,-.34]:stripe.append((s*rx*math.cos(angle),ry*math.sin(angle),z))
-    mesh('bottom_side_stripe.'+side,stripe,[(j,j+1,j+3,j+2) for j in range(0,8,2)],white,'pelvis')
-    loft('socks_01.'+side,[(s*.15,0,.147,.038,.044),(s*.15,0,.22,.042,.046),(s*.144,0,.30,.049,.053),(s*.141,0,.365,.052,.055)],white,'shin.'+side,n=20)
-    for j in range(2):
-        z=.322+j*.029
-        loft('sock_stripe_%d.%s'%(j,side),[(s*(.144-(z-.30)/.065*.003),0,z,.049+(z-.30)/.065*.003+.001,.053+(z-.30)/.065*.002+.001),(s*(.144-(z+.013-.30)/.065*.003),0,z+.013,.049+(z+.013-.30)/.065*.003+.001,.053+(z+.013-.30)/.065*.002+.001)],acc,'shin.'+side,n=20,caps=False)
-    # Sculpted chamfered sneaker layers; long toe, broad sole, raised heel.
-    loft('shoes_01.'+side,[(s*.15,-.063,.035,.086,.151),(s*.15,-.063,.064,.09,.153),(s*.15,-.054,.085,.084,.147),(s*.15,-.033,.117,.072,.117),(s*.15,-.005,.171,.057,.065)],white,'foot.'+side,n=16)
-    loft('shoe_sole.'+side,[(s*.15,-.063,.018,.084,.149),(s*.15,-.063,.037,.09,.156),(s*.15,-.063,.058,.092,.157)],rubber,'foot.'+side,n=16)
-    ell('shoe_toe_accent.'+side,(s*.15,-.182,.067),(.073,.034,.025),shoe,'foot.'+side,12,6)
-    ell('shoe_heel_accent.'+side,(s*.15,.055,.108),(.062,.032,.044),shoe,'foot.'+side,12,6)
-    box('shoe_tongue.'+side,(s*.15,-.061,.155),(.068,.04,.075),shoe,'foot.'+side,.012)
-    mesh('shoe_lace_panel.'+side,[(s*.15-.037,-.15,.136),(s*.15+.037,-.15,.136),(s*.15+.033,-.055,.184),(s*.15-.033,-.055,.184)],[(0,1,2,3)],shoe,'foot.'+side)
-    for j in range(3):
-        y=-.137+j*.027;z=.147+j*.0137
-        ribbon('shoe_lace_%d.%s'%(j,side),[(s*.15-.031,y,z),(s*.15+.031,y+.004,z+.002)],.005,white,'foot.'+side)
-    # Recolorable side panels sit just outside the white upper.
-    for outer in [-1,1]:
-        mesh('shoe_side_panel_%s.%s'%(outer,side),[(s*.15+outer*.075,.043,.071),(s*.15+outer*.061,.025,.148),(s*.15+outer*.064,-.043,.121),(s*.15+outer*.082,-.080,.073)],[(0,1,2,3)],shoe,'foot.'+side)
-    # Wristband axis follows the forearm.
-    tube('wristband_01.'+side,[(s*.407,-.01,.887),(s*.427,-.011,.849)],[.039,.036],acc,'forearm.'+side,n=12)
+# Only exposed midriff needs skin geometry beneath the closed tank.
+box('body_base',(0,0,1.01),(.28,.18,.065),skin,'pelvis',.012)
+box('body_neck',(0,0,1.335),(.115,.105,.12),skin,'neck',.025)
+for sign,side in [(1,'L'),(-1,'R')]:
+    upper,elbow=bones['upper_arm.'+side];_,wrist=bones['forearm.'+side]
+    segment('body_arm_upper.'+side,upper,elbow,.135,.13,skin,'upper_arm.'+side)
+    segment('body_arm_lower.'+side,elbow,wrist,.12,.12,skin,'forearm.'+side)
+    ell('body_elbow.'+side,elbow,(.065,.063,.062),skin,'forearm.'+side,12,6)
+    hip,knee=bones['thigh.'+side];_,ankle=bones['shin.'+side]
+    segment('body_leg_upper.'+side,hip,knee,.145,.155,skin,'thigh.'+side)
+    segment('body_leg_lower.'+side,knee,ankle,.123,.13,skin,'shin.'+side)
+    box('hand_palm.'+side,(sign*.455,-.018,.795),(.13,.13,.145),skin,'hand.'+side,.035)
+    box('hand_thumb.'+side,(sign*.409,-.075,.802),(.055,.055,.077),skin,'hand.'+side,.019)
 
-# Octagonal paddle face and separate edge/grip: socket follows right hand.
-cx=-.465;cy=-.018;cz=.57
-outline=[(-.06,.125),(.06,.125),(.095,.089),(.095,-.063),(.044,-.13),(-.044,-.13),(-.095,-.063),(-.095,.089)]
+# Oversized square face, button eyes, tiny brows and blush like the supplied sheet.
+box('head_base',(0,0,1.645),(.63,.48,.565),skin,'head',.045)
+blush=mat('MAT_blush','FF9789');tongue=mat('MAT_tongue','F4534C')
+for sign in [-1,1]:
+    box('face_ear_'+str(sign),(sign*.329,-.005,1.56),(.087,.12,.16),skin,'head',.023)
+    # Flat pill face: straight sides/top/bottom with rounded corners, not an oval.
+    eye=[];half_width=.0354;half_height=.06136;radius=.0236
+    for cx,cz,start in [(half_width-radius,half_height-radius,0),(-half_width+radius,half_height-radius,90),(-half_width+radius,-half_height+radius,180),(half_width-radius,-half_height+radius,270)]:
+        for j in range(5):
+            angle=math.radians(start+j*22.5)
+            eye.append((sign*.137+cx+radius*math.cos(angle),1.602+cz+radius*math.sin(angle)))
+    front_prism('face_eye_'+str(sign),eye,-.255,.014,black,'head')
+    box('eyebrow_'+str(sign),(sign*.137,-.25,1.691),(.073,.02,.027),hair,'head',.009)
+    ell('face_blush_'+str(sign),(sign*.231,-.244,1.498),(.044,.009,.039),blush,'head',12,6)
+mouth_outline=[(-.05,1.517),(.05,1.517),(.043,1.477),(.024,1.458),(-.016,1.455),(-.042,1.475)]
+front_prism('face_smile',[(x*1.2,1.486+(z-1.486)*1.2) for x,z in mouth_outline],-.252,.006,lip,'head')
+ell('face_tongue',(0,-.259,1.468),(.0312,.006,.0156),tongue,'head',12,6)
+
+# Broad angular hair cap, parted fringe, side locks and stepped ponytail.
+box('hair_cap_01',(0,.017,1.875),(.682,.535,.185),hair,'head',.045)
+box('hair_back_01',(0,.208,1.654),(.66,.12,.42),hair,'head',.025)
+for sign in [-1,1]:
+    box('hair_side_'+str(sign),(sign*.298,.01,1.645),(.069,.42,.47),hair,'head',.018)
+front_prism('hair_front_sweep_01',[(-.331,1.902),(.034,1.904),(.046,1.799),(-.042,1.71),(-.132,1.688),(-.327,1.706)],-.283,.075,hair,'head')
+front_prism('hair_front_sweep_02',[(.031,1.904),(.328,1.898),(.329,1.707),(.153,1.701),(.094,1.745),(.043,1.814)],-.283,.075,hair,'head')
+for i,(x,y,z,w,d,h,angle) in enumerate([(0,.28,1.963,.26,.25,.26,-.22),(-.07,.38,1.81,.27,.23,.29,-.20),(-.11,.39,1.60,.26,.23,.26,.25),(-.13,.36,1.405,.23,.22,.24,-.28)]):
+    o=box('hair_ponytail_%02d'%i,(x,y,z),(w,d,h),hair,'ponytail',.045);o.rotation_euler.y=angle
+box('hair_tie_01',(0,.196,1.958),(.264,.14,.069),acc,'head',.017)
+
+rect_loft('top_tank_01',[(1.035,.174,.115),(1.07,.172,.116),(1.27,.151,.104)],rose,'chest')
+for sign in [-1,1]:
+    box('top_strap_'+str(sign),(sign*.114,0,1.282),(.07,.197,.072),rose,'chest',.012)
+box('top_neckline',(0,-.069,1.283),(.166,.064,.065),rose,'chest',.012)
+# Hollow triangle chest insignia.
+for a,b in [((.065,-.12,1.164),(.088,-.12,1.209)),((.088,-.12,1.209),(.111,-.12,1.164)),((.111,-.12,1.164),(.065,-.12,1.164))]:
+    ribbon('top_mark_01',[a,b],.005,white,'chest')
+rect_loft('bottom_skort_01',[(.720,.239,.15),(.770,.23,.145),(.946,.164,.109)],bottom,'pelvis')
+rect_loft('bottom_waistband_01',[(.94,.168,.115),(.978,.163,.113)],bottom,'pelvis')
+for sign,side in [(1,'L'),(-1,'R')]:
+    box('bottom_liner.'+side,(sign*.095,0,.814),(.142,.15,.12),bottom,'thigh.'+side,.012)
+    mesh('bottom_side_stripe.'+side,[(sign*.174,-.16,.721),(sign*.204,-.16,.721),(sign*.151,-.122,.929),(sign*.128,-.122,.929)],[(0,1,2,3)],white,'pelvis')
+    box('socks_01.'+side,(sign*.145,0,.285),(.161,.185,.194),white,'shin.'+side,.016)
+    for j in range(2):box('sock_stripe_%d.%s'%(j,side),(sign*.145,0,.317+j*.041),(.165,.189,.019),acc,'shin.'+side,.009)
+    box('shoe_sole.'+side,(sign*.15,-.057,.043),(.221,.334,.068),shoe,'foot.'+side,.02)
+    box('shoes_01.'+side,(sign*.15,-.064,.111),(.214,.317,.117),white,'foot.'+side,.025)
+    box('shoe_heel_accent.'+side,(sign*.15,.045,.169),(.177,.11,.137),shoe,'foot.'+side,.022)
+    box('shoe_toe_accent.'+side,(sign*.15,-.195,.082),(.21,.077,.081),shoe,'foot.'+side,.017)
+    box('shoe_tongue.'+side,(sign*.15,-.064,.186),(.119,.121,.057),shoe,'foot.'+side,.01)
+    for j in range(2):box('shoe_lace_%d.%s'%(j,side),(sign*.15,-.10+j*.06,.211),(.137,.027,.018),white,'foot.'+side,.005)
+    for outer in [-1,1]:box('shoe_side_panel_%s.%s'%(outer,side),(sign*.15+outer*.104,-.039,.10),(.014,.125,.033),shoe,'foot.'+side,.005)
+    segment('wristband_01.'+side,(sign*.367,-.008,.964),(sign*.422,-.011,.854),.151,.143,acc,'forearm.'+side)
+
+# Symmetric rectangular paddle with small matching corner clips and a separate grip.
+cx=-.465;cy=-.018;cz=.495
+outline=[(-.077,.154),(.077,.154),(.095,.136),(.095,-.136),(.077,-.154),(-.077,-.154),(-.095,-.136),(-.095,.136)]
 def paddle_plate(name,outline,thickness,material):
     v=[(cx+x,cy+y,cz+z) for y in [-thickness/2,thickness/2] for x,z in outline]; n=len(outline)
     return mesh(name,v,[tuple(range(n)),tuple(reversed(range(n,n*2)))]+[(j,(j+1)%n,(j+1)%n+n,j+n) for j in range(n)],material,'paddle_socket')
-paddle_plate('paddle_01',outline,.016,edge)
-paddle_plate('paddle_face_01',[(x*.89,z*.91) for x,z in outline],.018,dark)
+paddle_plate('paddle_01',[(x*1.40,z*1.25) for x,z in outline],.027,edge)
+paddle_plate('paddle_face_01',[(x*1.19,z*1.08) for x,z in outline],.029,dark)
 tube('paddle_handle_01',[(cx,cy,.688),(cx,cy,.771)],[.016,.014],black,'paddle_socket',n=8)
 for j in range(5):tube('paddle_grip_%02d'%j,[(cx,cy,.699+j*.014),(cx,cy,.703+j*.014)],[.017,.017],black,'paddle_socket',n=8)
 
 # Optional real geometry modules live in their own disabled collection.
 before=set(o.name for o in meshes)
-for s in [-1,1]:
-    pts=[(s*.085+.066*math.cos(j*math.tau/16),-.199,1.612+.054*math.sin(j*math.tau/16)) for j in range(17)]
-    ribbon('glasses_01_frame_'+str(s),pts,.006,black,'head')
-    ribbon('glasses_01_arm_'+str(s),[(s*.15,-.195,1.62),(s*.2,-.07,1.62),(s*.2,.01,1.59)],.005,black,'head')
-ribbon('glasses_01_bridge',[(-.019,-.2,1.619),(0,-.207,1.63),(.019,-.2,1.619)],.005,black,'head')
-loft('visor_01_band',[(0,.007,1.748,.206,.191),(0,.007,1.783,.203,.19)],white,'head',n=24,caps=False)
-mesh('visor_01_brim',[(-.19,-.09,1.752),(-.15,-.28,1.738),(0,-.32,1.731),(.15,-.28,1.738),(.19,-.09,1.752),(0,-.19,1.757)],[(0,1,5),(1,2,5),(2,3,5),(3,4,5)],rose,'head')
+for sign in [-1,1]:
+    x=sign*.139
+    pts=[(x+dx,-.274,1.602+dz) for dx,dz in [(-.074,-.071),(.074,-.071),(.074,.075),(-.074,.075),(-.074,-.071)]]
+    ribbon('glasses_01_frame_'+str(sign),pts,.011,black,'head')
+    ribbon('glasses_01_arm_'+str(sign),[(sign*.213,-.274,1.63),(sign*.34,-.18,1.63),(sign*.34,.025,1.61)],.008,black,'head')
+ribbon('glasses_01_bridge',[(-.065,-.278,1.625),(0,-.283,1.637),(.065,-.278,1.625)],.009,black,'head')
+box('visor_01_band',(0,-.269,1.813),(.702,.045,.079),white,'head',.015)
+for sign in [-1,1]:box('visor_01_side_'+str(sign),(sign*.336,.005,1.813),(.042,.53,.079),white,'head',.01)
+box('visor_01_brim',(0,-.333,1.779),(.702,.23,.035),rose,'head',.014)
 for o in meshes:
     if o.name not in before:move(o,optional)
 
@@ -275,6 +251,50 @@ for o in meshes:
     o.data.update()
     import bmesh
     bm=bmesh.new();bm.from_mesh(o.data);bmesh.ops.recalc_face_normals(bm,faces=bm.faces);bm.to_mesh(o.data);bm.free()
+# Compact reference proportions. Keep the entire head assembly and sneaker
+# size intact; shorten the legs and torso, and shorten arms along their axes.
+def body_height(z):
+    if z<=.23:return z*.78
+    if z<=.98:return .23*.78+(z-.23)*.50
+    return .23*.78+.75*.50+(z-.98)*.72
+neck_lift=.055
+head_shift=body_height(1.34)-1.34+neck_lift
+new_bones={}
+for name,(a,b) in bones.items():
+    def body_point(p):return Vector((p.x,p.y,body_height(p.z)))
+    if name in ('head','ponytail'):
+        new_bones[name]=(a+Vector((0,0,head_shift)),b+Vector((0,0,head_shift)))
+    else:new_bones[name]=(body_point(a),body_point(b))
+new_bones['neck'][1].z+=neck_lift
+for side in ['L','R']:
+    for part in ['upper_arm','forearm']:
+        name=part+'.'+side;a,b=bones[name]
+        start=new_bones['clavicle.'+side][1] if part=='upper_arm' else new_bones['upper_arm.'+side][1]
+        new_bones[name]=(start,start+(b-a)*.72)
+    name='hand.'+side;a,b=bones[name];start=new_bones['forearm.'+side][1]
+    delta=b-a;delta.z*=.78;new_bones[name]=(start,start+delta)
+def hand_point(p,side):
+    delta=p-bones['hand.'+side][0];delta.z*=.78
+    return new_bones['hand.'+side][0]+delta
+new_bones['paddle_socket']=tuple(hand_point(p,'R') for p in bones['paddle_socket'])
+def compact_point(p,binding):
+    if binding in ('head','ponytail'):return p+Vector((0,0,head_shift))
+    if binding=='neck':return Vector((p.x,p.y,body_height(p.z)+neck_lift*max(0,min(1,(p.z-1.275)/.12))))
+    if binding and binding.startswith(('upper_arm.','forearm.')):
+        a,b=bones[binding];axis=(b-a).normalized();delta=p-a
+        return new_bones[binding][0]+delta-axis*(delta.dot(axis)*.28)
+    if binding and binding.startswith('hand.'):return hand_point(p,binding[-1])
+    if binding=='paddle_socket':return hand_point(p,'R')
+    return Vector((p.x,p.y,body_height(p.z)))
+bpy.context.view_layer.update()
+for o in meshes:
+    inverse=o.matrix_world.inverted()
+    for v in o.data.vertices:v.co=inverse@compact_point(o.matrix_world@v.co,bindings.get(o.name))
+bpy.context.view_layer.objects.active=rig
+bpy.ops.object.mode_set(mode='EDIT')
+for b in rig.data.edit_bones:b.head,b.tail=new_bones[b.name]
+bpy.ops.object.mode_set(mode='OBJECT')
+rig['height_m']=1.596
 optional.hide_render=True;optional.hide_viewport=True
 
 # Slot-level objects keep asset swaps and draw calls manageable.
@@ -328,14 +348,14 @@ for name,loc,power,size in [('Key',(-3,-4,6),450,4),('Fill',(3,-2,3),250,3),('Ri
 scene.world.use_nodes=True
 worldbg=scene.world.node_tree.nodes.get('Background')
 worldbg.inputs['Color'].default_value=(.78,.76,.72,1);worldbg.inputs['Strength'].default_value=.35
-scene.render.engine='CYCLES';scene.cycles.samples=48;scene.cycles.use_denoising=True
+scene.render.engine='CYCLES';scene.cycles.samples=16;scene.cycles.use_denoising=True
 scene.render.resolution_x=800;scene.render.resolution_y=1000;scene.render.resolution_percentage=100
 scene.view_settings.view_transform='AgX';scene.view_settings.look='AgX - Medium High Contrast'
 scene.render.image_settings.file_format='PNG';scene.render.film_transparent=False
 cameras={}
 for name,loc in [('front',(0,-5,1.35)),('side',(5,0,1.35)),('back',(0,5,1.35)),('three-quarter',(3,-5,2.0)),('tactical',(3,-5,6))]:
-    d=bpy.data.cameras.new(name);d.type='ORTHO';d.ortho_scale=2.28
-    o=bpy.data.objects.new('CAM_'+name,d);studio.objects.link(o);o.location=loc;point(o,(0,0,1.01));cameras[name]=o
+    d=bpy.data.cameras.new(name);d.type='ORTHO';d.ortho_scale=1.95
+    o=bpy.data.objects.new('CAM_'+name,d);studio.objects.link(o);o.location=loc;point(o,(0,0,.78));cameras[name]=o
 scene.camera=cameras['three-quarter']
 reference=Path(os.environ.get('RILEY_REFERENCE',str(ROOT/'reference.png')))
 if reference.exists():
@@ -356,12 +376,15 @@ for screen in bpy.data.screens:
             space.overlay.show_overlays=False
 select([rig]);bpy.context.preferences.filepaths.save_version=0
 bpy.ops.wm.save_as_mainfile(filepath=str(ROOT/'riley.blend'))
+bpy.ops.wm.open_mainfile(filepath=str(ROOT/'riley.blend'))
+scene=bpy.context.scene
+cameras={name:bpy.data.objects['CAM_'+name] for name in cameras}
 render_only=os.environ.get('RILEY_RENDER_ONLY','')
 for name,cam in cameras.items():
     if render_only and render_only!=name:continue
     scene.camera=cam;scene.render.filepath=str(ROOT/'previews'/(name+'.png'));bpy.ops.render.render(write_still=True)
 for frame,name in [(20,'ready'),(40,'forehand'),(60,'overhead'),(80,'shuffle')]:
     if render_only and render_only!='rig-'+name:continue
-    scene.frame_set(frame);scene.camera=cameras['three-quarter'];scene.render.filepath=str(ROOT/'previews'/('rig-'+name+'-check.png'));bpy.ops.render.render(write_still=True)
+    scene.frame_set(frame);scene.camera=cameras['three-quarter'];scene.camera.data.ortho_scale=2.2;scene.render.filepath=str(ROOT/'previews'/('rig-'+name+'-check.png'));bpy.ops.render.render(write_still=True)
 scene.frame_set(1)
 print('RILEY_REPORT',json.dumps({k:v for k,v in report.items() if k!='modules'}))

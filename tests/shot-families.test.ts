@@ -21,6 +21,10 @@ test('contact gates reject low overheads, early volleys, kitchen volleys and wea
  const counter=labSetup('counter').context;counter.incomingSpeed=2;assert.match(contactIssue('counter',counter)!,/attack/);
  const dink=labSetup('dink').context;dink.feet.z=6;assert.match(contactIssue('dink',dink)!,/far back/);
 });
+test('a shoulder-high pop-up is available as an overhead',()=>{
+ const context={...labSetup('overhead').context,contact:{...labSetup('overhead').context.contact,y:1.5}};
+ assert.equal(contactIssue('overhead',context),null);
+});
 test('serve and return enforce their opening and bounce prerequisites',()=>{
  const serve=labSetup('serve');serve.context.feet.z=6;assert.match(contactIssue('serve',serve.context)!,/baseline/);
  const valid=labSetup('serve');assert.throws(()=>buildFamilyFlight('serve',valid.context,{x:1,y:.037,z:-5}),/diagonally/);assert.throws(()=>buildFamilyFlight('serve',valid.context,{x:-1,y:.037,z:-1}),/kitchen/);

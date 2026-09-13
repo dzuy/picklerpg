@@ -12,7 +12,7 @@ This is the agreed build order from the supplied roadmap. Preserve the numbering
 
 Custom commands work alongside canned menus in full games and practice. Local and LLM parsers produce reviewed, validated shot intent; impossible contacts explain why rather than auto-substituting. Frequently played commands become quick actions. Left/right spin, spin strength, topspin drop, and slice float now affect flight; fine player-side targets remain disclosed approximations. See [CUSTOM-SHOTS.md](CUSTOM-SHOTS.md).
 
-**Phase 7 voice increment implemented for playtest.** Added microphone input, local concise/richer commands, partner instructions, hands-free contact listening, and compact voice view. Live microphone accuracy, end-to-end latency, and whole-game voice acceptance remain open. See [PHASE-7.md](PHASE-7.md).
+**Phase 7 voice increment implemented for playtest.** Added microphone input, local concise/richer commands, partner instructions, hands-free contact listening, and compact voice view. Local Whisper now works in the in-app browser, with flat-serve recognition corrections. User voice accuracy, end-to-end latency, and whole-game voice acceptance remain playtest gates. See [PHASE-7.md](PHASE-7.md).
 
 ## Playtest decisions
 
@@ -263,8 +263,8 @@ Example:
 - [x] **40.** Learn frequently used custom tactics
        Eventually surface them as quick actions.
 ## Phase 7 — Voice-only mode
-- [ ] **41.** Speech-to-intent input
-       Browser adapter and validated voice intent implemented; live microphone verification pending.
+- [x] **41.** Speech-to-intent input
+       Local Whisper capture/transcription verified in the in-app browser; browser speech remains optional.
 - [ ] **42.** Make voice commands fast enough that they don’t break rally flow
 - [x] **43.** Support concise commands
     - “Drive middle.”
@@ -351,3 +351,7 @@ Once those three work, you have the actual game. Everything after that makes it 
 - Development provider: GPT-5.6 Luna through the existing ChatGPT-signed-in Codex CLI, live smoke-tested without API key. 86 tests pass. Direct API can be enabled later explicitly.
 
 - Custom-shot UX revision: one Play custom shot action, automatic local/LLM routing, no preview confirmation. Valid commands execute immediately; invalid commands explain without substituting. Quick actions follow the same flow.
+
+## Shot selection UI follow-up
+
+- [ ] Evaluate removing the legacy “Choose your shot” dock and its Show shots expander entirely. The expander is currently hidden; keep the dock implementation until targeting-wheel coverage and accessibility have been reviewed.

@@ -33,20 +33,23 @@ export class RallyEngine {
  private activeShot!:RallyShot;
  private movementStart!:Record<PlayerId,Vec3>;
  private shotElapsed=0;
+ private receptionPrompt=false;
  constructor(private readonly provider:RallyProvider){this.reset()}
 
  reset(){
   const setup=structuredClone(this.provider.setup());
-  if(setup.players.length!==4||new Set(setup.players.map(p=>p.id)).size!==4||setup.players.some(p=>!PLAYER_IDS.includes(p.id)||!finitePoint(p.position)||!['home','away'].includes(p.team)||!['left','right'].includes(p.handedness)||!Number.isFinite(p.facing)||SKILLS.some(skill=>!Number.isFinite(p.skills?.[skill])||p.skills[skill]<0||p.skills[skill]>100)||['aggression','middlePreference','kitchenApproach'].some(key=>{const value=p.tendencies?.[key as keyof typeof p.tendencies];return !Number.isFinite(value)||value<0||value>1})))throw new Error('A rally requires four distinct valid players.');
+  if(setup.players.length!==4||new Set(setup.players.map(p=>p.id)).size!==4||setup.players.some(p=>!PLAYER_IDS.includes(p.id)||!finitePoint(p.position)||!['home','away'].includes(p.team)||!['left','right'].includes(p.handedness)||!Number.isFinite(p.facing)||SKILLS.some(skill=>!Number.isFinite(p.skills?.[skill])||p.skills[skill]<0||p.skills[skill]>100)||['aggression','middlePreference','kitchenApproach'].some(key=>{const value=p.tendencies?.[key as keyof typeof p.tendencies];return typeof value!=='number'||!Number.isFinite(value)||value<0||value>1})))throw new Error('A rally requires four distinct valid players.');
   const options=this.validateContact(setup.contact,undefined,setup.players);
   const first=options[0];
   this.state={schemaVersion:2,simulationTime:0,rallyHistory:[{type:'rally-start',time:0}],phase:'decision',stage:'serve',shotIndex:0,legIndex:0,elapsed:0,ball:{position:{...first.contact},velocity:{x:0,y:0,z:0}},players:setup.players,shotHistory:[],bounces:0,score:{home:0,away:0},paused:false,currentHitter:first.actor,possession:setup.players.find(p=>p.id===first.actor)!.team,result:null};
   this.shotElapsed=0;
+  this.receptionPrompt=false;
   this.acceptContact(options);
  }
  /** Detached, JSON-serializable state for adapters and future tactical snapshots. */
  snapshot():GameState{return structuredClone(this.state)}
  get shot():RallyShot{return this.activeShot}
+ get needsReceptionChoice(){return this.receptionPrompt}
  get availableIntents():ShotIntent[]{return this.state.phase==='decision'?this.options.map(shot=>structuredClone(shot.intent)):[]}
  previewIntent(value:unknown):RallyShot|null{if(this.state.phase!=='decision')return null;const intent=parseShotIntent(value);const shot=this.options.find(option=>sameShotIntent(intent,option.intent));return shot?structuredClone(shot):null}
 
@@ -57,12 +60,23 @@ export class RallyEngine {
   const shot=this.options.find(({intent})=>sameShotIntent(v,intent));
   if(!shot)throw new Error('Choose an available shot intent for this contact.');
   this.activeShot=structuredClone(shot);
+  this.receptionPrompt=false;
   this.state.stage=classifyStage(this.state.shotHistory.length,shot.intent,this.state.players);
   this.state.shotHistory.push({...structuredClone(shot.intent),source:v.source});
   this.state.rallyHistory.push({type:'shot',time:this.state.simulationTime,shotIndex:this.state.shotIndex,intent:structuredClone(this.state.shotHistory.at(-1)!),contact:{...shot.contact}});
   this.state.ball.velocity=sampleVelocity(shot.legs[0],0);
   this.state.phase='flight';this.state.elapsed=0;this.state.legIndex=0;this.shotElapsed=0;
   this.movementStart=Object.fromEntries(this.state.players.map(p=>[p.id,{...p.position}])) as Record<PlayerId,Vec3>;
+ }
+
+ /** Continue an incoming pop-up to an airborne interception or its first bounce. */
+ chooseReception(kind:'airborne'|'bounced'){
+  if(this.state.phase!=='flight'||!this.state.paused||!this.receptionPrompt||!this.shot.receptionChoice)throw new Error('Wait for a reception choice at the net.');
+  const selected=this.shot.receptionChoice[kind];if(!selected)throw new Error(kind==='airborne'?'This ball cannot be reached before its bounce.':'This ball must be taken out of the air.');
+  const branch=structuredClone(selected);
+  if(this.state.legIndex!==0||this.state.elapsed>branch.legs[0].duration)throw new Error('The reception choice is no longer available.');
+  this.activeShot.legs=branch.legs;this.activeShot.positions=branch.positions;this.activeShot.resolution=branch.resolution;delete this.activeShot.receptionChoice;
+  this.receptionPrompt=false;this.state.paused=false;
  }
 
  /** Adds a locally planned, validated custom option only at the current contact. */
@@ -101,7 +115,7 @@ export class RallyEngine {
  private finishFlight(){
   const outcome=structuredClone(this.provider.next(this.snapshot(),structuredClone(this.shot)));
   if(outcome.kind==='point-end'){
-   if(!outcome.result||!['home','away'].includes(outcome.result.winner)||!['winner','net','out','double-bounce','failed-return','unreturned-attack','body-hit'].includes(outcome.result.reason))throw new Error('Invalid point result.');
+   if(!outcome.result||!['home','away'].includes(outcome.result.winner)||!['missed-swing','winner','net','out','double-bounce','failed-return','unreturned-attack','body-hit'].includes(outcome.result.reason))throw new Error('Invalid point result.');
    this.state.result=outcome.result;this.state.phase='complete';this.state.stage='point-end';this.state.paused=false;
    // Demonstration point tally only. Doubles side-out scoring is backlog item 13.
    this.state.score[outcome.result.winner]++;this.options=[];
@@ -120,13 +134,18 @@ export class RallyEngine {
   let remaining=dt;
   while(remaining>0&&this.state.phase==='flight'){
    const leg=this.shot.legs[this.state.legIndex];
-   const step=Math.min(remaining,leg.duration-this.state.elapsed);
+   let step=Math.min(remaining,leg.duration-this.state.elapsed),pauseAtNet=false;
+   if(this.shot.receptionChoice&&!this.receptionPrompt&&this.state.legIndex===0&&leg.from.z*leg.to.z<=0&&leg.from.z!==leg.to.z){
+    const netElapsed=leg.duration*leg.from.z/(leg.from.z-leg.to.z);
+    if(netElapsed>=this.state.elapsed-1e-9&&netElapsed<=this.state.elapsed+step+1e-9){step=Math.max(0,netElapsed-this.state.elapsed);pauseAtNet=true}
+   }
    remaining-=step;this.state.elapsed+=step;this.shotElapsed+=step;this.state.simulationTime+=step;
    this.state.ball.position=sampleLeg(leg,this.state.elapsed/leg.duration);
    this.state.ball.velocity=sampleVelocity(leg,this.state.elapsed/leg.duration);
    const total=this.shot.legs.reduce((sum,l)=>sum+l.duration,0);
    const alpha=Math.min(1,this.shotElapsed/total),smooth=alpha*alpha*(3-2*alpha);
    for(const player of this.state.players){const from=this.movementStart[player.id],to=this.shot.positions[player.id];player.position={x:from.x+(to.x-from.x)*smooth,y:0,z:from.z+(to.z-from.z)*smooth}}
+   if(pauseAtNet){this.state.ball.position={...this.state.ball.position,z:0};this.state.paused=true;this.receptionPrompt=true;return}
    if(this.state.elapsed>=leg.duration-1e-9){
     this.state.ball.position={...leg.to};
     if(leg.bounceAtEnd){this.state.bounces++;this.state.rallyHistory.push({type:'bounce',time:this.state.simulationTime,shotIndex:this.state.shotIndex,position:{...leg.to}})}

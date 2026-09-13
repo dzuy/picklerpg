@@ -38,8 +38,8 @@ for (const file of ['riley','glasses','hat_visor']) {
   });
   const size=new Box3().setFromObject(gltf.scene).getSize(new Vector3());
   if(file==='riley') {
-    assert.ok(triangles>=8000&&triangles<=15000,'Character triangle budget');
-    assert.ok(size.y>1.8&&size.y<2.1,'Metre-scale upright character');
+    assert.ok(triangles>=2500&&triangles<=6000,'Character triangle budget');
+    assert.ok(size.y>1.45&&size.y<1.65,'Metre-scale upright character');
     for(const slot of ['body','head_face','hair','eyebrows','top','bottom','socks','shoes','wrist_accessory','paddle'])assert.ok(slots.has(slot),slot);
     for(const bone of ['root','pelvis','spine','chest','neck','head','paddle_socket'])assert.ok(bones.has(bone),bone);
   }

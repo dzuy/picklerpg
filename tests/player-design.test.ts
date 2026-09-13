@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {newPlayer,parseLibrary,savePlayer,validatePlayer,PLAYER_STORAGE_KEY} from '../src/player-design';
+import {playerId,newPlayer,parseLibrary,savePlayer,deletePlayer,validatePlayer,PLAYER_STORAGE_KEY} from '../src/player-design';
 import {Match} from '../src/match';
 import {PLAYER_PROFILES} from '../src/engine/player-profiles';
 
@@ -62,4 +62,40 @@ test('new clothing and equipment choices persist and reject unknown options',()=
  let saved='';savePlayer({setItem:(_key,value)=>{saved=value}},parseLibrary(null),player,true);
  assert.deepEqual(parseLibrary(saved).players[0],player);
  assert.throws(()=>validatePlayer({...player,appearance:{...player.appearance,bottom:'invalid'}}));
+});
+
+test('hat color saves independently and older hats retain their original color',()=>{
+ const player=newPlayer('hat-color');player.appearance.hatColor='#ac7bd8';
+ let saved='';savePlayer({setItem:(_key,value)=>{saved=value}},parseLibrary(null),player);
+ const loaded=parseLibrary(saved).players[0];assert.equal(loaded.appearance.hatColor,'#ac7bd8');assert.equal(loaded.appearance.accent,player.appearance.accent);
+ const legacy=JSON.parse(JSON.stringify(player));delete legacy.appearance.hatColor;
+ assert.equal(validatePlayer(legacy).appearance.hatColor,player.appearance.accent);
+ legacy.appearance.hat='visor';assert.equal(validatePlayer(legacy).appearance.hatColor,player.appearance.jersey);
+ assert.throws(()=>validatePlayer({...player,appearance:{...player.appearance,hatColor:'invalid'}}));
+});
+
+
+test('deleting players preserves other profiles, clears only the deleted active selection, and is atomic',()=>{
+ const a=newPlayer('a'),b=newPlayer('b');const library={version:1 as const,activeId:'a',players:[a,b]};let saved='';
+ const storage={setItem:(_key:string,value:string)=>{saved=value}};
+ const withoutB=deletePlayer(storage,library,'b');assert.equal(withoutB.activeId,'a');assert.deepEqual(withoutB.players,[a]);
+ const withoutA=deletePlayer(storage,library,'a');assert.equal(withoutA.activeId,null);assert.deepEqual(withoutA.players,[b]);assert.deepEqual(parseLibrary(saved),withoutA);
+ assert.throws(()=>deletePlayer({setItem:()=>{throw new Error('quota')}},library,'a'));assert.deepEqual(library.players,[a,b]);assert.equal(library.activeId,'a');
+ const empty=deletePlayer(storage,withoutA,'b');assert.deepEqual(empty,{version:1,activeId:null,players:[]});
+});
+
+test('player IDs work over LAN HTTP without crypto.randomUUID',()=>{
+ const httpCrypto={getRandomValues:globalThis.crypto.getRandomValues.bind(globalThis.crypto)};
+ const ids=Array.from({length:100},()=>playerId(httpCrypto));
+ assert.equal(new Set(ids).size,100);
+ for(const id of ids){assert.match(id,/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);assert.equal(validatePlayer(newPlayer(id)).id,id);}
+});
+
+test('custom catchphrases survive saving and older players remain compatible',()=>{
+ let stored='';const player=newPlayer('phrase');player.catchphrase='  Make every rally count.  ';
+ savePlayer({setItem:(_key,value)=>{stored=value}},parseLibrary(null),player);
+ assert.equal(parseLibrary(stored).players[0].catchphrase,'Make every rally count.');
+ assert.equal(validatePlayer(newPlayer('older')).catchphrase,undefined);
+ assert.throws(()=>validatePlayer({...player,catchphrase:'x'.repeat(61)}));
+ assert.throws(()=>validatePlayer({...player,catchphrase:42}));
 });

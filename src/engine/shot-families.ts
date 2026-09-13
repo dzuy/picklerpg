@@ -1,5 +1,5 @@
 import {COURT,type FlightLeg,type ShotType,type Vec3} from './model';
-export interface ShotContext {movementZ?:number;allowRisky?:boolean;contact:Vec3; feet:Vec3; bounced:boolean; opening:'serve'|'return'|'rally'; twoBounceSatisfied:boolean; incomingSpeed:number}
+export interface ShotContext {timingPressure?:number;movementZ?:number;allowRisky?:boolean;contact:Vec3; feet:Vec3; bounced:boolean; opening:'serve'|'return'|'rally'; twoBounceSatisfied:boolean; incomingSpeed:number}
 export interface ShotFamily {name:string; description:string; speed:number; lift:number; mode:'ground'|'volley'|'either'; minHeight:number; maxHeight:number}
 /** Deliberately tuned for readable scripted play, not measured biomechanics. */
 export const SHOT_FAMILIES:Record<ShotType,ShotFamily>={
@@ -8,10 +8,11 @@ export const SHOT_FAMILIES:Record<ShotType,ShotFamily>={
  drive:{name:'Drive',description:'A fast, low ball that pressures the receiving team.',speed:14,lift:.5,mode:'either',minHeight:.15,maxHeight:1.7},
  drop:{name:'Drop',description:'A soft arc from deeper court, landing in the kitchen.',speed:5,lift:1.5,mode:'ground',minHeight:.1,maxHeight:1.5},
  dink:{name:'Dink',description:'A short, soft exchange from near the kitchen line.',speed:3.5,lift:.85,mode:'ground',minHeight:.1,maxHeight:1.2},
+ flick:{name:'Flick',description:'A quick wrist-led airborne attack with topspin, controlled by volley skill and hands.',speed:12,lift:.45,mode:'volley',minHeight:.35,maxHeight:1.6},
  volley:{name:'Volley',description:'Take the ball out of the air with a compact punch.',speed:10,lift:.25,mode:'volley',minHeight:.45,maxHeight:1.9},
  reset:{name:'Reset',description:'Absorb pressure and lift a low ball softly into the kitchen.',speed:4.5,lift:1.5,mode:'either',minHeight:.08,maxHeight:1.5},
- lob:{name:'Lob',description:'A high, deep arc over the opponents’ reach.',speed:4.5,lift:4,mode:'either',minHeight:.15,maxHeight:1.7},
- overhead:{name:'Overhead',description:'Strike a high contact down into open court.',speed:17,lift:.04,mode:'volley',minHeight:1.9,maxHeight:3.2},
+ lob:{name:'Lob',description:'A high, deep arc over the opponents’ reach.',speed:4.5,lift:4,mode:'either',minHeight:.08,maxHeight:3.2},
+ overhead:{name:'Overhead',description:'Strike a high contact down into open court.',speed:17,lift:.04,mode:'volley',minHeight:1.45,maxHeight:3.2},
  counter:{name:'Counter',description:'Redirect an incoming attack with a short, firm response.',speed:15,lift:.25,mode:'volley',minHeight:.65,maxHeight:1.8},
  block:{name:'Block',description:'Take pace off an incoming attack with a quiet paddle.',speed:5,lift:.9,mode:'volley',minHeight:.3,maxHeight:1.8},
 };
@@ -39,10 +40,10 @@ export function contactIssue(type:ShotType,c:ShotContext):string|null{
 }
 /** Family-level flight primitive. Caller supplies an already resolved landing point.
  * This does not resolve semantic targets or generate an unscripted rally. */
-export function buildFamilyFlight(type:ShotType,c:ShotContext,landing:Vec3,endpoint:'landing'|'intercept'='landing'):FlightLeg{
+export function buildFamilyFlight(type:ShotType,c:ShotContext,landing:Vec3,endpoint:'landing'|'intercept'='landing',freeServeTarget=false):FlightLeg{
  const issue=contactIssue(type,c);if(issue)throw new Error(issue);
- if(![landing.x,landing.y,landing.z].every(Number.isFinite)||landing.y<0||landing.y>(endpoint==='landing'?.1:2.5)||c.contact.z*landing.z>=0||Math.abs(landing.x)>COURT.width/2||Math.abs(landing.z)>COURT.length/2)throw new Error('Supply a landing point on the opposing court.');
- if(type==='serve'&&endpoint==='landing'&&(c.contact.x*landing.x>=0||Math.abs(landing.z)<=COURT.kitchen))throw new Error('Serve diagonally beyond the kitchen.');
+ if(![landing.x,landing.y,landing.z].every(Number.isFinite)||landing.y<0||landing.y>(endpoint==='landing'?.1:2.5)||c.contact.z*landing.z>=0||!freeServeTarget&&(Math.abs(landing.x)>COURT.width/2||Math.abs(landing.z)>COURT.length/2))throw new Error('Supply a landing point on the opposing court.');
+ if(type==='serve'&&!freeServeTarget&&endpoint==='landing'&&(c.contact.x*landing.x>=0||Math.abs(landing.z)<=COURT.kitchen))throw new Error('Serve diagonally beyond the kitchen.');
  const family=SHOT_FAMILIES[type],t=c.contact.z/(c.contact.z-landing.z);
  const crossX=c.contact.x+(landing.x-c.contact.x)*t;
  const net=COURT.netCenter+(COURT.netSideline-COURT.netCenter)*(crossX/(COURT.width/2))**2;

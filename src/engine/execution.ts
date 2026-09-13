@@ -12,23 +12,36 @@ export function executeShot(value:unknown,context:ShotContext,players:PlayerStat
  if(!Number.isFinite(conditions.balance)||conditions.balance<0||conditions.balance>1)throw new Error('Balance must be between zero and one.');
  const intended=generateTrajectory(value,context,players),intent=intended.intent;
  const hitter=players.find(p=>p.id===intent.actor)!;
- const skill=hitter.skills[intent.type==='lob'?'drop':intent.type==='block'?'volley':intent.type];
+ // An ATP needs both pace and very precise hands. A weakness in either limits the shot.
+ const skill=intent.type==='flick'?Math.min(hitter.skills.volley,hitter.skills.hands):intent.technique==='atp'?Math.min(hitter.skills.drive,hitter.skills.hands):hitter.skills[intent.type==='lob'?'drop':intent.type==='block'?'volley':intent.type];
  if(!Number.isFinite(skill)||skill<0||skill>100)throw new Error('Skill must be between zero and 100.');
  const difficulty=clamp(context.incomingSpeed/25);
  const lowContact=clamp((.8-context.contact.y)/.8);
  const contact=contactDifficulty(context,hitter);
- const handsPenalty=!context.bounced?clamp(context.incomingSpeed/25)*(1-hitter.skills.hands/100)*.12:0;
- const quality=clamp(.2+.8*skill/100-.2*difficulty-.2*lowContact-.3*(1-conditions.balance)-contact.penalty-handsPenalty);
+ const timing=clamp(context.timingPressure??0);
+ const handsPenalty=clamp(context.incomingSpeed/25)*(1-hitter.skills.hands/100)*(!context.bounced?.2:.1)+timing*.24;
+ if(timing>.15)contact.labels.push('Late to the ball');
+ // Extra-high lobs are harder to control in depth; this is a gameplay tuning cost.
+ const lobRisk=(intent.type==='lob'||intent.type==='serve')?clamp((intent.intendedNetClearance-3)/4):0;
+ if(lobRisk)contact.labels.push('High lob depth control');
+ const atpDifficulty=intent.technique==='atp'?clamp((100-skill)/60):0;
+ if(atpDifficulty)contact.labels.push('ATP timing');
+ const quality=clamp(.2+.8*skill/100-.2*difficulty-.2*lowContact-.3*(1-conditions.balance)-contact.penalty-handsPenalty-.1*lobRisk-.25*atpDifficulty);
  const benchmark=skillBenchmark(skill);
  const pressure=clamp(.2*difficulty+.2*lowContact+.3*(1-conditions.balance)+contact.penalty+handsPenalty);
- const dispersion=benchmark.spread+pressure*benchmark.pressure;
+ const dispersion=benchmark.spread+pressure*benchmark.pressure+.35*atpDifficulty;
  const liftError=benchmark.lift+pressure*benchmark.pressure*.35;
  let seed=conditions.seed>>>0;
  const random=()=>{seed=(seed+0x6D2B79F5)>>>0;let n=Math.imul(seed^(seed>>>15),1|seed);n^=n+Math.imul(n^(n>>>7),61|n);return ((n^(n>>>14))>>>0)/4294967296*2-1};
- const mishit=(random()+1)/2<benchmark.mishit+pressure*benchmark.mishit*2;
+ // Default players fail most ATP attempts. Elite drive and hands can make the shot
+ // more reliable, but even a 100-rated player still misses roughly one in three.
+ const atpFailureChance=intent.technique==='atp'?clamp(.9-Math.max(0,skill-40)*.009):0;
+ const atpFailed=atpFailureChance>0&&(random()+1)/2<atpFailureChance;
+ const mishit=atpFailed||(random()+1)/2<benchmark.mishit+pressure*benchmark.mishit*2+timing*(1-hitter.skills.hands/100)*.3;
  const errorScale=mishit?6:1;
  const leg=structuredClone(intended.leg);
- leg.to.x+=random()*dispersion*errorScale;leg.to.z+=random()*dispersion*errorScale;
+ leg.to.x+=random()*dispersion*errorScale;leg.to.z+=random()*(dispersion+lobRisk*2)*errorScale;
+ if(atpFailed)leg.to.x=Math.sign(intended.aimPoint.x||context.contact.x)*(COURT.width/2+.12+Math.abs(random())*.8);
  if(!leg.bounceAtEnd)leg.to.y=Math.max(.037,leg.to.y+random()*dispersion*errorScale*.3);
  leg.arc=Math.max(0,leg.arc+random()*liftError*errorScale);
  leg.duration*=1+random()*(1-quality)*.15;
@@ -37,6 +50,8 @@ export function executeShot(value:unknown,context:ShotContext,players:PlayerStat
  const height=point.y;
  const net=COURT.netCenter+(COURT.netSideline-COURT.netCenter)*(x/(COURT.width/2))**2;
  const hitsNet=t>0&&t<1&&Math.abs(x)<=COURT.netWidth/2&&height-.037<=net;
- const out=Math.abs(leg.to.x)>COURT.width/2+.037||Math.abs(leg.to.z)>COURT.length/2+.037;
+ // A large execution error can leave the landing on the hitter's side. That is a
+ // failed crossing, never an unreturned ball for the hitter who struck it.
+ const out=leg.to.z*context.contact.z>=0||Math.abs(leg.to.x)>COURT.width/2+.037||Math.abs(leg.to.z)>COURT.length/2+.037;
  return {intended,leg:hitsNet?interceptFlight(leg,t):leg,seed:conditions.seed,quality,skill,difficulty:contact.labels,mishit,dispersion,endpointError:Math.hypot(leg.to.x-intended.aimPoint.x,leg.to.z-intended.aimPoint.z),outcome:hitsNet?'net':leg.bounceAtEnd?(out?'out':'in'):'intercept',actualEndpoint};
 }

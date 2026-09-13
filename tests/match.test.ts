@@ -12,6 +12,7 @@ test('complete unscripted games terminate with valid score and no stuck contacts
  for(const seed of [1,1741,99]){
  const m=new Match();m.seed=seed;m.reset();const types=new Set<string>();let points=0;
  for(let frames=0;frames<200000&&!m.scoring.winner;frames++){
+  if(m.receptionDecision)m.chooseReception(m.canLetBounce?'bounce':'air');
   if(m.state.phase==='decision'){assert.ok(m.availableIntents.length);const options=m.availableIntents;const intent=options[(frames+seed)%options.length];types.add(intent.type);m.submitIntent(intent)}
   m.update(.2);
   if(m.state.phase==='complete'&&!m.scoring.winner){points++;m.nextPoint()}
@@ -30,7 +31,7 @@ test('home serve opens with four primary choices and additional serves',()=>{
  assert.ok(m.availableIntents.length>4);
  assert.ok(m.availableIntents.every(intent=>intent.type==='serve'));
  assert.equal(new Set(m.availableIntents.map(intent=>JSON.stringify({...intent,source:'menu'}))).size,m.availableIntents.length);
- assert.deepEqual(m.availableIntents.slice(0,4).map(intent=>intent.target.kind==='zone'?`${intent.target.depth}-${intent.target.zone}`:'player'),['deep-crosscourt','deep-crosscourt','deep-wide','transition-wide']);
+ assert.deepEqual(m.availableIntents.slice(0,5).map(intent=>intent.spin?.side!=='none'?'slice':intent.spin?.vertical==='topspin'?'topspin':intent.spin?.vertical==='slice'?'backspin':intent.pace),['topspin','slice','backspin','fast','soft']);
 });
 test('every contextual home shot has choices beyond the primary four',()=>{
  const m=new Match();
@@ -49,9 +50,15 @@ test('point endings include boundary faults and unreturned balls across tactical
   const m=new Match();m.seed=seed;m.reset();
   for(let p=0;p<10&&!m.scoring.winner;p++){
    for(let f=0;f<10000&&m.state.phase!=='complete';f++){
-    if(m.state.phase==='decision')m.submitIntent(m.availableIntents[(seed+p)%m.availableIntents.length]);m.update(.2);
+    if(m.receptionDecision){const preferAir=(seed+p)%2===1;m.chooseReception(preferAir&&m.canTakeAir?'air':m.canLetBounce?'bounce':'air')}if(m.state.phase==='decision')m.submitIntent(m.availableIntents[(seed+p)%m.availableIntents.length]);m.update(.2);
    }
    assert.equal(m.state.phase,'complete');outcomes.add(m.state.result!.reason);maxLength=Math.max(maxLength,m.state.shotHistory.length);
+   if(m.state.result?.reason==='double-bounce'){
+    const hitter=m.state.players.find(player=>player.id===m.shot.actor)!;
+    assert.equal(m.state.result.winner,hitter.team,'The hitting team wins an unreturned second bounce');
+    const bounces=m.state.rallyHistory.filter(event=>event.type==='bounce'&&event.shotIndex===m.state.shotIndex);
+    assert.equal(bounces.length,2);assert.ok(bounces.every(event=>event.position.z*m.shot.contact.z<0),'Both bounces stay on the receiving side');
+   }
    const score={...m.scoring.score};m.update(20);assert.deepEqual(m.scoring.score,score);if(!m.scoring.winner)m.nextPoint();
   }
  }
@@ -62,11 +69,11 @@ test('score parity keeps the same server while swapping serving court',()=>{
  score.award('away');assert.equal(score.serverNumber,1);assert.equal(score.server,score.right.away);
 });
 test('full match replay is seed deterministic and restart resets the game',()=>{
- const run=()=>{const m=new Match();for(let i=0;i<2000&&m.state.phase!=='complete';i++){if(m.state.phase==='decision')m.submitIntent(m.availableIntents[0]);m.update(.1)}return m};
+ const run=()=>{const m=new Match();for(let i=0;i<2000&&m.state.phase!=='complete';i++){if(m.receptionDecision)m.chooseReception(m.canLetBounce?'bounce':'air');if(m.state.phase==='decision')m.submitIntent(m.availableIntents[0]);m.update(.1)}return m};
  const a=run(),b=run();assert.equal(a.state.phase,'complete');assert.deepEqual(a.snapshot(),b.snapshot());assert.deepEqual(a.scoring,b.scoring);a.reset();assert.equal(a.scoring.call,'0–0–2');assert.equal(a.point,0);assert.equal(a.state.phase,'decision');
 });
 test('automatic replay traverses the whole point at normal gameplay speed without mutating its result',()=>{
- const m=new Match();for(let i=0;i<3000&&m.state.phase!=='complete';i++){if(m.state.phase==='decision')m.submitIntent(m.availableIntents[0]);m.update(.05)}
+ const m=new Match();for(let i=0;i<3000&&m.state.phase!=='complete';i++){if(m.receptionDecision)m.chooseReception(m.canLetBounce?'bounce':'air');if(m.state.phase==='decision')m.submitIntent(m.availableIntents[0]);m.update(.05)}
  assert.equal(m.state.phase,'complete');assert.ok(m.replayFrames.length>2);const completed=m.snapshot();m.startReplay();assert.equal(m.replayIndex,0);assert.equal(m.replayPlaying,true);
  let furthest=0;for(let i=0;i<3000&&m.replayPlaying;i++){m.update(.02);furthest=Math.max(furthest,m.replayIndex??m.replayFrames.length-1)}
  assert.ok(furthest>=m.replayFrames.length-1);assert.equal(m.replayPlaying,false);assert.equal(m.replayIndex,m.replayFrames.length-1);assert.deepEqual(m.snapshot(),completed);m.stopReplay();assert.equal(m.replayIndex,null);
@@ -74,8 +81,44 @@ test('automatic replay traverses the whole point at normal gameplay speed withou
 test('every home contact waits for explicit selection',()=>{
  const m=new Match();let decisions=0;
  for(let i=0;i<20000&&m.state.phase!=='complete';i++){
+  if(m.receptionDecision)m.chooseReception(m.canLetBounce?'bounce':'air');
   if(m.state.phase==='decision'){assert.equal(m.state.possession,'home');assert.ok(m.availableIntents.length>4);const before=m.snapshot();m.update(50);assert.deepEqual(m.snapshot(),before);decisions++;m.submitIntent(m.availableIntents[0])}
   m.update(.1);
  }
  assert.equal(m.state.phase,'complete');assert.equal(decisions,m.state.shotHistory.filter(s=>s.actor==='you'||s.actor==='partner').length);
+});
+test('a playable pop-up pauses at the net and can be smashed before it bounces',()=>{
+ const m=new Match();m.seed=1;m.reset();let found=false;
+ for(let frame=0;frame<10000&&!found;frame++){
+  if(m.receptionDecision){const contact=m.shot.receptionChoice?.airborne?.legs.at(-1)?.to;if(m.canTakeAir&&contact&&contact.y>=1.45){found=true;break}m.chooseReception(m.canLetBounce?'bounce':'air')}
+  if(m.state.phase==='decision')m.submitIntent(m.availableIntents[(frame+1)%m.availableIntents.length]);
+  m.update(.2);if(m.state.phase==='complete')m.nextPoint();
+ }
+ assert.equal(found,true);assert.equal(m.state.phase,'flight');assert.equal(m.state.paused,true);assert.ok(Math.abs(m.state.ball.position.z)<1e-9);
+ const bounces=m.state.bounces,overhead=m.receptionOptions.find(option=>option.timing==='air'&&option.intent.type==='overhead');assert.ok(overhead);m.chooseReceptionIntent(overhead);
+ let exposedSecondDecision=false;for(let frame=0;frame<1000&&m.state.shotHistory.at(-1)?.type!=='overhead';frame++){m.update(.02);if(m.state.phase==='decision')exposedSecondDecision=true}
+ assert.equal(exposedSecondDecision,false);assert.equal(m.state.bounces,bounces);assert.equal(m.state.shotHistory.at(-1)?.type,'overhead');
+});
+test('every playable incoming rally shot pauses at the net and accepts a queued custom shot',async()=>{
+ const m=new Match();let found=false;
+ for(let frame=0;frame<5000&&!found;frame++){
+  if(m.receptionDecision){found=true;break}
+  if(m.state.phase==='decision')m.submitIntent(m.availableIntents[0]);m.update(.05);if(m.state.phase==='complete'&&!m.scoring.winner)m.nextPoint();
+ }
+ assert.equal(found,true);assert.ok(Math.abs(m.state.ball.position.z)<1e-9);assert.equal(m.state.paused,true);
+ const command=m.canLetBounce?'let it bounce then dink far left':'volley far left';await m.queueReceptionCommand(command);
+ let exposedSecondDecision=false;for(let frame=0;frame<2000&&!m.state.shotHistory.some(intent=>intent.source==='text');frame++){m.update(.02);if(m.state.phase==='decision')exposedSecondDecision=true;await Promise.resolve()}
+ const shot=m.state.shotHistory.find(intent=>intent.source==='text');assert.ok(shot);assert.equal(shot.target.kind,'zone');if(shot.target.kind==='zone')assert.equal(shot.target.zone,'far-left');
+ assert.equal(exposedSecondDecision,false);
+});
+
+test('video replay seeks by elapsed time forward and backward across uneven frames',()=>{
+ const m=new Match(),before=m.snapshot();
+ m.replayFrames=[0,.03,.3,1.8].map(simulationTime=>({...structuredClone(before),simulationTime}));
+ m.scrubReplayTime(.6);assert.equal(m.replayPlaying,false);assert.ok(Math.abs(m.replayPosition-2.4)<1e-9);
+ m.scrubReplayTime(.01);assert.equal(m.replayPosition,.5);
+ m.scrubReplayTime(100);assert.equal(m.replayPosition,3);
+ m.scrubReplayTime(-1);assert.equal(m.replayPosition,0);
+ m.scrubReplayTime(NaN);assert.equal(m.replayPosition,0);
+ assert.deepEqual(m.snapshot(),before);
 });

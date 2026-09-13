@@ -1,0 +1,52 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Local voice verification</title>
+<h1>Local Whisper verification</h1>
+<p>This synthetic “Serve flat” fixture tests the real browser worker without microphone access. First use downloads the model. Audio is processed locally.</p>
+<button id="run">Transcribe sample</button>
+<button id="capture">Test recording and shot submission</button>
+<pre id="status" role="status">Ready</pre>
+<script type="module">
+import {voiceCommand,VoiceInput} from '/src/voice.ts';
+import {LocalRecognition} from '/src/local-voice.ts';
+import {Match} from '/src/match.ts';
+const worker=new Worker(new URL('../src/voice-worker.ts',import.meta.url),{type:'module'});
+const status=document.querySelector('#status'),button=document.querySelector('#run');let started;
+function done(message){status.textContent=message;button.disabled=false}
+worker.onmessage=event=>{
+ const result=event.data;
+ if(result.progress)status.textContent=result.progress;
+ else if(result.error)done('ERROR: '+result.error);
+ else if(result.text!==undefined){
+  const command=voiceCommand(result.text,'jules');
+  done(JSON.stringify({pass:command.kind==='shot'&&command.text==='serve flat',transcript:result.text,command,seconds:(performance.now()-started)/1000},null,2));
+ }
+};
+worker.onerror=event=>done('WORKER ERROR: '+event.message);
+button.onclick=async()=>{
+ button.disabled=true;started=performance.now();status.textContent='Loading local model…';let context;
+ try{
+  context=new AudioContext({sampleRate:16000});
+  const response=await fetch('/tests/fixtures/serve-flat.wav');if(!response.ok)throw new Error('Fixture unavailable');
+  const buffer=await context.decodeAudioData(await response.arrayBuffer()),audio=buffer.getChannelData(0);
+  worker.postMessage({id:1,audio},[audio.buffer]);
+ }catch(error){done('ERROR: '+error.message)}finally{await context?.close()}
+};
+document.querySelector('#capture').onclick=async()=>{
+ const button=document.querySelector('#capture');button.disabled=true;let sourceContext,voice;const began=performance.now();let played=false;const partials=[];
+ const cleanup=()=>{voice?.stop();void sourceContext?.close();button.disabled=false};
+ try{
+  sourceContext=new AudioContext({sampleRate:16000});await sourceContext.resume();
+  const buffer=await sourceContext.decodeAudioData(await(await fetch('/tests/fixtures/serve-flat.wav')).arrayBuffer());
+  const source=sourceContext.createBufferSource(),destination=sourceContext.createMediaStreamDestination();source.buffer=buffer;source.connect(destination);
+  const match=new Match();
+  voice=new VoiceInput(()=>new LocalRecognition(undefined,async()=>destination.stream),()=>match.engine,async text=>{
+   try{const command=voiceCommand(text,'jules');if(command.kind!=='shot')throw new Error('Expected shot command');await match.submitCommand(command.text,'voice');status.textContent=JSON.stringify({pass:match.state.phase==='flight'&&match.shot.intent.type==='serve'&&match.shot.intent.shape==='flat',transcript:text,partials,phase:match.state.phase,source:match.shot.intent.source,seconds:(performance.now()-began)/1000},null,2)}catch(error){status.textContent='ERROR: '+error.message}finally{cleanup()}
+  },message=>{
+   status.textContent=message;
+   if(voice.phase==='listening'&&!played){played=true;source.start()}
+   if(voice.failure)cleanup();
+  },()=>{},text=>partials.push(text));voice.start();
+ }catch(error){status.textContent='ERROR: '+error.message;cleanup()}
+};
+</script>

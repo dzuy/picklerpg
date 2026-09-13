@@ -1,9 +1,9 @@
 [
   {
     "file": "riley",
-    "triangles": 10988,
-    "vertices": 23414,
-    "skinnedMeshes": 23,
+    "triangles": 4964,
+    "vertices": 10344,
+    "skinnedMeshes": 21,
     "bones": 24,
     "slots": [
       "body",
@@ -23,28 +23,27 @@
       "MAT_ivory",
       "MAT_hair",
       "MAT_accessory",
-      "MAT_inner_ear",
-      "MAT_eyes_brows",
       "MAT_grip",
+      "MAT_blush",
       "MAT_mouth",
+      "MAT_tongue",
       "MAT_paddle_color",
       "MAT_paddle_face",
-      "MAT_sole",
       "MAT_shoe_accent",
       "MAT_top"
     ],
     "boundsMetres": [
-      1.0626398252581468,
-      1.9070002375905106,
-      0.5739361414281505
+      0.9779999127685322,
+      1.595839825041821,
+      0.788000087387128
     ],
     "bindPose": "PASS",
     "weights": "PASS"
   },
   {
     "file": "glasses",
-    "triangles": 496,
-    "vertices": 972,
+    "triangles": 208,
+    "vertices": 392,
     "skinnedMeshes": 1,
     "bones": 24,
     "slots": [
@@ -54,17 +53,17 @@
       "MAT_grip"
     ],
     "boundsMetres": [
-      0.4099999964237213,
-      0.1183922290802002,
-      0.2235204055905342
+      0.6959999799728394,
+      0.16230809688568115,
+      0.31767272390425205
     ],
     "bindPose": "PASS",
     "weights": "PASS"
   },
   {
     "file": "hat_visor",
-    "triangles": 52,
-    "vertices": 156,
+    "triangles": 176,
+    "vertices": 384,
     "skinnedMeshes": 2,
     "bones": 24,
     "slots": [
@@ -75,9 +74,9 @@
       "MAT_top"
     ],
     "boundsMetres": [
-      0.41200000047683716,
-      0.05200004577636719,
-      0.517999991774559
+      0.7139999866485596,
+      0.09099996089935303,
+      0.7179999947547913
     ],
     "bindPose": "PASS",
     "weights": "PASS"

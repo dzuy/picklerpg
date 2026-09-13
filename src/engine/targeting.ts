@@ -11,7 +11,10 @@ export function resolveTarget(target:ShotTarget,c:TargetContext):ResolvedTarget{
  const side=-Math.sign(c.contact.z),limit=COURT.width/2-.25;
  const bound=(point:Vec3):Vec3=>({x:clamp(point.x,-limit,limit),y:point.y,z:side*clamp(Math.abs(point.z),.35,COURT.length/2-.35)});
  let resolved:ResolvedTarget;
- if(target.kind==='player'){
+ if(target.kind==='point'){
+  if(![target.x,target.z].every(Number.isFinite)||c.shotType!=='serve'&&(Math.abs(target.x)>COURT.width/2||Math.abs(target.z)>COURT.length/2)||target.z*c.contact.z>=0)throw new Error('Choose a spot on the opposing court.');
+  resolved={point:{x:target.x,y:.037,z:target.z},kind:'landing'};
+ }else if(target.kind==='player'){
   if(c.shotType==='serve'&&target.aim!=='body')throw new Error('Choose a service-box target for a serve.');
   const player=opponents.find(p=>p.id===target.playerId);if(!player)throw new Error('Target must be an opponent.');
   if(Math.sign(player.position.z)!==side)throw new Error('Target player must be across the net.');
@@ -21,12 +24,14 @@ export function resolveTarget(target:ShotTarget,c:TargetContext):ResolvedTarget{
    const offset=player.handedness==='right'?-.45:.45;
    point.x+=Math.cos(player.facing)*offset;point.z-=Math.sin(player.facing)*offset;point.y=.9;
   }else if(target.aim!=='body')throw new Error('Unknown player aim.');
-  resolved={point:bound(point),kind:target.aim==='feet'?'landing':'intercept'};
+  resolved={point:c.shotType==='serve'?point:bound(point),kind:target.aim==='feet'?'landing':'intercept'};
  }else if(target.kind==='zone'){
   const depths={kitchen:1.25,transition:3.5,deep:5.6};const depth=depths[target.depth];if(depth===undefined)throw new Error('Unknown target depth.');
   const z=side*depth,contactSide=Math.sign(c.contact.x)||Math.sign(actor.position.x)||1;
   let x:number;
   switch(target.zone){
+   case 'far-left':x=-limit;break;
+   case 'far-right':x=limit;break;
    case 'middle':x=(opponents[0].position.x+opponents[1].position.x)/2;break;
    case 'line':x=c.contact.x;break;
    case 'crosscourt':x=-contactSide*Math.max(1.2,Math.abs(c.contact.x));break;
@@ -43,6 +48,6 @@ export function resolveTarget(target:ShotTarget,c:TargetContext):ResolvedTarget{
   }
   resolved={point:bound({x,y:.037,z}),kind:'landing'};
  }else throw new Error('Unknown target kind.');
- if(c.shotType==='serve'&&resolved.kind==='landing'&&(c.contact.x*resolved.point.x>=0||Math.abs(resolved.point.z)<=COURT.kitchen))throw new Error('Serve diagonally beyond the kitchen.');
+ if(c.shotType==='serve'&&target.kind!=='point'&&resolved.kind==='landing'&&(c.contact.x*resolved.point.x>=0||Math.abs(resolved.point.z)<=COURT.kitchen))throw new Error('Serve diagonally beyond the kitchen.');
  return resolved;
 }

@@ -18,14 +18,16 @@ export function chooseOpponentShot(actor:PlayerId,context:ShotContext,players:Pl
    add('block','Absorb incoming pace with a compact block.');
   }
   if(context.bounced&&Math.abs(context.contact.z)>COURT.kitchen+1){
+   if((player.tendencies.lobPreference??0)>.5)add('lob','Use the lob specialist’s deep placement.');
    add(attack?'drive':'drop',attack?'Drive from depth to pressure the seam.':'Drop from depth to create time to advance.');
   }
+  if((player.tendencies.lobPreference??0)>.5&&context.incomingSpeed<12)add('lob','Use a high, deep lob to exploit strong touch and buy time.');
   add('dink','Maintain a soft kitchen exchange.');add('volley','Use a controlled volley from this airborne contact.');add('reset','Recover with a soft reset.');add('lob','Lift the ball deep when lower trajectories are unavailable.');
  }
  for(const {type,reason} of candidates){
   if(contactIssue(type,context))continue;
   const soft=['drop','dink','reset','block'].includes(type),finish=type==='overhead';
-  const intent:ShotIntent={schemaVersion:1,actor,type,target:{kind:'zone',zone:finish?'open-court':type==='serve'?'crosscourt':player.tendencies.middlePreference>=.5?'middle':'crosscourt',depth:soft?'kitchen':'deep'},pace:soft?'soft':type==='serve'||type==='return'?'medium':'fast',shape:finish?'descending':soft||type==='return'||type==='serve'||type==='lob'?'arc':'flat',intendedNetClearance:soft?.25:.12,tacticalIntent:finish?'finish':soft?'neutralize':'pressure',aggression:player.tendencies.aggression,source:'ai'};
+  const intent:ShotIntent={schemaVersion:1,actor,type,target:{kind:'zone',zone:finish?'open-court':type==='serve'?'crosscourt':player.tendencies.middlePreference>=.5?'middle':'crosscourt',depth:soft?'kitchen':'deep'},pace:soft?'soft':type==='serve'||type==='return'?'medium':'fast',shape:finish?'descending':soft||type==='return'||type==='serve'||type==='lob'?'arc':'flat',intendedNetClearance:type==='lob'?2.5:soft?.25:.12,tacticalIntent:finish?'finish':soft?'neutralize':'pressure',aggression:player.tendencies.aggression,source:'ai'};
   try{generateTrajectory(intent,context,players);return {intent,reason}}catch{ /* Try the next legal, feasible tactical choice. */ }
  }
  return null;

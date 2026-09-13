@@ -58,3 +58,39 @@ The supplied Create Your Player mockup and Alex/Riley character sheet now guide 
 Athletes now have larger expressive faces, faceted swept hair and ponytails, tapered limbs and clothing, and shaped paddles. New options include backwards caps, tank tops, skirts, independently colored shoes and paddles, and wristband/watch accessories. These appearances work on court with the existing animation rig. Look presets and randomization change appearance only; play-style presets change skills.
 
 Older saved players receive defaults for the new outfit fields when loaded, preserving their ID, name, original colors, existing appearance settings, handedness and skills. Browser persistence and explicit Save & play behavior are retained. Validation: production build and 127 tests pass, including legacy-profile migration and new-outfit round trips; browser checks cover outfit selection, saving/reload, the court model, and mobile layout.
+
+### September 12 — blocky reference redesign
+
+Rebuilt the shared Blender/GLB Riley base with a large square head, button eyes and blush, block hair and ponytail, shortened chunky limbs, pink tank/skort, layered sneakers and a wider paddle. Regenerated both optional accessories against the revised 24-bone bind pose. The creator uses the new pink Riley palette and reframed thumbnails; existing saved colors remain intact. The exported base has 3,852 triangles, with ten active slots. The current exports retain one Riley base look; the reference lineup and expression library do not imply newly implemented hairstyle, garment or expression swaps.
+
+Follow-up proportions: shortened the torso and arms by 28% and the legs above the shoes by approximately 36%, preserving head/hair dimensions and shoe size. Updated the skeleton, accessory exports, inspection framing and creator thumbnails for the compact 1.541 m model.
+
+Detail refinement: replaced elliptical eyes with rounded rectangular pills, exposed an additional 5.5 cm of neck, and softened only the arm/leg bevels. Head and torso shapes remain unchanged. The regenerated model has 4,964 triangles; model validation and the production build pass.
+
+### Modular wardrobe and reference presets
+
+The creator now offers eight reference-inspired starting looks: Ema, Leo, Maya,
+Jax, Zoe, Cal, Rina, and Sam. Boy/girl styling chooses starting hair and clothing;
+all parts remain available for either style. Appearance presets do not alter skills.
+
+Options include nine hair choices (including no hair), four tops, five bottoms,
+square/round glasses and two sunglasses styles, six headwear styles plus none,
+and wristbands/watch/none. Top and bottom colors are independent. Saved v1
+players acquire the new fields through validation without losing existing data.
+
+`src/player-looks.ts` defines presets. `src/athlete-options.ts` builds alternate
+Three.js meshes attached to the approved GLB's existing bones. The base ponytail,
+tank and skirt continue using the authored Blender meshes. Runtime wardrobe
+variants are available in the creator and game; they are not baked into the
+base Blender download. GLTFLoader removes dots in bone names, so the animation
+rig maps the imported L/R suffixes back to the application's dotted names.
+
+Open `/?design=1` for the full wardrobe. The Riley asset review links there.
+Validation: `node --import tsx --test tests/athlete-options.test.ts tests/player-design.test.ts`
+checks all options against the production skeleton and persistence/migration.
+
+Game Settings → Players on court provides a portrait and selector for each of
+four court slots. Choices include the slot's default player, saved players, and
+the eight starting presets. Substitutions change appearance, name, skills, and
+hand immediately without resetting the score, court position, or current rally.
+Slot assignments last for the current session and survive point/game resets.
