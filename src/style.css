@@ -176,8 +176,8 @@ body.match-mode[data-panel=settings] aside>#back-to-play,body.match-mode[data-pa
 
 /* Mobile play is a viewport shell: court, compact decisions, anchored composer. */
 @media(max-width:760px){
- body.match-mode[data-panel=play]{height:100dvh;overflow:hidden}
- body.match-mode[data-panel=play] main{height:calc(100dvh - 56px);min-height:0;overflow:hidden}
+ body.match-mode[data-panel=play][data-screen=court]{height:100dvh;overflow:hidden}
+ body.match-mode[data-panel=play] #app main{height:calc(100dvh - 56px);min-height:0;overflow:hidden}
  body.match-mode[data-panel=play] .play-section{display:flex;flex:0 0 auto;flex-direction:column;min-height:0;padding:0}
  body.match-mode[data-panel=play] .court-wrap{height:clamp(230px,calc(100dvh - 400px),415px);flex:none;border-radius:0;box-shadow:none}
  body.match-mode[data-panel=play] aside{display:flex;flex:1 1 auto;flex-direction:column;min-height:0;margin-top:5px;padding:8px 16px max(10px,env(safe-area-inset-bottom));overflow:hidden;border-radius:20px 20px 0 0}
@@ -264,8 +264,8 @@ body.voice-focus.match-mode main{grid-template-columns:minmax(0,1fr)}body.voice-
 #game-settings .settings-player-slot select{margin:0;width:100%;min-height:42px}
 
 /* Immersive match view: a full-width court with a compact bottom decision dock. */
-body.match-mode[data-panel=play]{height:100dvh;overflow:hidden}
-body.match-mode[data-panel=play] main{position:relative;display:block;width:100%;max-width:none;height:calc(100dvh - 64px);min-height:0;padding:12px 18px 18px;overflow:hidden}
+body.match-mode[data-panel=play][data-screen=court]{height:100dvh;overflow:hidden}
+body.match-mode[data-panel=play] #app main{position:relative;display:block;width:100%;max-width:none;height:calc(100dvh - 64px);min-height:0;padding:12px 18px 18px;overflow:hidden}
 body.match-mode[data-panel=play] .play-section{display:block;width:100%;height:100%;min-height:0;padding:0}
 body.match-mode[data-panel=play] .court-wrap{width:100%;height:100%;min-height:0;border-radius:24px;overflow:hidden}
 body.match-mode[data-panel=play] aside{position:absolute;left:50%;bottom:32px;transform:translateX(-50%);z-index:20;width:min(1120px,calc(100% - 72px));max-height:45%;min-height:0;margin:0;padding:10px 16px;border:1px solid #ffffffb8;border-radius:22px;background:#fafcf3b3;backdrop-filter:blur(8px);box-shadow:0 12px 48px #173d3330;overflow:auto}
@@ -291,7 +291,7 @@ body.match-mode[data-panel=play].voice-focus aside{display:none}
  body.match-mode[data-panel=play] .custom-input-row{min-height:44px}
 }
 @media(max-width:760px){
- body.match-mode[data-panel=play] main{height:calc(100dvh - 56px);padding:0 6px 6px}
+ body.match-mode[data-panel=play] #app main{height:calc(100dvh - 56px);padding:0 6px 6px}
  body.match-mode[data-panel=play] .court-wrap{height:100%;border-radius:16px}
  body.match-mode[data-panel=play] aside{width:calc(100% - 24px);bottom:12px;padding:8px 10px;max-height:52%;border-radius:18px;display:block}
  body.match-mode[data-panel=play] .primary-choices{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
