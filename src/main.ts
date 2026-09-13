@@ -184,7 +184,7 @@ const playerDrawer=byId('player-drawer') as HTMLDialogElement;
 const replayOverlay=document.createElement('section');replayOverlay.id='replay-overlay';replayOverlay.hidden=true;replayOverlay.setAttribute('aria-label','Point replay');
 replayOverlay.innerHTML='<div class="replay-player"><button id="replay-toggle" class="replay-toggle" aria-label="Pause point replay">Ⅱ</button><div class="replay-track"><div><strong>Replay</strong><output id="replay-time">0:00 / 0:00</output></div><input id="replay-position" type="range" min="0" max="0" value="0" step="0.01" aria-label="Replay timeline"></div><button id="close-replay" aria-label="Exit replay" title="Exit replay">✕</button></div>';
 document.querySelector('.court-wrap')!.append(replayOverlay);
-function closeReplay(){replayOverlay.hidden=true;match.stopReplay();lastUI='';updateUI();byId('court-result').hidden=false;byId('open-replay').focus()}
+function closeReplay(){replayOverlay.hidden=true;match.stopReplay();lastUI='';updateUI();byId('court-result').hidden=!!match.scoring.winner;if(match.scoring.winner)syncGameEnd();else byId('open-replay').focus()}
 byId('close-replay').addEventListener('click',closeReplay);
 byId('replay-toggle').addEventListener('click',()=>{match.replayPlaying?match.pauseReplay():match.resumeReplay()});
 byId('replay-position').addEventListener('input',event=>{match.scrubReplayTime(Number((event.target as HTMLInputElement).value))});
@@ -270,7 +270,7 @@ function saveControls(){try{localStorage.setItem('pickle-rpg-controls-v1',JSON.s
 scene.setCamera(100-cameraDistance);
 byId('guides').addEventListener('change',e=>{guides=(e.target as HTMLInputElement).checked;byId('guides-state').textContent=guides?'On':'Off';scene.setGuides(guides);saveControls()});
 byId('partner-autonomy').addEventListener('change',e=>{match.partnerAutonomy=(e.target as HTMLInputElement).checked;byId('partner-autonomy-state').textContent=match.partnerAutonomy?'On':'Off';lastUI='';saveControls();updateUI()});
-document.addEventListener('keydown',event=>{if(settingsDialog.open||creator.dialog.open)return;if(match.replayIndex!==null){if(event.key==='Escape'){event.preventDefault();closeReplay()}else if(event.code==='Space'&&!(event.target instanceof HTMLElement&&event.target.closest('button,input'))){event.preventDefault();match.replayPlaying?match.pauseReplay():match.resumeReplay()}return;}if(event.target instanceof HTMLElement&&event.target.closest('button, input, select, textarea, a'))return;if(event.code==='Space'){event.preventDefault();match.state.phase==='decision'?submit():match.state.phase==='complete'?(!match.scoring.winner?(match.nextPoint(),lastUI='',updateUI()):reset()):pause()}if(event.key.toLowerCase()==='r')reset()});
+document.addEventListener('keydown',event=>{if(settingsDialog.open||creator.dialog.open||gameEnd.open)return;if(match.replayIndex!==null){if(event.key==='Escape'){event.preventDefault();closeReplay()}else if(event.code==='Space'&&!(event.target instanceof HTMLElement&&event.target.closest('button,input'))){event.preventDefault();match.replayPlaying?match.pauseReplay():match.resumeReplay()}return;}if(event.target instanceof HTMLElement&&event.target.closest('button, input, select, textarea, a'))return;if(event.code==='Space'){event.preventDefault();match.state.phase==='decision'?submit():match.state.phase==='complete'?(!match.scoring.winner?(match.nextPoint(),lastUI='',updateUI()):reset()):pause()}if(event.key.toLowerCase()==='r')reset()});
 function updateUI(){updateMatchUI()}
 
 function choiceButton(intent:ShotIntent,index:number){const copy=choiceCopy(intent);return `<button class="shot-button match-choice" data-choice="${index}" data-traits="${shotTraits(intent)}">${shotIcon(intent,index)}<span><strong>${copy.name}</strong><span class="choice-target">${copy.detail}</span>${match.shot.actor==='partner'&&match.recommendationType===intent.type?'<small>Finn recommends</small>':''}</span><span aria-hidden="true">↗</span></button>`}
@@ -364,15 +364,36 @@ function updateMatchUI(){
   button.addEventListener('click',event=>{if(suppressClick){event.preventDefault();return}clear();if(shotDrawer.open)closeShotDrawer();match.submitIntent(intent);lastUI='';updateUI()});
  });
 }
+const gameEnd=document.createElement('dialog');gameEnd.id='game-end';gameEnd.setAttribute('aria-labelledby','game-end-title');
+gameEnd.innerHTML=`<div class="game-end-card"><div class="game-end-kicker">GARDEN COURT · GAME COMPLETE</div><div class="game-end-emblem" aria-hidden="true">✦</div><p class="game-end-label">THE WINNERS</p><h1 id="game-end-title"></h1><p class="game-end-subtitle">A game worth playing. A win worth celebrating.</p><div class="game-end-score" aria-label="Final score"><div><strong id="game-end-home-score"></strong><span id="game-end-home-names"></span></div><span class="game-end-dash" aria-hidden="true">–</span><div><strong id="game-end-away-score"></strong><span id="game-end-away-names"></span></div></div><p class="game-end-rule">FINAL SCORE · FIRST TO 11, WIN BY 2</p><div class="game-end-actions"><button id="game-end-replay" type="button">▶ Full Game Replay</button><button id="game-end-new" type="button">New Game ↗</button></div></div>`;
+document.body.append(gameEnd);
+gameEnd.addEventListener('cancel',event=>event.preventDefault());
+byId('game-end-new').addEventListener('click',()=>{gameEnd.close();match.reset();showPanel('play');lastUI='';updateUI()});
+byId('game-end-replay').addEventListener('click',()=>{gameEnd.close();match.startGameReplay();showPanel('play');lastUI='';updateUI();replayOverlay.hidden=false;byId('replay-position').focus()});
+function syncGameEnd(){
+ const visible=!!match.scoring.winner&&match.replayIndex===null&&!creator.dialog.open&&!settingsDialog.open&&!playerDrawer.open;
+ if(!visible){if(gameEnd.open)gameEnd.close();return}
+ const names=playerNames(),home=`${names.you} & ${names.partner}`,away=`${names['opponent-left']} & ${names['opponent-right']}`;
+ byId('game-end-title').textContent=`${match.scoring.winner==='home'?home:away} win!`;
+ byId('game-end-home-names').textContent=home;byId('game-end-away-names').textContent=away;
+ byId('game-end-home-score').textContent=String(match.scoring.score.home);byId('game-end-away-score').textContent=String(match.scoring.score.away);
+ gameEnd.dataset.winner=match.scoring.winner!;
+ (byId('game-end-replay') as HTMLButtonElement).disabled=!match.recordedPoints;
+ if(!gameEnd.open){gameEnd.showModal();byId('game-end-new').focus()}
+}
+
 function syncReplayUI(replay:ReturnType<Match['replayView']>){
  replayOverlay.hidden=!replay||document.body.dataset.panel!=='play';
  if(!replay)return;
+ byId('score-home').textContent=String(replay.state.score.home);byId('score-away').textContent=String(replay.state.score.away);
  const slider=byId('replay-position') as HTMLInputElement;
  const first=match.replayFrames[0]?.simulationTime??0,total=((match.replayFrames.at(-1)?.simulationTime??first)-first)/1.5;
  const elapsed=Math.max(0,(replay.state.simulationTime-first)/1.5);
  slider.max=String(total);slider.value=String(elapsed);slider.setAttribute('aria-valuetext',`${clock(elapsed)} of ${clock(total)}`);
  byId('replay-time').textContent=`${clock(elapsed)} / ${clock(total)}`;
- const toggle=byId('replay-toggle');toggle.textContent=match.replayPlaying?'Ⅱ':'▶';toggle.setAttribute('aria-label',`${match.replayPlaying?'Pause':'Play'} point replay`);
+ replayOverlay.setAttribute('aria-label',match.replayScope==='game'?'Full game replay':'Point replay');
+ replayOverlay.querySelector('.replay-track strong')!.textContent=match.replayScope==='game'?'Full Game Replay':'Point Replay';
+ const toggle=byId('replay-toggle');toggle.textContent=match.replayPlaying?'Ⅱ':'▶';toggle.setAttribute('aria-label',`${match.replayPlaying?'Pause':'Play'} ${match.replayScope} replay`);
 }
 
 const targetPicker=new TargetPicker(match,scene);
@@ -388,6 +409,7 @@ byId('open-replay').addEventListener('click',()=>{
 });
 function syncPointResult(dt:number){
  const banner=byId('court-result');
+ if(match.scoring.winner){banner.hidden=true;document.querySelector('.court-wrap')?.classList.remove('has-result');return}
  if(match.state.phase!=='complete'){resultEngine=null;resultElapsed=0;resultExpired=false;banner.hidden=true;document.querySelector('.court-wrap')?.classList.remove('has-result');return}
  if(resultEngine!==match.engine){resultEngine=match.engine;resultElapsed=0;resultExpired=false}
  const visible=(!resultTimer||!resultExpired)&&match.replayIndex===null&&document.body.dataset.panel==='play'&&!settingsDialog.open&&!creator.dialog.open&&!playerDrawer.open&&!document.hidden;
@@ -402,7 +424,7 @@ function syncPointResult(dt:number){
 }
 
 updateUI();let previous:number|undefined;function frame(now:number){
- const realDt=previous===undefined?0:Math.max(0,Math.min((now-previous)/1000,.1)),dt=realDt*speed;if(!creator.dialog.open)match.update(match.replayPlaying?realDt:dt);previous=now;updateUI();syncPointResult(realDt);syncVoice();
+ const realDt=previous===undefined?0:Math.max(0,Math.min((now-previous)/1000,.1)),dt=realDt*speed;if(!creator.dialog.open)match.update(match.replayPlaying?realDt:dt);previous=now;updateUI();syncPointResult(realDt);syncGameEnd();syncVoice();
  const replay=match.replayView();syncReplayUI(replay);scene.setGuides(guides&&!replay);scene.render(replay?.state??match.state,now/1000,replay?.shot??match.shot,!match.practice&&!replay?match.scoring.call:null);targetPicker.sync(document.body.dataset.panel==='play'&&!settingsDialog.open&&!creator.dialog.open);requestAnimationFrame(frame)
 }requestAnimationFrame(frame);
 // Optional browser-native tools use the exact same validated simulation entry point.

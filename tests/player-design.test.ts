@@ -92,10 +92,13 @@ test('player IDs work over LAN HTTP without crypto.randomUUID',()=>{
 });
 
 test('custom catchphrases survive saving and older players remain compatible',()=>{
- let stored='';const player=newPlayer('phrase');player.catchphrase='  Make every rally count.  ';
+ let stored='';const player=newPlayer('phrase');player.catchphrase='  Make each shot count  ';
  savePlayer({setItem:(_key,value)=>{stored=value}},parseLibrary(null),player);
- assert.equal(parseLibrary(stored).players[0].catchphrase,'Make every rally count.');
+ assert.equal(parseLibrary(stored).players[0].catchphrase,'Make each shot count');
  assert.equal(validatePlayer(newPlayer('older')).catchphrase,undefined);
- assert.throws(()=>validatePlayer({...player,catchphrase:'x'.repeat(61)}));
+ assert.equal(validatePlayer({...player,catchphrase:'x'.repeat(20)}).catchphrase,'x'.repeat(20));
+ const legacy=JSON.parse(stored);legacy.players[0].catchphrase='An older longer catchphrase';
+ assert.equal(parseLibrary(JSON.stringify(legacy)).players[0].catchphrase,'An older longer catchphrase');
+ assert.throws(()=>validatePlayer({...player,catchphrase:'x'.repeat(21)}));
  assert.throws(()=>validatePlayer({...player,catchphrase:42}));
 });

@@ -29,11 +29,11 @@ export class PlayerCreator {
   const active=this.library.players.find(p=>p.id===this.library.activeId);
   if(active)this.draft=structuredClone(active);this.baseline=JSON.stringify(this.draft);
   this.dialog.id='player-creator';this.dialog.setAttribute('aria-labelledby','creator-title');
-  this.dialog.innerHTML=`<section class="player-roster-page" aria-labelledby="roster-title"><div class="roster-top"><div><h1 id="roster-title">Your roster</h1></div><div class="roster-cheer" aria-hidden="true">Good players.<br>Brighter rallies.<svg viewBox="0 0 70 80" fill="none"><ellipse cx="40" cy="29" rx="22" ry="26" fill="currentColor" transform="rotate(35 40 29)"/><path d="m27 48-17 22" stroke="currentColor" stroke-width="12" stroke-linecap="round"/><g fill="#fafbf3"><circle cx="38" cy="13" r="3"/><circle cx="49" cy="23" r="3"/><circle cx="29" cy="27" r="3"/><circle cx="40" cy="38" r="3"/><circle cx="53" cy="36" r="3"/></g></svg></div><button type="button" class="creator-close" data-close aria-label="Return to main game" title="Return to main game">×</button></div><div class="roster-actions"><button type="button" data-create-player>+ Create new player</button><button type="button" data-resume hidden>Continue editing</button></div><p data-roster-status role="status"></p><section data-saved-section><h2>Saved &amp; created players</h2><div data-saved-roster class="roster-grid"></div></section><h2>Starting Lineup</h2><div data-default-roster class="roster-grid"></div></section><div class="creator-topline"><button type="button" data-back-roster>← Roster</button><span>PICKLE RPG <i>·</i> CREATE PLAYER</span></div>
+  this.dialog.innerHTML=`<section class="player-roster-page" aria-labelledby="roster-title"><div class="roster-top"><div><h1 id="roster-title">Your roster</h1></div><div class="roster-cheer" aria-hidden="true">Good players.<br>Brighter rallies.<svg viewBox="0 0 70 80" fill="none"><ellipse cx="40" cy="29" rx="22" ry="26" fill="currentColor" transform="rotate(35 40 29)"/><path d="m27 48-17 22" stroke="currentColor" stroke-width="12" stroke-linecap="round"/><g fill="#fafbf3"><circle cx="38" cy="13" r="3"/><circle cx="49" cy="23" r="3"/><circle cx="29" cy="27" r="3"/><circle cx="40" cy="38" r="3"/><circle cx="53" cy="36" r="3"/></g></svg></div><button type="button" class="creator-close" data-close aria-label="Return to main game" title="Return to main game">×</button></div><div class="roster-actions"><button type="button" data-create-player>+ Create new player</button><button type="button" data-resume hidden>Continue editing</button></div><p data-roster-status role="status"></p><section data-saved-section><h2>Saved Players</h2><div data-saved-roster class="roster-grid"></div></section><h2>Starting Lineup</h2><div data-default-roster class="roster-grid"></div></section><div class="creator-topline"><button type="button" data-back-roster>← Roster</button><span>PICKLE RPG <i>·</i> CREATE PLAYER</span></div>
   <div class="creator-layout"><section class="creator-stage" aria-label="Avatar preview"><div class="creator-heading"><h2 id="creator-title">Create Your Player</h2><p>Different players.<br>A brighter court.</p></div>
 
   <div class="creator-preview"></div><div class="creator-plinth"></div>
-  <div class="creator-identity"><label for="creator-name">PLAYER NAME<input id="creator-name" type="text" inputmode="text" enterkeyhint="done" autocapitalize="words" maxlength="24" autocomplete="off" placeholder="Name your player"></label><label class="creator-catchphrase-label" for="creator-catchphrase">CATCHPHRASE<input id="creator-catchphrase" type="text" inputmode="text" enterkeyhint="done" maxlength="60" autocomplete="off"></label>
+  <div class="creator-identity"><label for="creator-name">PLAYER NAME<input id="creator-name" type="text" inputmode="text" enterkeyhint="done" autocapitalize="words" maxlength="24" autocomplete="off" placeholder="Name your player"></label><label class="creator-catchphrase-label" for="creator-catchphrase">CATCHPHRASE<input id="creator-catchphrase" type="text" inputmode="text" enterkeyhint="done" maxlength="20" autocomplete="off"></label>
   <label class="style-heading">PLAY STYLE <span>(OPTIONAL)</span></label><div class="creator-style-chips"><button type="button" data-style="allCourt">All-Court</button><button type="button" data-style="attacker">Power</button><button type="button" data-style="defender">Quick Hands</button><button type="button" data-style="setup">Strategic</button></div>
   <blockquote>“Small moves.<br>Big plans.”</blockquote><div class="creator-summary">${['Power','Control','Speed','Hands'].map(name=>`<div><span>${name}</span><meter aria-label="${name} summary" min="0" max="100" value="70" data-summary="${name}" title="${SUMMARY_SKILLS[name as keyof typeof SUMMARY_SKILLS].map(title).join(', ')}"></meter><output data-summary-value="${name}"></output></div>`).join('')}</div>
   </div>
@@ -66,13 +66,14 @@ export class PlayerCreator {
   <div class="creator-confirm" hidden><p>Discard unsaved changes to switch players?</p><button type="button" data-keep>Keep editing</button><button type="button" data-discard>Discard and continue</button></div>
   <div class="creator-footer"><button type="button" data-delete hidden>Delete player</button><p data-status role="status"></p><div><button type="button" data-save>Save Player &nbsp; →</button></div><small>Saved in this browser.</small></div></section></div>`;
   document.body.append(this.dialog);
+  this.dialog.append(this.el('.creator-confirm'));
   this.setupAppearancePages();
   this.dialog.querySelectorAll<HTMLButtonElement>('[data-close]').forEach(button=>button.addEventListener('click',()=>this.dialog.close()));
   this.el('[data-delete]').addEventListener('click',()=>{const player=this.library.players.find(p=>p.id===this.draft.id);if(!player||this.loadError)return;this.el('[data-delete-message]').textContent=`Delete “${player.name}”? This removes the saved player and any unsaved edits. This cannot be undone.`;this.el('.creator-confirm').hidden=true;this.pending=null;this.el('.creator-delete-confirm').hidden=false;this.el('[data-cancel-delete]').focus()});
   this.el('[data-cancel-delete]').addEventListener('click',()=>{this.el('.creator-delete-confirm').hidden=true;this.el('[data-delete]').focus()});
   this.el('[data-confirm-delete]').addEventListener('click',()=>this.removePlayer());
   this.el('[data-back-roster]').addEventListener('click',()=>this.showRoster());
-  this.el('[data-create-player]').addEventListener('click',()=>{this.showEditor();this.switchDraft(()=>this.loadDraft(newPlayer()))});
+  this.el('[data-create-player]').addEventListener('click',()=>this.switchDraft(()=>{this.loadDraft(newPlayer());this.showEditor()}));
   this.el('[data-resume]').addEventListener('click',()=>this.showEditor());
   this.el('[data-keep]').addEventListener('click',()=>{this.pending=null;this.el('.creator-confirm').hidden=true});
   this.el('[data-discard]').addEventListener('click',()=>{this.pending?.();this.pending=null;this.el('.creator-confirm').hidden=true});
@@ -160,10 +161,12 @@ export class PlayerCreator {
   this.el('[data-saved-section]').hidden=this.library.players.length===0;
   const card=(player:DesignedPlayer,role:string,isDefault:boolean)=>{
    const article=document.createElement('article');article.className='roster-card';
-   const edit=()=>{this.showEditor();this.switchDraft(()=>this.loadDraft(player))};
+   const edit=()=>{if(this.draft.id===player.id){this.showEditor();return}this.switchDraft(()=>{this.loadDraft(player);this.showEditor()})};
+   if(!isDefault){
    article.tabIndex=0;article.setAttribute('role','button');article.setAttribute('aria-label',`Edit ${player.name}`);
    article.addEventListener('click',event=>{if((event.target as HTMLElement).closest('button,summary,a,input,select,textarea'))return;edit()});
    article.addEventListener('keydown',event=>{if(event.target===article&&(event.key==='Enter'||event.key===' ')){event.preventDefault();edit()}});
+   }
    const themeIndex=LOOKS.findIndex(look=>look.name===player.name);
    const themes=[['#ff9389','All court.\nAll fun.'],['#78aff2','Power changes\ngames.'],['#ffda73','Think\nahead.'],['#95dfc0','Fast moves.\nBig plays.'],['#c5a3f2','Small details.\nBig wins.'],['#b0d2a7','Defend and\ndeliver.'],['#d1a0ef','Creativity keeps\nyou ahead.'],['#a5dfc4','Any court.\nAny day.']];
    const [color,motto]=themes[themeIndex<0?Math.abs(player.name.length)%themes.length:themeIndex];

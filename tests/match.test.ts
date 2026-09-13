@@ -122,3 +122,22 @@ test('video replay seeks by elapsed time forward and backward across uneven fram
  m.scrubReplayTime(NaN);assert.equal(m.replayPosition,0);
  assert.deepEqual(m.snapshot(),before);
 });
+
+test('game replay includes every point, preserves final state, and clears on New Game',()=>{
+ const m=new Match();m.seed=99;m.reset();let points=0,frames=0;
+ for(let tick=0;tick<200000&&!m.scoring.winner;tick++){
+  if(m.receptionDecision)m.chooseReception(m.canLetBounce?'bounce':'air');
+  if(m.state.phase==='decision')m.submitIntent(m.availableIntents[tick%m.availableIntents.length]);
+  m.update(.2);
+  if(m.state.phase==='complete'){points++;frames+=m.replayFrames.length;if(!m.scoring.winner)m.nextPoint()}
+ }
+ assert.ok(m.scoring.winner);assert.equal(m.recordedPoints,points);
+ const final=m.snapshot(),pointFrames=m.replayFrames;const names=m.state.players.map(p=>p.name);
+ m.startGameReplay();assert.equal(m.replayScope,'game');assert.equal(m.replayFrames.length,frames);assert.ok(frames>pointFrames.length);
+ assert.ok(m.replayFrames.every((f,i)=>i===0||f.simulationTime>=m.replayFrames[i-1].simulationTime));
+ assert.deepEqual(m.replayFrames[0].score,{home:0,away:0});assert.deepEqual(m.replayFrames.at(-1)!.score,m.scoring.score);
+ m.pauseReplay();m.scrubReplayTime(0);m.resumeReplay();m.update(.1);assert.ok(m.replayPosition>0);
+ m.scrubReplayTime(1e9);assert.equal(m.replayIndex,frames-1);assert.deepEqual(m.snapshot(),final);
+ m.stopReplay();assert.equal(m.replayScope,'point');assert.equal(m.replayFrames,pointFrames);assert.deepEqual(m.snapshot(),final);
+ m.reset();assert.equal(m.scoring.winner,null);assert.deepEqual(m.scoring.score,{home:0,away:0});assert.equal(m.recordedPoints,0);assert.equal(m.replayIndex,null);assert.deepEqual(m.state.players.map(p=>p.name),names);
+});

@@ -14,6 +14,13 @@ Custom commands work alongside canned menus in full games and practice. Local an
 
 **Phase 7 voice increment implemented for playtest.** Added microphone input, local concise/richer commands, partner instructions, hands-free contact listening, and compact voice view. Local Whisper now works in the in-app browser, with flat-serve recognition corrections. User voice accuracy, end-to-end latency, and whole-game voice acceptance remain playtest gates. See [PHASE-7.md](PHASE-7.md).
 
+## Additional requested features
+
+- [ ] Sound effects
+- [ ] Music
+- [x] Game end screen — prominent final score, winning player names, full-game replay, and New Game; win-by-two scoring verified.
+- [ ] Authentication / account creation
+
 ## Playtest decisions
 
 - Keep canned menus for now. Future open-ended input must allow unconventional choices, including kitchen lobs and aggressive roll speed-ups; sensible recommendations must not become mandatory choices.

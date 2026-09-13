@@ -22,12 +22,13 @@ export function playerId(source:Pick<Crypto,'getRandomValues'> & Partial<Pick<Cr
  return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
 }
 export function newPlayer(id:string=playerId()):DesignedPlayer{return {id,name:'New player',appearance:{...DEFAULT_APPEARANCE},skills:{...PLAYER_PROFILES.you.skills},handedness:'right'}}
-export function validatePlayer(value:unknown):DesignedPlayer{
+export function validatePlayer(value:unknown):DesignedPlayer{return validatePlayerRecord(value,20)}
+function validatePlayerRecord(value:unknown,catchphraseLimit:number):DesignedPlayer{
  if(!value||typeof value!=='object')throw new Error('Invalid player record.');
  const p=value as DesignedPlayer;
  if(typeof p.id!=='string'||!p.id||p.id.length>100)throw new Error('Invalid player ID.');
  if(typeof p.name!=='string'||!p.name.trim()||p.name.trim().length>24)throw new Error('Use a player name of 1–24 characters.');
- if(p.catchphrase!==undefined&&(typeof p.catchphrase!=='string'||p.catchphrase.trim().length>60))throw new Error('Use a catchphrase of up to 60 characters.');
+ if(p.catchphrase!==undefined&&(typeof p.catchphrase!=='string'||p.catchphrase.trim().length>catchphraseLimit))throw new Error(`Use a catchphrase of up to ${catchphraseLimit} characters.`);
  if(p.handedness!=='left'&&p.handedness!=='right')throw new Error('Choose a playing hand.');
  if(!p.appearance||!p.skills)throw new Error('Player appearance or skills are missing.');
  // Older saved players gain new outfit options without losing their design.
@@ -41,7 +42,7 @@ export function parseLibrary(raw:string|null):PlayerLibrary{
  if(raw===null)return {version:1,activeId:null,players:[]};
  const value=JSON.parse(raw);
  if(value?.version!==1||!Array.isArray(value.players)||value.players.length>100)throw new Error('Saved players could not be read.');
- const players:DesignedPlayer[]=value.players.map(validatePlayer);
+ const players:DesignedPlayer[]=value.players.map((player:unknown)=>validatePlayerRecord(player,60));
  if(new Set(players.map(p=>p.id)).size!==players.length)throw new Error('Saved players have duplicate IDs.');
  if(value.activeId!==null&&!players.some(p=>p.id===value.activeId))throw new Error('The selected player is missing.');
  return {version:1,activeId:value.activeId,players};

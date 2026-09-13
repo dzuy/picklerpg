@@ -135,13 +135,33 @@ export class Match {
  }
  previewIntent(intent:unknown){return this.engine.previewIntent(intent)}
  snapshot(){return this.engine.snapshot()}
- reset(){this.customPreview=null;this.customBusy=false;this.customStatus='';this.queuedReceptionIntent=null;this.queuedReceptionShot=null;this.request?.abort();this.request=null;this.strategy=undefined;this.strategyPoint=-1;this.generation++;this.thinking=false;this.memory=new OpponentMemory();this.observed=0;this.scoring=new DoublesScore();this.point=0;this.lastResult=null;this.startPoint()}
+ reset(){this.stopReplay();this.gameReplay=[];this.customPreview=null;this.customBusy=false;this.customStatus='';this.queuedReceptionIntent=null;this.queuedReceptionShot=null;this.request?.abort();this.request=null;this.strategy=undefined;this.strategyPoint=-1;this.generation++;this.thinking=false;this.memory=new OpponentMemory();this.observed=0;this.scoring=new DoublesScore();this.point=0;this.lastResult=null;this.startPoint()}
  nextPoint(){if(this.state.phase!=='complete'||this.scoring.winner)throw new Error('Finish the current point first.');this.point++;this.variation++;this.startPoint()}
  submitIntent(intent:unknown){const before=this.snapshot(),actualShotIndex=before.shotIndex;if(this.practice)before.shotIndex+=before.shotHistory.length?2:0;this.engine.submitIntent(intent);if(before.possession==='home'){const selected=this.shot.intent;for(const pattern of this.practice?[this.practice]:recognizePatterns(before)){const assessment=assessChoice(before,selected,pattern);const row={pattern,...assessment,intent:structuredClone(selected),shotIndex:actualShotIndex};this.records.push(row);this.pointRecords.push(row)}this.records=this.records.slice(-500)}}
  startPractice(id:PatternId|null){this.practice=id;this.variation++;this.reset()}
 
+ private gameReplay:{frames:ReturnType<RallyEngine['snapshot']>[];shots:RallyShot[]}[]=[];
+ private pointReplay:{frames:ReturnType<RallyEngine['snapshot']>[];shots:RallyShot[]}|null=null;
+ private replayBreaks=new Set<number>();
+ get replayScope(){return this.pointReplay?'game':'point'}
+ get recordedPoints(){return this.gameReplay.length}
+ startGameReplay(){
+  if(!this.scoring.winner||!this.gameReplay.length)return;
+  this.stopReplay();this.pointReplay={frames:this.replayFrames,shots:this.replayShots};
+  this.replayFrames=[];this.replayShots=[];this.replayBreaks.clear();let time=0,shotOffset=0;
+  for(const point of this.gameReplay){
+   const first=point.frames[0]?.simulationTime??0;
+   if(this.replayFrames.length)this.replayBreaks.add(this.replayFrames.length-1);
+   for(let i=0;i<point.frames.length;i++){
+    const frame=point.frames[i];this.replayFrames.push({...frame,simulationTime:time+frame.simulationTime-first,shotIndex:frame.shotIndex+shotOffset});this.replayShots.push(point.shots[i]);
+   }
+   time=(this.replayFrames.at(-1)?.simulationTime??time)+1.5;
+   shotOffset+=Math.max(...point.frames.map(frame=>frame.shotIndex))+1;
+  }
+  this.startReplay();
+ }
  startReplay(){if(this.state.phase!=='complete'||!this.replayFrames.length)return;this.replayIndex=0;this.replayElapsed=0;this.replayAlpha=0;this.replayEndHold=0;this.replayPlaying=true}
- stopReplay(){this.replayIndex=null;this.replayPlaying=false;this.replayElapsed=0;this.replayAlpha=0;this.replayEndHold=0}
+ stopReplay(){if(this.pointReplay){this.replayFrames=this.pointReplay.frames;this.replayShots=this.pointReplay.shots;this.pointReplay=null}this.replayBreaks.clear();this.replayIndex=null;this.replayPlaying=false;this.replayElapsed=0;this.replayAlpha=0;this.replayEndHold=0}
  pauseReplay(){this.replayPlaying=false;this.replayEndHold=0}
  resumeReplay(){if(this.replayIndex===null||this.replayIndex>=this.replayFrames.length-1){this.startReplay();return}const start=this.replayFrames[0].simulationTime,a=this.replayFrames[this.replayIndex],b=this.replayFrames[this.replayIndex+1]??a,at=a.simulationTime+(b.simulationTime-a.simulationTime)*this.replayAlpha;this.replayElapsed=Math.max(0,(at-start)/1.5);this.replayEndHold=0;this.replayPlaying=true}
  scrubReplay(position:number){if(!this.replayFrames.length)return;const value=Math.max(0,Math.min(this.replayFrames.length-1,position));this.replayIndex=Math.floor(value);this.replayAlpha=value-this.replayIndex;this.replayPlaying=false;this.replayEndHold=0}
@@ -157,7 +177,7 @@ export class Match {
  }
  get replayPosition(){return this.replayIndex===null?0:this.replayIndex+this.replayAlpha}
  replayView(){
-  if(this.replayIndex===null)return null;const index=this.replayIndex,a=this.replayFrames[index],b=this.replayFrames[index+1]??a,t=this.replayAlpha,state=structuredClone(a),lerp=(x:number,y:number)=>x+(y-x)*t;
+  if(this.replayIndex===null)return null;const index=this.replayIndex,a=this.replayFrames[index],b=this.replayFrames[index+1]??a,t=this.replayBreaks.has(index)?0:this.replayAlpha,state=structuredClone(a),lerp=(x:number,y:number)=>x+(y-x)*t;
   state.simulationTime=lerp(a.simulationTime,b.simulationTime);state.elapsed=lerp(a.elapsed,b.elapsed);state.ball.position={x:lerp(a.ball.position.x,b.ball.position.x),y:lerp(a.ball.position.y,b.ball.position.y),z:lerp(a.ball.position.z,b.ball.position.z)};state.ball.velocity={x:lerp(a.ball.velocity.x,b.ball.velocity.x),y:lerp(a.ball.velocity.y,b.ball.velocity.y),z:lerp(a.ball.velocity.z,b.ball.velocity.z)};
   state.players=a.players.map(player=>{const next=b.players.find(candidate=>candidate.id===player.id)??player;const turn=Math.atan2(Math.sin(next.facing-player.facing),Math.cos(next.facing-player.facing));return {...structuredClone(player),position:{x:lerp(player.position.x,next.position.x),y:lerp(player.position.y,next.position.y),z:lerp(player.position.z,next.position.z)},facing:player.facing+turn*t}});
   return {state,shot:this.replayShots[index]};
@@ -168,12 +188,12 @@ export class Match {
    const timing=([preferred,preferred==='air'?'bounce':'air'] as const).find(t=>this.receptionSetup(t)?.actor==='partner');
    if(timing)this.chooseReception(timing);
   }
-  this.replayClock+=dt;if(this.state.phase==='flight'&&this.replayClock>=1/30||this.replayFrames.length===0||this.replayFrames.at(-1)?.phase!==this.state.phase){this.replayClock=0;if(this.replayFrames.length<3000){this.replayFrames.push(this.snapshot());this.replayShots.push(structuredClone(this.shot))}};
+  this.replayClock+=dt;if(this.state.phase==='flight'&&this.replayClock>=1/30||this.replayFrames.length===0||this.replayFrames.at(-1)?.phase!==this.state.phase){this.replayClock=0;this.replayFrames.push(this.snapshot());this.replayShots.push(structuredClone(this.shot))};
   if(this.state.phase==='decision'&&this.state.possession==='home'&&!this.customBusy){
    if(this.queuedReceptionShot){const queued=this.queuedReceptionShot;this.queuedReceptionShot=null;try{this.engine.offerCustom(queued.shot);this.submitIntent(queued.shot.intent);this.customCounts.set(queued.text,(this.customCounts.get(queued.text)??0)+1)}catch(error){this.customStatus=(error as Error).message}}
    else if(this.queuedReceptionIntent){const queued=this.queuedReceptionIntent;this.queuedReceptionIntent=null;const available=this.availableIntents.find(intent=>sameShotIntent(intent,queued));if(available)this.submitIntent({...available,source:queued.source});else this.customStatus='That shot is no longer available at contact.'}
   }
-  if(this.state.phase==='decision'&&this.state.possession==='away'&&!this.thinking&&!this.state.paused)this.decideOpponent();else if(this.state.phase==='decision'&&this.state.currentHitter==='partner'&&this.partnerAutonomy&&!this.thinking&&!this.state.paused)this.decidePartner();if(this.state.phase==='complete'&&!this.awarded){this.awarded=true;this.lastResult=this.state.result;if(!this.practice)this.scoring.award(this.state.result!.winner)}this.state.score={...this.scoring.score}}
+  if(this.state.phase==='decision'&&this.state.possession==='away'&&!this.thinking&&!this.state.paused)this.decideOpponent();else if(this.state.phase==='decision'&&this.state.currentHitter==='partner'&&this.partnerAutonomy&&!this.thinking&&!this.state.paused)this.decidePartner();if(this.state.phase==='complete'&&!this.awarded){this.awarded=true;this.lastResult=this.state.result;if(!this.practice){this.scoring.award(this.state.result!.winner);const last=this.replayFrames.at(-1);if(last)last.score={...this.scoring.score};this.gameReplay.push({frames:this.replayFrames,shots:this.replayShots})}}this.state.score={...this.scoring.score}}
  async submitCommand(text:string,source:'text'|'voice'='text'){
   if(this.customBusy)return;
   this.customDraft=text;

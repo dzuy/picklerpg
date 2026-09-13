@@ -493,3 +493,19 @@ body .shot-panel-expand[hidden]{display:none!important}
 /* Keep team names legible inside the compact scoreboard. */
 .score-row>span{font-size:13px}
 @media(max-width:760px){.score-row>span{font-size:13px}}
+
+/* A lasting match result, with a complete replay and an explicit fresh start. */
+#game-end{width:min(740px,calc(100vw - 28px));max-height:calc(100dvh - 28px);padding:0;border:1px solid #dce6bf;border-radius:28px;background:#f4f4df;color:#194a40;box-shadow:0 30px 100px #102e4070;overflow:auto}
+#game-end::backdrop{background:#163f38b8;backdrop-filter:blur(8px)}
+.game-end-card{padding:38px 40px 34px;text-align:center;background:radial-gradient(ellipse at 50% 0,#e2efb8,transparent 70%)}
+.game-end-kicker,.game-end-label,.game-end-rule{font-size:11px;font-weight:750;letter-spacing:2px}
+.game-end-kicker{color:#617665}.game-end-emblem{font-size:58px;color:#6d9056;line-height:1.2;margin:18px 0 6px}
+.game-end-label{margin:0 0 10px;color:#5b795d}#game-end-title{font-size:clamp(27px,5vw,44px);line-height:1.12;margin:0;overflow-wrap:anywhere}
+.game-end-subtitle{font-size:14px;color:#6a7e6d;margin:14px 0 22px}
+.game-end-score{display:grid;grid-template-columns:minmax(0,1fr) 32px minmax(0,1fr);align-items:start;padding:24px 8px 20px;border-block:1px solid #cbd9b5}
+.game-end-score strong{display:block;font-size:clamp(76px,16vw,126px);font-weight:850;line-height:1;letter-spacing:-5px;font-variant-numeric:tabular-nums}
+.game-end-score div>span{display:block;margin-top:12px;font-size:16px;font-weight:700;overflow-wrap:anywhere}.game-end-dash{font-size:40px;align-self:center;color:#95a78b}
+#game-end[data-winner=home] #game-end-home-score,#game-end[data-winner=away] #game-end-away-score{color:#48763e}
+.game-end-rule{font-size:10px;color:#718268;margin:17px 0 28px;letter-spacing:1.2px}
+.game-end-actions{display:flex;gap:12px}.game-end-actions button{flex:1;border:1px solid #9aaf86;border-radius:12px;background:transparent;color:#244f43;padding:17px 12px;font:inherit;font-weight:750;cursor:pointer}#game-end-new{background:#244f43;color:#fff;border-color:#244f43}.game-end-actions button:focus-visible{outline:3px solid #90af63;outline-offset:4px}.game-end-actions button:disabled{opacity:.4;cursor:default}
+@media(max-width:500px){.game-end-card{padding:27px 19px}.game-end-emblem{font-size:42px;margin:12px 0}.game-end-subtitle{font-size:12px}.game-end-score div>span{font-size:13px}.game-end-actions{flex-direction:column-reverse}.game-end-actions button{min-height:52px}}
