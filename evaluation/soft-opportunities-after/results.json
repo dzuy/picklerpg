@@ -1,0 +1,68 @@
+[
+  {
+    "type": "drop",
+    "actor": "you",
+    "samples": 200,
+    "meanNetClearance": 0.25,
+    "bounced": 157,
+    "airborne": 42,
+    "highAirContacts": 0,
+    "meanHorizontalReach": 0.5855200143608011,
+    "noReception": 1
+  },
+  {
+    "type": "drop",
+    "actor": "opponent-left",
+    "samples": 200,
+    "meanNetClearance": 0.25,
+    "bounced": 174,
+    "airborne": 26,
+    "highAirContacts": 0,
+    "meanHorizontalReach": 0.5229459448480032,
+    "noReception": 0
+  },
+  {
+    "type": "dink",
+    "actor": "you",
+    "samples": 200,
+    "meanNetClearance": 0.25,
+    "bounced": 138,
+    "airborne": 61,
+    "highAirContacts": 0,
+    "meanHorizontalReach": 0.6521969400753908,
+    "noReception": 1
+  },
+  {
+    "type": "dink",
+    "actor": "opponent-left",
+    "samples": 200,
+    "meanNetClearance": 0.25,
+    "bounced": 156,
+    "airborne": 44,
+    "highAirContacts": 0,
+    "meanHorizontalReach": 0.5893742527711867,
+    "noReception": 0
+  },
+  {
+    "type": "reset",
+    "actor": "you",
+    "samples": 200,
+    "meanNetClearance": 0.25,
+    "bounced": 157,
+    "airborne": 42,
+    "highAirContacts": 0,
+    "meanHorizontalReach": 0.5855200143608011,
+    "noReception": 1
+  },
+  {
+    "type": "reset",
+    "actor": "opponent-left",
+    "samples": 200,
+    "meanNetClearance": 0.25,
+    "bounced": 174,
+    "airborne": 26,
+    "highAirContacts": 0,
+    "meanHorizontalReach": 0.5229459448480032,
+    "noReception": 0
+  }
+]

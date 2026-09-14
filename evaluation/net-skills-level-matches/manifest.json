@@ -1,0 +1,873 @@
+{
+  "version": 1,
+  "sourceHash": "d611ea4b9324b3c62b9be4cf8bc843288026d45f9b4488b97ec33710f26e7956",
+  "commit": "1ab188378a893cd892df5aecf157c5feaa9a2ab8",
+  "dirty": true,
+  "node": "v22.22.0",
+  "createdAt": "2026-09-13T22:02:47.741Z",
+  "dt": 0.1,
+  "captureReplay": false,
+  "maxSteps": 100000,
+  "maxPoints": 150,
+  "policy": "Current local auto-play; allCourt tendencies; no LLM; opening servers as listed in manifest",
+  "firstSeed": 8100,
+  "seeds": 20,
+  "rotations": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "openings": [
+    "home",
+    "away"
+  ],
+  "scenarios": [
+    {
+      "id": "volley-70-vs-50",
+      "a": [
+        {
+          "id": "a-1",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          }
+        },
+        {
+          "id": "a-2",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          }
+        }
+      ],
+      "b": [
+        {
+          "id": "b-1",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 50,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          }
+        },
+        {
+          "id": "b-2",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 50,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          }
+        }
+      ],
+      "profiles": [
+        {
+          "id": "a-1",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          },
+          "estimatedDupr": 3.5
+        },
+        {
+          "id": "a-2",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          },
+          "estimatedDupr": 3.5
+        },
+        {
+          "id": "b-1",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 50,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          },
+          "estimatedDupr": 3.432984470498852
+        },
+        {
+          "id": "b-2",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 50,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          },
+          "estimatedDupr": 3.432984470498852
+        }
+      ]
+    },
+    {
+      "id": "volley-90-vs-70",
+      "a": [
+        {
+          "id": "a-1",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 90,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          }
+        },
+        {
+          "id": "a-2",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 90,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          }
+        }
+      ],
+      "b": [
+        {
+          "id": "b-1",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          }
+        },
+        {
+          "id": "b-2",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          }
+        }
+      ],
+      "profiles": [
+        {
+          "id": "a-1",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 90,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          },
+          "estimatedDupr": 3.5477871228158855
+        },
+        {
+          "id": "a-2",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 90,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          },
+          "estimatedDupr": 3.5477871228158855
+        },
+        {
+          "id": "b-1",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          },
+          "estimatedDupr": 3.5
+        },
+        {
+          "id": "b-2",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          },
+          "estimatedDupr": 3.5
+        }
+      ]
+    },
+    {
+      "id": "counter-70-vs-50",
+      "a": [
+        {
+          "id": "a-1",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          }
+        },
+        {
+          "id": "a-2",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          }
+        }
+      ],
+      "b": [
+        {
+          "id": "b-1",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 50,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          }
+        },
+        {
+          "id": "b-2",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 50,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          }
+        }
+      ],
+      "profiles": [
+        {
+          "id": "a-1",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          },
+          "estimatedDupr": 3.5
+        },
+        {
+          "id": "a-2",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          },
+          "estimatedDupr": 3.5
+        },
+        {
+          "id": "b-1",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 50,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          },
+          "estimatedDupr": 3.432984470498852
+        },
+        {
+          "id": "b-2",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 50,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          },
+          "estimatedDupr": 3.432984470498852
+        }
+      ]
+    },
+    {
+      "id": "counter-90-vs-70",
+      "a": [
+        {
+          "id": "a-1",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 90,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          }
+        },
+        {
+          "id": "a-2",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 90,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          }
+        }
+      ],
+      "b": [
+        {
+          "id": "b-1",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          }
+        },
+        {
+          "id": "b-2",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          }
+        }
+      ],
+      "profiles": [
+        {
+          "id": "a-1",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 90,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          },
+          "estimatedDupr": 3.5477871228158855
+        },
+        {
+          "id": "a-2",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 90,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          },
+          "estimatedDupr": 3.5477871228158855
+        },
+        {
+          "id": "b-1",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          },
+          "estimatedDupr": 3.5
+        },
+        {
+          "id": "b-2",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          },
+          "estimatedDupr": 3.5
+        }
+      ]
+    },
+    {
+      "id": "hands-70-vs-50",
+      "a": [
+        {
+          "id": "a-1",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          }
+        },
+        {
+          "id": "a-2",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          }
+        }
+      ],
+      "b": [
+        {
+          "id": "b-1",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 50
+          }
+        },
+        {
+          "id": "b-2",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 50
+          }
+        }
+      ],
+      "profiles": [
+        {
+          "id": "a-1",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          },
+          "estimatedDupr": 3.5
+        },
+        {
+          "id": "a-2",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          },
+          "estimatedDupr": 3.5
+        },
+        {
+          "id": "b-1",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 50
+          },
+          "estimatedDupr": 3.432984470498852
+        },
+        {
+          "id": "b-2",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 50
+          },
+          "estimatedDupr": 3.432984470498852
+        }
+      ]
+    },
+    {
+      "id": "hands-90-vs-70",
+      "a": [
+        {
+          "id": "a-1",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 90
+          }
+        },
+        {
+          "id": "a-2",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 90
+          }
+        }
+      ],
+      "b": [
+        {
+          "id": "b-1",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          }
+        },
+        {
+          "id": "b-2",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          }
+        }
+      ],
+      "profiles": [
+        {
+          "id": "a-1",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 90
+          },
+          "estimatedDupr": 3.5477871228158855
+        },
+        {
+          "id": "a-2",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 90
+          },
+          "estimatedDupr": 3.5477871228158855
+        },
+        {
+          "id": "b-1",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          },
+          "estimatedDupr": 3.5
+        },
+        {
+          "id": "b-2",
+          "skills": {
+            "serve": 70,
+            "return": 70,
+            "drive": 70,
+            "drop": 70,
+            "dink": 70,
+            "reset": 70,
+            "volley": 70,
+            "counter": 70,
+            "overhead": 70,
+            "movement": 70,
+            "hands": 70
+          },
+          "estimatedDupr": 3.5
+        }
+      ]
+    }
+  ]
+}

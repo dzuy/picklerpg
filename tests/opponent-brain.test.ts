@@ -59,3 +59,21 @@ test('variation retains forced shots and clear tactical finish opportunities',()
  for(let seed=0;seed<100;seed++)assert.equal(localDecision(snapshot,undefined,{seed,recent:[]}),0);
  const only={...snapshot,options:[base]};assert.equal(localDecision(only,undefined,{seed:99,recent:Array.from({length:8},()=>({intent:base,receiver:'partner'}))}),0);
 });
+
+test('automatic lobs favor space behind defenders on either side and remain available when forced',()=>{
+ for(const actor of ['you','opponent-left'] as const){
+  const m=new Match(),hitter=m.state.players.find(p=>p.id===actor)!;
+  const side=hitter.team==='home'?1:-1;
+  const base={...m.availableIntents[0],actor,target:{kind:'point' as const,x:0,z:-side*5.6}};
+  const s=tacticalSnapshot(m.state,[{...base,type:'lob'},{...base,type:'drive'}],m.memory,'Chess Player',.8);
+  s.ball.position={x:0,y:1,z:side*4};
+  const count=(depth:number)=>{
+   s.players.filter(p=>p.team!==hitter.team).forEach((p,i)=>p.position={x:i?1.4:-1.4,y:0,z:-side*depth});
+   return Array.from({length:500},(_,seed)=>localDecision(s,undefined,{seed,recent:[]})).filter(i=>i===0).length;
+  };
+  const open=count(2.3),covered=count(5.5);
+  assert.ok(open>100,'lobs remain a useful option over an advanced defense');
+  assert.ok(covered<open/4,`${actor}: covered ${covered}, open ${open}`);
+  assert.equal(localDecision({...s,options:[s.options[0]]},undefined,{seed:12,recent:[]}),0);
+ }
+});

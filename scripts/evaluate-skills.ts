@@ -1,0 +1,7 @@
+import {mkdirSync,writeFileSync} from 'node:fs';
+import {resolve} from 'node:path';
+import {evaluateDrive,evaluateMovement,evaluateReceptions} from '../src/skill-evaluation';
+const out=resolve(process.argv[2]??'evaluation/controlled-skills');mkdirSync(out,{recursive:true});
+const ratings=[50,70,90],drive=ratings.flatMap(s=>evaluateDrive(s)),movement=ratings.map(evaluateMovement),receptions=ratings.map(s=>evaluateReceptions(s));
+writeFileSync(resolve(out,'results.json'),JSON.stringify({drive,movement,receptions},null,2));
+const lines=['# Controlled skill checks','','All other skills fixed at 70. Drive uses the same 2,000 seeds at each rating. Movement uses a fixed distance/time/speed grid; coverage is not a match success rate.','','| Drive contact | Skill | In court | Mishits | Mean error (m) |','|---|---:|---:|---:|---:|',...drive.map(r=>`| ${r.condition} | ${r.skill} | ${(100*r.inCourtRate).toFixed(1)}% | ${(100*r.mishitRate).toFixed(1)}% | ${r.meanError.toFixed(3)} |`),'','| Movement skill | Reachable grid cases | Mean timing pressure |','|---|---:|---:|',...movement.map(r=>`| ${r.skill} | ${r.reachable}/${r.total} | ${r.meanPressure.toFixed(3)} |`)];lines.push('','| Movement skill | Successful receptions | Mean contact pressure |','|---|---:|---:|',...receptions.map(r=>`| ${r.skill} | ${r.receptions}/${r.samples} | ${r.meanTimingPressure?.toFixed(3)} |`));writeFileSync(resolve(out,'report.md'),lines.join('\n'));console.log(lines.join('\n'));

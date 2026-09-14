@@ -9,10 +9,16 @@
     "test": "node --import tsx --test tests/*.test.ts",
     "preview": "vite preview --host 127.0.0.1",
     "opponent-server": "node --env-file-if-exists=.env.local server/opponent.mjs",
-    "start": "node server/production.mjs"
+    "start": "node server/production.mjs",
+    "evaluate:games": "node --import tsx scripts/evaluate-games.ts",
+    "evaluate:skills": "node --import tsx scripts/evaluate-skills.ts",
+    "evaluate:net-skills": "node --import tsx scripts/evaluate-net-skills.ts",
+    "evaluate:soft-skills": "node --import tsx scripts/evaluate-soft-skills.ts",
+    "evaluate:finishing": "node --import tsx scripts/evaluate-finishing.ts"
   },
   "dependencies": {
     "@huggingface/transformers": "^4.2.0",
+    "@supabase/supabase-js": "^2.116.0",
     "three": "^0.180.0"
   },
   "devDependencies": {

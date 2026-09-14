@@ -1,0 +1,12 @@
+import {mkdirSync,writeFileSync} from 'node:fs';
+import {resolve} from 'node:path';
+import {SOFT_OPENING_SKILLS,evaluateSoftOpening,evaluateDinkRallies} from '../src/soft-skill-evaluation';
+const out=resolve(process.argv[2]??'evaluation/soft-opening-controlled');mkdirSync(out,{recursive:true});
+const ratings=[30,50,70,90],results=SOFT_OPENING_SKILLS.flatMap(a=>ratings.flatMap(s=>evaluateSoftOpening(a,s)));
+const dinkRallies=[50,70,90].flatMap(s=>evaluateDinkRallies(s));
+writeFileSync(resolve(out,'results.json'),JSON.stringify({ratings,samples:2000,otherSkills:70,results,dinkRallies,dinkSeeds:{first:10000,count:200}},null,2));
+const pct=(n:number)=>(n*100).toFixed(1)+'%';
+const lines=['# Controlled serve, return and soft-game checks','','Other attributes stay at 70; the same seeds 0–1999 are reused. Serve pressure means a faster, flatter serve, not incoming-ball pressure. Other pressure cases use a low, stretched, rushed contact. Lob is included because it uses drop skill.','','Legal counts exclude net/out faults and illegal service boxes. Target depth means legal kitchen landings for drop/dink/reset, or legal landings beyond 4.5 m for serve/return/lob. These are intended landing outcomes before interception, not rally wins or measures of whether a ball is attackable.','','| Attribute | Skill | Shot | Contact | Legal | Target depth | Error (m) | Mishits |','|---|---:|---|---|---:|---:|---:|---:|',...results.map(r=>`| ${r.attribute} | ${r.skill} | ${r.type} | ${r.condition} | ${pct(r.legalRate)} | ${pct(r.targetDepthRate)} | ${r.meanError.toFixed(3)} | ${pct(r.mishitRate)} |`)];
+lines.push('','## Dink-start rallies','','The same wide dink starts each existing practice setup, followed by normal auto-play. Only home dink skill varies; all other skills and opponents stay at 70. Seeds 10000–10199. Home always starts, so compare ratings within each drill rather than interpreting 50% as the expected baseline. This is targeted exposure, not ordinary match frequency.','','| Setup | Dink | Completed | Home rally wins | Opening faults |','|---|---:|---:|---:|---:|',...dinkRallies.map(r=>`| ${r.pattern} | ${r.skill} | ${r.completed}/${r.samples} | ${r.homeWinRate===null?'—':pct(r.homeWinRate)} | ${pct(r.openingFaultRate)} |`));
+writeFileSync(resolve(out,'report.md'),lines.join('\n'));console.log(`Report: ${out}/report.md`);
+if(dinkRallies.some(r=>r.capped))process.exitCode=2;

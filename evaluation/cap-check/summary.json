@@ -1,0 +1,50 @@
+[
+  {
+    "scenario": "equal-70",
+    "games": 4,
+    "completed": 0,
+    "capped": 4,
+    "aWinRate": null,
+    "homeWinRate": null,
+    "pairedSeeds": 0,
+    "pairedAWinRate": null,
+    "pairedStandardError": null,
+    "averageMargin": null,
+    "pickles": 0,
+    "averagePoints": null,
+    "slots": {
+      "you": {
+        "shots": 0,
+        "types": {},
+        "faults": {},
+        "mishitRate": null,
+        "meanQuality": null,
+        "meanDeviation": null
+      },
+      "partner": {
+        "shots": 0,
+        "types": {},
+        "faults": {},
+        "mishitRate": null,
+        "meanQuality": null,
+        "meanDeviation": null
+      },
+      "opponent-left": {
+        "shots": 0,
+        "types": {},
+        "faults": {},
+        "mishitRate": null,
+        "meanQuality": null,
+        "meanDeviation": null
+      },
+      "opponent-right": {
+        "shots": 0,
+        "types": {},
+        "faults": {},
+        "mishitRate": null,
+        "meanQuality": null,
+        "meanDeviation": null
+      }
+    }
+  }
+]

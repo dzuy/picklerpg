@@ -88,8 +88,8 @@ test('expressions replace original eyes and mouth, and paddles retain their grip
  }
  for(const paddleShape of APPEARANCE_OPTIONS.paddleShape){
   const model=clone(asset.scene);dressAthlete(model,{...LOOKS[0].appearance,paddleShape});
-  if(paddleShape!=='rectangular')assert.ok(model.getObjectByName(`option-paddle-${paddleShape}`));
-  model.getObjectByName('paddle_01')!.traverse(o=>{if(o instanceof THREE.Mesh)assert.equal(o.visible,(o.material as THREE.Material).name==='MAT_grip'||paddleShape==='rectangular')});
+  assert.ok(model.getObjectByName(`option-paddle-${paddleShape}`));
+  model.getObjectByName('paddle_01')!.traverse(o=>{if(o instanceof THREE.Mesh)assert.equal(o.visible,(o.material as THREE.Material).name==='MAT_grip')});
   const player=newPlayer('shapes');player.appearance={...player.appearance,paddleShape,expression:'confident'};assert.deepEqual(validatePlayer(JSON.parse(JSON.stringify(player))),player);
  }
  const legacy=JSON.parse(JSON.stringify(newPlayer('legacy')));delete legacy.appearance.expression;delete legacy.appearance.paddleShape;

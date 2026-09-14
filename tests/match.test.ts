@@ -48,6 +48,8 @@ test('point endings include boundary faults and unreturned balls across tactical
  const outcomes=new Set<string>();let maxLength=0;
  for(let seed=1;seed<=30;seed++){
   const m=new Match();m.seed=seed;m.reset();
+  // Include genuinely weak movers; prepared reception reduces easy misses for normal players.
+  if(seed%3===0)for(const player of m.state.players)player.skills.movement=0;
   for(let p=0;p<10&&!m.scoring.winner;p++){
    for(let f=0;f<10000&&m.state.phase!=='complete';f++){
     if(m.receptionDecision){const preferAir=(seed+p)%2===1;m.chooseReception(preferAir&&m.canTakeAir?'air':m.canLetBounce?'bounce':'air')}if(m.state.phase==='decision')m.submitIntent(m.availableIntents[(seed+p)%m.availableIntents.length]);m.update(.2);

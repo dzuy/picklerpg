@@ -10,16 +10,31 @@ This is the agreed build order from the supplied roadmap. Preserve the numbering
 
 **Phase 8 visual pass ready for playtest.** Steps 48–54 are implemented; step 47 has verified dimensions and player scale, with final feel awaiting playtest. See [PHASE-8.md](PHASE-8.md).
 
+**Ordinary-play simulation calibration complete.** All eleven skills have current controlled and full-game coverage; equal, mixed-roster, handedness, personality, and intelligence variants completed certification. Progression costs have explicit utility tiers. The rare equal-90 long-rally tail is accepted as a deferred edge case and is not a calibration gate. See [CALIBRATION-CERTIFICATION.md](../evaluation/CALIBRATION-CERTIFICATION.md).
+
 Custom commands work alongside canned menus in full games and practice. Local and LLM parsers produce reviewed, validated shot intent; impossible contacts explain why rather than auto-substituting. Frequently played commands become quick actions. Left/right spin, spin strength, topspin drop, and slice float now affect flight; fine player-side targets remain disclosed approximations. See [CUSTOM-SHOTS.md](CUSTOM-SHOTS.md).
 
-**Phase 7 voice increment implemented for playtest.** Added microphone input, local concise/richer commands, partner instructions, hands-free contact listening, and compact voice view. Local Whisper now works in the in-app browser, with flat-serve recognition corrections. User voice accuracy, end-to-end latency, and whole-game voice acceptance remain playtest gates. See [PHASE-7.md](PHASE-7.md).
+**Phase 7 voice increment implemented; further work deferred to the far future.** Added microphone input, local concise/richer commands, partner instructions, hands-free contact listening, and compact voice view. Local Whisper now works in the in-app browser, with flat-serve recognition corrections. User voice accuracy, end-to-end latency, and whole-game voice acceptance remain playtest gates. See [PHASE-7.md](PHASE-7.md).
+
+## Current priorities — updated 2026-09-13
+
+- Keep **Open Play** as the active development focus for the foreseeable future: free-form tactical play, match flow, and continued gameplay tuning.
+- The **targeting wheel** is the preferred shot interface. Remove the legacy shot dock and its Show shots expander.
+- De-prioritize voice work to the far future; it is not a gate for current releases.
 
 ## Additional requested features
 
 - [ ] Sound effects
 - [ ] Music
 - [x] Game end screen — prominent final score, winning player names, full-game replay, and New Game; win-by-two scoring verified.
-- [ ] Authentication / account creation
+- [x] Authentication / account creation — guest-first accounts, passwordless email protection/sign-in, cloud player sync, match history, and sign-out are implemented. Password accounts are deferred.
+- [x] Ordinary-play simulation calibration — skill direction, side/role fairness, mixed rosters, handedness, personalities, and progression-value tiers certified. High-skill marathon rallies are deferred.
+- [ ] Updated design and consistent **PickleBash** naming everywhere — screens, navigation, page titles, metadata, and player-facing copy.
+- [ ] Game modes
+  - [ ] **Open Play** — continue developing the current free-form format as the primary near-term focus.
+  - [ ] **Career Mode** — define and build a progression-based mode.
+  - [ ] **Arcade Mode** — define and build an arcade format.
+- [ ] **Online, turn-based multiplayer** — plan and implement online match turns and shared match state; turn timing and detailed rules remain to be defined.
 
 ## Playtest decisions
 
@@ -269,7 +284,8 @@ Example:
        Free-form is the creative escape hatch.
 - [x] **40.** Learn frequently used custom tactics
        Eventually surface them as quick actions.
-## Phase 7 — Voice-only mode
+## Phase 7 — Voice-only mode (deferred to the far future)
+Existing voice features remain implemented. Further voice development and outstanding playtest gates are de-prioritized and do not block Open Play work.
 - [x] **41.** Speech-to-intent input
        Local Whisper capture/transcription verified in the in-app browser; browser speech remains optional.
 - [ ] **42.** Make voice commands fast enough that they don’t break rally flow
@@ -316,10 +332,10 @@ Example:
        Do not overbuild venues.
 ## Phase 9 — RPG / progression layer
 Only after the core strategy game is genuinely fun.
-- [ ] **55.** Player creation / roster
+- [x] **55.** Player creation / roster — implemented and verified in the Player Design phase.
 - [ ] **56.** Skill progression
-- [ ] **57.** Different partners
-- [ ] **58.** Opponent teams
+- [x] **57.** Different partners — selectable in matchup setup.
+- [x] **58.** Opponent teams — selectable players in matchup setup; career-specific teams remain part of future Career Mode design.
 - [ ] **59.** Tournament ladder
 - [ ] **60.** Unlock harder tactical patterns
 - [ ] **61.** Player strengths/weaknesses
@@ -335,7 +351,7 @@ Do not prioritize:
 - large environments
 - crowds
 - cosmetics
-- multiplayer
+- real-time multiplayer — online turn-based multiplayer is requested above
 - manual player movement
 - complex RPG inventory
 - character creator
@@ -361,4 +377,86 @@ Once those three work, you have the actual game. Everything after that makes it 
 
 ## Shot selection UI follow-up
 
-- [ ] Evaluate removing the legacy “Choose your shot” dock and its Show shots expander entirely. The expander is currently hidden; keep the dock implementation until targeting-wheel coverage and accessibility have been reviewed.
+- [ ] Remove the legacy “Choose your shot” dock and its Show shots expander entirely. User approved removal on 2026-09-13; the targeting wheel is the preferred system. Preserve custom text input and other still-used controls when removing legacy UI.
+
+## Individual player histories — 2026-09-13
+
+- Implemented stable player IDs and historical names in new match results, with a player selector in Settings → Match history. Records show each player's own team score, wins, losses, and early exits; renames do not split histories.
+- Database migration `supabase/migrations/202609130004_player_history.sql` applied by the user; Supabase SQL Editor success verified on 2026-09-13. Full new-game save/readback remains a playtest check.
+- Legacy name-only results stay account-only; do not infer player identity from matching names.
+- Current attribution uses the lineup at game end. Before supporting progression with mid-game substitutions, define and implement participation credit.
+- Player histories provide the match ledger for future progression; skill growth and per-player XP awards remain unfinished.
+
+## Automated match evaluation — 2026-09-13
+
+- Added a seeded, headless evaluation runner using actual auto-play decisions, paired side/position rotations, uniform skill matchups, and isolated comparisons for all eleven attributes. See [GAME-EVALUATION.md](GAME-EVALUATION.md).
+- Reports include completion limits, win rates, home advantage, margins, shutouts, slot-level shot/error metrics, and optional shot traces. Evaluation games never enter account history.
+- Next: use the equal-skill controls to fix role bias, then assess skill sensitivity with larger seed batches before implementing progression.
+
+## Auto-play parity fix — 2026-09-13
+
+- Unified all four automatic players' shot menus, decision policy, intelligence/personality settings and recent-choice memory. Removed the partner-only recommendation bias from unattended play while retaining explicit partner instructions.
+- Automatic receivers now use the same contact-selection path on both sides; manual home reception choices remain. Full auto-play uses shared local tactics and does not request opponent-only background strategy.
+- Restricted the manual opponent's historical crash-to-lob preference to current slow, lower contacts with both defenders near the kitchen, preventing an unconditional persistent lob bonus.
+- Evaluations now test either opening server, with side/position swaps and seed-block uncertainty. Added parity regressions and an option to skip visual replay capture in evaluations, verified to preserve outcomes.
+- Build and 246 tests pass. Fresh-seed balance results are recorded in `evaluation/BALANCE-RESULTS.md`. Individual-skill calibration remains separate follow-up work.
+
+## Drive and movement calibration — 2026-09-13
+
+- Added repeatable controlled execution, reach-grid, and actual reception-planning checks (`npm run evaluate:skills`).
+- Confirmed drive and movement curves already improve accuracy/reach. Larger pre-change match samples reverse the misleading conclusion from three seeds.
+- Fixed faster players taking earlier, more rushed contacts: prefer prepared contacts, retain emergency options, never select from sampled miss outcomes.
+- Matched skill reruns, lower-rating held-out fairness, and high-rating limit rechecks are documented in `evaluation/SKILL-CALIBRATION.md`.
+- Follow-up: high-skill rally length (one checked seed took ~46 simulated minutes), larger high-rating fairness samples, and remaining individual skills before progression calibration is considered complete.
+
+## High-skill rally calibration — 2026-09-13
+
+- Added completed-rally shot counts/durations and mean, 95th-percentile and maximum lengths to automated evaluation reports.
+- Made lob preference account for defender coverage and added legal overhead feet targets for every player slot.
+- Tactical changes alone did not address extreme rallies. Removed the squared hands-weakness factor from timing/pace swing pressure, retaining it for prepared-swing reliability; strong players now retain meaningful risk under pressure.
+- Matched high-skill mean rally length fell from 48.2 to 27.1 shots, with a 27.7-shot mean on fresh seeds. Matched 95th percentile fell from 136 to 76. All 560 final evaluation games completed; stronger drive/movement teams won 73.8%/57.5% in their respective 160-game checks.
+- Build and 254 tests pass. See `evaluation/LONG-RALLIES.md` for evidence, intermediate experiments and limitations.
+- Next: validate pressure sensitivity across hands and counter/volley skill ranges, then address the remaining high-skill long-rally tail before treating the simulator as calibrated for progression.
+
+## Hands, counter and volley evaluation — 2026-09-13
+
+- Added `npm run evaluate:net-skills` for paired 30/50/70/90 execution and reception checks, including block coverage and the hands-limited flick plateau.
+- Completed 1,440 games across nine comparisons (90-vs-50, 70-vs-50, 90-vs-70 for each attribute), with opening-server and roster rotations.
+- Controlled effects match expectations; no gameplay curves changed. Stronger teams won 98.8% for hands, 88.8% for volley and 68.8% for counter in the largest-gap samples. Counter 50→70 remains statistically inconclusive in full games despite a clear controlled accuracy improvement.
+- Report: `evaluation/NET-SKILLS.md`. Build and 257 tests pass.
+- Next: evaluate serve/return and soft-game skills, then remaining overhead sensitivity. Relative progression costs, mixed-roster balance and the rare long-rally tail remain open calibration work.
+
+## Serve, return and soft-game evaluation — 2026-09-13
+
+- Added controlled 30/50/70/90 opening and soft-shot checks, including legal service boxes, target depth and drop-to-lob skill mapping.
+- Completed 960 games and 1,200 targeted dink-start rallies. Main higher-skill team win rates: serve 63.8%, return 90.0%, drop 77.5%, reset 68.8%.
+- Dink accuracy and targeted-rally results improve, but main/fresh full-game wins were 60.0%/41.3% (50.6% combined). Dinks account for roughly 1% of ordinary shots; full-game usefulness remains unproven. No gameplay curves changed.
+- Build and 260 tests pass. Report: `evaluation/SOFT-OPENING-SKILLS.md`.
+- Next: investigate soft-shot attackability, airborne-versus-bounce selection and useful dink opportunities. Overhead calibration and progression-cost design remain outstanding.
+
+## Soft reception and dink opportunities — 2026-09-13
+
+- Fixed excessive horizontal paddle reach while feet stayed outside the kitchen; reception contacts now respect a 1.2 m horizontal reach limit and can occur later or after a bounce.
+- Soft placements now honor requested net clearance rather than an oversized family arc floor. Controlled bounced receptions increased from 0/1,200 to 956/1,200; reachable volleys remain available.
+- Dink share rose to roughly 4–5% in ordinary skill-70 games. Combined stronger-dink wins improved from 50.6% to 68.8% across the same 320 games. All 840 final games completed; equal-70 home wins were 50% across 160 games.
+- High-skill rallies lengthened from 27.7 to 42.5 shots on matched seeds; the 40-game high-skill batch had 65% home wins and needs a broader side audit. Do not treat this pass as completion of overall balance or long-rally work.
+- Build and 261 tests pass. Report: `evaluation/SOFT-RECEPTION-FIX.md`.
+- Next: evaluate high-skill finishing/overhead sensitivity and longer rallies, then broaden rating/side checks before progression tuning.
+
+## Overhead finishing and fresh side audit — 2026-09-13
+
+- Added overhead diagnostics for net, retreating and staggered-defense contacts. Higher overhead skill improves accuracy, but fixed targets can produce accidental winners at lower accuracy, so immediate winners alone are not a skill-quality metric.
+- Automatic overhead choices now estimate defender preparation time on intended trajectories, including bounced reception. No execution seed or sampled result is consulted. Discarded a distance-only targeting trial that worsened controlled outcomes.
+- Fresh pre-change high-skill audit split home wins 50/50 across 80 games; the earlier 65% did not repeat. Final high-skill batches had 55% and 40% home wins, with broad seed-block intervals; overall side balance is not certified.
+- Stronger-overhead wins changed from 70% to 76.3% on matched seeds, an uncertain increase. Mean high-skill rallies fell from roughly 43 to 39 shots, but the maximum reached 425 in the fresh batch. Long-rally realism remains unresolved.
+- All 600 final games completed; build and 263 tests pass. Report: `evaluation/FINISHING-AND-SIDES.md`.
+- Next: mixed-roster/handedness checks and progression-value targets, with the long-rally tail retained as an open simulation issue.
+
+## Simulation calibration certification — 2026-09-13
+
+- Completed the remaining mixed-roster, handedness, personality, intelligence, adjacent skill-step, and held-out sensitivity checks. All 5,020 accepted certification games used the current engine and completed without caps.
+- Re-ran 317,394 paired controlled samples across all eleven attributes. Every skill improves its intended mechanical outcome; full-game value varies with opportunity and saturation.
+- Equal-50 and equal-70 home wins were 46.7% and 48.3%. Mixed-skill rosters were 57.5–58.8%. The 40-seed handedness holdout produced 56.3% all-left and 57.5% mixed-handed home wins; uncertainty spans parity and the earlier mixed-handed lean did not reproduce.
+- Six personalities completed at 43.3–58.3% home wins with distinct shot distributions. Three intelligence settings completed at 55.0–56.7% in equal-skill checks.
+- Progression cost multipliers are now defined from current full-game utility: premium 1.25× (return, hands), high 1.10× (drive, drop, reset, volley, counter), standard 1.00× (serve, dink, overhead), situational 0.85× (movement). These are relative game-economy targets, not real-world DUPR claims.
+- The rare equal-90 marathon-rally tail is explicitly deferred by product decision and excluded from ordinary-play calibration acceptance. See `evaluation/CALIBRATION-CERTIFICATION.md` for evidence and limitations.

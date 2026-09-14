@@ -1,0 +1,168 @@
+{
+  "version": 1,
+  "sourceHash": "820814cd9ad535a3c6c37386df60e43d3f288213d2e2a7ced90ee2f44ae0da06",
+  "commit": "1ab188378a893cd892df5aecf157c5feaa9a2ab8",
+  "dirty": true,
+  "node": "v22.22.0",
+  "createdAt": "2026-09-13T21:36:05.386Z",
+  "dt": 0.1,
+  "captureReplay": false,
+  "maxSteps": 25000,
+  "maxPoints": 150,
+  "policy": "Current local auto-play; allCourt tendencies; no LLM; opening servers as listed in manifest",
+  "firstSeed": 6000,
+  "seeds": 50,
+  "rotations": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "openings": [
+    "home",
+    "away"
+  ],
+  "scenarios": [
+    {
+      "id": "equal-50",
+      "a": [
+        {
+          "id": "a-1",
+          "skills": {
+            "serve": 50,
+            "return": 50,
+            "drive": 50,
+            "drop": 50,
+            "dink": 50,
+            "reset": 50,
+            "volley": 50,
+            "counter": 50,
+            "overhead": 50,
+            "movement": 50,
+            "hands": 50
+          }
+        },
+        {
+          "id": "a-2",
+          "skills": {
+            "serve": 50,
+            "return": 50,
+            "drive": 50,
+            "drop": 50,
+            "dink": 50,
+            "reset": 50,
+            "volley": 50,
+            "counter": 50,
+            "overhead": 50,
+            "movement": 50,
+            "hands": 50
+          }
+        }
+      ],
+      "b": [
+        {
+          "id": "b-1",
+          "skills": {
+            "serve": 50,
+            "return": 50,
+            "drive": 50,
+            "drop": 50,
+            "dink": 50,
+            "reset": 50,
+            "volley": 50,
+            "counter": 50,
+            "overhead": 50,
+            "movement": 50,
+            "hands": 50
+          }
+        },
+        {
+          "id": "b-2",
+          "skills": {
+            "serve": 50,
+            "return": 50,
+            "drive": 50,
+            "drop": 50,
+            "dink": 50,
+            "reset": 50,
+            "volley": 50,
+            "counter": 50,
+            "overhead": 50,
+            "movement": 50,
+            "hands": 50
+          }
+        }
+      ],
+      "profiles": [
+        {
+          "id": "a-1",
+          "skills": {
+            "serve": 50,
+            "return": 50,
+            "drive": 50,
+            "drop": 50,
+            "dink": 50,
+            "reset": 50,
+            "volley": 50,
+            "counter": 50,
+            "overhead": 50,
+            "movement": 50,
+            "hands": 50
+          },
+          "estimatedDupr": 3.125
+        },
+        {
+          "id": "a-2",
+          "skills": {
+            "serve": 50,
+            "return": 50,
+            "drive": 50,
+            "drop": 50,
+            "dink": 50,
+            "reset": 50,
+            "volley": 50,
+            "counter": 50,
+            "overhead": 50,
+            "movement": 50,
+            "hands": 50
+          },
+          "estimatedDupr": 3.125
+        },
+        {
+          "id": "b-1",
+          "skills": {
+            "serve": 50,
+            "return": 50,
+            "drive": 50,
+            "drop": 50,
+            "dink": 50,
+            "reset": 50,
+            "volley": 50,
+            "counter": 50,
+            "overhead": 50,
+            "movement": 50,
+            "hands": 50
+          },
+          "estimatedDupr": 3.125
+        },
+        {
+          "id": "b-2",
+          "skills": {
+            "serve": 50,
+            "return": 50,
+            "drive": 50,
+            "drop": 50,
+            "dink": 50,
+            "reset": 50,
+            "volley": 50,
+            "counter": 50,
+            "overhead": 50,
+            "movement": 50,
+            "hands": 50
+          },
+          "estimatedDupr": 3.125
+        }
+      ]
+    }
+  ]
+}

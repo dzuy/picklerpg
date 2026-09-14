@@ -1,0 +1,33 @@
+/* Presentation-only HUD: retain the scene and the existing shot-panel behavior. */
+body.match-mode[data-screen=court] #app>.header{display:none}
+body.match-mode[data-panel=play][data-screen=court] #app main{height:100dvh;padding:0}
+body.match-mode[data-panel=play][data-screen=court] .court-wrap{border:0;border-radius:0;box-shadow:none}
+.gameplay-corner{position:absolute;z-index:5;width:clamp(180px,28vw,420px);height:auto;pointer-events:none;user-select:none}
+.gameplay-corner-top-left{top:-18px;left:-18px}
+#app .gameplay-settings{position:absolute;z-index:12;top:max(16px,env(safe-area-inset-top));right:max(16px,env(safe-area-inset-right));width:64px;height:64px;min-height:44px;padding:0;border:0;border-radius:50%;background:none;cursor:pointer;transition:filter .16s,scale .16s}
+.gameplay-settings img{display:block;width:100%;height:100%;object-fit:contain;pointer-events:none}
+#app .gameplay-settings:focus-visible{outline:3px solid #dfff32;outline-offset:3px}
+@media(hover:hover){#app .gameplay-settings:hover{filter:drop-shadow(0 0 10px #12e1f388);scale:1.05}}
+#app .court-top{z-index:10;top:max(28px,env(safe-area-inset-top));left:max(22px,env(safe-area-inset-left));right:auto;pointer-events:none}
+/* The frame has transparent space above/below its two rows (1448 × 1086). */
+#app .score{position:relative;isolation:isolate;width:clamp(245px,26vw,350px);min-width:0;aspect-ratio:2.62;display:grid;grid-template-rows:1fr 1fr;gap:0;padding:6% 11% 6% 10%;border:0;border-radius:0;background:none;box-shadow:none;overflow:visible;color:#f9fcff}
+#app .score::before{content:'';position:absolute;inset:-50% 0;z-index:-1;background:url('/assets/picklebash-gameplay-ui/hud/picklebash-scoreboard-frame.png') center/100% 100% no-repeat;pointer-events:none}
+#app .score-row{display:grid;grid-template-columns:minmax(0,1fr) 15%;gap:4%;min-height:0;border:0;background:none}
+#app .score-row>span{min-width:0;padding:0 0 0 4px;font-family:Impact,Haettenschweiler,'Arial Narrow Bold',sans-serif;font-weight:400;font-style:italic;font-synthesis:style;font-size:clamp(13px,1.45vw,20px);letter-spacing:.04em;line-height:1.15;overflow-wrap:anywhere;color:#f9fcff}
+#app .score-row b{align-self:stretch;border:0;background:none;font-family:Impact,Haettenschweiler,'Arial Narrow Bold',sans-serif;font-weight:400;font-size:clamp(22px,2.1vw,30px);letter-spacing:.04em;color:#f9fcff;text-shadow:0 0 8px #12e1f3}
+#game-settings .settings-game-actions{display:grid;gap:9px;margin:10px 0 20px}
+#game-settings .settings-game-actions .settings-restart{display:block;width:100%;margin:0;text-align:left}
+@media(max-width:760px){
+ #app .court-top{top:max(18px,env(safe-area-inset-top));left:max(10px,env(safe-area-inset-left))}
+ #app .score{width:clamp(210px,65vw,285px)}
+ #app .score-row>span{font-size:clamp(12px,3.4vw,16px)}
+ #app .score-row b{font-size:23px}
+ #app .gameplay-settings{width:50px;height:50px;top:max(12px,env(safe-area-inset-top));right:max(10px,env(safe-area-inset-right))}
+ .gameplay-corner{width:clamp(140px,42vw,250px)}
+}
+@media(prefers-reduced-motion:reduce){#app .gameplay-settings{transition:none}}
+/* Team accents remain HTML overlays, separate from the lit forest geometry. */
+#court .player-label{background:#071a43ed;color:#f8fcff;border:1px solid #12e1f3;border-left:4px solid #12e1f3;box-shadow:0 2px 5px #03122f55;letter-spacing:.025em}
+#court .player-label[data-team=away]{border-color:#ff4f63;border-left-color:#ff3d7d}
+#court .player-label.is-you{border-left-color:#dfff32}
+#court .serve-bubble{background:#071a43;color:#f8fcff;border-color:#12e1f3}

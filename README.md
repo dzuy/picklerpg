@@ -116,3 +116,7 @@ Custom shots now use one action: **Play custom shot** or Enter. Parsing switches
 ### Player Design
 
 Use **Player Design** in the header to create and name players, customize faces, skin, hair, hats, glasses and clothing colors, and adjust all eleven execution skills. **Save player** stores a profile locally; **Save & play** starts a new full game with that avatar, name, skill set and handedness. Saved profiles also apply in pattern practice and survive reloads on the same browser/origin. Guided rally and Shot lab retain their own benchmark skills. See [the phase plan and completed steps](docs/PLAYER-DESIGN.md).
+
+## Automatic match evaluation
+
+Run `npm run evaluate:games -- --scenario equal-70,90-vs-70,70-vs-50 --seeds 2` for a 48-game baseline. The runner uses actual local auto-play with seeded side/position swaps, saves reports under `evaluation/`, and never writes account match history. See [the evaluation guide](docs/GAME-EVALUATION.md) for the full skill suite, custom profiles, and reproducible shot traces.

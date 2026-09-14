@@ -49,7 +49,10 @@ export function generateTrajectory(value:unknown,context:ShotContext,players:Pla
  const straight=context.contact.y+(resolved.point.y-context.contact.y)*t;
  const spinHeight=8*verticalSpin*t*t*(1-t);
  const required=(net+Math.max(.06,intent.intendedNetClearance)-straight-spinHeight)/(4*t*(1-t));
- const shapeLift=intent.shape==='flat'?family.lift*.35:intent.shape==='descending'?0:family.lift*1.3;
+ // Soft placements use their requested clearance. A fixed family arc floor
+ // otherwise turns a well-placed short ball into an unnecessarily floating one.
+ const softPlacement=['drop','dink','reset','block'].includes(intent.type);
+ const shapeLift=softPlacement?0:intent.shape==='flat'?family.lift*.35:intent.shape==='descending'?0:family.lift*1.3;
  const arc=Math.max(0,shapeLift,required);
  // A descending request must actually start descending; never silently turn it into a lob.
  const leg:FlightLeg={...base,duration,arc,...(sideCurve?{sideCurve}:{}),...(verticalSpin?{verticalSpin}:{})};

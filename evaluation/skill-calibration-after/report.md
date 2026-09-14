@@ -1,0 +1,13 @@
+# Match evaluation
+
+Policy: Current local auto-play; allCourt tendencies; no LLM; opening servers as listed in manifest. 480 games. Fixed simulation step: 0.1 s.
+
+| Scenario | Completed / capped | A wins | Home wins | Mean margin | Pickles | Paired seeds |
+|---|---:|---:|---:|---:|---:|---:|
+| equal-70 | 160 / 0 | 50.0% | 52.5% | 4.08 | 0 | 20 |
+| drive-90-vs-50 | 160 / 0 | 68.8% | 48.8% | 5.03 | 0 | 20 |
+| movement-90-vs-50 | 160 / 0 | 62.5% | 50.0% | 4.44 | 0 | 20 |
+
+A/B refer to the configured teams, regardless of court side. Each seed runs both side assignments, both within-team orders, and the configured opening servers. Mirrored games are correlated; summary.json reports standard error across complete seed blocks, not independent-game confidence intervals. Small batches are smoke tests, not balance certification.
+
+See summary.json for per-slot shot counts, fault counts, mishit rates, mean execution quality and deviation. Capped games are excluded from outcome averages and reported explicitly. games.jsonl contains each seed, rotation, score, slot-to-player mapping and point outcomes. Use --trace true for shot intent, aim, first-leg endpoint and execution feedback. A first-leg endpoint is not necessarily a landing for intercepted shots.

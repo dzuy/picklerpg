@@ -18,8 +18,15 @@ test('low hands produce many more swing misses across deterministic seeds',()=>{
  const player=new Match().state.players[0];
  const count=(hands:number)=>{player.skills.hands=hands;return Array.from({length:2000},(_,seed)=>receptionRoll(seed,player)<swingMissChance(player,.8,20)).filter(Boolean).length};
  const low=count(25),high=count(95);
- assert.ok(low>300);assert.ok(high<40);assert.ok(low>high*10);
+ assert.ok(low>300);assert.ok(high<80);assert.ok(low>high*10);
  assert.equal(receptionRoll(42,player),receptionRoll(42,player));
+});
+test('strong hands remain vulnerable to rushed pace while prepared swings stay reliable',()=>{
+ const player=new Match().state.players[0];player.skills.hands=90;
+ const prepared=swingMissChance(player,0,6),rushed=swingMissChance(player,.8,20);
+ assert.ok(prepared<.005);
+ assert.ok(rushed>.04&&rushed<.08,'rushed elite swings should carry meaningful risk');
+ player.skills.hands=50;assert.ok(swingMissChance(player,.8,20)>rushed*3);
 });
 test('late contacts increase actual mishits while prepared contacts stay more reliable',()=>{
  const lab=new PreparedShotFixture(),context=preparedContact('drive').context;

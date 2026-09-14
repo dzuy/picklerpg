@@ -1,9 +1,12 @@
+import {fillPlayerCard,playerRecord} from './player-card';
+import type {HistoryMatch} from './player-history';
 import {SUMMARY_SKILLS,summarizeSkills,skillLevel} from './player-skill-summary';
 import {applyPresentation} from './player-looks';
 import {AvatarPreview,AvatarThumbnails,LOOKS} from './avatar-preview';
 import {SKILLS} from './engine/model';
 import {ARCHETYPES} from './engine/player-profiles';
 import {APPEARANCE_OPTIONS,PLAYER_STORAGE_KEY,newPlayer,parseLibrary,savePlayer,deletePlayer,type DesignedPlayer,type PlayerLibrary,type Appearance} from './player-design';
+import type {CloudSaveState,LibraryChange} from './cloud-players';
 import './player-creator.css';
 const iconPaths:Record<string,string>={
  hairStyle:'M5 15V9a7 7 0 0 1 14 0v6M5 10c4 0 5-4 5-4s3 4 9 4M7 15v4m10-4v4',
@@ -21,10 +24,11 @@ const skillHelp:Record<typeof SKILLS[number],string>={serve:'Start the point wit
 
 export class PlayerCreator {
  readonly dialog=document.createElement('dialog');
+ loadHistory:()=>Promise<HistoryMatch[]>=async()=>{throw new Error('History unavailable')};
  private rosterThumbnails:AvatarThumbnails|null=null;
  private thumbnails:AvatarThumbnails|null=null;private thumbnailsReady=false;
  private library:PlayerLibrary={version:1,activeId:null,players:[]};private draft=newPlayer();private baseline='';private preview:AvatarPreview|null=null;private previewFailed=false;private loadError='';private pending:(()=>void)|null=null;
- constructor(private onPlay:(player:DesignedPlayer)=>void,private onDelete:(id:string)=>void=()=>{}){
+ constructor(private onPlay:(player:DesignedPlayer)=>void,private onDelete:(id:string)=>void=()=>{},private onLibraryChange:(library:PlayerLibrary,change:LibraryChange)=>void=()=>{}){
   try{this.library=parseLibrary(localStorage.getItem(PLAYER_STORAGE_KEY))}catch{this.loadError='Saved players could not be read. Saving is disabled to protect your existing roster.'}
   const active=this.library.players.find(p=>p.id===this.library.activeId);
   if(active)this.draft=structuredClone(active);this.baseline=JSON.stringify(this.draft);
@@ -64,7 +68,7 @@ export class PlayerCreator {
   <div id="skills-panel" role="tabpanel" aria-labelledby="skills-tab" hidden><p class="creator-intro">Adjust every skill from 0 to 100. Your meters and estimated rating update as you edit.</p><div class="creator-summary skills-summary">${['Power','Control','Speed','Hands'].map(name=>`<div><span>${name}</span><meter aria-label="${name} summary" min="0" max="100" value="70" data-summary="${name}" title="${SUMMARY_SKILLS[name as keyof typeof SUMMARY_SKILLS].map(title).join(', ')}"></meter><output data-summary-value="${name}"></output></div>`).join('')}</div><div class="creator-rating"><span>Estimated DUPR</span><strong data-dupr></strong><small>Game estimate from all 11 skills · not an official rating.</small></div><label for="creator-preset">Start from an archetype<select id="creator-preset"><option value="">Custom skills</option>${Object.entries(ARCHETYPES).map(([id,p])=>`<option value="${id}">${p.name}</option>`).join('')}</select></label><div class="creator-skills">${SKILLS.map(skill=>`<div class="creator-skill"><label for="skill-${skill}">${title(skill)}<output for="skill-${skill}" id="value-${skill}">70</output></label><input id="skill-${skill}" data-skill="${skill}" type="range" min="0" max="100" step="1" aria-describedby="help-${skill}"><small id="help-${skill}">${skillHelp[skill]}</small></div>`).join('')}</div><p class="creator-intro">Rating guide: 0 → 2.0 · 70 → 3.5 (typical) · 80 → 4.0 (strong) · 90 → 5.0 (advanced) · 95 → 6.0 (pro) · 100 → 8.0. Your rating combines all 11 skills.</p></div>
   <div class="creator-delete-confirm" hidden><p data-delete-message></p><button type="button" data-cancel-delete>Keep player</button><button type="button" data-confirm-delete>Delete player permanently</button></div>
   <div class="creator-confirm" hidden><p>Discard unsaved changes to switch players?</p><button type="button" data-keep>Keep editing</button><button type="button" data-discard>Discard and continue</button></div>
-  <div class="creator-footer"><button type="button" data-delete hidden>Delete player</button><p data-status role="status"></p><div><button type="button" data-save>Save Player &nbsp; →</button></div><small>Saved in this browser.</small></div></section></div>`;
+  <div class="creator-footer"><button type="button" data-delete hidden>Delete player</button><p data-status role="status"></p><div><button type="button" data-save>Save Player &nbsp; →</button></div><small data-save-location>Saved on this device.</small></div></section></div>`;
   document.body.append(this.dialog);
   this.dialog.append(this.el('.creator-confirm'));
   this.setupAppearancePages();
@@ -145,6 +149,16 @@ export class PlayerCreator {
  }
  get savedPlayers(){return structuredClone(this.library.players)}
  get activePlayer(){const player=this.library.players.find(p=>p.id===this.library.activeId);return player?structuredClone(player):null}
+ get playerLibrary(){return structuredClone(this.library)}
+ applyCloudLibrary(library:PlayerLibrary){
+  const clean=parseLibrary(JSON.stringify(library)),editing=JSON.stringify(this.draft)!==this.baseline;
+  this.library=clean;
+  if(!editing){const next=this.activePlayer??this.library.players[0]??newPlayer();this.draft=structuredClone(next);this.baseline=JSON.stringify(this.draft);this.fill()}
+  if(this.dialog.open&&this.dialog.dataset.view==='roster')this.showRoster();
+ }
+ setCloudStatus(state:CloudSaveState){
+  this.el('[data-save-location]').textContent=state==='connecting'?'Connecting cloud save…':state==='saving'?'Saving to cloud…':state==='saved'?'Saved on this device and in cloud.':state==='offline'?'Saved on this device. Cloud sync will retry next visit.':'Saved on this device.';
+ }
  createPlayer(){this.open();this.switchDraft(()=>{this.loadDraft(newPlayer());this.showEditor()})}
  editPlayer(player:DesignedPlayer|null){this.open();this.showEditor();if(player&&player.id!==this.draft.id)this.switchDraft(()=>this.loadDraft(player))}
  open(){if(!this.dialog.open)this.dialog.showModal();this.showRoster()}
@@ -160,6 +174,7 @@ export class PlayerCreator {
   this.el('[data-roster-status]').textContent=this.loadError;
   const saved=this.el('[data-saved-roster]'),defaults=this.el('[data-default-roster]');saved.replaceChildren();defaults.replaceChildren();
   this.el('[data-saved-section]').hidden=this.library.players.length===0;
+  const history=this.loadHistory();void history.catch(()=>{});
   const card=(player:DesignedPlayer,role:string,isDefault:boolean)=>{
    const article=document.createElement('article');article.className='roster-card';
    const edit=()=>{if(this.draft.id===player.id){this.showEditor();return}this.switchDraft(()=>{this.loadDraft(player);this.showEditor()})};
@@ -168,19 +183,9 @@ export class PlayerCreator {
    article.addEventListener('click',event=>{if((event.target as HTMLElement).closest('button,summary,a,input,select,textarea'))return;edit()});
    article.addEventListener('keydown',event=>{if(event.target===article&&(event.key==='Enter'||event.key===' ')){event.preventDefault();edit()}});
    }
-   const themeIndex=LOOKS.findIndex(look=>look.name===player.name);
-   const themes=[['#ff9389','All court.\nAll fun.'],['#78aff2','Power changes\ngames.'],['#ffda73','Think\nahead.'],['#95dfc0','Fast moves.\nBig plays.'],['#c5a3f2','Small details.\nBig wins.'],['#b0d2a7','Defend and\ndeliver.'],['#d1a0ef','Creativity keeps\nyou ahead.'],['#a5dfc4','Any court.\nAny day.']];
-   const [color,motto]=themes[themeIndex<0?Math.abs(player.name.length)%themes.length:themeIndex];
-   article.style.setProperty('--card-color',color);
-   const banner=document.createElement('div');banner.className='roster-banner';
-   try{this.rosterThumbnails??=new AvatarThumbnails(384);const img=document.createElement('img');img.src=this.rosterThumbnails.get(player.appearance,'roster');img.alt=player.name;banner.append(img)}catch{}
-   const slogan=document.createElement('span');slogan.className='roster-motto';slogan.textContent=player.catchphrase?.trim()||(themeIndex<0?'Your game.\nYour way.':motto);banner.append(slogan);
-   const doodle=document.createElement('span');doodle.className='roster-doodle';doodle.textContent=themeIndex%2===0?'✧':'〰';doodle.setAttribute('aria-hidden','true');banner.append(doodle);article.append(banner);
-   const heading=document.createElement('h3');heading.textContent=player.name;const identity=document.createElement('div');identity.className='roster-card-identity';identity.append(heading);article.append(identity);
-   const description=document.createElement('p');description.textContent=role;description.className='roster-role';identity.append(description);
-   const {meters,estimatedDupr}=summarizeSkills(player.skills);
-   const rating=document.createElement('p');rating.className='roster-rating';rating.innerHTML='<span>DUPR</span><strong>'+estimatedDupr.toFixed(2)+'</strong>';rating.title='Game skill estimate, not an official DUPR rating';article.append(rating);
-   const summary=document.createElement('dl');for(const [name,value] of Object.entries(meters)){const row=document.createElement('div'),term=document.createElement('dt'),detail=document.createElement('dd');row.dataset.stat=name;const icon=document.createElement('span');icon.className='roster-stat-icon';icon.setAttribute('aria-hidden','true');icon.textContent=({Power:'ϟ',Control:'◎',Speed:'➟',Hands:'✋'} as Record<string,string>)[name];term.append(icon,document.createTextNode(name));const meter=document.createElement('span');meter.className='five-block-meter';meter.setAttribute('role','meter');meter.setAttribute('aria-label',name);meter.setAttribute('aria-valuemin','0');meter.setAttribute('aria-valuemax','100');meter.setAttribute('aria-valuenow',String(Math.round(value)));meter.title=name+': '+Math.round(value)+'/100';for(let i=0;i<5;i++){const block=document.createElement('i');block.style.setProperty('--fill',Math.max(0,Math.min(100,(value-i*20)*5))+'%');meter.append(block)}detail.append(meter);row.append(term,detail);summary.append(row)}article.append(summary);
+   let portrait='';try{this.rosterThumbnails??=new AvatarThumbnails(384);portrait=this.rosterThumbnails.get(player.appearance,'roster')}catch{}
+   fillPlayerCard(article,player,role,portrait);
+   article.querySelector('.roster-card-identity')!.append(playerRecord(player.id,history));
    const details=document.createElement('details'),label=document.createElement('summary');label.textContent='View all skills';details.append(label);
    for(const skill of SKILLS){const line=document.createElement('div');line.className='roster-skill';const name=document.createElement('span');name.textContent=title(skill);const meter=document.createElement('meter');meter.min=0;meter.max=100;meter.value=player.skills[skill];meter.setAttribute('aria-label',title(skill));meter.title=skillLevel(player.skills[skill]);const value=document.createElement('span');value.textContent=String(player.skills[skill]);line.append(name,meter,value);details.append(line)}article.append(details);
    const actions=document.createElement('div');actions.className='roster-card-actions';
@@ -199,7 +204,7 @@ export class PlayerCreator {
  private removePlayer(){
   if(this.loadError)return;
   const id=this.draft.id;if(!this.library.players.some(p=>p.id===id))return;
-  try{this.library=deletePlayer(localStorage,this.library,id);this.pending=null;this.el('.creator-delete-confirm').hidden=true;this.el('.creator-confirm').hidden=true;this.onDelete(id);this.loadDraft(this.activePlayer??this.library.players[0]??newPlayer());this.showRoster();this.el('[data-roster-status]').textContent=this.library.players.length?'Player deleted.':''}catch{this.el('[data-status]').textContent='Could not delete the player. Your saved roster is unchanged.'}
+  try{this.library=deletePlayer(localStorage,this.library,id);this.onLibraryChange(structuredClone(this.library),{kind:'delete',playerId:id});this.pending=null;this.el('.creator-delete-confirm').hidden=true;this.el('.creator-confirm').hidden=true;this.onDelete(id);this.loadDraft(this.activePlayer??this.library.players[0]??newPlayer());this.showRoster();this.el('[data-roster-status]').textContent=this.library.players.length?'Player deleted.':''}catch{this.el('[data-status]').textContent='Could not delete the player. Your saved roster is unchanged.'}
  }
  private fill(){
   this.el('#creator-title').innerHTML=this.library.players.some(p=>p.id===this.draft.id)?'Edit Your Player':'Create Your Player';
@@ -220,7 +225,7 @@ export class PlayerCreator {
  private save(play:boolean){
   if(this.loadError)return;
   try{
-   this.library=savePlayer(localStorage,this.library,this.draft,play);this.draft=structuredClone(this.library.players.find(p=>p.id===this.draft.id)!);this.baseline=JSON.stringify(this.draft);this.fill();
+   this.library=savePlayer(localStorage,this.library,this.draft,play);this.draft=structuredClone(this.library.players.find(p=>p.id===this.draft.id)!);this.baseline=JSON.stringify(this.draft);this.fill();this.onLibraryChange(structuredClone(this.library),{kind:'save',playerId:this.draft.id});
    this.pending=null;this.el('.creator-confirm').hidden=true;this.el('[data-status]').textContent='Player saved.';
    if(play){this.onPlay(structuredClone(this.draft));this.dialog.close()}else this.showRoster()
   }catch(error){this.el('[data-status]').textContent=error instanceof Error&&error.name==='QuotaExceededError'?'Browser storage is full. Your edits are still here; the player was not saved.':error instanceof Error?error.message:'Could not save. Your edits are still here.'}

@@ -1,0 +1,498 @@
+[
+  {
+    "scenario": "equal-70",
+    "games": 160,
+    "completed": 160,
+    "capped": 0,
+    "aWinRate": 0.5,
+    "homeWinRate": 0.5,
+    "pairedSeeds": 20,
+    "pairedAWinRate": 0.5,
+    "pairedStandardError": 0,
+    "pairedHomeStandardError": 0.09597148699373931,
+    "openingWinRate": 0.45,
+    "averageMargin": 4,
+    "pickles": 0,
+    "averagePoints": 44.7,
+    "rallyShots": {
+      "completedRallies": 7152,
+      "mean": 4.957494407158837,
+      "p95": 11,
+      "max": 29
+    },
+    "slots": {
+      "you": {
+        "shots": 8764,
+        "types": {
+          "serve": 1820,
+          "lob": 1184,
+          "return": 1708,
+          "overhead": 860,
+          "dink": 328,
+          "volley": 384,
+          "drive": 476,
+          "counter": 252,
+          "drop": 552,
+          "reset": 940,
+          "block": 260
+        },
+        "faults": {
+          "out": 976,
+          "missed-swing": 252,
+          "net": 432,
+          "body-hit": 48
+        },
+        "mishitRate": 0.04198995892286627,
+        "meanQuality": 0.6286558395667654,
+        "meanDeviation": 0.46941720857875313
+      },
+      "partner": {
+        "shots": 8992,
+        "types": {
+          "dink": 504,
+          "reset": 928,
+          "return": 1712,
+          "overhead": 964,
+          "volley": 328,
+          "lob": 1212,
+          "counter": 248,
+          "serve": 1748,
+          "drop": 512,
+          "drive": 544,
+          "block": 292
+        },
+        "faults": {
+          "body-hit": 80,
+          "out": 960,
+          "net": 384,
+          "missed-swing": 224
+        },
+        "mishitRate": 0.04048042704626335,
+        "meanQuality": 0.6323207346333192,
+        "meanDeviation": 0.4642152121269848
+      },
+      "opponent-left": {
+        "shots": 8840,
+        "types": {
+          "return": 1740,
+          "overhead": 920,
+          "serve": 1856,
+          "drop": 588,
+          "lob": 996,
+          "counter": 220,
+          "reset": 992,
+          "block": 272,
+          "drive": 480,
+          "volley": 364,
+          "dink": 412
+        },
+        "faults": {
+          "body-hit": 92,
+          "missed-swing": 208,
+          "out": 960,
+          "net": 348
+        },
+        "mishitRate": 0.038461538461538464,
+        "meanQuality": 0.6331974031228471,
+        "meanDeviation": 0.45797343233307
+      },
+      "opponent-right": {
+        "shots": 8860,
+        "types": {
+          "dink": 372,
+          "serve": 1728,
+          "lob": 1220,
+          "block": 284,
+          "drive": 572,
+          "reset": 924,
+          "overhead": 1068,
+          "drop": 496,
+          "return": 1640,
+          "volley": 328,
+          "counter": 228
+        },
+        "faults": {
+          "net": 424,
+          "missed-swing": 276,
+          "out": 948,
+          "body-hit": 108
+        },
+        "mishitRate": 0.03566591422121896,
+        "meanQuality": 0.6323587129359391,
+        "meanDeviation": 0.4557383031050765
+      }
+    }
+  },
+  {
+    "scenario": "drop-90-vs-50",
+    "games": 160,
+    "completed": 160,
+    "capped": 0,
+    "aWinRate": 0.8125,
+    "homeWinRate": 0.4125,
+    "pairedSeeds": 20,
+    "pairedAWinRate": 0.8125,
+    "pairedStandardError": 0.04396095755865293,
+    "pairedHomeStandardError": 0.0375,
+    "openingWinRate": 0.5625,
+    "averageMargin": 5.8125,
+    "pickles": 8,
+    "averagePoints": 35.6375,
+    "rallyShots": {
+      "completedRallies": 5702,
+      "mean": 5.134689582602595,
+      "p95": 11,
+      "max": 28
+    },
+    "slots": {
+      "you": {
+        "shots": 7292,
+        "types": {
+          "serve": 1466,
+          "lob": 918,
+          "return": 1456,
+          "overhead": 814,
+          "reset": 728,
+          "volley": 330,
+          "drop": 510,
+          "drive": 328,
+          "counter": 192,
+          "block": 240,
+          "dink": 310
+        },
+        "faults": {
+          "out": 790,
+          "net": 344,
+          "body-hit": 64,
+          "missed-swing": 168
+        },
+        "mishitRate": 0.040866703236423475,
+        "meanQuality": 0.6400219623363835,
+        "meanDeviation": 0.46937054729723565
+      },
+      "partner": {
+        "shots": 7368,
+        "types": {
+          "return": 1312,
+          "drive": 412,
+          "serve": 1334,
+          "drop": 428,
+          "counter": 230,
+          "lob": 1038,
+          "dink": 374,
+          "block": 248,
+          "reset": 810,
+          "overhead": 842,
+          "volley": 340
+        },
+        "faults": {
+          "body-hit": 78,
+          "missed-swing": 198,
+          "out": 830,
+          "net": 306
+        },
+        "mishitRate": 0.043973941368078175,
+        "meanQuality": 0.6301914688239657,
+        "meanDeviation": 0.49273969713108673
+      },
+      "opponent-left": {
+        "shots": 7362,
+        "types": {
+          "return": 1388,
+          "overhead": 772,
+          "serve": 1552,
+          "drop": 448,
+          "dink": 372,
+          "lob": 974,
+          "volley": 296,
+          "counter": 176,
+          "reset": 758,
+          "drive": 400,
+          "block": 226
+        },
+        "faults": {
+          "out": 782,
+          "missed-swing": 184,
+          "body-hit": 80,
+          "net": 264
+        },
+        "mishitRate": 0.04835642488454225,
+        "meanQuality": 0.6402554391069867,
+        "meanDeviation": 0.4889374536492557
+      },
+      "opponent-right": {
+        "shots": 7256,
+        "types": {
+          "serve": 1350,
+          "lob": 936,
+          "reset": 788,
+          "return": 1284,
+          "volley": 330,
+          "overhead": 842,
+          "block": 240,
+          "drop": 470,
+          "dink": 354,
+          "drive": 454,
+          "counter": 208
+        },
+        "faults": {
+          "out": 710,
+          "net": 350,
+          "missed-swing": 186,
+          "body-hit": 62
+        },
+        "mishitRate": 0.04547960308710033,
+        "meanQuality": 0.6305017168446053,
+        "meanDeviation": 0.48708478035062575
+      }
+    }
+  },
+  {
+    "scenario": "dink-90-vs-50",
+    "games": 160,
+    "completed": 160,
+    "capped": 0,
+    "aWinRate": 0.625,
+    "homeWinRate": 0.5,
+    "pairedSeeds": 20,
+    "pairedAWinRate": 0.625,
+    "pairedStandardError": 0.04966996338993914,
+    "pairedHomeStandardError": 0.05735393346764044,
+    "openingWinRate": 0.35,
+    "averageMargin": 5.1125,
+    "pickles": 0,
+    "averagePoints": 38.825,
+    "rallyShots": {
+      "completedRallies": 6212,
+      "mean": 4.8570508692852545,
+      "p95": 11,
+      "max": 24
+    },
+    "slots": {
+      "you": {
+        "shots": 7634,
+        "types": {
+          "serve": 1646,
+          "lob": 974,
+          "return": 1518,
+          "overhead": 768,
+          "drive": 390,
+          "counter": 202,
+          "drop": 506,
+          "dink": 324,
+          "reset": 748,
+          "volley": 328,
+          "block": 230
+        },
+        "faults": {
+          "out": 850,
+          "net": 384,
+          "missed-swing": 194,
+          "body-hit": 48
+        },
+        "mishitRate": 0.04139376473670422,
+        "meanQuality": 0.63389147465963,
+        "meanDeviation": 0.47040816707391975
+      },
+      "partner": {
+        "shots": 7478,
+        "types": {
+          "dink": 306,
+          "return": 1420,
+          "overhead": 786,
+          "drive": 470,
+          "lob": 1002,
+          "counter": 228,
+          "serve": 1458,
+          "reset": 744,
+          "drop": 460,
+          "volley": 344,
+          "block": 260
+        },
+        "faults": {
+          "body-hit": 74,
+          "out": 838,
+          "net": 382,
+          "missed-swing": 204
+        },
+        "mishitRate": 0.04172238566461621,
+        "meanQuality": 0.628516887320976,
+        "meanDeviation": 0.4721164494027837
+      },
+      "opponent-left": {
+        "shots": 7686,
+        "types": {
+          "return": 1568,
+          "overhead": 784,
+          "serve": 1684,
+          "drop": 464,
+          "block": 216,
+          "lob": 918,
+          "reset": 754,
+          "drive": 440,
+          "counter": 198,
+          "volley": 316,
+          "dink": 344
+        },
+        "faults": {
+          "out": 808,
+          "body-hit": 48,
+          "missed-swing": 220,
+          "net": 330
+        },
+        "mishitRate": 0.03981264637002342,
+        "meanQuality": 0.636593189275068,
+        "meanDeviation": 0.46388538721600464
+      },
+      "opponent-right": {
+        "shots": 7374,
+        "types": {
+          "dink": 282,
+          "serve": 1424,
+          "lob": 956,
+          "return": 1396,
+          "reset": 748,
+          "volley": 328,
+          "counter": 220,
+          "overhead": 848,
+          "drop": 474,
+          "drive": 446,
+          "block": 252
+        },
+        "faults": {
+          "out": 872,
+          "net": 382,
+          "missed-swing": 230,
+          "body-hit": 70
+        },
+        "mishitRate": 0.03905614320585842,
+        "meanQuality": 0.6306201389998988,
+        "meanDeviation": 0.46792709416806216
+      }
+    }
+  },
+  {
+    "scenario": "reset-90-vs-50",
+    "games": 160,
+    "completed": 160,
+    "capped": 0,
+    "aWinRate": 0.8625,
+    "homeWinRate": 0.5125,
+    "pairedSeeds": 20,
+    "pairedAWinRate": 0.8625,
+    "pairedStandardError": 0.04243803532334248,
+    "pairedHomeStandardError": 0.0461512102823568,
+    "openingWinRate": 0.4875,
+    "averageMargin": 5.825,
+    "pickles": 2,
+    "averagePoints": 37.075,
+    "rallyShots": {
+      "completedRallies": 5932,
+      "mean": 4.897167902899528,
+      "p95": 11,
+      "max": 25
+    },
+    "slots": {
+      "you": {
+        "shots": 7206,
+        "types": {
+          "serve": 1518,
+          "lob": 912,
+          "return": 1446,
+          "overhead": 720,
+          "drop": 462,
+          "reset": 744,
+          "counter": 204,
+          "dink": 274,
+          "drive": 414,
+          "volley": 310,
+          "block": 202
+        },
+        "faults": {
+          "out": 732,
+          "net": 400,
+          "missed-swing": 184,
+          "body-hit": 54
+        },
+        "mishitRate": 0.04607271718012767,
+        "meanQuality": 0.6341939994583369,
+        "meanDeviation": 0.48927121518531735
+      },
+      "partner": {
+        "shots": 7320,
+        "types": {
+          "dink": 340,
+          "reset": 794,
+          "return": 1380,
+          "overhead": 812,
+          "volley": 326,
+          "serve": 1436,
+          "drive": 436,
+          "lob": 960,
+          "drop": 420,
+          "block": 194,
+          "counter": 222
+        },
+        "faults": {
+          "body-hit": 72,
+          "out": 820,
+          "missed-swing": 192,
+          "net": 342
+        },
+        "mishitRate": 0.04480874316939891,
+        "meanQuality": 0.6331722220044154,
+        "meanDeviation": 0.49760110690804704
+      },
+      "opponent-left": {
+        "shots": 7294,
+        "types": {
+          "return": 1466,
+          "overhead": 710,
+          "serve": 1516,
+          "drop": 440,
+          "lob": 896,
+          "counter": 202,
+          "volley": 320,
+          "drive": 376,
+          "reset": 796,
+          "dink": 310,
+          "block": 262
+        },
+        "faults": {
+          "body-hit": 88,
+          "out": 800,
+          "net": 376,
+          "missed-swing": 178
+        },
+        "mishitRate": 0.04030710172744722,
+        "meanQuality": 0.6283654482461689,
+        "meanDeviation": 0.48388514698813034
+      },
+      "opponent-right": {
+        "shots": 7230,
+        "types": {
+          "dink": 290,
+          "serve": 1462,
+          "lob": 946,
+          "block": 194,
+          "drive": 466,
+          "return": 1336,
+          "drop": 460,
+          "reset": 778,
+          "overhead": 790,
+          "counter": 214,
+          "volley": 294
+        },
+        "faults": {
+          "missed-swing": 194,
+          "out": 752,
+          "net": 348,
+          "body-hit": 82
+        },
+        "mishitRate": 0.04260027662517289,
+        "meanQuality": 0.6309952649230909,
+        "meanDeviation": 0.4770266671110249
+      }
+    }
+  }
+]

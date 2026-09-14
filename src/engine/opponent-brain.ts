@@ -1,4 +1,5 @@
 import {resolveTarget} from './targeting';
+import {overheadPressure} from './overhead-pressure';
 import type {GameState,ShotIntent} from './model';
 export const PERSONALITIES=['Banger','Grinder','Technician','Gambler','Wall','Chess Player'] as const;
 export type Personality=typeof PERSONALITIES[number];
@@ -29,7 +30,7 @@ export function intendedReceiver(s:TacticalSnapshot,o:ShotIntent):string|null{
   return s.players.filter(p=>p.team!==actor.team).sort((a,b)=>Math.hypot(a.position.x-target.x,a.position.z-target.z)-Math.hypot(b.position.x-target.x,b.position.z-target.z))[0]?.id??null;
  }catch{return null}
 }
-export function localDecision(s:TacticalSnapshot,strategy?:OpponentStrategy,variation?:DecisionVariation):number{
+export function localDecision(s:TacticalSnapshot,strategy?:{shots:readonly string[];target:string},variation?:DecisionVariation):number{
  const attack=['drive','counter','overhead','volley'];const soft=['dink','drop','reset','block'];
  const scored=s.options.map((o,i)=>{let score=0;const isAttack=attack.includes(o.type),isSoft=soft.includes(o.type);
  if(strategy){if((strategy.shots as readonly string[]).includes(o.type))score+=2.5;if(o.target.kind==='zone'&&o.target.zone===strategy.target||o.target.kind==='player'&&o.target.aim===strategy.target)score+=3;}
@@ -39,10 +40,18 @@ export function localDecision(s:TacticalSnapshot,strategy?:OpponentStrategy,vari
  if(s.personality==='Technician')score+=isSoft?2:0;
  if(s.personality==='Gambler')score+=(o.target.kind==='zone'&&o.target.zone==='wide'?3:0)+(isAttack?2:0);
  if(s.personality==='Chess Player')score+=o.target.kind==='zone'&&o.target.zone==='open-court'?2:0;
- if(s.intelligence>=.5&&s.memory.samples>=3){if(s.memory.drives/s.memory.samples>.45)score+=['block','reset'].includes(o.type)?4:0;if(s.memory.speedups/s.memory.samples>.6)score+=o.type==='block'?2:0;if(s.memory.crashes>=2)score+=o.type==='lob'?5:0;if(s.memory.lowBackhandErrors>=2)score+=o.target.kind==='player'&&['backhand-side','feet'].includes(o.target.aim)?6:0;const recent=s.memory.recentTypes;if(recent.length>=3&&new Set(recent.slice(-3)).size===1)score+=o.type==='counter'?1:0;const max=Math.max(0,...Object.values(s.memory.targets));if(max/s.memory.samples>.6)score+=o.target.kind==='zone'&&o.target.zone==='wide'?2:0;}
+ if(s.intelligence>=.5&&s.memory.samples>=3){if(s.memory.drives/s.memory.samples>.45)score+=['block','reset'].includes(o.type)?4:0;if(s.memory.speedups/s.memory.samples>.6)score+=o.type==='block'?2:0;if(s.memory.crashes>=2&&o.type==='lob'&&s.ball.position.y<1.5&&Math.hypot(s.ball.velocity.x,s.ball.velocity.y,s.ball.velocity.z)<10){const hitter=s.players.find(p=>p.id===o.actor);if(s.players.filter(p=>p.team!==hitter?.team).every(p=>Math.abs(p.position.z)<3.5))score+=1;}if(s.memory.lowBackhandErrors>=2)score+=o.target.kind==='player'&&['backhand-side','feet'].includes(o.target.aim)?6:0;const recent=s.memory.recentTypes;if(recent.length>=3&&new Set(recent.slice(-3)).size===1)score+=o.type==='counter'?1:0;const max=Math.max(0,...Object.values(s.memory.targets));if(max/s.memory.samples>.6)score+=o.target.kind==='zone'&&o.target.zone==='wide'?2:0;}
  const actor=s.players.find(p=>p.id===o.actor);if(s.intelligence>=.8&&actor)score+=(o.type==='flick'?Math.min(actor.skills.volley,actor.skills.hands):(actor.skills[o.type==='lob'?'drop':o.type==='block'?'volley':o.type]??50))/100;
  if(variation){
+  // A lob needs space behind the defense. A covered landing gives the opponent
+  // time to set up an overhead; judge that from positions, never sampled outcomes.
+  if(o.type==='lob'&&actor){
+   const target=resolveTarget(o.target,{actor:o.actor,contact:s.ball.position,players:s.players,shotType:o.type}).point;
+   const clearance=Math.min(...s.players.filter(p=>p.team!==actor.team).map(p=>Math.hypot(target.x-p.position.x,target.z-p.position.z)));
+   score-=4*Math.max(0,Math.min(1,(3.5-clearance)/2));
+  }
   if(o.type==='overhead'&&s.ball.position.y>=1.9)score+=4;
+  if(o.type==='overhead')score+=3*overheadPressure(o,s.ball.position,s.players,Math.hypot(s.ball.velocity.x,s.ball.velocity.y,s.ball.velocity.z));
   const receiver=intendedReceiver(s,o),recent=variation.recent.slice(-8);
   for(const [index,previous] of recent.entries()){
    const weight=(index+1)/recent.length;

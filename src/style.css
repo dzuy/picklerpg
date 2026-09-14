@@ -59,6 +59,7 @@
 /* Header actions retain touch targets without visible button containers. */
 .header .header-icon{display:flex;align-items:center;justify-content:center;flex:0 0 44px;width:44px;height:44px;min-height:44px;padding:10px;border:0;border-radius:0;background:transparent;box-shadow:none;color:#254e3d}
 .header-icon svg{width:24px;height:24px;display:block}.header-icon:hover{color:#709344}
+.header-lobby{display:flex;align-items:center;gap:7px;min-height:40px;padding:8px 12px;border:1px solid #cbd6c2;border-radius:999px;background:#edf1df;color:#254e3d;font-size:13px;font-weight:750}.header-lobby svg{width:19px;height:19px}.header-lobby:hover{border-color:#91aa72;background:#e5edcf}
 .court-wrap{height:calc(100dvh - 180px)}
 @media(max-width:760px){.header{gap:4px}.court-wrap{height:clamp(297px,calc(40svh + 52px),442px)}.play-section{padding-top:8px}}
 @media(max-height:520px) and (orientation:landscape){.court-wrap{height:calc(100dvh - 110px)}}
@@ -173,6 +174,7 @@ body.match-mode[data-panel=settings] aside>#back-to-play,body.match-mode[data-pa
 .settings-switch-control{display:flex;align-items:center;gap:9px;flex:0 0 auto}.settings-switch-control strong{min-width:24px;color:#58705d;font-size:12px}.settings-switch-control input{width:46px;height:28px;margin:0;accent-color:#255843;cursor:pointer}
 @media(max-width:520px){#game-settings{width:min(360px,calc(100vw - 48px));padding:20px;border-radius:22px 0 0 22px}}
 @media(prefers-reduced-motion:reduce){#game-settings[open],#game-settings[open]::backdrop{animation:none}}
+@media(max-width:520px){.header-lobby{width:40px;min-height:40px;padding:9px;justify-content:center}.header-lobby span{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}}
 
 /* Mobile play is a viewport shell: court, compact decisions, anchored composer. */
 @media(max-width:760px){
@@ -488,10 +490,12 @@ body .shot-panel-expand[hidden]{display:none!important}
 #game-settings .settings-switch-control input:checked{background:#255843}
 #game-settings .settings-switch-control input:checked::after{transform:translateX(18px)}
 #game-settings .settings-switch-control input:focus-visible{outline:3px solid #8eae7b;outline-offset:3px}
+.settings-account{margin-top:10px;padding-top:20px;border-top:1px solid #dce3d3}.settings-account-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}.settings-account h3{margin:0;font-size:18px}.settings-account-heading span{padding:5px 9px;border-radius:999px;background:#e8eddc;color:#496352;font-size:11px;font-weight:800}.settings-account #account-copy{margin:8px 0 14px}.settings-account #account-form[hidden]{display:none}.settings-account #account-form label{margin:0 0 6px;font-size:12px;color:#5c705e}.settings-account #account-email{box-sizing:border-box;width:100%;min-height:44px;padding:10px 12px;border:1px solid #cbd6c1;border-radius:12px;background:#fff;color:#244b3b;font:inherit}.settings-account-actions{display:flex;gap:8px;margin-top:10px}.settings-account-actions button{flex:1;min-height:42px;padding:9px 10px;border:1px solid #255843;border-radius:11px;background:#255843;color:#fff;font:inherit;font-size:12px;font-weight:750;cursor:pointer}.settings-account-actions #account-sign-in{background:transparent;color:#255843}.settings-account-actions button:disabled{opacity:.5;cursor:wait}.settings-account-actions button:focus-visible,.settings-account #account-email:focus-visible{outline:3px solid #8eae7b;outline-offset:2px}.settings-account #account-status{min-height:20px;margin:8px 0 0;color:#496352}
 @media(prefers-reduced-motion:reduce){#game-settings .settings-switch-control input,#game-settings .settings-switch-control input::after{transition:none}}
 
 /* Keep team names legible inside the compact scoreboard. */
 .score-row>span{font-size:13px}
+#history-dialog{width:min(560px,calc(100vw - 32px));max-height:85dvh;overflow:auto;padding:24px;border:1px solid #cbd6c1;border-radius:22px;background:#fafbf5;color:#244b3b}#history-dialog::backdrop{background:#102b2566}#history-dialog button{padding:10px 16px;border:1px solid #cbd6c1;border-radius:10px;background:#edf1e6;color:inherit;cursor:pointer}#history-close{float:right}.history-match{padding:16px 0;border-top:1px solid #dce3d3}.history-match p{margin:8px 0}.history-match small{color:#6c7d69}.settings-account-actions{flex-wrap:wrap}.settings-account-actions [hidden]{display:none}
 @media(max-width:760px){.score-row>span{font-size:13px}}
 
 /* A lasting match result, with a complete replay and an explicit fresh start. */
@@ -530,3 +534,12 @@ body[data-screen=start]{overflow:hidden;background:#001331}
 .start-loading{position:absolute;bottom:1%;left:0;right:0;margin:0;text-align:center;color:white;font-size:12px;text-shadow:0 2px 4px #001331}
 .start-loading:empty{display:none}
 @media(prefers-reduced-motion:reduce){.start-actions button{transition:none}}
+#history-player{display:block;width:100%;margin:8px 0 18px;padding:10px 12px;border:1px solid #cbd6c1;border-radius:10px;background:#fff;color:#244b3b;font-size:14px}
+.player-record{font-size:12px!important;font-weight:700;color:#365d4c;margin:8px 0 2px!important;line-height:1.4}
+#player-profile-card{--card-color:#95dfc0;margin:8px 0 16px}
+#player-profile-card .roster-banner{height:170px}
+#player-profile-card .roster-banner img{width:245px;height:245px;bottom:-40px}
+#player-profile-card dl{grid-column:1/-1;display:grid;gap:10px}
+#player-profile-card dl>div{display:flex;justify-content:space-between;align-items:center}
+#player-profile-card dd{margin:0}
+#player-profile-card .roster-motto{font-size:20px}

@@ -1,0 +1,11 @@
+import {mkdirSync,writeFileSync} from 'node:fs';
+import {resolve} from 'node:path';
+import {evaluateNetExecution,evaluateHandsReception} from '../src/net-skill-evaluation';
+const out=resolve(process.argv[2]??'evaluation/net-skills-controlled');mkdirSync(out,{recursive:true});
+const ratings=[30,50,70,90];
+const execution=(['hands','counter','volley'] as const).flatMap(a=>ratings.flatMap(s=>evaluateNetExecution(a,s)));
+const reception=ratings.flatMap(s=>evaluateHandsReception(s));
+writeFileSync(resolve(out,'results.json'),JSON.stringify({ratings,samples:2000,otherSkills:70,execution,reception},null,2));
+const pct=(n:number)=>(n*100).toFixed(1)+'%';
+const lines=['# Controlled net-skill checks','','All other attributes stay at 70. Identical contacts and seeds 0–1999 at each rating. Execution counts landing trajectories before defender interception; reception counts ability to meet the incoming ball before an outgoing shot. These are diagnostics, not match win rates.','','| Attribute | Skill | Shot | Contact | In court | Mishits | Error (m) |','|---|---:|---|---|---:|---:|---:|',...execution.map(r=>`| ${r.attribute} | ${r.skill} | ${r.type} | ${r.condition} | ${pct(r.inCourtRate)} | ${pct(r.mishitRate)} | ${r.meanError.toFixed(3)} |`),'','Flick execution is limited by the lower of volley and hands. With hands fixed at 70, increasing volley beyond 70 should plateau for flicks.','','| Hands | Incoming ball | Reachable | Timing pressure | Returned |','|---:|---|---|---:|---:|',...reception.map(r=>`| ${r.skill} | ${r.condition} | ${r.reachable} | ${r.pressure.toFixed(3)} | ${pct(r.returnRate)} |`)];
+writeFileSync(resolve(out,'report.md'),lines.join('\n'));console.log(`Report: ${out}/report.md`);

@@ -42,12 +42,12 @@ export class CourtTrees {
  private lastUpdate=0;
  constructor(){
   const trunkGeometry=new THREE.CylinderGeometry(.14,.23,2.7,10);
-  const crownGeometry=new THREE.IcosahedronGeometry(1,2);
+  const crownGeometry=new THREE.IcosahedronGeometry(1,1);
   const placements=parkTreePlacements();
   for(const [index,[x,z,scale]] of placements.entries()){
    const root=new THREE.Group();root.position.set(x,-.13,z);root.scale.setScalar(scale);
-   const foliage=['#426f55','#4f7c5c','#568267','#638c65'];
-   const materials=['#78634b',foliage[index%foliage.length],index%3?'#6b9370':'#789d70'].map(color=>new THREE.MeshStandardMaterial({color,roughness:1,transparent:true}));
+   const foliage=['#327C51','#236744','#164D3B','#3f9254'];
+   const materials=['#66402b',foliage[index%foliage.length],index%3?'#65B96C':'#4c9b53'].map(color=>new THREE.MeshStandardMaterial({color,roughness:1,flatShading:true,transparent:true}));
    const trunk=new THREE.Mesh(trunkGeometry,materials[0]);trunk.position.y=1.35;root.add(trunk);
    for(const [cx,cy,cz,r] of [[0,3.25,0,1.35],[-.65,2.75,.15,.95],[.65,2.95,-.2,1.05],[.1,4.1,.05,.85]]){
     const crown=new THREE.Mesh(crownGeometry,materials[cy>3.5?2:1]);crown.position.set(cx,cy,cz);crown.scale.set(r,r*.93,r);root.add(crown);

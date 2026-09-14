@@ -17,5 +17,8 @@ export function receptionRoll(seed:number,player:PlayerState){
 }
 export function swingMissChance(player:PlayerState,pressure:number,speed:number){
  const weakness=1-player.skills.hands/100;
- return Math.min(.65,.003+weakness*weakness*(.035+pressure*.5+clamp((speed-6)/18)*.16));
+ // Skill protects a prepared swing strongly, but rushing a fast ball still
+ // carries risk for strong players. Squaring weakness on the pressure terms
+ // made high-hands defenders nearly immune to pressure throughout long rallies.
+ return Math.min(.65,.003+weakness*weakness*.035+weakness*(pressure*.5+clamp((speed-6)/18)*.16));
 }

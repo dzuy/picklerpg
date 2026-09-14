@@ -1,0 +1,68 @@
+[
+  {
+    "type": "drop",
+    "actor": "you",
+    "samples": 200,
+    "meanNetClearance": 0.5301417322834655,
+    "bounced": 0,
+    "airborne": 199,
+    "highAirContacts": 0,
+    "meanHorizontalReach": 1.5862066632062664,
+    "noReception": 1
+  },
+  {
+    "type": "drop",
+    "actor": "opponent-left",
+    "samples": 200,
+    "meanNetClearance": 0.5301417322834655,
+    "bounced": 0,
+    "airborne": 200,
+    "highAirContacts": 0,
+    "meanHorizontalReach": 1.5842208757568976,
+    "noReception": 0
+  },
+  {
+    "type": "dink",
+    "actor": "you",
+    "samples": 200,
+    "meanNetClearance": 0.3397164187809848,
+    "bounced": 0,
+    "airborne": 199,
+    "highAirContacts": 0,
+    "meanHorizontalReach": 1.615137635135261,
+    "noReception": 1
+  },
+  {
+    "type": "dink",
+    "actor": "opponent-left",
+    "samples": 200,
+    "meanNetClearance": 0.3397164187809848,
+    "bounced": 0,
+    "airborne": 200,
+    "highAirContacts": 0,
+    "meanHorizontalReach": 1.6121514359467184,
+    "noReception": 0
+  },
+  {
+    "type": "reset",
+    "actor": "you",
+    "samples": 200,
+    "meanNetClearance": 0.5301417322834655,
+    "bounced": 0,
+    "airborne": 199,
+    "highAirContacts": 0,
+    "meanHorizontalReach": 1.5862066632062664,
+    "noReception": 1
+  },
+  {
+    "type": "reset",
+    "actor": "opponent-left",
+    "samples": 200,
+    "meanNetClearance": 0.5301417322834655,
+    "bounced": 0,
+    "airborne": 200,
+    "highAirContacts": 0,
+    "meanHorizontalReach": 1.5842208757568976,
+    "noReception": 0
+  }
+]

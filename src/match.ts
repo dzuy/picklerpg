@@ -38,6 +38,7 @@ export class Match {
  substitutePlayer(id:PlayerId,design:DesignedPlayer|null){
   const player=design?validatePlayer(design):null;
   if(id==='you')this.designedPlayer=player;else if(player)this.substitutes[id]=player;else delete this.substitutes[id];
+  delete this.autoChoices[id];if(id==='partner')this.partnerChoices=[];
   const current=this.state.players.find(p=>p.id===id)!;
   const profile=this.lineup[id]?ARCHETYPES[this.lineup[id]!]:PLAYER_PROFILES[id];
   current.skills={...(player?.skills??profile.skills)};current.handedness=player?.handedness??'right';
@@ -46,7 +47,7 @@ export class Match {
  }
  lineup:Partial<Record<PlayerId,keyof typeof ARCHETYPES>>={};
  brainMode:'local'|'llm'=typeof window==='undefined'?'local':'llm';personality:Personality='Chess Player';intelligence=.8;memory=new OpponentMemory();brainStatus=typeof window==='undefined'?'Local opponent':'Background LLM strategy';thinking=false;partnerAutonomy=false;lastSnapshot:TacticalSnapshot|null=null;private request:AbortController|null=null;private generation=0;private observed=0;private strategy:OpponentStrategy|undefined;private strategyPoint=-1;
- scoring=new DoublesScore();engine!:RallyEngine;point=0;seed=1741;lastResult:PointResult|null=null;private awarded=false;
+ randomizeSeedOnReset=false;captureReplay=true;openingTeam:'home'|'away'='home';scoring=new DoublesScore();engine!:RallyEngine;point=0;seed=1741;lastResult:PointResult|null=null;private awarded=false;
  constructor(){this.startPoint()}
  partnerInstructions:{backhand?:'jules'|'rio';soft?:'jules'|'rio';crash?:boolean}={};
  partnerStatus='No partner instructions.';
@@ -59,7 +60,9 @@ export class Match {
  recommendationType:string|null=null;
  get state(){return this.engine.state} get shot(){return this.engine.shot} get availableIntents(){return this.engine.availableIntents} get receptionDecision(){return this.engine.needsReceptionChoice}
  get partnerReceptionDecision(){return this.receptionDecision&&this.partnerAutonomy&&this.shot.resolution?.receiver==='partner'}
- get manualReceptionDecision(){return this.receptionDecision&&!this.partnerReceptionDecision}
+ playerAutonomy=false;
+ get playerReceptionDecision(){return this.receptionDecision&&this.playerAutonomy&&this.shot.resolution?.receiver==='you'}
+ get manualReceptionDecision(){return this.receptionDecision&&!this.partnerReceptionDecision&&!this.playerReceptionDecision}
  get canTakeAir(){return !!this.shot.receptionChoice?.airborne} get canLetBounce(){return !!this.shot.receptionChoice?.bounced}
  get receptionOptions(){
   const options:Array<{intent:ShotIntent;timing:'air'|'bounce'}>=[];
@@ -69,6 +72,7 @@ export class Match {
  get displayedReceptionOptions(){return this.receptionOptions}
  /** The same menu choices shown in the shot dock, retaining their actual flight and timing. */
  get targetingMenu(){
+  if(this.playerAutonomy&&this.state.currentHitter==='you')return [];
   if(this.manualReceptionDecision)return this.displayedReceptionOptions;
   if(this.state.phase!=='decision'||this.state.possession!=='home'||this.partnerAutonomy&&this.state.currentHitter==='partner')return [];
   return this.availableIntents.filter(intent=>intent.source!=='text').map(intent=>({intent,timing:undefined as 'air'|'bounce'|undefined}));
@@ -135,7 +139,7 @@ export class Match {
  }
  previewIntent(intent:unknown){return this.engine.previewIntent(intent)}
  snapshot(){return this.engine.snapshot()}
- reset(){this.opponentChoices=[];this.stopReplay();this.gameReplay=[];this.customPreview=null;this.customBusy=false;this.customStatus='';this.queuedReceptionIntent=null;this.queuedReceptionShot=null;this.request?.abort();this.request=null;this.strategy=undefined;this.strategyPoint=-1;this.generation++;this.thinking=false;this.memory=new OpponentMemory();this.observed=0;this.scoring=new DoublesScore();this.point=0;this.lastResult=null;this.startPoint()}
+ reset(){if(this.randomizeSeedOnReset)this.seed=globalThis.crypto.getRandomValues(new Uint32Array(1))[0];this.autoChoices={};this.partnerChoices=[];this.stopReplay();this.gameReplay=[];this.customPreview=null;this.customBusy=false;this.customStatus='';this.queuedReceptionIntent=null;this.queuedReceptionShot=null;this.request?.abort();this.request=null;this.strategy=undefined;this.strategyPoint=-1;this.generation++;this.thinking=false;this.memory=new OpponentMemory();this.observed=0;this.scoring=new DoublesScore();this.scoring.serving=this.openingTeam;this.scoring.server=this.openingTeam==='home'?'you':'opponent-left';this.point=0;this.lastResult=null;this.startPoint()}
  nextPoint(){if(this.state.phase!=='complete'||this.scoring.winner)throw new Error('Finish the current point first.');this.point++;this.variation++;this.startPoint()}
  submitIntent(intent:unknown){const before=this.snapshot(),actualShotIndex=before.shotIndex;if(this.practice)before.shotIndex+=before.shotHistory.length?2:0;this.engine.submitIntent(intent);if(before.possession==='home'){const selected=this.shot.intent;for(const pattern of this.practice?[this.practice]:recognizePatterns(before)){const assessment=assessChoice(before,selected,pattern);const row={pattern,...assessment,intent:structuredClone(selected),shotIndex:actualShotIndex};this.records.push(row);this.pointRecords.push(row)}this.records=this.records.slice(-500)}}
  startPractice(id:PatternId|null){this.practice=id;this.variation++;this.reset()}
@@ -183,17 +187,20 @@ export class Match {
   return {state,shot:this.replayShots[index]};
  }
  update(dt:number){if(this.replayIndex!==null){if(this.replayPlaying){this.replayElapsed+=dt;const start=this.replayFrames[0].simulationTime,last=this.replayFrames.at(-1)!.simulationTime,target=start+this.replayElapsed*1.5;while(this.replayIndex<this.replayFrames.length-1&&this.replayFrames[this.replayIndex+1].simulationTime<=target)this.replayIndex++;const a=this.replayFrames[this.replayIndex],b=this.replayFrames[this.replayIndex+1];this.replayAlpha=b&&b.simulationTime>a.simulationTime?Math.max(0,Math.min(1,(target-a.simulationTime)/(b.simulationTime-a.simulationTime))):0;if(target>=last){this.replayEndHold+=dt;if(this.replayEndHold>=.65){this.replayIndex=this.replayFrames.length-1;this.replayAlpha=0;this.replayPlaying=false;this.replayEndHold=0}}}return}this.refreshStrategy();this.engine.update(dt);
-  if(this.partnerReceptionDecision&&!this.customBusy){
+  // Reception prompts intentionally pause flight; autonomy must resolve that pause.
+  if((this.partnerReceptionDecision||this.playerReceptionDecision)&&!this.customBusy){
+   const receiver=this.shot.resolution!.receiver;
    const preferred=this.shot.resolution!.bounced?'bounce':'air';
-   const timing=([preferred,preferred==='air'?'bounce':'air'] as const).find(t=>this.receptionSetup(t)?.actor==='partner');
+   const timing=([preferred,preferred==='air'?'bounce':'air'] as const).find(t=>this.receptionSetup(t)?.actor===receiver);
    if(timing)this.chooseReception(timing);
   }
-  this.replayClock+=dt;if(this.state.phase==='flight'&&this.replayClock>=1/30||this.replayFrames.length===0||this.replayFrames.at(-1)?.phase!==this.state.phase){this.replayClock=0;this.replayFrames.push(this.snapshot());this.replayShots.push(structuredClone(this.shot))};
+  this.replayClock+=dt;if(this.captureReplay&&(this.state.phase==='flight'&&this.replayClock>=1/30||this.replayFrames.length===0||this.replayFrames.at(-1)?.phase!==this.state.phase)){this.replayClock=0;this.replayFrames.push(this.snapshot());this.replayShots.push(structuredClone(this.shot))};
   if(this.state.phase==='decision'&&this.state.possession==='home'&&!this.customBusy){
    if(this.queuedReceptionShot){const queued=this.queuedReceptionShot;this.queuedReceptionShot=null;try{this.engine.offerCustom(queued.shot);this.submitIntent(queued.shot.intent);this.customCounts.set(queued.text,(this.customCounts.get(queued.text)??0)+1)}catch(error){this.customStatus=(error as Error).message}}
    else if(this.queuedReceptionIntent){const queued=this.queuedReceptionIntent;this.queuedReceptionIntent=null;const available=this.availableIntents.find(intent=>sameShotIntent(intent,queued));if(available)this.submitIntent({...available,source:queued.source});else this.customStatus='That shot is no longer available at contact.'}
+   else if(this.playerAutonomy&&this.state.currentHitter==='you'&&!this.state.paused&&!this.thinking)this.decidePlayer();
   }
-  if(this.state.phase==='decision'&&this.state.possession==='away'&&!this.thinking&&!this.state.paused)this.decideOpponent();else if(this.state.phase==='decision'&&this.state.currentHitter==='partner'&&this.partnerAutonomy&&!this.thinking&&!this.state.paused)this.decidePartner();if(this.state.phase==='complete'&&!this.awarded){this.awarded=true;this.lastResult=this.state.result;if(!this.practice){this.scoring.award(this.state.result!.winner);const last=this.replayFrames.at(-1);if(last)last.score={...this.scoring.score};this.gameReplay.push({frames:this.replayFrames,shots:this.replayShots})}}this.state.score={...this.scoring.score}}
+  if(this.state.phase==='decision'&&this.state.possession==='away'&&!this.thinking&&!this.state.paused)this.decideOpponent();else if(this.state.phase==='decision'&&this.state.currentHitter==='partner'&&this.partnerAutonomy&&!this.thinking&&!this.state.paused)this.decidePartner();if(this.state.phase==='complete'&&!this.awarded){this.awarded=true;this.lastResult=this.state.result;if(!this.practice){this.scoring.award(this.state.result!.winner);const last=this.replayFrames.at(-1);if(last)last.score={...this.scoring.score};if(this.captureReplay)this.gameReplay.push({frames:this.replayFrames,shots:this.replayShots})}}this.state.score={...this.scoring.score}}
  async submitCommand(text:string,source:'text'|'voice'='text'){
   if(this.customBusy)return;
   this.customDraft=text;
@@ -240,6 +247,8 @@ export class Match {
  }
  /** At most one background request per point; an unfinished request never blocks play. */
  private refreshStrategy(){
+  if(this.playerAutonomy){this.request?.abort();this.request=null;this.brainStatus='Shared local auto-play';return;}
+  if(this.brainStatus==='Shared local auto-play'){this.strategyPoint=-1;this.brainStatus='Local tactics';}
   if(this.brainMode!=='llm'){
    this.request?.abort();this.request=null;this.strategy=undefined;
    this.brainStatus='Local adaptive opponent';return;
@@ -258,18 +267,30 @@ export class Match {
    this.brainStatus=this.strategy?`Keeping strategy · ${this.strategy.name}`:'Local fallback · strategy unavailable';
   }).finally(()=>{clearTimeout(timer);if(this.request===controller)this.request=null;});
  }
- private opponentChoices:OpponentChoiceHistory[]=[];
- private decideOpponent(){
-  const snapshot=tacticalSnapshot(this.state,this.availableIntents,this.memory,this.personality,this.intelligence);this.lastSnapshot=snapshot;
-  const choice=localDecision(snapshot,this.brainMode==='llm'?this.strategy:undefined,{seed:(this.seed+this.point*104729+this.state.shotIndex*7919)>>>0,recent:this.opponentChoices});
-  const intent=snapshot.options[choice];this.opponentChoices.push({intent:structuredClone(intent),receiver:intendedReceiver(snapshot,intent)});this.opponentChoices=this.opponentChoices.slice(-8);
-  this.engine.submitIntent({...snapshot.options[choice],source:'ai'});
+ private partnerChoices:OpponentChoiceHistory[]=[];
+ private autoChoices:Partial<Record<PlayerId,OpponentChoiceHistory[]>>={};
+ private decidePlayer(){this.decideAutomatic('you')}
+ private decideOpponent(){this.decideAutomatic(this.state.currentHitter!)}
+ private decidePartner(){this.decideAutomatic('partner')}
+ private decideAutomatic(actor:PlayerId){
+  let options=this.availableIntents;
+  if(actor==='partner'){
+   if(this.partnerInstructions.soft){const soft=options.filter(o=>['dink','drop','reset','block'].includes(o.type));if(soft.length)options=soft}
+   if(this.partnerInstructions.backhand){const recommended=options.find(o=>o.type===this.recommendationType);if(recommended&&recommended.type!=='serve'){const aimed=options.filter(o=>JSON.stringify(o.target)===JSON.stringify(recommended.target));if(aimed.length)options=aimed}}
+  }
+  if(!options.length)return;
+  // All automatic players share policy, intelligence and per-player recent-choice memory.
+  // Match-wide opponent observations and background strategy are for manual play only.
+  const manualOpponent=!this.playerAutonomy&&this.state.possession==='away';
+  const snapshot=tacticalSnapshot(this.state,options,manualOpponent?this.memory:new OpponentMemory(),this.personality,this.intelligence);
+  this.lastSnapshot=snapshot;
+  const recent=this.autoChoices[actor]??[];
+  const choice=localDecision(snapshot,manualOpponent&&this.brainMode==='llm'?this.strategy:undefined,{seed:(this.seed+this.point*104729+this.state.shotIndex*7919)>>>0,recent});
+  const intent={...options[choice],source:'ai' as const};this.submitIntent(intent);
+  recent.push({intent:structuredClone(intent),receiver:intendedReceiver(snapshot,intent)});this.autoChoices[actor]=recent.slice(-8);
+  if(actor==='partner')this.partnerChoices=this.autoChoices[actor]!;
  }
- private decidePartner(){
-  const engine=this.engine,generation=this.generation,index=this.state.shotIndex;
-  this.thinking=true;
-  globalThis.setTimeout(()=>{if(this.engine!==engine||this.generation!==generation||this.state.phase!=='decision'||this.state.shotIndex!==index||this.state.currentHitter!=='partner'||!this.partnerAutonomy||this.state.paused){this.thinking=false;return}const choice=this.availableIntents.find(intent=>intent.type===this.recommendationType)??this.availableIntents[0];if(choice)this.submitIntent({...choice,source:'ai'});this.thinking=false},550);
- }
+
  private startPoint(){
   this.awarded=false;this.observed=0;this.queuedReceptionIntent=null;this.queuedReceptionShot=null;this.pointRecords=[];this.replayFrames=[];this.replayShots=[];this.replayIndex=null;this.replayPlaying=false;this.replayClock=0;this.replayElapsed=0;this.replayAlpha=0;this.replayEndHold=0;
   const players:PlayerState[]=(Object.keys(PLAYER_PROFILES) as PlayerId[]).map(id=>({id,position:{x:0,y:0,z:0},team:id==='you'||id==='partner'?'home':'away',handedness:'right',facing:id==='you'||id==='partner'?0:Math.PI,skills:{...PLAYER_PROFILES[id].skills},tendencies:{...PLAYER_PROFILES[id].tendencies}}));
@@ -319,16 +340,16 @@ export class Match {
     policy={intent:aimed.intent,reason:'Finn follows your backhand instruction.'};
    }
   }if(hitter.team==='home')this.recommendationType=actor==='partner'?policy?.intent.type??null:null;
-  const menu=buildDecisionMenu(actor,c,players).map(o=>({intent:{...o.intent,source:hitter.team==='away'?'ai' as const:'menu' as const},reason:o.reason}));const choices=hitter.team==='home'?(actor==='partner'&&policy&&(this.partnerInstructions.backhand||this.partnerInstructions.soft)?[policy,...menu]:menu):policy?[policy,...menu.filter(o=>o.intent.type!==policy.intent.type)]:menu;
+  const menu=buildDecisionMenu(actor,c,players).map(o=>({intent:{...o.intent,source:hitter.team==='away'?'ai' as const:'menu' as const},reason:o.reason}));const choices=actor==='partner'&&policy&&(this.partnerInstructions.backhand||this.partnerInstructions.soft)?[policy,...menu]:menu;
   const expanded=choices.flatMap(choice=>{
-   if(choice.intent.type==='serve'&&hitter.team==='home')return [
+   if(choice.intent.type==='serve')return [
     {intent:{...choice.intent,pace:'medium' as const,shape:'arc' as const,spin:{side:'none' as const,vertical:'topspin' as const,strength:'strong' as const},intendedNetClearance:.35},reason:'Topspin pulls the serve down into the court.'},
     {intent:{...choice.intent,pace:'medium' as const,shape:'flat' as const,spin:{side:'right' as const,vertical:'none' as const,strength:'strong' as const},intendedNetClearance:.25},reason:'Slice curves the serve sideways.'},
     {intent:{...choice.intent,pace:'medium' as const,shape:'arc' as const,spin:{side:'none' as const,vertical:'slice' as const,strength:'strong' as const},intendedNetClearance:.4},reason:'Backspin floats the serve and slows its rebound.'},
     {intent:{...choice.intent,pace:'fast' as const,shape:'flat' as const,spin:{side:'none' as const,vertical:'none' as const,strength:'medium' as const},intendedNetClearance:.12,aggression:.8},reason:'Fast serve puts the receiver under time pressure.'},
     {intent:{...choice.intent,pace:'soft' as const,shape:'arc' as const,spin:{side:'none' as const,vertical:'none' as const,strength:'medium' as const},intendedNetClearance:.65,aggression:.25},reason:'Slow serve changes the pace with a gentle arc.'},
    ];
-   return choice.intent.type==='serve'?[choice]:[choice,{intent:{...choice.intent,target:{kind:'zone' as const,zone:'wide' as const,depth:['drop','reset','dink','block'].includes(choice.intent.type)?'kitchen' as const:'deep' as const}},reason:choice.reason+' Aim wider to move the defenders.'}];
+   return [choice,{intent:{...choice.intent,target:{kind:'zone' as const,zone:'wide' as const,depth:['drop','reset','dink','block'].includes(choice.intent.type)?'kitchen' as const:'deep' as const}},reason:choice.reason+' Aim wider to move the defenders.'}];
   });
   if(!choices.some(choice=>choice.intent.type==='serve')){
    const zones=['middle','crosscourt','line','open-court'] as const;
@@ -338,7 +359,7 @@ export class Match {
     for(const zone of zones)if(zone!==currentZone)expanded.push({intent:{...choice.intent,target:{kind:'zone',zone,depth}},reason:`${choice.reason} Target ${zone.replace('-',' ')} for a different look.`});
    }
   }
-    if(hitter.team==='away'&&index>1){const base=choices.find(o=>['drive','counter','volley'].includes(o.intent.type));if(base)for(const p of players.filter(p=>p.team!==hitter.team))expanded.push({intent:{...base.intent,target:{kind:'player',playerId:p.id,aim:'feet'}},reason:'Pressure a low contact.'})}
+    if(index>1){const base=choices.find(o=>['drive','counter','volley','overhead'].includes(o.intent.type));if(base)for(const p of players.filter(p=>p.team!==hitter.team))expanded.push({intent:{...base.intent,target:{kind:'player',playerId:p.id,aim:'feet'}},reason:'Pressure a low contact.'})}
   return expanded.flatMap(({intent,reason})=>{try{return [{...this.plan(intent,reason,c,players,index,serveReceiver),recommendation:actor==='partner'&&intent.type===policy?.intent.type?`Finn prefers ${intent.type}: ${policy.reason}`:undefined}]}catch{return []}});
  }
  private plan(intent:ShotIntent,reason:string,c:ShotContext,players:PlayerState[],index:number,serveReceiver?:PlayerId,balance=1):RallyShot{
@@ -371,7 +392,7 @@ export class Match {
    // Search airborne contacts first after the two-bounce opening, then a first-bounce pickup.
    const candidates:Candidate[]=index<2?[{leg:rebound,offset:base.duration,bounce:true}]:[{leg:base,offset:0,bounce:false},{leg:rebound,offset:base.duration,bounce:true}];
    for(const candidate of candidates){
-    let found=false;
+    let found=false,emergency:Reception|undefined;
     for(let step=1;step<40&&!found;step++){
      const t=step/40,p=sampleLeg(candidate.leg,t),elapsed=candidate.offset+t*candidate.leg.duration;
      if(p.z*c.contact.z>=0||p.y<(candidate.bounce?.7:.3)||p.y>SHOT_FAMILIES.overhead.maxHeight)continue;
@@ -381,6 +402,9 @@ export class Match {
       const rawFeetZ=p.z+side*.3;
       if(!candidate.bounce&&Math.abs(p.z)<COURT.kitchen-1.55)continue;
       const feet={x:p.x-Math.sign(lateral||side)*Math.min(1,Math.max(.25,Math.abs(lateral)*.35)),y:0,z:candidate.bounce?rawFeetZ:side*Math.max(Math.abs(rawFeetZ),COURT.kitchen+.08)};
+      // Staying outside the kitchen cannot grant unlimited paddle reach into it.
+      // A ball beyond this horizontal reach must be met later or after its bounce.
+      if(Math.hypot(p.x-feet.x,p.z-feet.z)>1.2)continue;
       const distance=Math.hypot(feet.x-player.position.x,feet.z-player.position.z);
       const testContext:ShotContext={contact:p,feet,bounced:candidate.bounce,opening:index===0?'return':'rally',twoBounceSatisfied:index>=1,incomingSpeed:Math.hypot(...Object.values(sampleVelocity(candidate.leg,t)))};
       const menu=buildDecisionMenu(player.id,testContext,players);if(!menu.length)continue;
@@ -389,9 +413,16 @@ export class Match {
       const timing=receptionTiming(player,distance,elapsed,speed,candidate.bounce);
       // A high pop-up may be chased aggressively; movementZ then makes the overhead execution difficult.
       if(!timing.reachable)continue;
-      receptions.push({candidate,t,receiver:player.id,feet,overhead,pressure:timing.pressure,miss:receptionRoll(execution.seed,player)<swingMissChance(player,timing.pressure,speed)});found=true;break;
+      const reception={candidate,t,receiver:player.id,feet,overhead,pressure:timing.pressure,miss:receptionRoll(execution.seed,player)<swingMissChance(player,timing.pressure,speed)};
+      // Reach is permission to hit, not a command to take the earliest rushed ball.
+      // Prefer a prepared contact; keep the least-rushed reachable emergency option.
+      // Selection never uses the sampled miss outcome.
+      if(!emergency||reception.pressure<emergency.pressure)emergency=reception;
+      if(timing.pressure>.4)continue;
+      receptions.push(reception);found=true;break;
      }
     }
+    if(!found&&emergency)receptions.push(emergency);
    }
    const chosen=receptions[0];
    if(chosen&&!chosen.miss){receiver=chosen.receiver;receiveFeet=chosen.feet;bounced=chosen.candidate.bounce;legs=chosen.candidate.bounce?[base,interceptFlight(rebound,chosen.t)]:[interceptFlight(base,chosen.t)]}
@@ -430,7 +461,7 @@ export class Match {
   if(result?.reason==='body-hit'&&result.playerId)positions[result.playerId]={...players.find(p=>p.id===result!.playerId)!.position};
   let receptionChoice:RallyShot['receptionChoice'];
   const airborne=receptions.find(item=>!item.miss&&!item.candidate.bounce),afterBounce=receptions.find(item=>!item.miss&&item.candidate.bounce);
-  if(!result&&team==='away'&&index>=2&&(airborne||afterBounce)){
+  if(!result&&team==='away'&&index>=2&&(airborne||afterBounce)&&!(receiver==='you'?this.playerAutonomy:this.partnerAutonomy)){
    const branch=(item:Reception)=>{
     const branchLegs=item.candidate.bounce?[execution.leg,interceptFlight(item.candidate.leg,item.t)]:[interceptFlight(execution.leg,item.t)];
     const branchDuration=branchLegs.reduce((sum,leg)=>sum+leg.duration,0);

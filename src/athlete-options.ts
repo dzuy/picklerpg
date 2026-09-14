@@ -56,7 +56,8 @@ export function dressAthlete(model:THREE.Group,a:Appearance){
  else curve(0,1.505,.087,-.025,mouth,.009);
  attach(expression,'head');
 
- if(a.paddleShape!=='rectangular'){
+ // Use the same centered, colored-edge construction for every paddle shape.
+ {
   const bounds=new THREE.Box3();model.updateMatrixWorld(true);
   model.traverse(o=>{if(!(o instanceof THREE.Mesh)||!o.name.startsWith('paddle_01'))return;
    const materials=Array.isArray(o.material)?o.material:[o.material];
@@ -67,7 +68,7 @@ export function dressAthlete(model:THREE.Group,a:Appearance){
   });
   if(!bounds.isEmpty()){
    const g=slot(`paddle-${a.paddleShape}`),center=bounds.getCenter(new THREE.Vector3());
-   const w=a.paddleShape==='squarish'?.30:.28,h=a.paddleShape==='squarish'?.28:.30,r=a.paddleShape==='squarish'?.025:.075;
+   const w=a.paddleShape==='squarish'?.32:.30,h=a.paddleShape==='squarish'?.30:.34,r=a.paddleShape==='rectangular'?.014:a.paddleShape==='squarish'?.025:.075;
    center.y=bounds.max.y-h/2;
    function face(inset:number,depth:number,color:string){
     const shape=new THREE.Shape(),halfW=w/2-inset,halfH=h/2-inset;
@@ -81,7 +82,7 @@ export function dressAthlete(model:THREE.Group,a:Appearance){
     }
     return mesh(g,new THREE.ExtrudeGeometry(shape,{depth,bevelEnabled:false,curveSegments:16}),color,center.clone().add(new THREE.Vector3(0,0,-depth/2)));
    }
-   face(0,.027,a.paddle);face(.013,.030,'#303d3e');attach(g,'paddle_socket');
+   face(0,.027,a.paddle);face(.013,.030,'#101b2b');attach(g,'paddle_socket');
   }
  }
 

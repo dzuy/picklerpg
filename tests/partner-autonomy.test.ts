@@ -10,22 +10,20 @@ function partnerReception(actor:'you'|'partner'='partner'){
  }
  throw new Error('Expected a partner reception');
 }
-test('turning on partner auto-play resolves an already waiting reception and plays Finn’s shot',async()=>{
+test('turning on partner auto-play resolves reception and plays immediately at contact',()=>{
  const match=partnerReception();assert.equal(match.manualReceptionDecision,true);
  match.update(.05);assert.equal(match.receptionDecision,true,'off keeps manual selection');
+ const count=match.state.shotHistory.length;
  match.partnerAutonomy=true;assert.equal(match.manualReceptionDecision,false);
  match.update(.01);assert.equal(match.receptionDecision,false);assert.equal(match.state.paused,false);
- for(let frame=0;frame<500&&match.state.phase!=='decision';frame++)match.update(.02);
- assert.equal(match.state.currentHitter,'partner');assert.equal(match.thinking,true);
- const count=match.state.shotHistory.length;
- await new Promise(resolve=>setTimeout(resolve,600));
+ for(let frame=0;frame<500&&match.state.shotHistory.length===count;frame++)match.update(.02);
+ assert.equal(match.thinking,false);
  assert.equal(match.state.shotHistory.length,count+1);assert.equal(match.state.shotHistory.at(-1)?.actor,'partner');assert.equal(match.state.shotHistory.at(-1)?.source,'ai');
 });
-test('turning auto-play off while Finn is thinking leaves the shot for manual choice',async()=>{
- const match=partnerReception();match.partnerAutonomy=true;match.update(.01);
+test('turning auto-play off before contact leaves the shot for manual choice',()=>{
+ const match=partnerReception();match.partnerAutonomy=true;match.update(.01);match.partnerAutonomy=false;
+ const count=match.state.shotHistory.length;
  for(let frame=0;frame<500&&match.state.phase!=='decision';frame++)match.update(.02);
- assert.equal(match.thinking,true);match.partnerAutonomy=false;
- const count=match.state.shotHistory.length;await new Promise(resolve=>setTimeout(resolve,600));
  assert.equal(match.state.phase,'decision');assert.equal(match.state.shotHistory.length,count);assert.equal(match.thinking,false);
 });
 
