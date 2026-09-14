@@ -19,7 +19,7 @@ function seed(row:StoredMatch){return createHmac('sha256',row.resolution_secret)
 export function publicMatch(row:StoredMatch,actor:string):PublicMatch {
  const viewerTeam=teamFor(row,actor);compatible(row);const match=Match.fromCheckpoint(row.checkpoint),s=match.state;
  const currentTeam=row.status==='active'?match.decisionTeam:null;
- return {id:row.id,version:row.version,status:row.status,viewerTeam,currentTeam,decisionId:decisionId(row),rules:{...row.checkpoint.rules},score:{...match.scoring.score},serveCall:match.scoring.call,server:match.scoring.server,pointIndex:match.point,
+ return {id:row.id,version:row.version,status:row.status,accountIds:{home:row.home_user_id,away:row.away_user_id},viewerTeam,currentTeam,decisionId:decisionId(row),rules:{...row.checkpoint.rules},score:{...match.scoring.score},serveCall:match.scoring.call,server:match.scoring.server,pointIndex:match.point,
   display:{schemaVersion:2,phase:s.phase,stage:s.stage,shotIndex:s.shotIndex,legIndex:0,elapsed:0,simulationTime:0,paused:true,ball:structuredClone(s.ball),players:structuredClone(s.players),shotHistory:[],rallyHistory:[],bounces:s.bounces,score:{...s.score},currentHitter:s.currentHitter,possession:s.possession,result:s.result?{...s.result}:null},
   roster:Object.fromEntries(SLOTS.map(id=>{const f=row.checkpoint.roster[id];return [id,{...f.design!,skills:{...f.skills},handedness:f.handedness}]})) as PublicMatch['roster'],
   choices:currentTeam===viewerTeam?structuredClone(match.targetingMenu):[],result:row.last_result,animation:structuredClone(row.animation)};
@@ -38,7 +38,7 @@ function animations(match:Match):TurnAnimation[]{
 }
 export class MatchService {
  constructor(private repository:MatchRepository,private testers:ReadonlyMap<string,string>,private creationEnabled=true){}
- config(actor:string){return {selfId:actor,creationEnabled:this.creationEnabled&&this.testers.has(actor),testers:[...this.testers].filter(([id])=>id!==actor&&this.testers.has(actor)).map(([id,name])=>({id,name}))};}
+ config(actor:string){return {selfId:actor,selfName:this.testers.get(actor)??'Previous playtest account',creationEnabled:this.creationEnabled&&this.testers.has(actor),testers:[...this.testers].filter(([id])=>id!==actor&&this.testers.has(actor)).map(([id,name])=>({id,name}))};}
  async get(id:string,actor:string){const row=await this.repository.get(id,actor);if(!row)throw missing();return publicMatch(row,actor);}
  async list(actor:string){return (await this.repository.list(actor)).map(row=>publicMatch(row,actor));}
  async create(actor:string,input:unknown){

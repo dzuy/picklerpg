@@ -36,3 +36,11 @@ test('emitted Node engine serves authenticated remote APIs alongside static, hea
   await configuredMatchHandler({})(null,fake);assert.equal(status,503);
  }finally{await new Promise<void>(resolve=>server.close(resolve));await rm(root,{recursive:true,force:true});}
 });
+
+test('registration works before login and obeys origin checks',async()=>{
+ const {createMatchHandler}=await import('../server/multiplayer/routes');const {MatchService}=await import('../server/multiplayer/service');
+ let calls=0;const handler=createMatchHandler(new MatchService(new MemoryRepository(),testers),async()=>{throw Error('no auth');},async input=>{calls++;assert.deepEqual(input,{email:'new@example.com',password:'long-password-123'});return {created:true};});
+ const server=createProductionServer({matchHandler:handler});await new Promise<void>(resolve=>server.listen(0,'127.0.0.1',resolve));const base=`http://127.0.0.1:${server.address().port}`;
+ try{const post=(origin:string)=>fetch(base+'/api/multiplayer/register',{method:'POST',headers:{'Content-Type':'application/json',Origin:origin},body:JSON.stringify({email:'new@example.com',password:'long-password-123'})});assert.equal((await post('https://unrelated.example')).status,403);assert.equal(calls,0);assert.equal((await post(base)).status,201);assert.equal(calls,1);
+ }finally{await new Promise<void>(resolve=>server.close(resolve));}
+});

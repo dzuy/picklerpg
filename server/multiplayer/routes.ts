@@ -3,6 +3,7 @@ import {createClient} from '@supabase/supabase-js';
 import {MatchService} from './service';
 import {SupabaseMatchRepository} from './repository';
 import {ApiError} from './errors';
+import {registerPlaytester,loadPlaytesters} from './accounts';
 import {uuid} from './validation';
 export type Authenticate=(token:string)=>Promise<string>;
 function send(res:ServerResponse,status:number,value:unknown){res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}).end(JSON.stringify(value));}
@@ -12,7 +13,7 @@ async function body(req:IncomingMessage){
  for await(const chunk of req){size+=chunk.length;if(size>32768)throw new ApiError(413,'too_large','Request is too large.');chunks.push(Buffer.from(chunk));}
  try{return JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{throw new ApiError(400,'invalid_json','Invalid JSON.');}
 }
-export function createMatchHandler(service:MatchService,authenticate:Authenticate){
+export function createMatchHandler(service:MatchService,authenticate:Authenticate,register?: (input:unknown)=>Promise<unknown>){
  const buckets=new Map<string,{start:number;count:number}>();
  function limit(key:string,max:number){const now=Date.now();let b=buckets.get(key);if(!b||now-b.start>=60000){if(buckets.size>=5000)for(const [k,v] of buckets)if(now-v.start>=60000)buckets.delete(k);if(buckets.size>=5000)throw new ApiError(429,'busy','Try again shortly.');b={start:now,count:0};buckets.set(key,b);}if(++b.count>max)throw new ApiError(429,'rate_limited','Too many requests. Try again shortly.');}
  return async(req:IncomingMessage,res:ServerResponse)=>{
@@ -21,10 +22,11 @@ export function createMatchHandler(service:MatchService,authenticate:Authenticat
    const origin=req.headers.origin;
    if(origin){let host;try{host=new URL(origin).host}catch{throw new ApiError(403,'origin','Invalid origin.');}if(host!==req.headers.host)throw new ApiError(403,'origin','This origin is not allowed.');}
    limit(`ip:${req.socket.remoteAddress}`,300);
+   const pathname=new URL(req.url!,'http://localhost').pathname;
+   if(pathname==='/api/multiplayer/register'&&req.method==='POST'){if(!register)throw new ApiError(403,'registration_disabled','Registration is closed.');limit('registration:global',6);send(res,201,await register(await body(req)));return;}
    const token=req.headers.authorization?.match(/^Bearer ([^\s]+)$/i)?.[1];if(!token||token.length>8192)throw new ApiError(401,'authentication','Sign in to open this match.');
    const actor=await authenticate(token);if(!uuid(actor))throw new ApiError(401,'authentication','Sign in again.');
    limit(`user:${actor}`,180);
-   const pathname=new URL(req.url!,'http://localhost').pathname;
    if(pathname==='/api/multiplayer/config'&&req.method==='GET'){send(res,200,service.config(actor));return;}
    if(pathname==='/api/matches'){
     if(req.method==='GET'){send(res,200,await service.list(actor));return;}
@@ -47,9 +49,9 @@ export function configuredMatchHandler(env:NodeJS.ProcessEnv=process.env){
  if(!url||!key)return unavailable('Remote play needs server database configuration.');
  const client=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
  const testers=new Map<string,string>();
- for(const [index,id] of (env.MULTIPLAYER_TESTER_IDS??'').split(',').map(s=>s.trim().toLowerCase()).filter(Boolean).entries()){
-  if(!uuid(id))throw new Error('MULTIPLAYER_TESTER_IDS must contain UUIDs.');testers.set(id,`Tester ${index+1}`);
- }
- const authenticate:Authenticate=async token=>{const {data,error}=await client.auth.getUser(token);if(error||!data.user)throw new ApiError(401,'authentication','Your session expired. Sign in again, then retry.');return data.user.id;};
- return createMatchHandler(new MatchService(new SupabaseMatchRepository(client),testers,env.MULTIPLAYER_CREATE_ENABLED==='true'),authenticate);
+ let refreshed=0,refreshing:Promise<void>|null=null;
+ async function refreshTesters(){if(Date.now()-refreshed<5000)return;if(!refreshing)refreshing=(async()=>{const enrolled=await loadPlaytesters(client);testers.clear();for(const [id,email] of enrolled)testers.set(id,email);refreshed=Date.now();})().finally(()=>{refreshing=null;});await refreshing;}
+ const authenticate:Authenticate=async token=>{const {data,error}=await client.auth.getUser(token);if(error||!data.user)throw new ApiError(401,'authentication','Your session expired. Sign in again, then retry.');await refreshTesters();return data.user.id;};
+ const register=env.MULTIPLAYER_CREATE_ENABLED==='true'?async(input:unknown)=>{const result=await registerPlaytester(client,input);refreshed=0;return result;}:undefined;
+ return createMatchHandler(new MatchService(new SupabaseMatchRepository(client),testers,env.MULTIPLAYER_CREATE_ENABLED==='true'),authenticate,register);
 }
