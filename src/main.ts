@@ -588,6 +588,12 @@ void cloudReady.then(()=>{
  if(earlyResumeOwner!==null){if(owner!==earlyResumeOwner)location.reload();return;}
  initializeResume(owner);
 });
+// Open roster directly, and return multiplayer visitors to their saved game on close.
+const rosterRoute=new URLSearchParams(location.search);
+if(rosterRoute.get('roster')==='1')void cloudReady.then(()=>{
+ showStartScreen();creator.open();
+ if(rosterRoute.get('from')==='multiplayer')creator.dialog.addEventListener('close',()=>{const back=new URL('/?multiplayer=1',location.origin);const matchId=rosterRoute.get('match');if(matchId)back.searchParams.set('match',matchId);location.assign(back.href)},{once:true});
+});
 startScreen.querySelector('.start-loading')!.textContent='';app.inert=onStartScreen;
 updateUI();let previous:number|undefined;function frame(now:number){
  if(onStartScreen||!resumeReady){previous=now;requestAnimationFrame(frame);return}

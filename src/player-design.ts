@@ -9,7 +9,7 @@ export interface Appearance {
  shoeStyle:typeof APPEARANCE_OPTIONS.shoeStyle[number];glassesColor:string;lensColor:string;
  skin:string;hair:string;jersey:string;bottomColor:string;hatColor:string;accent:string;shoes:string;paddle:string;
 }
-export interface DesignedPlayer {id:string;name:string;catchphrase?:string;appearance:Appearance;skills:PlayerSkills;handedness:'left'|'right'}
+export interface DesignedPlayer {id:string;name:string;catchphrase?:string;isPublic?:boolean;appearance:Appearance;skills:PlayerSkills;handedness:'left'|'right'}
 export interface PlayerLibrary {version:1;activeId:string|null;players:DesignedPlayer[]}
 export const PLAYER_STORAGE_KEY='pickle-rpg-players-v1';
 export const DEFAULT_APPEARANCE:Appearance={expression:'happy',paddleShape:'rectangular',presentation:'boy',face:'oval',hairStyle:'short',hat:'cap',glasses:'none',glassesColor:'#25272d',lensColor:'#b7dce5',shoeStyle:'court',skin:'#dba67f',hair:'#493629',jersey:'#f3dc86',accent:'#214d43',hatColor:'#214d43',bottomColor:'#214d43',top:'jersey',bottom:'shorts',accessory:'wristband',shoes:'#214d43',paddle:'#214d43'};
@@ -29,6 +29,7 @@ function validatePlayerRecord(value:unknown,catchphraseLimit:number):DesignedPla
  if(typeof p.id!=='string'||!p.id||p.id.length>100)throw new Error('Invalid player ID.');
  if(typeof p.name!=='string'||!p.name.trim()||p.name.trim().length>24)throw new Error('Use a player name of 1–24 characters.');
  if(p.catchphrase!==undefined&&(typeof p.catchphrase!=='string'||p.catchphrase.trim().length>catchphraseLimit))throw new Error(`Use a catchphrase of up to ${catchphraseLimit} characters.`);
+ if(p.isPublic!==undefined&&typeof p.isPublic!=='boolean')throw new Error('Choose a valid sharing setting.');
  if(p.handedness!=='left'&&p.handedness!=='right')throw new Error('Choose a playing hand.');
  if(!p.appearance||!p.skills)throw new Error('Player appearance or skills are missing.');
  // Older saved players gain new outfit options without losing their design.
@@ -36,7 +37,7 @@ function validatePlayerRecord(value:unknown,catchphraseLimit:number):DesignedPla
  for(const [key,options] of Object.entries(APPEARANCE_OPTIONS))if(!(options as readonly string[]).includes(appearance[key as keyof Appearance]))throw new Error('Unknown appearance option.');
  for(const key of ['lensColor','glassesColor','skin','hair','jersey','bottomColor','hatColor','accent','shoes','paddle'] as const)if(!/^#[0-9a-f]{6}$/i.test(appearance[key]))throw new Error('Choose a valid color.');
  for(const key of SKILLS)if(!Number.isInteger(p.skills[key])||p.skills[key]<0||p.skills[key]>100)throw new Error('Skills must be whole numbers from 0 to 100.');
- return {id:p.id,name:p.name.trim(),...(p.catchphrase?.trim()?{catchphrase:p.catchphrase.trim()}:{}),handedness:p.handedness,appearance:{expression:appearance.expression,paddleShape:appearance.paddleShape,shoeStyle:appearance.shoeStyle,glassesColor:appearance.glassesColor,lensColor:appearance.lensColor,presentation:appearance.presentation,face:p.appearance.face,hairStyle:p.appearance.hairStyle,hat:p.appearance.hat,glasses:p.appearance.glasses,skin:p.appearance.skin,hair:p.appearance.hair,jersey:p.appearance.jersey,accent:p.appearance.accent,bottomColor:appearance.bottomColor,hatColor:appearance.hatColor,top:appearance.top,bottom:appearance.bottom,accessory:appearance.accessory,shoes:appearance.shoes,paddle:appearance.paddle},skills:Object.fromEntries(SKILLS.map(key=>[key,p.skills[key]])) as PlayerSkills};
+ return {id:p.id,name:p.name.trim(),...(p.isPublic!==undefined?{isPublic:p.isPublic}:{}),...(p.catchphrase?.trim()?{catchphrase:p.catchphrase.trim()}:{}),handedness:p.handedness,appearance:{expression:appearance.expression,paddleShape:appearance.paddleShape,shoeStyle:appearance.shoeStyle,glassesColor:appearance.glassesColor,lensColor:appearance.lensColor,presentation:appearance.presentation,face:p.appearance.face,hairStyle:p.appearance.hairStyle,hat:p.appearance.hat,glasses:p.appearance.glasses,skin:p.appearance.skin,hair:p.appearance.hair,jersey:p.appearance.jersey,accent:p.appearance.accent,bottomColor:appearance.bottomColor,hatColor:appearance.hatColor,top:appearance.top,bottom:appearance.bottom,accessory:appearance.accessory,shoes:appearance.shoes,paddle:appearance.paddle},skills:Object.fromEntries(SKILLS.map(key=>[key,p.skills[key]])) as PlayerSkills};
 }
 export function parseLibrary(raw:string|null):PlayerLibrary{
  if(raw===null)return {version:1,activeId:null,players:[]};
@@ -48,6 +49,7 @@ export function parseLibrary(raw:string|null):PlayerLibrary{
  return {version:1,activeId:value.activeId,players};
 }
 export function savePlayer(storage:Pick<Storage,'setItem'>,library:PlayerLibrary,draft:DesignedPlayer,activate=false):PlayerLibrary{
+ if(draft.id.startsWith('community-'))throw new Error('Community Players can only be edited by their creator.');
  const player=validatePlayer(draft),players=library.players.filter(p=>p.id!==player.id);
  if(players.length>=100)throw new Error('This roster is full (100 players).');
  const next:PlayerLibrary={version:1,activeId:activate?player.id:library.activeId,players:[...players,player]};

@@ -1,3 +1,6 @@
+import {CommunitySection} from '../community-section';
+import {isCommunityPlayer,refreshCommunityDesigns} from '../community-players';
+import type {DesignedPlayer} from '../player-design';
 import {setupLineup,cyclePlayer} from '../match-setup-state';
 import {parseLibrary,PLAYER_STORAGE_KEY} from '../player-design';
 import {preloadAthletes} from '../athlete';
@@ -9,8 +12,11 @@ import '../match-setup.css';
 /** Same roster/preset selection and rendered athletes as solo setup, restricted to your team. */
 export class TeamPicker {
  private lineup=setupLineup(parseLibrary(localStorage.getItem(PLAYER_STORAGE_KEY)).players,[]);
+ private community=new CommunitySection(players=>this.setCommunity(players));
+ private setCommunity(players:DesignedPlayer[]){const own=this.lineup.players.filter(p=>!isCommunityPlayer(p)),all=[...own,...players];const current=this.lineup.selected.map(id=>all.find(p=>p.id===id)??null);this.lineup=setupLineup(all,current);this.draw();}
+ async freshTeam(){return await refreshCommunityDesigns(this.team) as TeamSelection}
  private static portraits:AvatarThumbnails|undefined;
- constructor(private host:HTMLElement){this.draw();void preloadAthletes().then(()=>{if(this.host.isConnected)this.draw()}).catch(()=>{})}
+ constructor(private host:HTMLElement){this.draw();void this.community.load();void preloadAthletes().then(()=>{if(this.host.isConnected)this.draw()}).catch(()=>{})}
  get team():TeamSelection{return this.lineup.selected.slice(0,2).map(id=>structuredClone(this.lineup.players.find(p=>p.id===id)!)) as TeamSelection}
  private draw(){
   this.host.replaceChildren();this.host.className='remote-team-picker setup-team-players';
@@ -24,6 +30,6 @@ export class TeamPicker {
    const controls=document.createElement('div');controls.className='setup-picker';for(const step of [-1,1]){const button=document.createElement('button');button.type='button';button.textContent=step<0?'‹':'›';button.setAttribute('aria-label',`${step<0?'Previous':'Next'} ${i?'partner':'player'}`);button.onclick=()=>{this.lineup.selected=cyclePlayer(this.lineup.players.map(p=>p.id),this.lineup.selected.slice(0,2),i,step);this.draw();this.host.querySelectorAll<HTMLButtonElement>('button')[i*2+(step>0?1:0)]?.focus()};controls.append(button)}
    card.append(label,portrait,meta,controls);this.host.append(card);
   });
-  const note=document.createElement('p');note.className='remote-team-stat-note';note.textContent='Player ratings shown. Multiplayer currently uses equal gameplay skills.';this.host.append(note);
+  const note=document.createElement('p');note.className='remote-team-stat-note';note.textContent='Player ratings shown. Multiplayer currently uses equal gameplay skills.';this.host.append(note,this.community.element);
  }
 }

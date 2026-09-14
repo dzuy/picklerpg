@@ -1,3 +1,5 @@
+import {CommunitySection} from './community-section';
+import {isCommunityPlayer} from './community-players';
 import {fillPlayerCard,playerRecord} from './player-card';
 import type {HistoryMatch} from './player-history';
 import {SUMMARY_SKILLS,setSummarySkillLevel,summarizeSkills,skillLevel} from './player-skill-summary';
@@ -26,6 +28,7 @@ const skillHelp:Record<typeof SKILLS[number],string>={serve:'Start the point wit
 export class PlayerCreator {
  readonly dialog=document.createElement('dialog');
  loadHistory:()=>Promise<HistoryMatch[]>=async()=>{throw new Error('History unavailable')};
+ private community=new CommunitySection();
  private rosterThumbnails:AvatarThumbnails|null=null;
  private thumbnails:AvatarThumbnails|null=null;private thumbnailsReady=false;
  private library:PlayerLibrary={version:1,activeId:null,players:[]};private draft=newPlayer();private baseline='';private preview:AvatarPreview|null=null;private previewFailed=false;private loadError='';private pending:(()=>void)|null=null;
@@ -34,11 +37,12 @@ export class PlayerCreator {
   const active=this.library.players.find(p=>p.id===this.library.activeId);
   if(active)this.draft=structuredClone(active);this.baseline=JSON.stringify(this.draft);
   this.dialog.id='player-creator';this.dialog.setAttribute('aria-labelledby','creator-title');
-  this.dialog.innerHTML=`<section class="player-roster-page" aria-labelledby="roster-title"><div class="roster-top"><div><h1 id="roster-title">Your roster</h1></div><div class="roster-cheer" aria-hidden="true">Good players.<br>Brighter rallies.<svg viewBox="0 0 70 80" fill="none"><ellipse cx="40" cy="29" rx="22" ry="26" fill="currentColor" transform="rotate(35 40 29)"/><path d="m27 48-17 22" stroke="currentColor" stroke-width="12" stroke-linecap="round"/><g fill="#fafbf3"><circle cx="38" cy="13" r="3"/><circle cx="49" cy="23" r="3"/><circle cx="29" cy="27" r="3"/><circle cx="40" cy="38" r="3"/><circle cx="53" cy="36" r="3"/></g></svg></div><button type="button" class="creator-close" data-close aria-label="Return to main game" title="Return to main game">×</button></div><div class="roster-actions"><button type="button" data-create-player>+ Create new player</button><button type="button" data-resume hidden>Continue editing</button></div><p data-roster-status role="status"></p><section data-saved-section><h2>Saved Players</h2><div data-saved-roster class="roster-grid"></div></section><h2>Starting Lineup</h2><div data-default-roster class="roster-grid"></div></section><div class="creator-topline"><button type="button" data-back-roster>← Roster</button><span>PICKLE RPG <i>·</i> CREATE PLAYER</span></div>
+  this.dialog.innerHTML=`<section class="player-roster-page" aria-labelledby="roster-title"><div class="roster-top"><div><h1 id="roster-title">Your roster</h1></div><div class="roster-cheer" aria-hidden="true">Good players.<br>Brighter rallies.<svg viewBox="0 0 70 80" fill="none"><ellipse cx="40" cy="29" rx="22" ry="26" fill="currentColor" transform="rotate(35 40 29)"/><path d="m27 48-17 22" stroke="currentColor" stroke-width="12" stroke-linecap="round"/><g fill="#fafbf3"><circle cx="38" cy="13" r="3"/><circle cx="49" cy="23" r="3"/><circle cx="29" cy="27" r="3"/><circle cx="40" cy="38" r="3"/><circle cx="53" cy="36" r="3"/></g></svg></div><button type="button" class="creator-close" data-close aria-label="Return to main game" title="Return to main game">×</button></div><div class="roster-actions"><button type="button" data-create-player>+ Create new player</button><button type="button" data-resume hidden>Continue editing</button></div><p data-roster-status role="status"></p><section data-saved-section><h2>Saved Players</h2><div data-saved-roster class="roster-grid"></div></section><div data-community-section></div><h2>Starting Lineup</h2><div data-default-roster class="roster-grid"></div></section><div class="creator-topline"><button type="button" data-back-roster>← Roster</button><span>PICKLE RPG <i>·</i> CREATE PLAYER</span></div>
   <div class="creator-layout"><section class="creator-stage" aria-label="Avatar preview"><div class="creator-heading"><h2 id="creator-title">Create Your Player</h2><p>Different players.<br>A brighter court.</p></div>
 
   <div class="creator-preview"></div><div class="creator-plinth"></div>
   <div class="creator-identity"><label for="creator-name">PLAYER NAME<input id="creator-name" type="text" inputmode="text" enterkeyhint="done" autocapitalize="words" maxlength="24" autocomplete="off" placeholder="Name your player"></label><label class="creator-catchphrase-label" for="creator-catchphrase">CATCHPHRASE<input id="creator-catchphrase" type="text" inputmode="text" enterkeyhint="done" maxlength="25" autocomplete="off"></label>
+  <label class="creator-public-control"><input id="creator-public" type="checkbox"> Anyone can use this player</label>
   <label class="style-heading">PLAY STYLE <span>(OPTIONAL)</span></label><div class="creator-style-chips"><button type="button" data-style="allCourt">All-Court</button><button type="button" data-style="attacker">Power</button><button type="button" data-style="defender">Quick Hands</button><button type="button" data-style="setup">Strategic</button></div>
   <blockquote>“Small moves.<br>Big plans.”</blockquote><div class="creator-summary">${['Power','Control','Speed','Hands'].map(name=>`<div><span>${name}</span><meter aria-label="${name} summary" min="0" max="100" value="70" data-summary="${name}" title="${SUMMARY_SKILLS[name as keyof typeof SUMMARY_SKILLS].map(title).join(', ')}"></meter><output data-summary-value="${name}"></output></div>`).join('')}</div>
   </div>
@@ -84,6 +88,7 @@ export class PlayerCreator {
   this.el('[data-discard]').addEventListener('click',()=>{this.pending?.();this.pending=null;this.el('.creator-confirm').hidden=true});
   this.input('#creator-name').addEventListener('click',()=>this.input('#creator-name').focus());
   this.input('#creator-name').addEventListener('keydown',event=>{if(event instanceof KeyboardEvent&&event.key==='Enter'){event.preventDefault();this.input('#creator-name').blur()}});
+  this.input('#creator-public').addEventListener('change',()=>{this.draft.isPublic=(this.input('#creator-public') as HTMLInputElement).checked;this.changed()});
   this.input('#creator-catchphrase').addEventListener('input',()=>{this.draft.catchphrase=this.input('#creator-catchphrase').value;this.changed()});
   this.input('#creator-name').addEventListener('input',()=>{this.draft.name=this.input('#creator-name').value;this.updateCaption();this.changed()});
   this.dialog.querySelectorAll<HTMLButtonElement>('[data-choice]').forEach(button=>button.addEventListener('click',()=>{if(button.dataset.key==='presentation')this.draft.appearance=applyPresentation(this.draft.appearance,button.dataset.choice as Appearance['presentation']);else Object.assign(this.draft.appearance,{[button.dataset.key!]:button.dataset.choice});this.syncAppearance();this.refreshPreview();this.changed()}));
@@ -163,7 +168,7 @@ export class PlayerCreator {
   this.el('[data-save-location]').textContent=state==='connecting'?'Connecting cloud save…':state==='saving'?'Saving to cloud…':state==='saved'?'Saved on this device and in cloud.':state==='offline'?'Saved on this device. Cloud sync will retry next visit.':'Saved on this device.';
  }
  createPlayer(){this.open();this.switchDraft(()=>{this.loadDraft(newPlayer());this.showEditor()})}
- editPlayer(player:DesignedPlayer|null){this.open();this.showEditor();if(player&&player.id!==this.draft.id)this.switchDraft(()=>this.loadDraft(player))}
+ editPlayer(player:DesignedPlayer|null){this.open();if(player&&isCommunityPlayer(player)){this.el('[data-roster-status]').textContent='Community Players can only be edited by their creator.';return;}this.showEditor();if(player&&player.id!==this.draft.id)this.switchDraft(()=>this.loadDraft(player))}
  open(){if(!this.dialog.open)this.dialog.showModal();this.showRoster()}
 
  private showEditor(){
@@ -175,6 +180,7 @@ export class PlayerCreator {
   this.dialog.dataset.view='roster';this.dialog.setAttribute('aria-labelledby','roster-title');
   this.el('[data-resume]').hidden=JSON.stringify(this.draft)===this.baseline;
   this.el('[data-roster-status]').textContent=this.loadError;
+  this.el('[data-community-section]').append(this.community.element);
   const saved=this.el('[data-saved-roster]'),defaults=this.el('[data-default-roster]');saved.replaceChildren();defaults.replaceChildren();
   this.el('[data-saved-section]').hidden=this.library.players.length===0;
   const history=this.loadHistory();void history.catch(()=>{});
@@ -196,7 +202,7 @@ export class PlayerCreator {
    play.addEventListener('click',()=>{if(isDefault){this.onPlay(structuredClone(player));this.dialog.close()}else{this.showEditor();this.switchDraft(()=>{this.loadDraft(player);this.save(true)})}});actions.append(play);
    article.append(actions);return article;
   };
-  for(const player of this.library.players)saved.append(card(player,this.library.activeId===player.id?'Selected player':'Saved player',false));
+  for(const player of this.library.players)saved.append(card(player,this.library.activeId===player.id?(player.isPublic?'Selected · Public player':'Selected player'):(player.isPublic?'Public player':'Saved player'),false));
   for(const [index,look] of LOOKS.entries())defaults.append(card({...newPlayer('default-'+index),name:look.name,appearance:{...look.appearance},skills:{...look.skills}},look.role,true));
   this.el('[data-create-player]').focus();
  }
@@ -215,7 +221,7 @@ export class PlayerCreator {
   this.el('[data-delete]').hidden=!this.library.players.some(p=>p.id===this.draft.id);
   (this.el('[data-delete]') as HTMLButtonElement).disabled=!!this.loadError;
   this.input('#creator-name').value=this.draft.name;
-  this.input('#creator-catchphrase').value=this.draft.catchphrase??'';
+  this.input('#creator-catchphrase').value=this.draft.catchphrase??'';(this.input('#creator-public') as HTMLInputElement).checked=this.draft.isPublic===true;
   this.syncAppearance();
   this.input('#creator-preset').value='';this.fillSkills();this.updateCaption();this.updateSummary();
   this.el('[data-status]').textContent=this.loadError;

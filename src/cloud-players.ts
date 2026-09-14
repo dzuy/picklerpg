@@ -7,13 +7,13 @@ import {parseLibrary,validatePlayer,type DesignedPlayer,type PlayerLibrary} from
 export type LibraryChange={kind:'save';playerId:string}|{kind:'delete';playerId:string};
 export type CloudSaveState='local'|'connecting'|'saving'|'saved'|'offline';
 export type CloudAccountState={kind:'unavailable'|'connecting'|'guest'|'pending'|'authenticated';email?:string};
-type PlayerRow={id:string;name:string;catchphrase:string|null;appearance:unknown;skills:unknown;handedness:'left'|'right';is_active:boolean};
+type PlayerRow={id:string;name:string;catchphrase:string|null;appearance:unknown;skills:unknown;handedness:'left'|'right';is_active:boolean;is_public?:boolean};
 const CLOUD_OWNER_KEY='pickle-rpg-cloud-owner-v1',CLOUD_DIRTY_KEY='pickle-rpg-cloud-dirty-v1';
 
 function playerFromRow(row:PlayerRow):DesignedPlayer{
- return validatePlayer({id:row.id,name:row.name,...(row.catchphrase?{catchphrase:row.catchphrase}:{}),appearance:row.appearance,skills:row.skills,handedness:row.handedness});
+ return validatePlayer({id:row.id,name:row.name,isPublic:row.is_public??false,...(row.catchphrase?{catchphrase:row.catchphrase}:{}),appearance:row.appearance,skills:row.skills,handedness:row.handedness});
 }
-function rowFromPlayer(ownerId:string,player:DesignedPlayer,activeId:string|null){return {owner_id:ownerId,id:player.id,name:player.name,catchphrase:player.catchphrase??null,appearance:player.appearance,skills:player.skills,handedness:player.handedness,is_active:player.id===activeId}}
+function rowFromPlayer(ownerId:string,player:DesignedPlayer,activeId:string|null){return {owner_id:ownerId,id:player.id,name:player.name,is_public:player.isPublic===true,catchphrase:player.catchphrase??null,appearance:player.appearance,skills:player.skills,handedness:player.handedness,is_active:player.id===activeId}}
 
 /** Existing local edits win on first connection; cloud-only players are retained. */
 export function mergePlayerLibraries(local:PlayerLibrary,remote:PlayerLibrary):PlayerLibrary{
@@ -80,7 +80,7 @@ export class CloudPlayerSync{
    if(!session)throw new Error('Guest session was not created.');this.ownerId=session.user.id;
    if(localStorage.getItem(CLOUD_OWNER_KEY)&&localStorage.getItem(CLOUD_OWNER_KEY)!==this.ownerId){local={version:1,activeId:null,players:[]};localStorage.setItem('pickle-rpg-players-v1',JSON.stringify(local));localStorage.removeItem(CLOUD_DIRTY_KEY)}
    this.accountStatus(accountStateForUser(session.user));
-   const response=await this.client.from('players').select('id,name,catchphrase,appearance,skills,handedness,is_active').eq('owner_id',this.ownerId);
+   const response=await this.client.from('players').select('id,name,catchphrase,appearance,skills,handedness,is_active,is_public').eq('owner_id',this.ownerId);
    if(response.error)throw response.error;
    const rows=(response.data??[]) as PlayerRow[];
    const remotePlayers=rows.map(playerFromRow),active=rows.find(row=>row.is_active)?.id??null;

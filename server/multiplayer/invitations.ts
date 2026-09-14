@@ -23,7 +23,7 @@ export class SupabaseInviteRepository implements InviteRepository {
  async accept(id:string,actor:string,hash:string,match:StoredMatch){const {data,error}=await this.client.rpc('accept_async_invitation',{p_id:id,p_actor:actor,p_hash:hash,p_match:match});this.check(error);return data as StoredMatch}
 }
 export class InvitationService {
- constructor(private repo:InviteRepository,private matches:MatchService,private names:ReadonlyMap<string,string>){}
+ constructor(private repo:InviteRepository,private matches:MatchService,private names:ReadonlyMap<string,string>,private resolveTeam:(team:TeamSelection)=>Promise<TeamSelection>=async team=>team){}
  private view(r:InviteRow):Invitation{return {id:r.id,creatorId:r.creator_id,recipientId:r.recipient_id,creatorName:this.names.get(r.creator_id)??'Player',recipientName:this.names.get(r.recipient_id)??'Player',team:r.team,court:r.court,scoring:r.scoring,status:r.status,createdAt:r.created_at,matchId:r.match_id}}
  async list(actor:string){return (await this.repo.list(actor)).map(r=>this.view(r))}
  async get(id:string,actor:string){const r=await this.repo.get(id,actor);if(!r)throw missing();return this.view(r)}
@@ -31,13 +31,13 @@ export class InvitationService {
  async create(actor:string,input:any){
   if(!input||Object.keys(input).some(k=>!['requestId','opponentId','team','court','scoring'].includes(k))||!uuid(input.requestId)||!uuid(input.opponentId)||input.opponentId===actor||input.court!=='forest'||!['rally-doubles','side-out-doubles'].includes(input.scoring))throw new ApiError(400,'invitation','Choose a player, team, court, and scoring.');
   if(!this.matches.config(actor).creationEnabled||!this.names.has(input.opponentId))throw new ApiError(403,'invitation','This player cannot be invited.');
-  const team=parseTeam(input.team),normalized={...input,team};return this.view(await this.repo.create({id:randomUUID(),creator_id:actor,recipient_id:input.opponentId,team,court:input.court,scoring:input.scoring,status:'pending',created_at:new Date().toISOString(),match_id:null,request_id:input.requestId,request_hash:requestHash(normalized)}));
+  const parsed=parseTeam(input.team),normalized={...input,team:parsed},team=await this.resolveTeam(parsed);return this.view(await this.repo.create({id:randomUUID(),creator_id:actor,recipient_id:input.opponentId,team,court:input.court,scoring:input.scoring,status:'pending',created_at:new Date().toISOString(),match_id:null,request_id:input.requestId,request_hash:requestHash(normalized)}));
  }
  async accept(id:string,actor:string,input:any){
   const r=await this.repo.get(id,actor);if(!r)throw missing();if(r.recipient_id!==actor)throw new ApiError(403,'invitation','Only the invited player can accept.');
-  if(!input||Object.keys(input).some(k=>k!=='team'))throw new ApiError(400,'team','Choose your team.');const team=parseTeam(input.team);
+  if(!input||Object.keys(input).some(k=>k!=='team'))throw new ApiError(400,'team','Choose your team.');const parsed=parseTeam(input.team),team=r.status==='pending'?await this.resolveTeam(parsed):parsed;
   const match=this.matches.prepare(actor,{creationId:r.id,opponentId:r.creator_id,scoring:r.scoring,roster:{you:team[0],partner:team[1],'opponent-left':r.team[0],'opponent-right':r.team[1]}});
   match.id=r.id;match.checkpoint.matchId=r.id;
-  return publicMatch(await this.repo.accept(id,actor,requestHash(team),match),actor,this.names);
+  return publicMatch(await this.repo.accept(id,actor,requestHash(parsed),match),actor,this.names);
  }
 }

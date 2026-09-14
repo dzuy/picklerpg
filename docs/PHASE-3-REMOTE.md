@@ -104,3 +104,11 @@ Validation: 22 invitation/remote tests passed, including concurrent acceptance, 
 Recipients can decline pending invitations. Declined invitations stay in the sender's lobby until the sender deletes the card. Senders can cancel pending invitations, removing them from both lobbies. Terminal rows are retained internally so retried requests cannot recreate invitations. Only pending invitations can be accepted, and all transitions lock the same row to prevent acceptance/cancellation races. Existing matches cannot be cancelled through invitation actions.
 
 Migration `202609140004_invitation_lifecycle.sql` was applied to the shared database. Database tests cover permissions, retries, declined visibility, sender deletion, and accept-versus-decline/cancel races. The disposable browser test covered all three user flows. Production build passed; code awaits push.
+
+### Community Players
+
+Custom players are private by default. The creator can enable “Anyone can use this player” in the editor. A separate Community Players section in the roster and team setup lets other accounts browse designs and add/remove them from their selections. These selections reference the creator's design; they are not editable copies. Only the owner can update, unpublish, or delete the original.
+
+New games resolve the latest public design. Existing match and invitation lineups retain their saved snapshots, including after updates or deletion. Unpublishing hides the character from new selections; deletion also removes saved community selections. Public catalog responses expose the design and creator display name, not account identifiers or email addresses.
+
+Migration `202609140005_community_players.sql` has been applied to the shared database, with all existing players remaining private. Nineteen targeted tests passed, including database ownership restrictions, opt-in visibility, canonical server resolution, and preserved match snapshots. The disposable browser fixture verified browsing, adding a Community Player, selecting them, and sending an invitation. Production build passed. No existing user character was published during testing; application code awaits push.

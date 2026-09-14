@@ -5,6 +5,7 @@ import {SupabaseMatchRepository} from './repository';
 import {ApiError} from './errors';
 import {registerPlaytester,loadPlaytesters,playerName} from './accounts';
 import {InvitationService,SupabaseInviteRepository} from './invitations';
+import {resolvePublicTeam} from './public-players';
 import {uuid} from './validation';
 export type Authenticate=(token:string)=>Promise<string>;
 function send(res:ServerResponse,status:number,value:unknown){res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}).end(JSON.stringify(value));}
@@ -65,5 +66,5 @@ export function configuredMatchHandler(env:NodeJS.ProcessEnv=process.env){
  const authenticate:Authenticate=async token=>{const {data,error}=await client.auth.getUser(token);if(error||!data.user)throw new ApiError(401,'authentication','Your session expired. Sign in again, then retry.');await refreshTesters();if(testers.has(data.user.id)){try{testers.set(data.user.id,playerName(data.user.user_metadata?.player_name));}catch{}}return data.user.id;};
  const register=env.MULTIPLAYER_CREATE_ENABLED==='true'?async(input:unknown)=>{const result=await registerPlaytester(client,input);refreshed=0;return result;}:undefined;
  const service=new MatchService(new SupabaseMatchRepository(client),testers,env.MULTIPLAYER_CREATE_ENABLED==='true');
- return createMatchHandler(service,authenticate,register,new InvitationService(new SupabaseInviteRepository(client),service,testers));
+ return createMatchHandler(service,authenticate,register,new InvitationService(new SupabaseInviteRepository(client),service,testers,team=>resolvePublicTeam(client,team)));
 }

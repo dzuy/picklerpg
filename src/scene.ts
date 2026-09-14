@@ -214,7 +214,7 @@ export class CourtScene {
    if(end&&previous){this.trajectoryArrow.position.copy(end);this.trajectoryArrow.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),end.clone().sub(previous).normalize())}
   }
   const opponentShot=state.players.find(player=>player.id===displayShot.actor)?.team!==this.viewTeam;
-  (this.trail.material as THREE.LineDashedMaterial).color.set(opponentShot?'#FF4F63':'#DFFF32');const dots=this.trailDots.material as THREE.PointsMaterial;dots.color.set(opponentShot?'#FF4F63':'#12E1F3');dots.size=opponentShot?3.6:2.4;
+  (this.trail.material as THREE.LineDashedMaterial).color.set(opponentShot?'#FF4F63':'#DFFF32');const dots=this.trailDots.material as THREE.PointsMaterial;dots.color.set(opponentShot?'#FF4F63':'#DFFF32');dots.size=opponentShot?3.6:2.4;
   const opponentThinking=!this.retainedTrajectory&&state.phase==='decision'&&state.possession!==this.viewTeam;
   const showingDecisionPath=!!this.previewShot||!!retainedOpponentShot;
   this.trail.visible=this.guides&&!opponentThinking&&(state.phase==='flight'||showingDecisionPath);this.trailDots.visible=this.trail.visible;const destination=this.selectedTarget?{...this.selectedTarget,y:.08}:displayShot.aimPoint;this.target.rotation.x=destination.y>.1?0:-Math.PI/2;this.target.position.set(destination.x,Math.max(.058,destination.y),destination.z);this.target.visible=!!this.selectedTarget||(this.guides&&state.phase==='decision'&&!!this.previewShot);
