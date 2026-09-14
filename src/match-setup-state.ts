@@ -24,16 +24,16 @@ export function setupLineup(saved:DesignedPlayer[],current:(DesignedPlayer|null)
 }
 
 export function cyclePlayer(roster:string[],selected:string[],slot:number,step:number):string[]{
- if(slot<1||slot>3||![-1,1].includes(step)||!selected[slot])return selected;
+ if(slot<0||slot>3||![-1,1].includes(step)||!selected[slot])return selected;
  const index=roster.indexOf(selected[slot]),next=[...selected];
  for(let offset=1;offset<roster.length;offset++){
   const id=roster[(index+step*offset+roster.length)%roster.length];
   if(!selected.includes(id)){next[slot]=id;return next}
  }
- // A full four-player roster can still change teams by swapping movable slots.
+ // A full four-player roster can still change assignments by swapping slots.
  for(let offset=1;offset<roster.length;offset++){
   const id=roster[(index+step*offset+roster.length)%roster.length],other=selected.indexOf(id);
-  if(other>0&&other!==slot){[next[slot],next[other]]=[next[other],next[slot]];return next}
+  if(other>=0&&other!==slot){[next[slot],next[other]]=[next[other],next[slot]];return next}
  }
  return selected;
 }

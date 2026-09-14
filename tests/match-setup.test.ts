@@ -18,18 +18,21 @@ test('setup repairs duplicates and fills all four slots without replacing the us
  const shuffled=[selected[0],...shufflePlayers(players.map(p=>p.id).filter(id=>id!==selected[0]),()=>0).slice(0,3)];
  assert.equal(shuffled[0],user.id);assert.ok(validLineup(players.map(p=>p.id),shuffled));
 });
-test('arrows skip occupied players in either direction and never change the fixed user',()=>{
+test('arrows let every slot, including the user, select an unoccupied player',()=>{
  const roster=['a','b','c','d','e','f'],selected=['a','b','c','d'];
+ assert.deepEqual(cyclePlayer(roster,selected,0,1),['e','b','c','d']);
+ assert.deepEqual(cyclePlayer(roster,selected,0,-1),['f','b','c','d']);
  assert.deepEqual(cyclePlayer(roster,selected,1,1),['a','e','c','d']);
  assert.deepEqual(cyclePlayer(roster,selected,1,-1),['a','f','c','d']);
- assert.deepEqual(cyclePlayer(roster,selected,0,1),selected);
  let lineup=selected;
- for(let i=0;i<100;i++){lineup=cyclePlayer(roster,lineup,1+i%3,i%2?1:-1);assert.equal(lineup[0],'a');assert.ok(validLineup(roster,lineup))}
+ for(let i=0;i<100;i++){lineup=cyclePlayer(roster,lineup,i%4,i%2?1:-1);assert.ok(validLineup(roster,lineup))}
 });
-test('four-player roster swaps movable players without duplicates or an endless loop',()=>{
+test('four-player roster swaps any slot without duplicates or an endless loop',()=>{
  const roster=['a','b','c','d'];
+ assert.deepEqual(cyclePlayer(roster,roster,0,1),['b','a','c','d']);
+ assert.deepEqual(cyclePlayer(roster,roster,0,-1),['d','b','c','a']);
  assert.deepEqual(cyclePlayer(roster,roster,1,1),['a','c','b','d']);
- assert.deepEqual(cyclePlayer(roster,roster,1,-1),['a','d','c','b']);
+ assert.deepEqual(cyclePlayer(roster,roster,1,-1),['b','a','c','d']);
  assert.equal(validLineup(roster,['a','b','b','d']),false);
  assert.equal(validLineup(roster,['a','b','c','missing']),false);
 });

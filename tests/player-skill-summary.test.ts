@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {SKILLS} from '../src/engine/model';
 import {newPlayer} from '../src/player-design';
 import {LOOKS} from '../src/player-looks';
-import {summarizeSkills,SUMMARY_SKILLS} from '../src/player-skill-summary';
+import {setSummarySkillLevel,summarizeSkills,SUMMARY_SKILLS} from '../src/player-skill-summary';
 test('every skill contributes once to a meter and changes the overall estimate',()=>{
  assert.deepEqual(Object.values(SUMMARY_SKILLS).flat().sort(),[...SKILLS].sort());
  const base=newPlayer('test').skills,before=summarizeSkills(base);
@@ -13,6 +13,17 @@ test('every skill contributes once to a meter and changes the overall estimate',
   assert.ok(Object.keys(before.meters).some(name=>after.meters[name as keyof typeof after.meters]>before.meters[name as keyof typeof before.meters]));
  }
  assert.equal(before.estimatedDupr,3.5);
+});
+test('each grouped summary control updates only its detailed skills and the rating',()=>{
+ const base=newPlayer('test').skills,before=summarizeSkills(base).estimatedDupr;
+ for(const name of Object.keys(SUMMARY_SKILLS) as (keyof typeof SUMMARY_SKILLS)[]){
+  const adjusted=setSummarySkillLevel(base,name,90),keys=new Set<string>(SUMMARY_SKILLS[name]);
+  assert.ok(SUMMARY_SKILLS[name].every(key=>adjusted[key]===90),name);
+  for(const key of SKILLS.filter(key=>!keys.has(key)))assert.equal(adjusted[key],base[key],`${name}: ${key}`);
+  assert.equal(summarizeSkills(adjusted).meters[name],90,name);
+  assert.ok(summarizeSkills(adjusted).estimatedDupr>before,name);
+  assert.notEqual(adjusted,base,name);
+ }
 });
 test('starting players reflect their advertised specialties',()=>{
  const meters=(name:string)=>summarizeSkills(LOOKS.find(p=>p.name===name)!.skills).meters;

@@ -14,6 +14,12 @@ function ratingForSkill(skill:number){
  return a.rating+(b.rating-a.rating)*t;
 }
 export const SUMMARY_SKILLS={Power:['serve','drive','overhead'],Control:['return','drop','dink','reset'],Speed:['movement'],Hands:['volley','counter','hands']} as const;
+export type SummarySkillName=keyof typeof SUMMARY_SKILLS;
+export function setSummarySkillLevel(skills:PlayerSkills,name:SummarySkillName,value:number):PlayerSkills{
+ const level=Math.max(0,Math.min(100,Math.round(value))),next={...skills};
+ for(const key of SUMMARY_SKILLS[name])next[key]=level;
+ return next;
+}
 export function summarizeSkills(skills:PlayerSkills){
  const meters=Object.fromEntries(Object.entries(SUMMARY_SKILLS).map(([name,keys])=>[name,keys.reduce((sum,key)=>sum+skills[key],0)/keys.length])) as Record<keyof typeof SUMMARY_SKILLS,number>;
  // Each skill contributes equally. A small weakness penalty prevents one specialty

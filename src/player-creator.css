@@ -276,3 +276,45 @@
 @media(max-width:760px){#player-creator .creator-heading h2{font-size:clamp(15px,4.1vw,20px);letter-spacing:-.5px}}
 
 #player-creator>.creator-confirm{position:fixed;z-index:20;bottom:24px;left:50%;transform:translateX(-50%);width:min(440px,calc(100% - 32px));box-shadow:0 6px 30px #183c3433}
+
+/* The Skills tab starts with a condensed version of the roster card. */
+#player-creator .skills-overview-card{margin:0 0 18px;padding:14px 16px 12px;border:1px solid #e2e7d8;border-radius:16px;background:linear-gradient(#fff,#fcfdf7);box-shadow:0 3px 12px #284d3210}
+#player-creator .skills-overview-card header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:12px}
+#player-creator .skills-overview-card header>div{min-width:0;padding:4px 0}
+#player-creator .skills-overview-card header>div>strong{display:block;overflow:hidden;text-overflow:ellipsis;font-family:'Manrope',sans-serif;font-size:22px;font-weight:900;line-height:1.1;letter-spacing:-.7px;white-space:nowrap}
+#player-creator .skills-overview-card header>div>span{display:inline-block;margin-top:5px;padding:4px 9px;border-radius:999px;background:#eadbfb;color:#315648;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+#player-creator .skills-overview-rating{flex:0 0 76px;margin:0;padding:7px 5px;border-radius:12px;background:#eef1e6;text-align:center;color:#214f42}
+#player-creator .skills-overview-rating span{display:block;font-size:10px;font-weight:800;line-height:1.1}
+#player-creator .skills-overview-rating strong{display:block;font-family:'Manrope',sans-serif;font-size:23px;font-weight:900;line-height:1.25;letter-spacing:-.5px;white-space:nowrap}
+#player-creator .skills-overview-stats{display:grid;gap:7px;padding-top:11px;border-top:1px solid #e8ecdf}
+#player-creator .skills-overview-stat{--meter-color:#527461;display:grid;grid-template-columns:24px 58px minmax(120px,1fr) 28px;align-items:center;gap:8px;min-height:25px}
+#player-creator .skills-overview-stat[data-stat=Power]{--meter-color:#599ef2}
+#player-creator .skills-overview-stat[data-stat=Control]{--meter-color:#86aa76}
+#player-creator .skills-overview-stat[data-stat=Speed]{--meter-color:#ffb735}
+#player-creator .skills-overview-stat[data-stat=Hands]{--meter-color:#b282e4}
+#player-creator .skills-overview-icon{width:24px;text-align:center;color:var(--meter-color);font-size:22px;font-weight:800;line-height:1}
+#player-creator .skills-overview-stat label{font-size:12px;color:#687b68}
+#player-creator .skills-overview-stat output{text-align:right;color:#315648;font-size:11px;font-weight:700;font-variant-numeric:tabular-nums}
+#player-creator .skills-overview-stat meter{display:block;width:100%;height:12px;appearance:none}
+#player-creator .skills-overview-stat meter::-webkit-meter-bar{height:12px;border:0;border-radius:4px;background:repeating-linear-gradient(to right,#e6e9dd 0 calc(20% - 5px),transparent calc(20% - 5px) 20%)}
+#player-creator .skills-overview-stat meter::-webkit-meter-optimum-value{border-radius:4px;background:var(--meter-color)}
+#player-creator .skills-overview-stat input[type=range]{width:100%;height:24px;margin:0;appearance:none;background:transparent;cursor:ew-resize;touch-action:pan-y}
+#player-creator .skills-overview-stat input[type=range]::-webkit-slider-runnable-track{height:12px;border-radius:4px;background:repeating-linear-gradient(to right,transparent 0 calc(20% - 5px),#fcfdf7 calc(20% - 5px) 20%),linear-gradient(to right,var(--meter-color) 0 var(--value),#e6e9dd var(--value) 100%)}
+#player-creator .skills-overview-stat input[type=range]::-webkit-slider-thumb{width:18px;height:18px;margin-top:-3px;border:3px solid #fff;border-radius:50%;appearance:none;background:var(--meter-color);box-shadow:0 1px 5px #183c3440}
+#player-creator .skills-overview-stat input[type=range]::-moz-range-track{height:12px;border:0;border-radius:4px;background:#e6e9dd}
+#player-creator .skills-overview-stat input[type=range]::-moz-range-progress{height:12px;border-radius:4px;background:var(--meter-color)}
+#player-creator .skills-overview-stat input[type=range]::-moz-range-thumb{width:14px;height:14px;border:3px solid #fff;border-radius:50%;background:var(--meter-color);box-shadow:0 1px 5px #183c3440}
+#player-creator .skills-details{margin:0 0 18px;border:1px solid #dce3d3;border-radius:13px;background:#fbfcf5;overflow:hidden}
+#player-creator .skills-details>summary{display:flex;align-items:center;gap:10px;min-height:52px;padding:12px 16px;cursor:pointer;list-style:none;color:#315648;font-size:13px;font-weight:800}
+#player-creator .skills-details>summary::-webkit-details-marker{display:none}
+#player-creator .skills-details>summary::after{content:'⌄';margin-left:auto;font-size:20px;font-weight:400;transition:transform .18s}
+#player-creator .skills-details[open]>summary{border-bottom:1px solid #e3e8dc}
+#player-creator .skills-details[open]>summary::after{transform:rotate(180deg)}
+#player-creator .skills-details-body{padding:16px}
+#player-creator .skills-details-body>label{font-size:12px;color:#62765d}
+#player-creator .skills-details-body .creator-skills{margin-bottom:4px}
+@media(max-width:480px){
+ #player-creator .skills-overview-card{padding:12px}
+ #player-creator .skills-overview-stat{grid-template-columns:22px 52px minmax(90px,1fr) 25px;gap:5px}
+ #player-creator .skills-details-body{padding:13px}
+}
