@@ -1,5 +1,7 @@
 import '../style.css';
+import '../gameplay-hud.css';
 import './remote.css';
+import {moveCopy} from './move-copy';
 import {authClient,matchCredentials} from '../auth-session';
 import {CourtScene} from '../scene';
 import {preloadAthletes} from '../athlete';
@@ -16,20 +18,45 @@ import type {CreateRemoteMatch,PublicMatch,RemoteConfig,TurnAnimation} from './p
 document.body.dataset.screen='remote';
 const root=document.querySelector<HTMLDivElement>('#app')!;
 root.className='remote-app';
-root.innerHTML=`<header class="remote-nav"><a id="remote-solo" href="/">← Home</a><strong class="remote-brand">PICKLE<span>BASH</span></strong><button id="remote-sign-out" class="remote-quiet" hidden>Sign out</button><button id="remote-refresh" class="remote-quiet">Refresh</button></header><div class="remote-meta"><p id="remote-account"></p><p id="remote-status" role="status" aria-live="polite"></p></div><section id="remote-login" class="remote-new-game" hidden><p class="remote-eyebrow">WELCOME TO THE COURT</p><h1>Create your account</h1><p id="remote-auth-copy">Use a different email on each device and choose a password of at least 6 characters. No confirmation email is needed for this playtest.</p><form id="remote-login-form"><label id="remote-name-label">Player name<input id="remote-player-name" autocomplete="nickname" maxlength="32" required></label><label>Email<input id="remote-email" type="email" autocomplete="username" required></label><label>Password<input id="remote-password" type="password" autocomplete="new-password" minlength="6" maxlength="128" required></label><button class="remote-primary" id="remote-sign-in">Create account ↗</button></form><button id="remote-auth-mode" class="remote-quiet">Already registered? Sign in</button></section><section id="remote-name-setup" class="remote-new-game" hidden><h1>What should we call you?</h1><p>Your player name appears in games and the opponent list.</p><form id="remote-name-form"><label>Player name<input id="remote-existing-name" autocomplete="nickname" maxlength="32" required></label><button class="remote-primary">Save player name ↗</button></form></section><section id="remote-password-reset" class="remote-new-game" hidden><h1>Choose a new password</h1><p id="remote-reset-account"></p><p>For this playtest, use 6–128 characters. No capitals, numbers, or symbols required.</p><form id="remote-reset-form"><label>New password<input id="remote-new-password" type="password" autocomplete="new-password" minlength="6" maxlength="128" required></label><button class="remote-primary">Save password and play ↗</button></form></section><section id="remote-lobby" hidden><div class="remote-hero"><div><p class="remote-eyebrow">PLAY TOGETHER</p><h1>Your next rally<br>is waiting.</h1><p>Pick up a game. Take your shot. Come back for the next one.</p></div><div class="remote-hero-mark" aria-hidden="true">01<span>MORE GAME.</span></div></div><div class="remote-lobby-layout"><section class="remote-match-list"><div class="remote-section-heading"><h2>Your games</h2><span id="remote-game-count"></span></div><div class="remote-filters" role="group" aria-label="Filter games"><button data-filter="active" aria-pressed="true">In play</button><button data-filter="turn" aria-pressed="false">Your turn</button><button data-filter="completed" aria-pressed="false">Finished</button></div><div id="remote-games"></div></section><section class="remote-new-game remote-start-card"><p class="remote-eyebrow">MEET ON COURT</p><h2>A new matchup?</h2><p>Invite another player and set up your next game.</p><button id="remote-start-setup" class="remote-primary">Start a game ↗</button></section></div></section><section id="remote-setup" class="remote-new-game" aria-label="Set up a game" hidden><button id="remote-cancel-setup" class="remote-quiet">← Your games</button><p class="remote-eyebrow">MEET ON COURT</p><h1>Set up your game</h1><p>Choose who to invite and how you want to score.</p><label>Invite a player<select id="remote-opponent"></select></label><label>Scoring<select id="remote-scoring"><option value="rally-doubles">Rally scoring</option><option value="side-out-doubles">Side-out scoring</option></select></label><div class="remote-setup-summary"><strong>Your match</strong><p id="remote-setup-summary"></p><p>First to 3 · Doubles · Equal skills</p><p>Each player controls their own team of two.</p></div><button id="remote-create" class="remote-primary">Create game & invite ↗</button></section><section id="remote-game" hidden><div class="remote-heading"><button id="remote-back" class="remote-quiet">← Your games</button><h1 id="remote-score"></h1><strong id="remote-turn"></strong><button id="remote-skip" hidden>Skip animation</button></div><p id="remote-match-identity"></p><div id="remote-court"></div><p id="remote-result"></p><button id="remote-retry" hidden>Retry saved turn</button><div class="remote-play-dock"><p id="remote-aim">Tap the opposing court, then choose a shot from the wheel.</p><details id="remote-shot-options"><summary>Shot list · default targets</summary><div id="remote-choices"></div></details></div></section>`;
+root.innerHTML=`<header class="remote-nav"><a id="remote-solo" href="/">← Home</a><strong class="remote-brand">PICKLE<span>BASH</span></strong><button id="remote-sign-out" class="remote-quiet" hidden>Sign out</button><button id="remote-refresh" class="remote-quiet">Refresh</button></header><div class="remote-meta"><p id="remote-account"></p><p id="remote-status" role="status" aria-live="polite"></p></div><section id="remote-login" class="remote-new-game" hidden><p class="remote-eyebrow">WELCOME TO THE COURT</p><h1>Create your account</h1><p id="remote-auth-copy">Use a different email on each device and choose a password of at least 6 characters. No confirmation email is needed for this playtest.</p><form id="remote-login-form"><label id="remote-name-label">Player name<input id="remote-player-name" autocomplete="nickname" maxlength="32" required></label><label>Email<input id="remote-email" type="email" autocomplete="username" required></label><label>Password<input id="remote-password" type="password" autocomplete="new-password" minlength="6" maxlength="128" required></label><button class="remote-primary" id="remote-sign-in">Create account ↗</button></form><button id="remote-auth-mode" class="remote-quiet">Already registered? Sign in</button></section><section id="remote-name-setup" class="remote-new-game" hidden><h1>What should we call you?</h1><p>Your player name appears in games and the opponent list.</p><form id="remote-name-form"><label>Player name<input id="remote-existing-name" autocomplete="nickname" maxlength="32" required></label><button class="remote-primary">Save player name ↗</button></form></section><section id="remote-password-reset" class="remote-new-game" hidden><h1>Choose a new password</h1><p id="remote-reset-account"></p><p>For this playtest, use 6–128 characters. No capitals, numbers, or symbols required.</p><form id="remote-reset-form"><label>New password<input id="remote-new-password" type="password" autocomplete="new-password" minlength="6" maxlength="128" required></label><button class="remote-primary">Save password and play ↗</button></form></section><section id="remote-lobby" hidden><div class="remote-hero"><div><p class="remote-eyebrow">PLAY TOGETHER</p><h1>Your next rally<br>is waiting.</h1><p>Pick up a game. Take your shot. Come back for the next one.</p></div><div class="remote-hero-mark" aria-hidden="true">01<span>MORE GAME.</span></div></div><div class="remote-lobby-layout"><section class="remote-match-list"><div class="remote-section-heading"><h2>Your games</h2><span id="remote-game-count"></span></div><div class="remote-filters" role="group" aria-label="Filter games"><button data-filter="active" aria-pressed="true">In play</button><button data-filter="turn" aria-pressed="false">Your turn</button><button data-filter="completed" aria-pressed="false">Finished</button></div><div id="remote-games"></div></section><section class="remote-new-game remote-start-card"><p class="remote-eyebrow">MEET ON COURT</p><h2>A new matchup?</h2><p>Invite another player and set up your next game.</p><button id="remote-start-setup" class="remote-primary">Start a game ↗</button></section></div></section><section id="remote-setup" class="remote-new-game" aria-label="Set up a game" hidden><button id="remote-cancel-setup" class="remote-quiet">← Your games</button><p class="remote-eyebrow">MEET ON COURT</p><h1>Set up your game</h1><p>Choose who to invite and how you want to score.</p><label>Invite a player<select id="remote-opponent"></select></label><label>Scoring<select id="remote-scoring"><option value="rally-doubles">Rally scoring</option><option value="side-out-doubles">Side-out scoring</option></select></label><div class="remote-setup-summary"><strong>Your match</strong><p id="remote-setup-summary"></p><p>First to 3 · Doubles · Equal skills</p><p>Each player controls their own team of two.</p></div><button id="remote-create" class="remote-primary">Create game & invite ↗</button></section><section id="remote-game" hidden><div id="remote-court"></div><div class="court-top"><div class="score" aria-label="Match score"><div class="score-row"><span id="remote-home-names"></span><b id="remote-home-score">0</b></div><div class="score-row score-row-away"><span id="remote-away-names"></span><b id="remote-away-score">0</b></div></div></div><button id="remote-open-settings" class="gameplay-settings" aria-label="Game settings"><img src="/assets/picklebash-gameplay-ui/hud/picklebash-settings-button.png" alt=""></button><button id="remote-back" class="remote-court-back">← Your games</button><div class="remote-move-banner" role="status" aria-live="polite"><p id="remote-move"></p><small id="remote-live-status"></small><button id="remote-retry" hidden>Retry saved turn</button></div><dialog id="game-settings" aria-labelledby="settings-title"><div class="settings-heading"><h2 id="settings-title">Game settings</h2><button id="close-settings" aria-label="Close settings">✕</button></div><p id="remote-settings-account"></p><h3>Current players</h3><div id="remote-lineup"></div><p>Teams are fixed for this game.</p><label class="settings-toggle"><span>Flight guide<small>Show the ball path.</small></span><input id="remote-guides" type="checkbox" role="switch"></label><label class="settings-toggle"><span>Player names<small>Show names above players.</small></span><input id="remote-names" type="checkbox" role="switch" checked></label><label class="settings-toggle"><span>Playback speed<small>Animation speed on this device.</small></span><select id="remote-speed"><option value="1">1× · Normal</option><option value="2">2×</option><option value="3">3×</option></select></label><button id="remote-reset-camera">Reset camera</button><p id="remote-rules"></p><details id="remote-shot-options"><summary>Shot list · default targets</summary><div id="remote-choices"></div></details></dialog></section>`;
 const el=(id:string)=>document.getElementById(id)!;
 let session:RemoteSession|null=null,scene:CourtScene|undefined,account='',config:RemoteConfig|null=null;
 let signup=true,accountEmail='',shownRoster='';
+const settings=el('game-settings') as HTMLDialogElement;
+const gameEnd=document.createElement('dialog');gameEnd.id='game-end';gameEnd.setAttribute('aria-labelledby','game-end-title');gameEnd.innerHTML=`<div class="game-end-card"><div class="game-end-kicker">GAME COMPLETE</div><div class="game-end-emblem" aria-hidden="true">✦</div><p class="game-end-label">THE WINNERS</p><h1 id="game-end-title"></h1><p class="game-end-subtitle">A game worth playing. A win worth celebrating.</p><div class="game-end-score" aria-label="Final score"><div><strong id="game-end-home-score"></strong><span id="game-end-home-names"></span></div><span class="game-end-dash">–</span><div><strong id="game-end-away-score"></strong><span id="game-end-away-names"></span></div></div><p class="game-end-rule" id="remote-end-rule"></p><div class="game-end-actions"><button id="remote-end-back">← Your games</button></div></div>`;document.body.append(gameEnd);
+gameEnd.addEventListener('cancel',e=>e.preventDefault());el('remote-end-back').onclick=()=>void lobby().catch(e=>status(e.message));
+function syncGameEnd(){const s=session?.state;if(gameEnd.open||!s||s.status!=='completed'||animation.length||el('remote-game').hidden)return;
+ const home=['you','partner'] as const,away=['opponent-left','opponent-right'] as const,names=(ids:readonly (keyof PublicMatch['roster'])[])=>ids.map(id=>s.roster[id].name).join(' & ');
+ el('game-end-title').textContent=`${names(s.score.home>s.score.away?home:away)} win!`;
+ el('game-end-home-score').textContent=String(s.score.home);el('game-end-away-score').textContent=String(s.score.away);el('game-end-home-names').textContent=names(home);el('game-end-away-names').textContent=names(away);el('remote-end-rule').textContent=`FINAL SCORE · FIRST TO ${s.rules.target}`;
+ if(!gameEnd.open){clearTarget();settings.close();gameEnd.showModal();}
+}
+function animationShot(segment:TurnAnimation,state:GameState):RallyShot{return {...presentation(state,segment.intent),contact:{...segment.path[0]},aimPoint:{...segment.path.at(-1)!},legs:segment.path.slice(1).map((to,i)=>({from:{...segment.path[i]},to:{...to},duration:segment.duration/(segment.path.length-1),arc:0}))}}
+
+let playbackSpeed=1,flightGuides=false,playerNames=true,playbackElapsed=0,lastFrame=0;
+try{const saved=JSON.parse(localStorage.getItem('pickle-remote-view')??'null');if(saved){if([1,2,3].includes(saved.speed))playbackSpeed=saved.speed;flightGuides=saved.guides===true;playerNames=saved.names!==false}}catch{}
+function saveView(){try{localStorage.setItem('pickle-remote-view',JSON.stringify({speed:playbackSpeed,guides:flightGuides,names:playerNames}))}catch{}}
+function leaveCourt(){document.body.classList.remove('remote-playing');settings.close();gameEnd.close();scene?.setRetainedTrajectory(null);}
+(el('remote-speed') as HTMLSelectElement).value=String(playbackSpeed);
+(el('remote-guides') as HTMLInputElement).checked=flightGuides;
+(el('remote-names') as HTMLInputElement).checked=playerNames;
+el('remote-speed').onchange=()=>{playbackSpeed=Number((el('remote-speed') as HTMLSelectElement).value);saveView()};
+el('remote-guides').onchange=()=>{flightGuides=(el('remote-guides') as HTMLInputElement).checked;scene?.setGuides(flightGuides);saveView()};
+el('remote-names').onchange=()=>{playerNames=(el('remote-names') as HTMLInputElement).checked;scene?.setPlayerNames(playerNames);saveView()};
+el('remote-reset-camera').onclick=()=>scene?.resetCamera();
+el('remote-open-settings').onclick=()=>{clearTarget();settings.showModal()};
+el('close-settings').onclick=()=>settings.close();
+
 let targetPicker:CourtTargetPicker|undefined;
 let games:PublicMatch[]=[],gameFilter='active';
 let display:GameState|null=null,shot:RallyShot|null=null,shownVersion=-1,animation:TurnAnimation[]=[],animationStart=0;
-function showLogin(){el('remote-setup').hidden=true;el('remote-password-reset').hidden=true;clearTarget();session?.dispose();session=null;account='';display=null;animation=[];el('remote-name-setup').hidden=true;el('remote-login').hidden=false;el('remote-lobby').hidden=true;el('remote-game').hidden=true;el('remote-sign-out').hidden=true;el('remote-account').textContent='';}
+function showLogin(){leaveCourt();el('remote-setup').hidden=true;el('remote-password-reset').hidden=true;clearTarget();session?.dispose();session=null;account='';display=null;animation=[];el('remote-name-setup').hidden=true;el('remote-login').hidden=false;el('remote-lobby').hidden=true;el('remote-game').hidden=true;el('remote-sign-out').hidden=true;el('remote-account').textContent='';}
 function accountLabel(){const name=config?.selfName??'Signed in';return accountEmail&&name!==accountEmail?`${name} · ${accountEmail}`:name;}
 function opponentLabel(s:PublicMatch){const id=s.accountIds?.[s.viewerTeam==='home'?'away':'home'];return config?.testers.find(t=>t.id===id)?.name??'Opponent';}
-function status(message:string){el('remote-status').textContent=message;}
+function status(message:string){el('remote-status').textContent=message;el('remote-live-status').textContent=message;}
 function presentation(state:GameState,intent= session?.state?.choices[0]?.intent):RallyShot {
- const actor=intent?.actor??state.currentHitter??'you',p=state.ball.position;
- return {actor,intent:intent??{schemaVersion:1,actor,type:'serve',target:{kind:'zone',zone:'middle',depth:'deep'},pace:'medium',shape:'arc',intendedNetClearance:.4,tacticalIntent:'sustain',aggression:.5,source:'menu'},title:'',description:'',cue:'',contact:{...p},aimPoint:{...p},legs:[{from:{...p},to:{...p},duration:1,arc:0}],positions:Object.fromEntries(state.players.map(p=>[p.id,p.position])) as RallyShot['positions']};
+ const actor=session?.state?.serving&&!intent?session.state.server:intent?.actor??state.currentHitter??'you',p=state.ball.position;
+ return {actor,intent:intent??{schemaVersion:1,actor,type:session?.state?.serving?'serve':'return',target:{kind:'zone',zone:'middle',depth:'deep'},pace:'medium',shape:'arc',intendedNetClearance:.4,tacticalIntent:'sustain',aggression:.5,source:'menu'},title:'',description:'',cue:'',contact:{...p},aimPoint:{...p},legs:[{from:{...p},to:{...p},duration:1,arc:0}],positions:Object.fromEntries(state.players.map(p=>[p.id,p.position])) as RallyShot['positions']};
 }
 function choiceLabel(intent:PublicMatch['choices'][number]['intent']){
  const spin=intent.spin;const variant=spin?.vertical==='topspin'?'Topspin':spin?.vertical==='slice'?'Backspin':spin?.side&&spin.side!=='none'?'Sidespin':intent.intendedNetClearance>=2?'Lob':intent.pace==='fast'?'Fast':intent.pace==='soft'?'Soft':'';
@@ -38,38 +65,41 @@ function choiceLabel(intent:PublicMatch['choices'][number]['intent']){
 function clearTarget(){targetPicker?.clear();}
 function render(){
  if(!session)return;const s=session.state;
- status(session.message||(session.busy?'Saving turn…':session.offline?'Offline · showing the last saved state.':'Moves are saved before animation.'));
+ status(session.message||(session.busy?'Saving turn…':session.offline?'Offline · showing the last saved state.':''));
  el('remote-retry').hidden=!session.pending;(el('remote-retry') as HTMLButtonElement).disabled=session.busy;
  if(!s)return;
+ const opponentFlight=s.currentTeam===s.viewerTeam&&!s.result&&!session.busy&&!session.pending?[...s.animation].reverse().find(a=>s.display.players.find(p=>p.id===a.actor)?.team!==s.viewerTeam):undefined;scene?.setRetainedTrajectory(opponentFlight?animationShot(opponentFlight,s.display):null);
  el('remote-account').textContent=`Signed in as ${accountLabel()} · You control Team ${s.viewerTeam==='home'?'A':'B'}`;
- el('remote-score').textContent=`${config?.selfName??'You'} ${s.score[s.viewerTeam]} — ${s.score[s.viewerTeam==='home'?'away':'home']} ${opponentLabel(s)}`;
- el('remote-match-identity').textContent=`Against ${opponentLabel(s)} · Game ${s.id.slice(0,8)}`;
- el('remote-turn').textContent=s.status==='completed'?`Finished · Team ${s.score.home>s.score.away?'A':'B'} wins`:s.currentTeam===s.viewerTeam?'Your turn':'Waiting for your opponent';
- el('remote-result').textContent=s.result?`Last point: Team ${s.result.winner==='home'?'A':'B'} · ${s.result.reason.replaceAll('-',' ')}`:'';
+ const own=s.viewerTeam==='home'?['you','partner'] as const:['opponent-left','opponent-right'] as const,other=s.viewerTeam==='home'?['opponent-left','opponent-right'] as const:['you','partner'] as const;
+ el('remote-home-names').textContent=own.map(id=>s.roster[id].name).join(' & ');el('remote-away-names').textContent=other.map(id=>s.roster[id].name).join(' & ');
+ el('remote-home-score').textContent=String(s.score[s.viewerTeam]);el('remote-away-score').textContent=String(s.score[s.viewerTeam==='home'?'away':'home']);
+ el('remote-move').textContent=moveCopy(s);el('remote-settings-account').textContent=`Signed in as ${accountLabel()}`;
+ el('remote-rules').textContent=`${s.rules.scoring==='rally-doubles'?'Rally scoring':'Side-out scoring'} · First to ${s.rules.target}`;
+ const lineup=el('remote-lineup');lineup.replaceChildren();for(const [label,ids] of [['Your team',own],['Opponents',other]] as const){const row=document.createElement('p');row.textContent=`${label}: ${ids.map(id=>s.roster[id].name).join(' & ')}`;lineup.append(row);}
  if(shownVersion!==s.version){
   const initial=shownVersion<0;clearTarget();shownVersion=s.version;display=structuredClone(s.display);shot=presentation(display);
   if(initial&&scene)scene.setViewTeam(s.viewerTeam);
-  animation=structuredClone(s.animation);animationStart=performance.now();el('remote-skip').hidden=!animation.length;
+  animation=structuredClone(s.animation);animationStart=performance.now();playbackElapsed=0;lastFrame=animationStart;
  }
+ if(!animation.length&&display)shot=presentation(display);
  const rosterKey=JSON.stringify(s.roster);if(scene&&shownRoster!==rosterKey){for(const id of SLOTS)scene.substitutePlayer(id,s.roster[id]);shownRoster=rosterKey;}
- el('remote-aim').textContent=s.status==='completed'?'Game finished. Head back to your games for another match.':s.currentTeam!==s.viewerTeam?`${opponentLabel(s)} is choosing a shot.`:animation.length?'Watch the rally, or tap the court to skip and aim.':'Tap the opposing court, then choose a shot from the wheel.';
  el('remote-shot-options').hidden=!s.choices.length;
- targetPicker?.sync(true);
+ targetPicker?.sync(!settings.open);
  const choices=el('remote-choices');choices.replaceChildren();
- for(const choice of s.choices){const b=document.createElement('button');b.textContent=`${choice.timing?`${choice.timing==='air'?'Volley':'After bounce'} · `:''}${choiceLabel(choice.intent)} · ${targetLabel(choice.intent.target)}`;b.disabled=session.busy||!!session.pending||session.offline;b.onclick=()=>{clearTarget();skip();void session?.submit(choice).catch(e=>status(e.message));};choices.append(b);}
+ for(const choice of s.choices){const b=document.createElement('button');b.textContent=`${choice.timing?`${choice.timing==='air'?'Volley':'After bounce'} · `:''}${choiceLabel(choice.intent)} · ${targetLabel(choice.intent.target)}`;b.disabled=session.busy||!!session.pending||session.offline;b.onclick=()=>{settings.close();clearTarget();skip();void session?.submit(choice).catch(e=>status(e.message));};choices.append(b);}
 }
-function skip(){animation=[];el('remote-skip').hidden=true;if(session?.state){display=structuredClone(session.state.display);shot=presentation(display);}}
+function skip(){animation=[];if(session?.state){display=structuredClone(session.state.display);shot=presentation(display);}syncGameEnd();}
 async function open(id:string){
  (el('remote-solo') as HTMLAnchorElement).href=`/?returnMatch=${encodeURIComponent(id)}`;
  clearTarget();session?.dispose();shownVersion=-1;shownRoster='';session=null;animation=[];display=null;shot=null;
  const credentials=await matchCredentials();if(account&&credentials.owner!==account)throw new Error('Account changed. Reload remote play.');account=credentials.owner;config=await remoteRequest<RemoteConfig>(credentials.token,'/api/multiplayer/config');el('remote-account').textContent=`Signed in as ${accountLabel()}`;el('remote-login').hidden=true;el('remote-sign-out').hidden=false;
- el('remote-setup').hidden=true;el('remote-lobby').hidden=true;el('remote-game').hidden=false;
+ el('remote-setup').hidden=true;el('remote-lobby').hidden=true;el('remote-game').hidden=false;document.body.classList.add('remote-playing');
  const url=new URL(location.href);url.searchParams.set('match',id);history.replaceState(null,'',url);
- if(!scene){await preloadAthletes();scene=new CourtScene(el('remote-court'),()=>{});scene.setGuides(false);targetPicker=new CourtTargetPicker(remoteTargeting(()=>session,skip,status),scene);}
+ if(!scene){await preloadAthletes();scene=new CourtScene(el('remote-court'),()=>{});scene.setGuides(flightGuides);scene.setPlayerNames(playerNames);targetPicker=new CourtTargetPicker(remoteTargeting(()=>session,skip,status),scene);}
 
  session=new RemoteSession(account,id,matchCredentials,remoteRequest,localStorage,render);render();await session.refresh();if(session.state&&!session.offline){try{localStorage.setItem(`pickle-remote:${account}:${id}:opened`,'1')}catch{}}if(session.pending)await session.retry();
 }
-async function lobby(){
+async function lobby(){leaveCourt();
  (el('remote-solo') as HTMLAnchorElement).href='/';
  clearTarget();session?.dispose();session=null;animation=[];display=null;shot=null;el('remote-setup').hidden=true;el('remote-game').hidden=true;el('remote-lobby').hidden=false;
  const url=new URL(location.href);url.searchParams.delete('match');history.replaceState(null,'',url);
@@ -119,18 +149,18 @@ el('remote-cancel-setup').onclick=()=>void lobby().catch(e=>status(e.message));
 el('remote-create').onclick=()=>{const button=el('remote-create') as HTMLButtonElement;button.disabled=true;void create().catch(e=>status(e.message)).finally(()=>{button.disabled=!config?.creationEnabled||!config.testers.length;});};
 el('remote-back').onclick=()=>void lobby().catch(e=>status(e.message));
 el('remote-refresh').onclick=()=>void (session?session.refresh():lobby()).catch(e=>status(e.message));
-el('remote-retry').onclick=()=>void session?.retry();el('remote-skip').onclick=skip;
+el('remote-retry').onclick=()=>void session?.retry();
 let renderFailed=false;
 function frame(now:number){
  try{if(!renderFailed&&scene&&display&&shot&&!document.hidden){
-  if(animation.length){const segment=animation[0],sample=samplePlayback(segment,now-animationStart),progress=sample.progress;
-   display.ball.position=sample.position;display.players=sample.players;display.elapsed=progress*segment.duration;display.phase='flight';display.paused=false;display.simulationTime=now/1000;shot=presentation(display,segment.intent);
-   if(progress===1){animation.shift();animationStart=now;if(!animation.length)skip();}
+  if(animation.length){playbackElapsed+=Math.max(0,Math.min(now-lastFrame,100))*playbackSpeed;const segment=animation[0],sample=samplePlayback(segment,playbackElapsed),progress=sample.progress;
+   display.ball.position=sample.position;display.players=sample.players;display.elapsed=progress*segment.duration;display.phase='flight';display.paused=false;display.simulationTime=now/1000;shot=animationShot(segment,display);
+   if(progress===1){animation.shift();animationStart=now;playbackElapsed=0;if(!animation.length)skip();}
   }
-  scene.render(display,now/1000,shot,animation.length?null:session?.state?.serveCall??null);targetPicker?.sync(!el('remote-game').hidden);
+  scene.render(display,now/1000,shot,!animation.length&&session?.state?.serving?session.state.serveCall:null);targetPicker?.sync(!el('remote-game').hidden&&!settings.open&&!gameEnd.open);
  }
  }catch(error){renderFailed=true;console.error('Remote court render failed',error);status('Court rendering failed. Reload to restore the saved match.');}
- requestAnimationFrame(frame);
+ syncGameEnd();lastFrame=now;requestAnimationFrame(frame);
 }requestAnimationFrame(frame);
 setInterval(()=>{if(!document.hidden&&session&&!session.busy)void session.refresh();},5000);
 window.addEventListener('focus',()=>{if(session)void session.refresh();});window.addEventListener('online',()=>{if(session)void session.refresh();});

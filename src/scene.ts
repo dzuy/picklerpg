@@ -25,6 +25,8 @@ export class CourtScene {
  private bounceRing=new THREE.Mesh(new THREE.RingGeometry(.82,1,40),new THREE.MeshBasicMaterial({color:'#f0ff91',transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false}));
  private trees=new CourtTrees();
  private motion=new Map<PlayerId,{x:number;z:number;distance:number;time:number}>();
+ private retainedTrajectory:RallyShot|null=null;
+ setRetainedTrajectory(shot:RallyShot|null){this.retainedTrajectory=shot}
  private serveBubble=document.createElement('div');
  private pausedBallMarker=document.createElement('div');
  private ballScreenPosition=new THREE.Vector3();
@@ -169,16 +171,17 @@ export class CourtScene {
   if(state.simulationTime===0&&state.shotHistory.length===0)this.lastOpponentShot=null;
   const actualShotByOpponent=state.players.find(player=>player.id===shot.actor)?.team!==this.viewTeam;
   if(state.phase==='flight'&&actualShotByOpponent)this.lastOpponentShot=shot;
-  const retainedOpponentShot=state.phase==='decision'&&state.possession===this.viewTeam&&!this.previewShot?this.lastOpponentShot:null;
+  const retainedOpponentShot=this.retainedTrajectory??(state.phase==='decision'&&state.possession===this.viewTeam&&!this.previewShot?this.lastOpponentShot:null);
   const displayShot=this.previewShot??retainedOpponentShot??shot;
   const serving=serveCall!==null&&state.phase==='decision'&&shot.intent.type==='serve';
   this.serveBubble.hidden=!serving;
   if(serving){
    const server=state.players.find(p=>p.id===shot.actor)!;
-   const point=new THREE.Vector3(server.position.x,2.7,server.position.z).project(this.camera);
+   const point=new THREE.Vector3(server.position.x,1.8,server.position.z).project(this.camera);
    const text=serveCall.replaceAll('–','-');
    if(this.serveBubble.textContent!==text)this.serveBubble.textContent=text;
-   this.serveBubble.style.left=`${Math.max(45,Math.min(this.host.clientWidth-45,(point.x*.5+.5)*this.host.clientWidth))}px`;
+   const playerX=(point.x*.5+.5)*this.host.clientWidth,side=playerX>this.host.clientWidth/2?-1:1;
+   this.serveBubble.style.left=`${Math.max(45,Math.min(this.host.clientWidth-45,playerX+side*78))}px`;
    this.serveBubble.style.top=`${Math.max(48,Math.min(this.host.clientHeight-20,(-point.y*.5+.5)*this.host.clientHeight))}px`;
   }
   for(const p of state.players){
@@ -205,7 +208,7 @@ export class CourtScene {
   }
   const opponentShot=state.players.find(player=>player.id===displayShot.actor)?.team!==this.viewTeam;
   (this.trail.material as THREE.LineDashedMaterial).color.set(opponentShot?'#FF4F63':'#DFFF32');const dots=this.trailDots.material as THREE.PointsMaterial;dots.color.set(opponentShot?'#FF4F63':'#12E1F3');dots.size=opponentShot?3.6:2.4;
-  const opponentThinking=state.phase==='decision'&&state.possession!==this.viewTeam;
+  const opponentThinking=!this.retainedTrajectory&&state.phase==='decision'&&state.possession!==this.viewTeam;
   const showingDecisionPath=!!this.previewShot||!!retainedOpponentShot;
   this.trail.visible=this.guides&&!opponentThinking&&(state.phase==='flight'||showingDecisionPath);this.trailDots.visible=this.trail.visible;const destination=this.selectedTarget?{...this.selectedTarget,y:.08}:displayShot.aimPoint;this.target.rotation.x=destination.y>.1?0:-Math.PI/2;this.target.position.set(destination.x,Math.max(.058,destination.y),destination.z);this.target.visible=!!this.selectedTarget||(this.guides&&state.phase==='decision'&&!!this.previewShot);
   if(!this.customizedView){const base=this.cameraPose().look,tracking=state.phase==='flight'?new THREE.Vector3(THREE.MathUtils.clamp(state.ball.position.x*.045,-.24,.24),0,THREE.MathUtils.clamp(state.ball.position.z*.025,-.3,.3)):new THREE.Vector3();const desired=base.add(tracking),delta=desired.clone().sub(this.controls.target).multiplyScalar(cameraBlend(state.paused?0:renderDt,this.reducedMotion.matches));this.controls.target.add(delta);this.camera.position.add(delta)}

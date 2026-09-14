@@ -11,7 +11,7 @@ export interface PublicMatch {
  accountIds?:Record<Team,string>;
  createdAt?:string;
  id:string;version:number;status:'active'|'completed';viewerTeam:Team;currentTeam:Team|null;decisionId:string;
- rules:ScoringRules;score:Record<Team,number>;serveCall:string;server:PlayerId;pointIndex:number;
+ rules:ScoringRules;score:Record<Team,number>;serveCall:string;serving?:boolean;server:PlayerId;pointIndex:number;
  display:GameState;roster:Record<PlayerId,DesignedPlayer>;
  choices:Array<{intent:ShotIntent;timing?:'air'|'bounce'}>;result:PointResult|null;
  animation:TurnAnimation[];
