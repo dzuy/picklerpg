@@ -12,7 +12,7 @@ export function createProductionServer({root=defaultRoot,apiHandler=createOppone
  return createServer(async(req,res)=>{
   let pathname;
   try{pathname=decodeURIComponent(new URL(req.url,'http://localhost').pathname)}catch{res.writeHead(400).end();return}
-  if(pathname==='/api/matches'||pathname.startsWith('/api/matches/')||pathname.startsWith('/api/multiplayer/')){if(!matchHandler){res.writeHead(503,{'Content-Type':'application/json'}).end(JSON.stringify({error:{code:'disabled',message:'Remote play is not enabled.'}}));return}await matchHandler(req,res);return}
+  if(pathname==='/api/invitations'||pathname.startsWith('/api/invitations/')||pathname==='/api/matches'||pathname.startsWith('/api/matches/')||pathname.startsWith('/api/multiplayer/')){if(!matchHandler){res.writeHead(503,{'Content-Type':'application/json'}).end(JSON.stringify({error:{code:'disabled',message:'Remote play is not enabled.'}}));return}await matchHandler(req,res);return}
   if(pathname.startsWith('/api/')){req.url=pathname;await apiHandler(req,res);return}
   if(!['GET','HEAD'].includes(req.method)){res.writeHead(405,{'Allow':'GET, HEAD'}).end();return}
   if(pathname==='/healthz'){res.writeHead(200,{'Content-Type':'application/json'}).end(req.method==='HEAD'?undefined:'{"status":"ok"}');return}

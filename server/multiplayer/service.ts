@@ -41,13 +41,16 @@ export class MatchService {
  config(actor:string){return {selfId:actor,selfName:this.testers.get(actor)??'Previous playtest account',creationEnabled:this.creationEnabled&&this.testers.has(actor),testers:[...this.testers].filter(([id])=>id!==actor&&this.testers.has(actor)).map(([id,name])=>({id,name}))};}
  async get(id:string,actor:string){const row=await this.repository.get(id,actor);if(!row)throw missing();return publicMatch(row,actor,this.testers);}
  async list(actor:string){return (await this.repository.list(actor)).map(row=>publicMatch(row,actor,this.testers));}
- async create(actor:string,input:unknown){
+ prepare(actor:string,input:unknown){
   if(!this.creationEnabled||!this.testers.has(actor))throw new ApiError(403,'creation_disabled','New remote test matches are disabled for this account.');
   const request=parseCreation(input);if(request.opponentId===actor||!this.testers.has(request.opponentId))throw new ApiError(400,'invalid_opponent','Choose a different enabled tester.');
   const match=new Match();match.scoringPreference=request.scoring;match.seed=randomBytes(4).readUInt32BE();match.startLocalHumanMatch(request.roster);match.matchId=randomUUID();match.revision=0;
   const row:StoredMatch={id:match.matchId,home_user_id:actor,away_user_id:request.opponentId,version:0,status:'active',current_action_user_id:actor,checkpoint:match.exportCheckpoint(),last_result:null,animation:[],creation_request_id:request.creationId,creation_hash:requestHash(request),resolution_secret:randomBytes(32).toString('hex'),seed_version:1,engine_version:REMOTE_ENGINE};
   row.checkpoint.seed=seed(row);
-  return publicMatch(await this.repository.create(row),actor,this.testers);
+  return row;
+ }
+ async create(actor:string,input:unknown){
+  return publicMatch(await this.repository.create(this.prepare(actor,input)),actor,this.testers);
  }
  async act(id:string,actor:string,input:unknown):Promise<ActionReceipt>{
   const request=parseAction(input),hash=requestHash(request);

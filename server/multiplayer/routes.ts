@@ -4,6 +4,7 @@ import {MatchService} from './service';
 import {SupabaseMatchRepository} from './repository';
 import {ApiError} from './errors';
 import {registerPlaytester,loadPlaytesters,playerName} from './accounts';
+import {InvitationService,SupabaseInviteRepository} from './invitations';
 import {uuid} from './validation';
 export type Authenticate=(token:string)=>Promise<string>;
 function send(res:ServerResponse,status:number,value:unknown){res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}).end(JSON.stringify(value));}
@@ -13,7 +14,7 @@ async function body(req:IncomingMessage){
  for await(const chunk of req){size+=chunk.length;if(size>32768)throw new ApiError(413,'too_large','Request is too large.');chunks.push(Buffer.from(chunk));}
  try{return JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{throw new ApiError(400,'invalid_json','Invalid JSON.');}
 }
-export function createMatchHandler(service:MatchService,authenticate:Authenticate,register?: (input:unknown)=>Promise<unknown>){
+export function createMatchHandler(service:MatchService,authenticate:Authenticate,register?: (input:unknown)=>Promise<unknown>,invitations?:InvitationService){
  const buckets=new Map<string,{start:number;count:number}>();
  function limit(key:string,max:number){const now=Date.now();let b=buckets.get(key);if(!b||now-b.start>=60000){if(buckets.size>=5000)for(const [k,v] of buckets)if(now-v.start>=60000)buckets.delete(k);if(buckets.size>=5000)throw new ApiError(429,'busy','Try again shortly.');b={start:now,count:0};buckets.set(key,b);}if(++b.count>max)throw new ApiError(429,'rate_limited','Too many requests. Try again shortly.');}
  return async(req:IncomingMessage,res:ServerResponse)=>{
@@ -28,9 +29,18 @@ export function createMatchHandler(service:MatchService,authenticate:Authenticat
    const actor=await authenticate(token);if(!uuid(actor))throw new ApiError(401,'authentication','Sign in again.');
    limit(`user:${actor}`,180);
    if(pathname==='/api/multiplayer/config'&&req.method==='GET'){send(res,200,service.config(actor));return;}
+   if(invitations&&pathname==='/api/invitations'){
+    if(req.method==='GET'){send(res,200,await invitations.list(actor));return;}
+    if(req.method==='POST'){limit(`invite:${actor}`,6);send(res,201,await invitations.create(actor,await body(req)));return;}
+   }
+   const invite=pathname.match(/^\/api\/invitations\/([^/]+)(\/accept)?$/);
+   if(invitations&&invite&&uuid(invite[1])){
+    if(req.method==='GET'&&!invite[2]){send(res,200,await invitations.get(invite[1],actor));return;}
+    if(req.method==='POST'&&invite[2]){limit(`accept:${actor}`,6);send(res,200,await invitations.accept(invite[1],actor,await body(req)));return;}
+   }
    if(pathname==='/api/matches'){
     if(req.method==='GET'){send(res,200,await service.list(actor));return;}
-    if(req.method==='POST'){limit(`create:${actor}`,6);send(res,201,await service.create(actor,await body(req)));return;}
+    if(req.method==='POST'){if(invitations)throw new ApiError(400,'invitation_required','Send an invitation to start a new game.');limit(`create:${actor}`,6);send(res,201,await service.create(actor,await body(req)));return;}
    }
    const match=pathname.match(/^\/api\/matches\/([^/]+)(\/actions)?$/);
    if(match&&uuid(match[1])){
@@ -53,5 +63,6 @@ export function configuredMatchHandler(env:NodeJS.ProcessEnv=process.env){
  async function refreshTesters(){if(Date.now()-refreshed<5000)return;if(!refreshing)refreshing=(async()=>{const enrolled=await loadPlaytesters(client);testers.clear();for(const [id,email] of enrolled)testers.set(id,email);refreshed=Date.now();})().finally(()=>{refreshing=null;});await refreshing;}
  const authenticate:Authenticate=async token=>{const {data,error}=await client.auth.getUser(token);if(error||!data.user)throw new ApiError(401,'authentication','Your session expired. Sign in again, then retry.');await refreshTesters();if(testers.has(data.user.id)){try{testers.set(data.user.id,playerName(data.user.user_metadata?.player_name));}catch{}}return data.user.id;};
  const register=env.MULTIPLAYER_CREATE_ENABLED==='true'?async(input:unknown)=>{const result=await registerPlaytester(client,input);refreshed=0;return result;}:undefined;
- return createMatchHandler(new MatchService(new SupabaseMatchRepository(client),testers,env.MULTIPLAYER_CREATE_ENABLED==='true'),authenticate,register);
+ const service=new MatchService(new SupabaseMatchRepository(client),testers,env.MULTIPLAYER_CREATE_ENABLED==='true');
+ return createMatchHandler(service,authenticate,register,new InvitationService(new SupabaseInviteRepository(client),service,testers));
 }

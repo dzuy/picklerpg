@@ -1,0 +1,25 @@
+import {setupLineup,cyclePlayer} from '../match-setup-state';
+import {parseLibrary,PLAYER_STORAGE_KEY} from '../player-design';
+import {preloadAthletes} from '../athlete';
+import {LOOKS} from '../player-looks';
+import {AvatarThumbnails} from '../avatar-preview';
+import type {TeamSelection} from './invitation-protocol';
+import '../match-setup.css';
+/** Same roster/preset selection and rendered athletes as solo setup, restricted to your team. */
+export class TeamPicker {
+ private lineup=setupLineup(parseLibrary(localStorage.getItem(PLAYER_STORAGE_KEY)).players,[]);
+ private static portraits:AvatarThumbnails|undefined;
+ constructor(private host:HTMLElement){this.draw();void preloadAthletes().then(()=>{if(this.host.isConnected)this.draw()}).catch(()=>{})}
+ get team():TeamSelection{return this.lineup.selected.slice(0,2).map(id=>structuredClone(this.lineup.players.find(p=>p.id===id)!)) as TeamSelection}
+ private draw(){
+  this.host.replaceChildren();this.host.className='remote-team-picker setup-team-players';
+  this.team.forEach((p,i)=>{
+   const card=document.createElement('article');card.className='setup-player';card.style.setProperty('--card-accent',i?'#12E1F3':'#FF3D7D');
+   const label=document.createElement('p');label.textContent=i?'Your partner':'Your player';label.className='remote-player-role';
+   const portrait=document.createElement('div');portrait.className='setup-portrait';const preset=LOOKS.findIndex((look,index)=>p.id===`preset-${index}`&&JSON.stringify(look.appearance)===JSON.stringify(p.appearance));let source=preset>=0&&preset<4?`/assets/picklebash-select/players/${['ema','leo','maya','jax'][preset]}-card-art.jpg`:'';if(source)portrait.classList.add('setup-illustrated');if(!source)try{TeamPicker.portraits??=new AvatarThumbnails(384);source=TeamPicker.portraits.get(p.appearance,`hand-${p.handedness}`)}catch{}if(source){const image=document.createElement('img');image.src=source;image.alt=p.name;portrait.append(image)}else{portrait.textContent=p.name.slice(0,1)}
+   const meta=document.createElement('div');meta.className='setup-player-meta';const name=document.createElement('h2');name.textContent=p.name;meta.append(name);
+   const controls=document.createElement('div');controls.className='setup-picker';for(const step of [-1,1]){const button=document.createElement('button');button.type='button';button.textContent=step<0?'‹':'›';button.setAttribute('aria-label',`${step<0?'Previous':'Next'} ${i?'partner':'player'}`);button.onclick=()=>{this.lineup.selected=cyclePlayer(this.lineup.players.map(p=>p.id),this.lineup.selected.slice(0,2),i,step);this.draw();this.host.querySelectorAll<HTMLButtonElement>('button')[i*2+(step>0?1:0)]?.focus()};controls.append(button)}
+   card.append(label,portrait,meta,controls);this.host.append(card);
+  });
+ }
+}

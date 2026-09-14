@@ -90,3 +90,11 @@ Remote play uses the same court targeting wheel as single player. Tap the opposi
 Each account labels one roster slot (`you` for home, `opponent-left` for away) in the public match view, including existing games. Partner names and saved gameplay checkpoints are preserved. Multiplayer keeps the active player's name visible while choosing a shot.
 
 Local browser fixture: `node --import tsx tests/browser/remote-preview.ts` creates a disposable match and prints its URL. Reload once after the first-entry signup reset, then use the printed match URL; add `&viewer=b` for the other team. This fixture uses a disposable database and simulated auth, never production accounts.
+
+### Invitation acceptance and team setup
+
+New games use a pending invitation before creating a playable match. The creator selects their player, partner, opposing account, scoring, and court. The Forest is the only enabled location, matching current solo availability. Incoming lobby cards say “NEW GAME · INVITATION”; outgoing cards show who must accept. The recipient selects their own player and partner, then accepts. Waiting creators automatically enter the game after acceptance.
+
+Migration `202609140003_async_invitations.sql` adds participant-restricted invitation storage and atomic, idempotent creation/acceptance procedures. It has been applied to the shared playtest database. Acceptance fixes the creator's stored lineup, stores the recipient as the home team, and creates exactly one match with the recipient serving first. Existing matches remain playable. Production routing rejects immediate match creation when the invitation service is configured.
+
+Validation: 22 invitation/remote tests passed, including concurrent acceptance, unauthorized access, no match before acceptance, preserved lineups, and recipient first serve. A disposable two-account browser test verified incoming/outgoing cards, player selection, acceptance, automatic creator entry, and opposite turn banners. The acceptance layout fits a 390px viewport without horizontal overflow. Production build passed. Code is local pending the next push.
