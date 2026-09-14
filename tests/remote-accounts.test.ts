@@ -14,3 +14,8 @@ test('player directory trusts only admin-owned enrollment metadata',async()=>{
 });
 
 test('player names are bounded and normalized',()=>{assert.equal(playerName('  River   Fox '),'River Fox');for(const invalid of ['',null,'x'.repeat(33)])assert.throws(()=>playerName(invalid));});
+
+test('playtest passwords accept six plain characters but reject shorter or oversized values',()=>{
+ const input={email:'player@example.com',playerName:'Player',password:'aaaaaa'};assert.equal(registrationInput(input).password,'aaaaaa');
+ for(const password of ['', '12345', 'a'.repeat(129)])assert.throws(()=>registrationInput({...input,password}));
+});

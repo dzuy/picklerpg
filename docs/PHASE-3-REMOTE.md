@@ -82,3 +82,11 @@ The user requested a fresh account on each device, without email confirmation du
 The opponent directory now includes only newly enrolled accounts, identified by email. Old shared tester accounts are excluded from new-game creation. Existing games are retained. The header displays the signed-in email and controlled team; match details display the opposing email and shared game ID. Each device should register with a different email, then only one device creates the game and the other opens it from its game list.
 
 Player names are now required at signup (1–32 characters), saved in account display metadata, and shown in the opponent directory, game cards, and match identity. The signed-in header retains the email alongside the name. Existing accounts without a name receive a one-time name-completion form after sign-in. Enrollment still relies only on admin-owned metadata.
+
+### Shared court targeting and player names
+
+Remote play uses the same court targeting wheel as single player. Tap the opposing court, then choose a shot; the server-provided shot variant and reception timing are preserved. Tapping outside the wheel or pressing Escape dismisses it. The wheel closes when the decision changes or a turn is pending/offline. The optional Shot list retains default targets.
+
+Each account labels one roster slot (`you` for home, `opponent-left` for away) in the public match view, including existing games. Partner names and saved gameplay checkpoints are preserved. Multiplayer keeps the active player's name visible while choosing a shot.
+
+Local browser fixture: `node --import tsx tests/browser/remote-preview.ts` creates a disposable match and prints its URL. Reload once after the first-entry signup reset, then use the printed match URL; add `&viewer=b` for the other team. This fixture uses a disposable database and simulated auth, never production accounts.

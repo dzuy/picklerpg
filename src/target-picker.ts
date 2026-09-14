@@ -1,27 +1,39 @@
 import {isOpposingTarget} from './engine/controllers';
-import {COURT,type PlayerId} from './engine/model';
+import {COURT,type PlayerId,type Team,type ShotIntent} from './engine/model';
 import {shotIcon} from './shot-illustration';
 import type {Match} from './match';
 import {choiceCopy} from './shot-choice';
 import {SHOT_FAMILIES} from './engine/shot-families';
 import type {CourtScene} from './scene';
+export type TargetPoint={x:number;z:number;playerId?:PlayerId};
+export type TargetChoice={intent:ShotIntent;timing?:'air'|'bounce'};
+/** A decision source supplies legal choices; the wheel never resolves gameplay. */
+export interface TargetingSource {
+ readonly team:Team|null;
+ readonly choices:TargetChoice[];
+ readonly context:unknown;
+ readonly decision:string;
+ readonly enabled:boolean;
+ aim?():void;
+ validate(choice:TargetChoice,point:TargetPoint):unknown;
+ play(choice:TargetChoice,point:TargetPoint):void;
+}
 /** Court coordinates survive camera movement; selections belong to one contact. */
-export class TargetPicker {
+export class CourtTargetPicker {
  private panel=document.createElement('section');
  private point:{x:number;z:number;playerId?:PlayerId}|null=null;
- private engine:Match['engine']|null=null;
- private index=-1;
- private reception=false;
+ private context:unknown=null;
+ private decision='';
  private enabled=false;
  get active(){return !!this.point&&!this.panel.hidden}
- constructor(private match:Match,private scene:CourtScene){
+ constructor(private source:TargetingSource,private scene:CourtScene){
   this.panel.className='target-picker';this.panel.hidden=true;this.panel.setAttribute('aria-label','Court target shot picker');
   document.body.append(this.panel);
   scene.onCourtTap=point=>{
-   if(!this.enabled||!this.match.decisionTeam||!isOpposingTarget(point,this.match.decisionTeam))return false;
-   const serving=match.targetingMenu.some(choice=>choice.intent.type==='serve');
+   if(!this.enabled||!this.source.team||!isOpposingTarget(point,this.source.team))return false;
+   const serving=this.source.choices.some(choice=>choice.intent.type==='serve');
    if(!serving&&(Math.abs(point.x)>COURT.width/2||Math.abs(point.z)>COURT.length/2))return false;
-   this.point=point;this.engine=match.engine;this.index=match.state.shotIndex;this.reception=match.receptionDecision;
+   this.source.aim?.();this.point=point;this.context=this.source.context;this.decision=this.source.decision;
    scene.setSelectedTarget(point);scene.setShotPreview(null);this.draw();return true;
   };
   // Consume the whole dismissal gesture so it cannot place a new target or activate a control underneath.
@@ -39,11 +51,8 @@ export class TargetPicker {
  }
  clear(){this.point=null;this.panel.hidden=true;this.scene.setSelectedTarget(null);this.scene.setShotPreview(null)}
  sync(active:boolean){
-  const s=this.match.state;
-  this.enabled=active&&this.match.replayIndex===null&&!this.match.customBusy&&!this.match.thinking&&(this.match.manualReceptionDecision||this.match.humanContact);
-  if(this.point&&(!active||this.engine!==this.match.engine||this.index!==s.shotIndex||this.reception!==this.match.receptionDecision||s.phase==='complete'||this.match.replayIndex!==null)){this.clear();return}
-  const target=this.match.shot.intent.target;
-  if(this.point&&s.phase==='flight'&&!this.match.receptionDecision&&(target.kind!=='point'||target.x!==this.point.x||target.z!==this.point.z)){this.clear();return}
+  this.enabled=active&&this.source.enabled;
+  if(this.point&&(!this.enabled||this.context!==this.source.context||this.decision!==this.source.decision)){this.clear();return}
   this.panel.hidden=!this.point||!this.enabled;
   if(this.point&&!this.panel.hidden){
    const p=this.scene.projectTarget(this.point),width=this.panel.offsetWidth,height=this.panel.offsetHeight;
@@ -57,8 +66,8 @@ export class TargetPicker {
  private draw(){
   this.panel.hidden=false;
   const seen=new Set<string>();
-  const choices=this.match.targetingMenu.flatMap(choice=>{
-   try{this.match.previewMenuTarget(choice,this.point!)}catch{return []}
+  const choices=this.source.choices.flatMap(choice=>{
+   try{this.source.validate(choice,this.point!)}catch{return []}
    // Reception choices are air-first. Keep one playable Lob, with a bounced fallback.
    const key=choice.intent.type==='lob'?'lob':JSON.stringify({...choice.intent,target:undefined,source:undefined,timing:choice.timing});
    if(seen.has(key))return [];seen.add(key);
@@ -81,11 +90,26 @@ export class TargetPicker {
    const choice=choices[Number(button.dataset.choice)];
    button.title=`Play ${choice.label}${choice.timing?choice.timing==='air'?' · before bounce':' · after bounce':''}`;
    button.addEventListener('click',()=>{
-    try{this.match.playMenuTarget(choice,this.point!);this.panel.hidden=true}
+    try{this.source.play(choice,this.point!);this.panel.hidden=true}
     catch(error){this.status((error as Error).message);this.draw()}
 
    });
   }
   this.sync(true);this.panel.querySelector<HTMLButtonElement>('[data-type]')?.focus({preventScroll:true});
+ }
+}
+
+/** Single-player adapter shares the exact same wheel with remote play. */
+export class TargetPicker extends CourtTargetPicker {
+ constructor(match:Match,scene:CourtScene){
+  super({
+   get team(){return match.decisionTeam},
+   get choices(){return match.targetingMenu},
+   get context(){return match.engine},
+   get decision(){return `${match.state.shotIndex}:${match.receptionDecision}`},
+   get enabled(){return match.replayIndex===null&&!match.customBusy&&!match.thinking&&(match.manualReceptionDecision||match.humanContact)},
+   validate:(choice,point)=>match.previewMenuTarget(choice,point),
+   play:(choice,point)=>match.playMenuTarget(choice,point),
+  },scene);
  }
 }

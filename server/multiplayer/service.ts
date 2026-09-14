@@ -16,12 +16,12 @@ function compatible(row:StoredMatch){if(row.engine_version!==REMOTE_ENGINE||row.
 function decisionId(row:StoredMatch){return `${row.id}:${row.version}`;}
 function seed(row:StoredMatch){return createHmac('sha256',row.resolution_secret).update(`${REMOTE_ENGINE}:1:${row.checkpoint.pointIndex}:${row.checkpoint.rally.state.shotHistory.length}`).digest().readUInt32BE(0);}
 /** Whitelist display fields and action descriptors, excluding options, resolution and all seeds. */
-export function publicMatch(row:StoredMatch,actor:string):PublicMatch {
+export function publicMatch(row:StoredMatch,actor:string,names:ReadonlyMap<string,string>=new Map()):PublicMatch {
  const viewerTeam=teamFor(row,actor);compatible(row);const match=Match.fromCheckpoint(row.checkpoint),s=match.state;
  const currentTeam=row.status==='active'?match.decisionTeam:null;
- return {id:row.id,version:row.version,status:row.status,accountIds:{home:row.home_user_id,away:row.away_user_id},viewerTeam,currentTeam,decisionId:decisionId(row),rules:{...row.checkpoint.rules},score:{...match.scoring.score},serveCall:match.scoring.call,server:match.scoring.server,pointIndex:match.point,
+ return {id:row.id,createdAt:row.created_at,version:row.version,status:row.status,accountIds:{home:row.home_user_id,away:row.away_user_id},viewerTeam,currentTeam,decisionId:decisionId(row),rules:{...row.checkpoint.rules},score:{...match.scoring.score},serveCall:match.scoring.call,server:match.scoring.server,pointIndex:match.point,
   display:{schemaVersion:2,phase:s.phase,stage:s.stage,shotIndex:s.shotIndex,legIndex:0,elapsed:0,simulationTime:0,paused:true,ball:structuredClone(s.ball),players:structuredClone(s.players),shotHistory:[],rallyHistory:[],bounces:s.bounces,score:{...s.score},currentHitter:s.currentHitter,possession:s.possession,result:s.result?{...s.result}:null},
-  roster:Object.fromEntries(SLOTS.map(id=>{const f=row.checkpoint.roster[id];return [id,{...f.design!,skills:{...f.skills},handedness:f.handedness}]})) as PublicMatch['roster'],
+  roster:Object.fromEntries(SLOTS.map(id=>{const f=row.checkpoint.roster[id];const owner=id==='you'?row.home_user_id:id==='opponent-left'?row.away_user_id:null;return [id,{...f.design!,...(owner&&names.has(owner)?{name:names.get(owner)!}:{}),skills:{...f.skills},handedness:f.handedness}]})) as PublicMatch['roster'],
   choices:currentTeam===viewerTeam?structuredClone(match.targetingMenu):[],result:row.last_result,animation:structuredClone(row.animation)};
 }
 function animations(match:Match):TurnAnimation[]{
@@ -39,15 +39,15 @@ function animations(match:Match):TurnAnimation[]{
 export class MatchService {
  constructor(private repository:MatchRepository,private testers:ReadonlyMap<string,string>,private creationEnabled=true){}
  config(actor:string){return {selfId:actor,selfName:this.testers.get(actor)??'Previous playtest account',creationEnabled:this.creationEnabled&&this.testers.has(actor),testers:[...this.testers].filter(([id])=>id!==actor&&this.testers.has(actor)).map(([id,name])=>({id,name}))};}
- async get(id:string,actor:string){const row=await this.repository.get(id,actor);if(!row)throw missing();return publicMatch(row,actor);}
- async list(actor:string){return (await this.repository.list(actor)).map(row=>publicMatch(row,actor));}
+ async get(id:string,actor:string){const row=await this.repository.get(id,actor);if(!row)throw missing();return publicMatch(row,actor,this.testers);}
+ async list(actor:string){return (await this.repository.list(actor)).map(row=>publicMatch(row,actor,this.testers));}
  async create(actor:string,input:unknown){
   if(!this.creationEnabled||!this.testers.has(actor))throw new ApiError(403,'creation_disabled','New remote test matches are disabled for this account.');
   const request=parseCreation(input);if(request.opponentId===actor||!this.testers.has(request.opponentId))throw new ApiError(400,'invalid_opponent','Choose a different enabled tester.');
   const match=new Match();match.scoringPreference=request.scoring;match.seed=randomBytes(4).readUInt32BE();match.startLocalHumanMatch(request.roster);match.matchId=randomUUID();match.revision=0;
   const row:StoredMatch={id:match.matchId,home_user_id:actor,away_user_id:request.opponentId,version:0,status:'active',current_action_user_id:actor,checkpoint:match.exportCheckpoint(),last_result:null,animation:[],creation_request_id:request.creationId,creation_hash:requestHash(request),resolution_secret:randomBytes(32).toString('hex'),seed_version:1,engine_version:REMOTE_ENGINE};
   row.checkpoint.seed=seed(row);
-  return publicMatch(await this.repository.create(row),actor);
+  return publicMatch(await this.repository.create(row),actor,this.testers);
  }
  async act(id:string,actor:string,input:unknown):Promise<ActionReceipt>{
   const request=parseAction(input),hash=requestHash(request);
@@ -55,7 +55,7 @@ export class MatchService {
   const old=await this.repository.receipt(id,request.actionId);
   const receipt=(r:StoredReceipt):ActionReceipt=>{
    if(r.actor_id!==actor||r.request_hash!==hash)throw conflict();
-   return {actionId:r.action_id,fromVersion:r.from_version,toVersion:r.to_version,state:publicMatch({...row,...r.result,checkpoint:r.checkpoint,version:r.to_version},actor)};
+   return {actionId:r.action_id,fromVersion:r.from_version,toVersion:r.to_version,state:publicMatch({...row,...r.result,checkpoint:r.checkpoint,version:r.to_version},actor,this.testers)};
   };
   if(old)return receipt(old);compatible(row);
   if(row.version!==request.expectedVersion||request.decisionId!==decisionId(row)||row.status!=='active')throw conflict();

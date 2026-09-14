@@ -9,6 +9,7 @@ export interface CreateRemoteMatch {creationId:string;opponentId:string;roster:R
 /** Explicit public projection. Never substitute a MatchCheckpoint or RallyShot here. */
 export interface PublicMatch {
  accountIds?:Record<Team,string>;
+ createdAt?:string;
  id:string;version:number;status:'active'|'completed';viewerTeam:Team;currentTeam:Team|null;decisionId:string;
  rules:ScoringRules;score:Record<Team,number>;serveCall:string;server:PlayerId;pointIndex:number;
  display:GameState;roster:Record<PlayerId,DesignedPlayer>;

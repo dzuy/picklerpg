@@ -52,3 +52,17 @@ test('different request IDs cannot reroll the same decision',async()=>{
  right.rows=structuredClone(left.rows);const another=new MatchService(right,testers);
  const one=await service.act(s.id,A,action(s)),two=await another.act(s.id,A,action(s));assert.deepEqual(one.state,two.state);
 });
+
+test('account names label one player on each team for both viewers, including existing matches',async()=>{
+ const db=new MemoryRepository(),names=new Map(testers),service=new MatchService(db,names),s=await service.create(A,creation());
+ const saved=structuredClone(db.rows.get(s.id)!.checkpoint);
+ names.set(A,'Morgan');names.set(B,'Riley');
+ for(const actor of [A,B]){
+  const viewed=await service.get(s.id,actor),listed=(await service.list(actor))[0];
+  for(const game of [viewed,listed]){
+   assert.equal(game.roster.you.name,'Morgan');assert.equal(game.roster['opponent-left'].name,'Riley');
+   assert.equal(game.roster.partner.name,s.roster.partner.name);assert.equal(game.roster['opponent-right'].name,s.roster['opponent-right'].name);
+  }
+ }
+ assert.deepEqual(db.rows.get(s.id)!.checkpoint,saved,'display names do not change saved gameplay');
+});

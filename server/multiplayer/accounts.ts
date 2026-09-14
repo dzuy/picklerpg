@@ -6,7 +6,7 @@ export function registrationInput(input:unknown){
  const value=input as Record<string,unknown>;
  if(Object.keys(value).some(k=>!['email','password','playerName'].includes(k))||typeof value.email!=='string'||typeof value.password!=='string')throw new ApiError(400,'registration','Enter an email and password.');
  const email=value.email.trim().toLowerCase(),password=value.password;
- if(email.length>254||!/^\S+@[^\s@]+\.[^\s@]+$/.test(email)||password.length<12||password.length>128)throw new ApiError(400,'registration','Use a valid email and a password with 12–128 characters.');
+ if(email.length>254||!/^\S+@[^\s@]+\.[^\s@]+$/.test(email)||password.length<6||password.length>128)throw new ApiError(400,'registration','Use a valid email and a password with 6–128 characters.');
  return {email,password,playerName:playerName(value.playerName)};
 }
 /** The playtest explicitly skips confirmation for NEW accounts. Existing identities are never modified. */
