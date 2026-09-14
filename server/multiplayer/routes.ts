@@ -3,7 +3,7 @@ import {createClient} from '@supabase/supabase-js';
 import {MatchService} from './service';
 import {SupabaseMatchRepository} from './repository';
 import {ApiError} from './errors';
-import {registerPlaytester,loadPlaytesters} from './accounts';
+import {registerPlaytester,loadPlaytesters,playerName} from './accounts';
 import {uuid} from './validation';
 export type Authenticate=(token:string)=>Promise<string>;
 function send(res:ServerResponse,status:number,value:unknown){res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}).end(JSON.stringify(value));}
@@ -51,7 +51,7 @@ export function configuredMatchHandler(env:NodeJS.ProcessEnv=process.env){
  const testers=new Map<string,string>();
  let refreshed=0,refreshing:Promise<void>|null=null;
  async function refreshTesters(){if(Date.now()-refreshed<5000)return;if(!refreshing)refreshing=(async()=>{const enrolled=await loadPlaytesters(client);testers.clear();for(const [id,email] of enrolled)testers.set(id,email);refreshed=Date.now();})().finally(()=>{refreshing=null;});await refreshing;}
- const authenticate:Authenticate=async token=>{const {data,error}=await client.auth.getUser(token);if(error||!data.user)throw new ApiError(401,'authentication','Your session expired. Sign in again, then retry.');await refreshTesters();return data.user.id;};
+ const authenticate:Authenticate=async token=>{const {data,error}=await client.auth.getUser(token);if(error||!data.user)throw new ApiError(401,'authentication','Your session expired. Sign in again, then retry.');await refreshTesters();if(testers.has(data.user.id)){try{testers.set(data.user.id,playerName(data.user.user_metadata?.player_name));}catch{}}return data.user.id;};
  const register=env.MULTIPLAYER_CREATE_ENABLED==='true'?async(input:unknown)=>{const result=await registerPlaytester(client,input);refreshed=0;return result;}:undefined;
  return createMatchHandler(new MatchService(new SupabaseMatchRepository(client),testers,env.MULTIPLAYER_CREATE_ENABLED==='true'),authenticate,register);
 }
