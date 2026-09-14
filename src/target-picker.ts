@@ -1,3 +1,4 @@
+import {isOpposingTarget} from './engine/controllers';
 import {COURT,type PlayerId} from './engine/model';
 import {shotIcon} from './shot-illustration';
 import type {Match} from './match';
@@ -17,7 +18,7 @@ export class TargetPicker {
   this.panel.className='target-picker';this.panel.hidden=true;this.panel.setAttribute('aria-label','Court target shot picker');
   document.body.append(this.panel);
   scene.onCourtTap=point=>{
-   if(!this.enabled||point.z>=0)return false;
+   if(!this.enabled||!this.match.decisionTeam||!isOpposingTarget(point,this.match.decisionTeam))return false;
    const serving=match.targetingMenu.some(choice=>choice.intent.type==='serve');
    if(!serving&&(Math.abs(point.x)>COURT.width/2||Math.abs(point.z)>COURT.length/2))return false;
    this.point=point;this.engine=match.engine;this.index=match.state.shotIndex;this.reception=match.receptionDecision;
@@ -39,7 +40,7 @@ export class TargetPicker {
  clear(){this.point=null;this.panel.hidden=true;this.scene.setSelectedTarget(null);this.scene.setShotPreview(null)}
  sync(active:boolean){
   const s=this.match.state;
-  this.enabled=active&&this.match.replayIndex===null&&!this.match.customBusy&&!this.match.thinking&&(this.match.manualReceptionDecision||(s.phase==='decision'&&s.possession==='home'&&!(s.currentHitter==='partner'&&this.match.partnerAutonomy)));
+  this.enabled=active&&this.match.replayIndex===null&&!this.match.customBusy&&!this.match.thinking&&(this.match.manualReceptionDecision||this.match.humanContact);
   if(this.point&&(!active||this.engine!==this.match.engine||this.index!==s.shotIndex||this.reception!==this.match.receptionDecision||s.phase==='complete'||this.match.replayIndex!==null)){this.clear();return}
   const target=this.match.shot.intent.target;
   if(this.point&&s.phase==='flight'&&!this.match.receptionDecision&&(target.kind!=='point'||target.x!==this.point.x||target.z!==this.point.z)){this.clear();return}

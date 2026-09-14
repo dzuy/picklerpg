@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && tsc -p tsconfig.server.json && vite build && node scripts/build-server.mjs",
     "test": "node --import tsx --test tests/*.test.ts",
     "preview": "vite preview --host 127.0.0.1",
     "opponent-server": "node --env-file-if-exists=.env.local server/opponent.mjs",
@@ -14,7 +14,8 @@
     "evaluate:skills": "node --import tsx scripts/evaluate-skills.ts",
     "evaluate:net-skills": "node --import tsx scripts/evaluate-net-skills.ts",
     "evaluate:soft-skills": "node --import tsx scripts/evaluate-soft-skills.ts",
-    "evaluate:finishing": "node --import tsx scripts/evaluate-finishing.ts"
+    "evaluate:finishing": "node --import tsx scripts/evaluate-finishing.ts",
+    "multiplayer-server": "node --env-file-if-exists=.env.local --import tsx server/multiplayer/entry.ts"
   },
   "dependencies": {
     "@huggingface/transformers": "^4.2.0",
@@ -22,7 +23,11 @@
     "three": "^0.180.0"
   },
   "devDependencies": {
+    "@types/pg": "^8.23.1",
     "@types/three": "^0.180.0",
+    "embedded-postgres": "^18.4.0-beta.17",
+    "esbuild": "^0.28.2",
+    "pg": "^8.23.0",
     "tsx": "^4.20.5",
     "typescript": "^5.9.2",
     "vite": "^7.1.5"

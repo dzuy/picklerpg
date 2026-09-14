@@ -1,2 +1,2 @@
-import {defineConfig} from 'vite';
-export default defineConfig({server:{proxy:{'/api/opponent':'http://127.0.0.1:5174','/api/command':'http://127.0.0.1:5174'}}});
+import {defineConfig,loadEnv} from 'vite';
+export default defineConfig(({mode})=>{const env=loadEnv(mode,process.cwd(),'MULTIPLAYER_');const remote=`http://127.0.0.1:${env.MULTIPLAYER_PORT||5175}`;return {server:{proxy:{'/api/matches':{target:remote,changeOrigin:false},'/api/multiplayer':{target:remote,changeOrigin:false},'/api/opponent':'http://127.0.0.1:5174','/api/command':'http://127.0.0.1:5174'}}};});

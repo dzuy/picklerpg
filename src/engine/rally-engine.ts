@@ -26,6 +26,12 @@ export function classifyStage(completedShots:number,intent:ShotIntent,players:Ga
  return 'transition';
 }
 
+/** Internal execution copy. Never write this playback structure to storage. */
+export interface RallyRuntime {
+ state:GameState; options:RallyShot[]; shot:RallyShot;
+ movementStart:Record<PlayerId,Vec3>; shotElapsed:number; receptionPrompt:boolean;
+}
+
 /** Owns time, control flow, contact validation, and point lifecycle. No scenario imports. */
 export class RallyEngine {
  state!:GameState;
@@ -34,7 +40,7 @@ export class RallyEngine {
  private movementStart!:Record<PlayerId,Vec3>;
  private shotElapsed=0;
  private receptionPrompt=false;
- constructor(private readonly provider:RallyProvider){this.reset()}
+ constructor(private readonly provider:RallyProvider, runtime?:RallyRuntime){if(runtime)this.restoreRuntime(runtime);else this.reset()}
 
  reset(){
   const setup=structuredClone(this.provider.setup());
@@ -45,6 +51,23 @@ export class RallyEngine {
   this.shotElapsed=0;
   this.receptionPrompt=false;
   this.acceptContact(options);
+ }
+ /** In-memory copies let presentation consume an already committed boundary. */
+ runtime():RallyRuntime{return structuredClone({state:this.state,options:this.options,shot:this.activeShot,movementStart:this.movementStart??Object.fromEntries(this.state.players.map(p=>[p.id,p.position])),shotElapsed:this.shotElapsed,receptionPrompt:this.receptionPrompt})}
+ restoreRuntime(runtime:RallyRuntime){const r=structuredClone(runtime);this.state=r.state;this.options=r.options;this.activeShot=r.shot;this.movementStart=r.movementStart;this.shotElapsed=r.shotElapsed;this.receptionPrompt=r.receptionPrompt}
+ private committedBoundary:RallyRuntime|null=null;
+ playToCommittedBoundary(runtime:RallyRuntime){this.committedBoundary=structuredClone(runtime)}
+ private acceptCommittedBoundary(){if(!this.committedBoundary)return false;const end=this.committedBoundary;this.committedBoundary=null;this.restoreRuntime(end);return true}
+ /** Advance through authored leg endpoints, never through a browser clock or CPU policy. */
+ advanceToBoundary(){
+  if(this.state.phase!=='flight'||this.receptionPrompt)return;
+  this.state.paused=false;
+  for(let steps=0;steps<1000;steps++){
+   if(this.state.phase!=='flight'||this.receptionPrompt)return;
+   const leg=this.shot.legs[this.state.legIndex];
+   this.update(Math.max(1e-8,leg.duration-this.state.elapsed));
+  }
+  throw new Error('Flight did not reach a logical boundary.');
  }
  /** Detached, JSON-serializable state for adapters and future tactical snapshots. */
  snapshot():GameState{return structuredClone(this.state)}
@@ -113,6 +136,7 @@ export class RallyEngine {
   if(this.provider.shouldAutoPlay?this.provider.shouldAutoPlay(this.shot,this.snapshot()):this.state.currentHitter!=='you')this.submitIntent({...this.shot.intent,source:this.shot.intent.source==='ai'?'ai':'script'});
  }
  private finishFlight(){
+  if(this.acceptCommittedBoundary())return;
   const outcome=structuredClone(this.provider.next(this.snapshot(),structuredClone(this.shot)));
   if(outcome.kind==='point-end'){
    if(!outcome.result||!['home','away'].includes(outcome.result.winner)||!['missed-swing','winner','net','out','double-bounce','failed-return','unreturned-attack','body-hit'].includes(outcome.result.reason))throw new Error('Invalid point result.');
@@ -145,6 +169,7 @@ export class RallyEngine {
    const total=this.shot.legs.reduce((sum,l)=>sum+l.duration,0);
    const alpha=Math.min(1,this.shotElapsed/total),smooth=alpha*alpha*(3-2*alpha);
    for(const player of this.state.players){const from=this.movementStart[player.id],to=this.shot.positions[player.id];player.position={x:from.x+(to.x-from.x)*smooth,y:0,z:from.z+(to.z-from.z)*smooth}}
+   if(pauseAtNet&&this.acceptCommittedBoundary())return;
    if(pauseAtNet){this.state.ball.position={...this.state.ball.position,z:0};this.state.paused=true;this.receptionPrompt=true;return}
    if(this.state.elapsed>=leg.duration-1e-9){
     this.state.ball.position={...leg.to};

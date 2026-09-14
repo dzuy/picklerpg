@@ -1,0 +1,60 @@
+{
+  "project": "vwdtfnljcjbyokdvjiea.supabase.co",
+  "startedAt": "2026-09-14T16:09:41.332Z",
+  "testAccounts": [
+    "378f1220-7828-45d1-a257-ed696dea7d5c",
+    "6ebc9868-8187-4c81-b50a-bf172588728f"
+  ],
+  "checks": [
+    "Real Auth token validation; anonymous/authenticated direct table and RPC access denied",
+    "Creation retry identity",
+    "Distinct-ID concurrency: one commit",
+    "Identical-ID concurrency: one receipt",
+    "Wrong owner / outsider / score forgery rejected",
+    "Discarded-response retry after Node restart",
+    "Old exact receipt after completion",
+    "Public payload seed/outcome redaction",
+    "Both scoring modes complete with exactly one history row per action",
+    "Solo match history unchanged"
+  ],
+  "matches": [
+    {
+      "id": "ec20fc61-3116-47c9-9edc-24659611f779",
+      "scoring": "rally-doubles",
+      "score": {
+        "away": 1,
+        "home": 3
+      },
+      "turns": 29,
+      "receptions": 19,
+      "status": "completed"
+    },
+    {
+      "id": "05fb14b7-716c-443a-8f9e-0846bc364291",
+      "scoring": "side-out-doubles",
+      "score": {
+        "away": 3,
+        "home": 2
+      },
+      "turns": 38,
+      "receptions": 18,
+      "status": "completed"
+    }
+  ],
+  "finishedAt": "2026-09-14T16:10:28.925Z",
+  "browserChecks": {
+    "realSupabaseSessions": 2,
+    "origins": [
+      "http://127.0.0.1:5178",
+      "http://127.0.0.1:5179"
+    ],
+    "resumedMatch": "0838280a-f1f8-4651-ab7d-7f7a07f2b1f8",
+    "verified": [
+      "Cross-account moves and reception choice",
+      "Reload recovery",
+      "Away-side camera",
+      "Both sessions show completed 2\u20133 result without shot controls"
+    ],
+    "physicalDevices": 1
+  }
+}

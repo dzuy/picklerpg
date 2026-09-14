@@ -1,21 +1,24 @@
+import {controllersFor,teamOf,playerForTeam,LOCAL_HUMAN_SKILL,type PlayMode} from './engine/controllers';
+import type {TurnAction} from './engine/turn';
+import {CHECKPOINT_ENGINE,HUMAN_ENGINE,checkpointRally,hydrateRally,parseCheckpoint,SLOTS,type MatchCheckpoint,type FrozenAthlete} from './engine/checkpoint';
 import {receptionTiming,receptionRoll,swingMissChance} from './engine/reception-timing';
 import type {PartnerCall} from './voice';
-import {validatePlayer,type DesignedPlayer} from './player-design';
+import {playerId,validatePlayer,type DesignedPlayer} from './player-design';
 import {resolveBodyServe} from './engine/serve-body';
 import {commandIntent,canParseInstantly,parseLocalCommand,requestsBounce,validateCommand,COMMAND_SCHEMA} from './engine/custom-command';
 import {PATTERNS,recognizePatterns,assessChoice,type PatternId,type PracticeRecord} from './engine/patterns';
 import {OpponentMemory,tacticalSnapshot,localDecision,intendedReceiver,type OpponentChoiceHistory,requestStrategy,type OpponentStrategy,type Personality,type TacticalSnapshot} from './engine/opponent-brain';
 import {PLAYER_PROFILES,ARCHETYPES} from './engine/player-profiles';
-import {RallyEngine,sampleLeg,sampleVelocity} from './engine/rally-engine';
-import {COURT,type FlightLeg,type PlayerState,type PlayerId,type RallyShot,type RallyProvider,type ShotIntent,type ShotType,type PointResult,type Vec3} from './engine/model';
+import {RallyEngine,sampleLeg,sampleVelocity,type RallyRuntime} from './engine/rally-engine';
+import {COURT,SKILLS,type FlightLeg,type PlayerState,type PlayerId,type RallyShot,type RallyProvider,type ShotIntent,type ShotType,type PointResult,type Vec3} from './engine/model';
 import {contactIssue,type ShotContext,SHOT_FAMILIES} from './engine/shot-families';
 import {buildDecisionMenu} from './engine/decision-menu';
-import {sameShotIntent} from './engine/shot-intent';
+import {parseShotIntent,sameShotIntent} from './engine/shot-intent';
 import {chooseOpponentShot} from './engine/opponent-policy';
 import {executeShot} from './engine/execution';
 import {interceptFlight,reboundFlight,outBallContinuation} from './engine/trajectory';
 import {planPositions} from './engine/positioning';
-import {DoublesScore,other} from './engine/scoring';
+import {DoublesScore,other,DEFAULT_RULES,LOCAL_TEST_RULES,type ScoringMode} from './engine/scoring';
 
 export type TargetServeStyle='flat'|'topspin'|'slice'|'lob'|'shallow';
 const TARGET_SERVES:Record<TargetServeStyle,Partial<ShotIntent>>={
@@ -27,15 +30,61 @@ const TARGET_SERVES:Record<TargetServeStyle,Partial<ShotIntent>>={
 };
 
 export class Match {
+ private playMode:PlayMode='solo';
+ private startingMatch=false;
+ private resolving=false;
+ private applyingTurn=false;
+ scoringPreference:ScoringMode|null=null;
+ revision=0;
+ get mode(){return this.playMode}
+ get isLocalHuman(){return this.playMode==='local-human'}
+ get controllers(){return controllersFor(this.mode,this.playerAutonomy,this.partnerAutonomy)}
+ private isHuman(actor:PlayerId){return this.controllers[actor].kind==='human'}
+ get humanContact(){return this.state.phase==='decision'&&this.state.currentHitter!==null&&this.isHuman(this.state.currentHitter)}
+ get decisionTeam(){
+  if(this.receptionDecision){const receiver=this.shot.receptionChoice?.airborne?.resolution.receiver??this.shot.receptionChoice?.bounced?.resolution.receiver;return receiver?teamOf(receiver):null;}
+  return this.state.phase==='decision'?this.state.possession:null;
+ }
+ get currentPlayer(){const team=this.decisionTeam;return team?playerForTeam(team):null}
+ get decisionId(){return `${this.matchId}:${this.revision}:${this.point}:${this.receptionDecision?'reception':this.state.phase}`}
+ private get checkpointsEnabled(){return !this.practice&&!this.resolving&&(!!this.onCheckpoint||this.isLocalHuman)}
+ private requireSolo(){if(this.isLocalHuman&&!this.startingMatch)throw new Error('This two-player match has a fixed roster and rules. Start a new game to change them.');}
+ startLocalHumanMatch(roster:Record<PlayerId,DesignedPlayer>,openingTeam:'home'|'away'='home'){
+  const players=Object.fromEntries(SLOTS.map(id=>{return [id,structuredClone(validatePlayer(roster[id]))]})) as Record<PlayerId,DesignedPlayer>;
+  this.playMode='local-human';this.startingMatch=true;
+  try{this.designedPlayer=players.you;this.substitutes={partner:players.partner,'opponent-left':players['opponent-left'],'opponent-right':players['opponent-right']};this.lineup={};this.practice=null;this.openingTeam=openingTeam;this.partnerAutonomy=false;this.playerAutonomy=false;this.partnerInstructions={};this.brainMode='local';this.reset();this.frozenRoster=this.checkpointMetadata().roster;}
+  finally{this.startingMatch=false;}
+ }
+ startSoloMatch(){this.playMode='solo';this.practice=null;this.openingTeam='home';this.partnerAutonomy=true;this.playerAutonomy=false;this.reset();}
+ submitTurn(action:TurnAction){
+  if(!this.isLocalHuman)throw new Error('Human team turns require two-player mode.');
+  if(this.committed||this.replayIndex!==null||this.customBusy||this.thinking||(!this.humanContact&&!this.receptionDecision))throw new Error('Wait for the next decision.');
+  if(!action||action.decisionId!==this.decisionId)throw new Error('That decision is stale.');
+  if(action.playerId!==this.currentPlayer)throw new Error('It is the other player’s turn.');
+  const intent=parseShotIntent(action.intent);
+  const setup=this.receptionDecision?(action.timing==='air'||action.timing==='bounce'?this.receptionSetup(action.timing):null):null;
+  if(this.receptionDecision&&!setup)throw new Error('Choose a legal reception timing and shot together.');
+  if(!this.receptionDecision&&action.timing!==undefined)throw new Error('Reception timing is only available for an incoming ball.');
+  const actor=setup?.actor??this.state.currentHitter;
+  if(intent.actor!==actor||teamOf(intent.actor)!==this.decisionTeam)throw new Error('Wrong athlete for this decision.');
+  // Build the plan from intent and authoritative context; never accept client trajectories.
+  const shot=this.plan(intent,'Human team decision',setup?.context??this.currentContext!,setup?.players??this.state.players,setup?.index??this.customIndex);
+  const before=this.exportCheckpoint();
+  this.applyingTurn=true;
+  try{if(setup){this.queuedReceptionShot={shot,text:''};this.chooseReception(action.timing!)}else{this.engine.offerCustom(shot);this.submitIntent(intent)}}
+  catch(error){this.restoreCheckpoint(before);throw error}
+  finally{this.applyingTurn=false;}
+ }
  customPreview:{intent:ShotIntent;note:string;text:string}|null=null;customStatus='';customBusy=false;customDraft='';customCounts=new Map<string,number>();private currentContext:ShotContext|null=null;private customIndex=0;private queuedReceptionIntent:ShotIntent|null=null;private queuedReceptionShot:{shot:RallyShot;text:string}|null=null;
  practice:PatternId|null=null;variation=0;records:PracticeRecord[]=[];pointRecords:PracticeRecord[]=[];replayFrames:ReturnType<RallyEngine['snapshot']>[]=[];replayShots:RallyShot[]=[];replayIndex:number|null=null;replayPlaying=false;private replayClock=0;private replayElapsed=0;private replayAlpha=0;private replayEndHold=0;
  private designedPlayer:DesignedPlayer|null=null;
  get playerDesign(){return this.designedPlayer?structuredClone(this.designedPlayer):null}
- setPlayerDesign(player:DesignedPlayer|null){this.designedPlayer=player?validatePlayer(player):null;this.reset()}
+ setPlayerDesign(player:DesignedPlayer|null){this.requireSolo();this.designedPlayer=player?validatePlayer(player):null;this.reset()}
  private substitutes:Partial<Record<PlayerId,DesignedPlayer>>={};
  getPlayerDesign(id:PlayerId){const player=id==='you'?this.designedPlayer:this.substitutes[id];return player?structuredClone(player):null}
  /** Replace the occupant of a court slot without resetting its position or the rally. */
  substitutePlayer(id:PlayerId,design:DesignedPlayer|null){
+  this.requireSolo();this.settleCommittedPlayback();
   const player=design?validatePlayer(design):null;
   if(id==='you')this.designedPlayer=player;else if(player)this.substitutes[id]=player;else delete this.substitutes[id];
   delete this.autoChoices[id];if(id==='partner')this.partnerChoices=[];
@@ -43,25 +92,98 @@ export class Match {
   const profile=this.lineup[id]?ARCHETYPES[this.lineup[id]!]:PLAYER_PROFILES[id];
   current.skills={...(player?.skills??profile.skills)};current.handedness=player?.handedness??'right';
   current.tendencies=structuredClone(profile.tendencies);
-  this.request?.abort();this.request=null;this.strategy=undefined;this.strategyPoint=-1;this.generation++;this.thinking=false;
+  if(this.frozenRoster)this.frozenRoster[id]={design:player,skills:{...current.skills},tendencies:{...current.tendencies},handedness:current.handedness};
+  this.request?.abort();this.request=null;this.strategy=undefined;this.strategyPoint=-1;this.generation++;this.thinking=false;this.saveBoundary();
  }
  lineup:Partial<Record<PlayerId,keyof typeof ARCHETYPES>>={};
  brainMode:'local'|'llm'=typeof window==='undefined'?'local':'llm';personality:Personality='Chess Player';intelligence=.8;memory=new OpponentMemory();brainStatus=typeof window==='undefined'?'Local opponent':'Background LLM strategy';thinking=false;partnerAutonomy=false;lastSnapshot:TacticalSnapshot|null=null;private request:AbortController|null=null;private generation=0;private observed=0;private strategy:OpponentStrategy|undefined;private strategyPoint=-1;
  randomizeSeedOnReset=false;captureReplay=true;openingTeam:'home'|'away'='home';scoring=new DoublesScore();engine!:RallyEngine;point=0;seed=1741;lastResult:PointResult|null=null;private awarded=false;
- constructor(){this.startPoint()}
+ constructor(initialize=true){if(initialize)this.startPoint()}
+ /** Checkpoint persistence is installed by the local session; legacy practice stays isolated. */
+ onCheckpoint:((checkpoint:MatchCheckpoint)=>void)|null=null;
+ matchId:string=playerId();
+ private frozenRoster:Record<PlayerId,FrozenAthlete>|null=null;
+ private committed:MatchCheckpoint|null=null;
+ private pendingAutomaticChoice:{actor:PlayerId;intent:ShotIntent;receiver:string|null}|null=null;
+ private committedPlayback:Array<{start:RallyRuntime;end:RallyRuntime}>=[];
+ private lastTurnPlayback:Array<{start:RallyRuntime;end:RallyRuntime}>=[];
+ /** Internal resolver output; server must project only committed movement before transport. */
+ get turnPlayback(){return structuredClone(this.lastTurnPlayback)}
+ private checkpointMetadata():Omit<MatchCheckpoint,'rally'>{
+  const roster=Object.fromEntries(SLOTS.map(id=>{const p=this.engine.state.players.find(p=>p.id===id)!;return [id,{design:this.getPlayerDesign(id),skills:p.skills,tendencies:p.tendencies,handedness:p.handedness}]})) as Record<PlayerId,FrozenAthlete>;
+  return structuredClone({schemaVersion:2 as const,engineVersion:this.isLocalHuman?HUMAN_ENGINE:CHECKPOINT_ENGINE,mode:this.mode,revision:this.revision,matchId:this.matchId,rules:this.scoring.rules,
+   scoring:{score:this.scoring.score,serving:this.scoring.serving,server:this.scoring.server,serverNumber:this.scoring.serverNumber,right:this.scoring.right,winner:this.scoring.winner},
+   pointIndex:this.point,seed:this.seed,openingTeam:this.openingTeam,roster,context:this.currentContext,customIndex:this.customIndex,
+   solo:{partnerAutonomy:this.partnerAutonomy,playerAutonomy:this.playerAutonomy,brainMode:this.brainMode,personality:this.personality,intelligence:this.intelligence,memory:this.memory.observations,recentChoices:this.autoChoices,strategy:this.strategy??null,strategyPoint:this.strategyPoint,partnerInstructions:this.partnerInstructions,recommendationType:this.recommendationType}});
+ }
+ exportCheckpoint():MatchCheckpoint {
+  if(this.practice)throw new Error('Practice sessions are not saved as full matches.');
+  if(this.committed){const c=structuredClone(this.committed);c.solo.strategy=this.strategy??null;c.solo.strategyPoint=this.strategyPoint;return c;}
+  return {...this.checkpointMetadata(),rally:checkpointRally(this.engine.runtime())};
+ }
+ static fromCheckpoint(value:unknown){const checkpoint=parseCheckpoint(value);const match=new Match(false);match.hydrateCheckpoint(checkpoint);return match}
+ restoreCheckpoint(value:unknown){const c=parseCheckpoint(value);this.request?.abort();this.request=null;this.generation++;this.stopReplay();this.replayFrames=[];this.replayShots=[];this.gameReplay=[];this.customBusy=false;this.customPreview=null;this.customDraft='';this.customStatus='';this.thinking=false;this.queuedReceptionIntent=null;this.queuedReceptionShot=null;this.committed=null;this.committedPlayback=[];this.lastTurnPlayback=[];this.practice=null;this.hydrateCheckpoint(c)}
+ private hydrateCheckpoint(c:MatchCheckpoint){
+  this.playMode=c.mode;this.revision=c.revision;this.matchId=c.matchId;this.seed=c.seed;this.point=c.pointIndex;this.openingTeam=c.openingTeam;
+  this.scoring=new DoublesScore(structuredClone(c.rules));Object.assign(this.scoring,structuredClone(c.scoring));
+  this.frozenRoster=structuredClone(c.roster);this.designedPlayer=c.roster.you.design;this.substitutes={};for(const id of SLOTS)if(id!=='you'&&c.roster[id].design)this.substitutes[id]=structuredClone(c.roster[id].design!);
+  this.currentContext=structuredClone(c.context);this.customIndex=c.customIndex;
+  const solo=c.solo;this.partnerAutonomy=solo.partnerAutonomy;this.playerAutonomy=solo.playerAutonomy;this.brainMode=solo.brainMode;this.personality=solo.personality;this.intelligence=solo.intelligence;
+  this.memory=new OpponentMemory();this.memory.observations=structuredClone(solo.memory);this.autoChoices=structuredClone(solo.recentChoices);this.partnerChoices=this.autoChoices.partner??[];this.strategy=solo.strategy??undefined;this.strategyPoint=solo.strategyPoint;
+  this.partnerInstructions=structuredClone(solo.partnerInstructions);this.recommendationType=solo.recommendationType;
+  this.engine=new RallyEngine(this.providerForRestore(),hydrateRally(c.rally));this.awarded=c.rally.kind==='point-end';this.lastResult=this.engine.state.result;
+ }
+ private providerForRestore():RallyProvider{return {setup:()=>{throw new Error('Restored engines require an explicit match reset.');},shouldAutoPlay:()=>false,next:(state,shot)=>this.nextContact(state,shot)}}
+ /** Commit the resolved boundary before a single presentation frame can run. */
+ private commitFlight(before:MatchCheckpoint){
+  if(!this.checkpointsEnabled)return;
+  try{
+   const resolved=Match.fromCheckpoint(before);resolved.resolving=true;resolved.applyingTurn=true;
+   resolved.engine.restoreRuntime(this.engine.runtime());
+   resolved.autoChoices=structuredClone(this.autoChoices);
+   if(this.pendingAutomaticChoice){const {actor,intent,receiver}=this.pendingAutomaticChoice;resolved.autoChoices[actor]=[...(resolved.autoChoices[actor]??[]),{intent,receiver}].slice(-8)}
+   resolved.engine.advanceToBoundary();
+   const incomingBoundary=resolved.engine.runtime();let outgoingStart:RallyRuntime|null=null;
+   // Timing + shot stays one accepted decision even when the legacy UI queues it.
+   if(resolved.state.phase==='decision'){
+    if(this.queuedReceptionShot){resolved.engine.offerCustom(this.queuedReceptionShot.shot);resolved.submitIntent(this.queuedReceptionShot.shot.intent);outgoingStart=resolved.engine.runtime();resolved.engine.advanceToBoundary()}
+    else if(this.queuedReceptionIntent){resolved.submitIntent(this.queuedReceptionIntent);outgoingStart=resolved.engine.runtime();resolved.engine.advanceToBoundary()}
+   }
+   if(resolved.state.phase==='complete'){resolved.awarded=true;resolved.lastResult=resolved.state.result;resolved.scoring.award(resolved.state.result!.winner)}
+   resolved.state.score={...resolved.scoring.score};
+   resolved.revision=before.revision+1;const c=resolved.exportCheckpoint();this.onCheckpoint?.(c);this.revision=c.revision;
+   this.lastTurnPlayback=[{start:this.engine.runtime(),end:incomingBoundary},...(outgoingStart?[{start:outgoingStart,end:resolved.engine.runtime()}]:[])];
+   this.committed=c;this.queuedReceptionIntent=null;this.queuedReceptionShot=null;
+   this.committedPlayback=outgoingStart?[{start:outgoingStart,end:resolved.engine.runtime()}]:[];
+   this.engine.playToCommittedBoundary(outgoingStart?incomingBoundary:resolved.engine.runtime());
+  }catch(error){this.restoreCheckpoint(before);throw error}
+ }
+ private finishCommitted(){
+  if(!this.committed||this.state.phase==='flight'&&!this.receptionDecision)return;
+  const playback=this.committedPlayback.shift();if(playback){this.engine.restoreRuntime(playback.start);this.engine.playToCommittedBoundary(playback.end);return;}
+  const c=this.committed;this.committed=null;
+  // Preserve replay/UI object identity while accepting the already resolved logic.
+  Object.assign(this.scoring,structuredClone(c.scoring));this.currentContext=structuredClone(c.context);this.customIndex=c.customIndex;
+  this.memory.observations=structuredClone(c.solo.memory);this.autoChoices=structuredClone(c.solo.recentChoices);this.partnerChoices=this.autoChoices.partner??[];this.recommendationType=c.solo.recommendationType;
+  if(c.rally.kind==='point-end'){this.awarded=true;this.lastResult=this.state.result;if(this.captureReplay)this.gameReplay.push({frames:this.replayFrames,shots:this.replayShots})}
+ }
+ /** An explicit solo settings change may skip playback, never its committed result. */
+ settleCommittedPlayback(){if(!this.committed)return;this.committedPlayback=[];this.engine.restoreRuntime(hydrateRally(this.committed.rally));this.finishCommitted()}
+ saveBoundary(){if(this.onCheckpoint&&!this.practice)this.onCheckpoint(this.exportCheckpoint())}
  partnerInstructions:{backhand?:'jules'|'rio';soft?:'jules'|'rio';crash?:boolean}={};
  partnerStatus='No partner instructions.';
  instructPartner(call:PartnerCall){
+  this.requireSolo();this.settleCommittedPlayback();
   if(call.kind==='clear'){this.partnerInstructions={};this.partnerStatus='Finn: instructions cleared.'}
   else if(call.kind==='crash'){this.partnerInstructions.crash=true;this.partnerStatus='Finn: I’ll move forward when you drive, within my movement limits.'}
   else {this.partnerInstructions[call.kind]=call.target;this.partnerStatus=call.kind==='backhand'?`Finn: I’ll look for ${call.target === 'jules'?'Jules':'Rio'}’s backhand.`:`Finn: I’ll favor soft shots instead of speed-ups at ${call.target === 'jules'?'Jules':'Rio'}.`}
-  this.partnerStatus+=' Applies from the next team contact; manual choices stay yours.';
+  this.partnerStatus+=' Applies from the next team contact; manual choices stay yours.';this.saveBoundary();
  }
  recommendationType:string|null=null;
  get state(){return this.engine.state} get shot(){return this.engine.shot} get availableIntents(){return this.engine.availableIntents} get receptionDecision(){return this.engine.needsReceptionChoice}
- get partnerReceptionDecision(){return this.receptionDecision&&this.partnerAutonomy&&this.shot.resolution?.receiver==='partner'}
+ get partnerReceptionDecision(){return !this.isLocalHuman&&this.receptionDecision&&this.partnerAutonomy&&this.shot.resolution?.receiver==='partner'}
  playerAutonomy=false;
- get playerReceptionDecision(){return this.receptionDecision&&this.playerAutonomy&&this.shot.resolution?.receiver==='you'}
+ get playerReceptionDecision(){return !this.isLocalHuman&&this.receptionDecision&&this.playerAutonomy&&this.shot.resolution?.receiver==='you'}
  get manualReceptionDecision(){return this.receptionDecision&&!this.partnerReceptionDecision&&!this.playerReceptionDecision}
  get canTakeAir(){return !!this.shot.receptionChoice?.airborne} get canLetBounce(){return !!this.shot.receptionChoice?.bounced}
  get receptionOptions(){
@@ -72,9 +194,9 @@ export class Match {
  get displayedReceptionOptions(){return this.receptionOptions}
  /** The same menu choices shown in the shot dock, retaining their actual flight and timing. */
  get targetingMenu(){
-  if(this.playerAutonomy&&this.state.currentHitter==='you')return [];
+  if(!this.isLocalHuman&&this.playerAutonomy&&this.state.currentHitter==='you')return [];
   if(this.manualReceptionDecision)return this.displayedReceptionOptions;
-  if(this.state.phase!=='decision'||this.state.possession!=='home'||this.partnerAutonomy&&this.state.currentHitter==='partner')return [];
+  if(!this.humanContact)return [];
   return this.availableIntents.filter(intent=>intent.source!=='text').map(intent=>({intent,timing:undefined as 'air'|'bounce'|undefined}));
  }
  previewMenuTarget(choice:{intent:ShotIntent;timing?:'air'|'bounce'},point:{x:number;z:number;playerId?:PlayerId}){
@@ -89,20 +211,25 @@ export class Match {
  }
  playMenuTarget(choice:{intent:ShotIntent;timing?:'air'|'bounce'},point:{x:number;z:number;playerId?:PlayerId}){
   const shot=this.previewMenuTarget(choice,point);
+  if(this.isLocalHuman){this.submitTurn({decisionId:this.decisionId,playerId:this.currentPlayer!,intent:shot.intent,timing:choice.timing});return;}
   if(choice.timing){this.queuedReceptionShot={shot,text:`${shot.intent.type} to court target`};this.chooseReception(choice.timing)}
   else {this.engine.offerCustom(shot);this.submitIntent(shot.intent)}
  }
- chooseReception(choice:'air'|'bounce'){this.engine.chooseReception(choice==='air'?'airborne':'bounced')}
+ chooseReception(choice:'air'|'bounce'){if(this.isLocalHuman&&!this.applyingTurn)throw new Error('Choose timing and a shot together.');const before=this.checkpointsEnabled?this.exportCheckpoint():null;this.engine.chooseReception(choice==='air'?'airborne':'bounced');if(before)this.commitFlight(before)}
  chooseReceptionIntent(option:{intent:ShotIntent;timing:'air'|'bounce'}){
+  if(this.isLocalHuman){this.submitTurn({decisionId:this.decisionId,playerId:this.currentPlayer!,intent:option.intent,timing:option.timing});return;}
   if(!this.receptionOptions.some(candidate=>candidate.timing===option.timing&&sameShotIntent(candidate.intent,option.intent)))throw new Error('That shot is not available for this ball.');
   this.queuedReceptionIntent=structuredClone(option.intent);this.customStatus='';this.chooseReception(option.timing);
  }
  async queueReceptionCommand(text:string,source:'text'|'voice'='text'){
+  this.requireSolo();
   if(!this.receptionDecision)throw new Error('Wait for the ball to cross the net.');
+  const requestEngine=this.engine,requestGeneration=this.generation;
   const command=text.trim();if(!command||command.length>300)throw new Error('Use 1–300 characters.');
   this.customBusy=true;this.customStatus='Interpreting…';let parsed;
   try{if(canParseInstantly(command))parsed=parseLocalCommand(command);else {const response=await fetch('/api/command',{method:'POST',headers:{'Content-Type':'application/json'},signal:AbortSignal.timeout(30000),body:JSON.stringify({version:1,command,schema:COMMAND_SCHEMA,context:{ball:this.state.ball,players:this.state.players},options:[{}]})});if(!response.ok)throw new Error('Could not understand that shot right now. Try a simpler command.');parsed=validateCommand(await response.json())}}
-  finally{this.customBusy=false}
+  finally{if(this.engine===requestEngine&&this.generation===requestGeneration)this.customBusy=false}
+  if(this.engine!==requestEngine||this.generation!==requestGeneration)throw new Error('That reception is no longer available.');
   if(!this.receptionDecision)throw new Error('That contact is no longer available.');
   let wantsBounce=requestsBounce(command),type=parsed.shot==='roll'?'volley':parsed.shot==='lob-serve'?'serve':parsed.shot==='atp'?'drive':parsed.shot;const family=SHOT_FAMILIES[type];const wantsAir=!wantsBounce&&family?.mode==='volley';wantsBounce=wantsBounce||family?.mode==='ground';
   const choice=wantsAir?'air':wantsBounce?'bounce':this.canTakeAir?'air':'bounce';
@@ -124,9 +251,9 @@ export class Match {
   const timing=this.targetReceptionTiming(type);
   const setup=this.receptionDecision?this.receptionSetup(timing):null;
   if(this.receptionDecision&&!setup)throw new Error(timing==='air'?'This ball cannot be taken before its bounce.':'This ball cannot be reached after its bounce.');
-  if(!setup&&(this.state.phase!=='decision'||this.state.possession!=='home'||!this.currentContext))throw new Error('Wait for your next contact.');
+  if(!setup&&(!this.humanContact||!this.currentContext))throw new Error('Wait for your next contact.');
   const actor=setup?.actor??this.state.currentHitter!;
-  if(this.partnerAutonomy&&actor==='partner')throw new Error('Finn is choosing his own shot.');
+  if(!this.isLocalHuman&&this.partnerAutonomy&&actor==='partner')throw new Error('Finn is choosing his own shot.');
   const soft=['drop','dink','reset','block'].includes(type),high=type==='overhead';
   const intent:ShotIntent={schemaVersion:1,actor,type,target:{kind:'point',x:point.x,z:point.z},pace:soft?'soft':['drive','counter','overhead','flick'].includes(type)?'fast':'medium',shape:high?'descending':soft||['serve','return','lob'].includes(type)?'arc':'flat',intendedNetClearance:type==='lob'?2.5:type==='serve'?.35:soft?.25:.12,tacticalIntent:high?'finish':soft?'neutralize':'pressure',aggression:high?.8:soft?.3:.6,source:'menu',...(type==='flick'?{spin:{side:'none' as const,vertical:'topspin' as const,strength:'medium' as const}}:{})};
   if(serveStyle){if(type!=='serve'||!Object.hasOwn(TARGET_SERVES,serveStyle))throw new Error('Serve styles only apply to serves.');Object.assign(intent,structuredClone(TARGET_SERVES[serveStyle]))}
@@ -134,15 +261,16 @@ export class Match {
  }
  playTargetShot(type:ShotType,point:{x:number;z:number},serveStyle?:TargetServeStyle){
   const shot=this.targetShot(type,point,serveStyle);
+  if(this.isLocalHuman){this.submitTurn({decisionId:this.decisionId,playerId:this.currentPlayer!,intent:shot.intent,...(this.receptionDecision?{timing:this.targetReceptionTiming(type)}:{})});return;}
   if(this.receptionDecision){this.queuedReceptionShot={shot,text:`${type} to court target`};this.chooseReception(this.targetReceptionTiming(type))}
   else {this.engine.offerCustom(shot);this.submitIntent(shot.intent)}
  }
  previewIntent(intent:unknown){return this.engine.previewIntent(intent)}
  snapshot(){return this.engine.snapshot()}
- reset(){if(this.randomizeSeedOnReset)this.seed=globalThis.crypto.getRandomValues(new Uint32Array(1))[0];this.autoChoices={};this.partnerChoices=[];this.stopReplay();this.gameReplay=[];this.customPreview=null;this.customBusy=false;this.customStatus='';this.queuedReceptionIntent=null;this.queuedReceptionShot=null;this.request?.abort();this.request=null;this.strategy=undefined;this.strategyPoint=-1;this.generation++;this.thinking=false;this.memory=new OpponentMemory();this.observed=0;this.scoring=new DoublesScore();this.scoring.serving=this.openingTeam;this.scoring.server=this.openingTeam==='home'?'you':'opponent-left';this.point=0;this.lastResult=null;this.startPoint()}
- nextPoint(){if(this.state.phase!=='complete'||this.scoring.winner)throw new Error('Finish the current point first.');this.point++;this.variation++;this.startPoint()}
- submitIntent(intent:unknown){const before=this.snapshot(),actualShotIndex=before.shotIndex;if(this.practice)before.shotIndex+=before.shotHistory.length?2:0;this.engine.submitIntent(intent);if(before.possession==='home'){const selected=this.shot.intent;for(const pattern of this.practice?[this.practice]:recognizePatterns(before)){const assessment=assessChoice(before,selected,pattern);const row={pattern,...assessment,intent:structuredClone(selected),shotIndex:actualShotIndex};this.records.push(row);this.pointRecords.push(row)}this.records=this.records.slice(-500)}}
- startPractice(id:PatternId|null){this.practice=id;this.variation++;this.reset()}
+ reset(){this.requireSolo();this.revision=0;this.committed=null;this.committedPlayback=[];this.frozenRoster=null;this.matchId=playerId();if(this.randomizeSeedOnReset)this.seed=globalThis.crypto.getRandomValues(new Uint32Array(1))[0];this.autoChoices={};this.partnerChoices=[];this.stopReplay();this.gameReplay=[];this.customPreview=null;this.customBusy=false;this.customStatus='';this.queuedReceptionIntent=null;this.queuedReceptionShot=null;this.request?.abort();this.request=null;this.strategy=undefined;this.strategyPoint=-1;this.generation++;this.thinking=false;this.memory=new OpponentMemory();this.observed=0;this.scoring=new DoublesScore({...this.isLocalHuman?LOCAL_TEST_RULES:DEFAULT_RULES,...(this.scoringPreference?{scoring:this.scoringPreference}:{})});this.scoring.serving=this.openingTeam;this.scoring.server=this.openingTeam==='home'?'you':'opponent-left';this.point=0;this.lastResult=null;this.startPoint();this.saveBoundary()}
+ nextPoint(){if(this.state.phase!=='complete'||this.scoring.winner)throw new Error('Finish the current point first.');this.point++;this.revision++;this.variation++;this.startPoint();this.saveBoundary()}
+ submitIntent(intent:unknown){if(this.isLocalHuman&&!this.applyingTurn){this.submitTurn({decisionId:this.decisionId,playerId:this.currentPlayer!,intent:parseShotIntent(intent)});return;}const checkpoint=this.checkpointsEnabled?this.exportCheckpoint():null;const before=this.snapshot(),actualShotIndex=before.shotIndex;if(this.practice)before.shotIndex+=before.shotHistory.length?2:0;this.engine.submitIntent(intent);if(!this.isLocalHuman&&before.possession==='home'){const selected=this.shot.intent;for(const pattern of this.practice?[this.practice]:recognizePatterns(before)){const assessment=assessChoice(before,selected,pattern);const row={pattern,...assessment,intent:structuredClone(selected),shotIndex:actualShotIndex};this.records.push(row);this.pointRecords.push(row)}this.records=this.records.slice(-500)}if(checkpoint)this.commitFlight(checkpoint)}
+ startPractice(id:PatternId|null){this.requireSolo();this.practice=id;this.variation++;this.reset()}
 
  private gameReplay:{frames:ReturnType<RallyEngine['snapshot']>[];shots:RallyShot[]}[]=[];
  private pointReplay:{frames:ReturnType<RallyEngine['snapshot']>[];shots:RallyShot[]}|null=null;
@@ -186,7 +314,7 @@ export class Match {
   state.players=a.players.map(player=>{const next=b.players.find(candidate=>candidate.id===player.id)??player;const turn=Math.atan2(Math.sin(next.facing-player.facing),Math.cos(next.facing-player.facing));return {...structuredClone(player),position:{x:lerp(player.position.x,next.position.x),y:lerp(player.position.y,next.position.y),z:lerp(player.position.z,next.position.z)},facing:player.facing+turn*t}});
   return {state,shot:this.replayShots[index]};
  }
- update(dt:number){if(this.replayIndex!==null){if(this.replayPlaying){this.replayElapsed+=dt;const start=this.replayFrames[0].simulationTime,last=this.replayFrames.at(-1)!.simulationTime,target=start+this.replayElapsed*1.5;while(this.replayIndex<this.replayFrames.length-1&&this.replayFrames[this.replayIndex+1].simulationTime<=target)this.replayIndex++;const a=this.replayFrames[this.replayIndex],b=this.replayFrames[this.replayIndex+1];this.replayAlpha=b&&b.simulationTime>a.simulationTime?Math.max(0,Math.min(1,(target-a.simulationTime)/(b.simulationTime-a.simulationTime))):0;if(target>=last){this.replayEndHold+=dt;if(this.replayEndHold>=.65){this.replayIndex=this.replayFrames.length-1;this.replayAlpha=0;this.replayPlaying=false;this.replayEndHold=0}}}return}this.refreshStrategy();this.engine.update(dt);
+ update(dt:number){if(this.replayIndex!==null){if(this.replayPlaying){this.replayElapsed+=dt;const start=this.replayFrames[0].simulationTime,last=this.replayFrames.at(-1)!.simulationTime,target=start+this.replayElapsed*1.5;while(this.replayIndex<this.replayFrames.length-1&&this.replayFrames[this.replayIndex+1].simulationTime<=target)this.replayIndex++;const a=this.replayFrames[this.replayIndex],b=this.replayFrames[this.replayIndex+1];this.replayAlpha=b&&b.simulationTime>a.simulationTime?Math.max(0,Math.min(1,(target-a.simulationTime)/(b.simulationTime-a.simulationTime))):0;if(target>=last){this.replayEndHold+=dt;if(this.replayEndHold>=.65){this.replayIndex=this.replayFrames.length-1;this.replayAlpha=0;this.replayPlaying=false;this.replayEndHold=0}}}return}this.refreshStrategy();this.engine.update(dt);this.finishCommitted();
   // Reception prompts intentionally pause flight; autonomy must resolve that pause.
   if((this.partnerReceptionDecision||this.playerReceptionDecision)&&!this.customBusy){
    const receiver=this.shot.resolution!.receiver;
@@ -195,13 +323,13 @@ export class Match {
    if(timing)this.chooseReception(timing);
   }
   this.replayClock+=dt;if(this.captureReplay&&(this.state.phase==='flight'&&this.replayClock>=1/30||this.replayFrames.length===0||this.replayFrames.at(-1)?.phase!==this.state.phase)){this.replayClock=0;this.replayFrames.push(this.snapshot());this.replayShots.push(structuredClone(this.shot))};
-  if(this.state.phase==='decision'&&this.state.possession==='home'&&!this.customBusy){
+  if(!this.isLocalHuman&&this.state.phase==='decision'&&this.state.possession==='home'&&!this.customBusy){
    if(this.queuedReceptionShot){const queued=this.queuedReceptionShot;this.queuedReceptionShot=null;try{this.engine.offerCustom(queued.shot);this.submitIntent(queued.shot.intent);this.customCounts.set(queued.text,(this.customCounts.get(queued.text)??0)+1)}catch(error){this.customStatus=(error as Error).message}}
    else if(this.queuedReceptionIntent){const queued=this.queuedReceptionIntent;this.queuedReceptionIntent=null;const available=this.availableIntents.find(intent=>sameShotIntent(intent,queued));if(available)this.submitIntent({...available,source:queued.source});else this.customStatus='That shot is no longer available at contact.'}
    else if(this.playerAutonomy&&this.state.currentHitter==='you'&&!this.state.paused&&!this.thinking)this.decidePlayer();
   }
-  if(this.state.phase==='decision'&&this.state.possession==='away'&&!this.thinking&&!this.state.paused)this.decideOpponent();else if(this.state.phase==='decision'&&this.state.currentHitter==='partner'&&this.partnerAutonomy&&!this.thinking&&!this.state.paused)this.decidePartner();if(this.state.phase==='complete'&&!this.awarded){this.awarded=true;this.lastResult=this.state.result;if(!this.practice){this.scoring.award(this.state.result!.winner);const last=this.replayFrames.at(-1);if(last)last.score={...this.scoring.score};if(this.captureReplay)this.gameReplay.push({frames:this.replayFrames,shots:this.replayShots})}}this.state.score={...this.scoring.score}}
- async submitCommand(text:string,source:'text'|'voice'='text'){
+  if(!this.isLocalHuman&&this.state.phase==='decision'&&this.state.possession==='away'&&!this.thinking&&!this.state.paused)this.decideOpponent();else if(!this.isLocalHuman&&this.state.phase==='decision'&&this.state.currentHitter==='partner'&&this.partnerAutonomy&&!this.thinking&&!this.state.paused)this.decidePartner();if(this.state.phase==='complete'&&!this.awarded){this.awarded=true;this.lastResult=this.state.result;if(!this.practice){this.scoring.award(this.state.result!.winner);const last=this.replayFrames.at(-1);if(last)last.score={...this.scoring.score};if(this.captureReplay)this.gameReplay.push({frames:this.replayFrames,shots:this.replayShots})}}this.state.score={...this.scoring.score}}
+ async submitCommand(text:string,source:'text'|'voice'='text'){this.requireSolo();
   if(this.customBusy)return;
   this.customDraft=text;
   const engine=this.engine,generation=this.generation,index=this.state.shotIndex;
@@ -209,7 +337,7 @@ export class Match {
   if(this.engine===engine&&this.generation===generation&&this.state.shotIndex===index&&this.state.phase==='decision'&&this.customPreview){this.playCustom();this.customDraft=''}
  }
  async previewCommand(text:string,useLLM=false,source:'text'|'voice'='text'){
-  if(this.state.phase!=='decision'||this.state.possession!=='home'||!this.currentContext)throw new Error('Wait for your team contact.');
+  if(!this.humanContact||!this.currentContext)throw new Error('Wait for your team contact.');
   if(!text.trim()||text.length>300)throw new Error('Use 1–300 characters.');
   const engine=this.engine,index=this.state.shotIndex,actor=this.state.currentHitter!,generation=this.generation,c=structuredClone(this.currentContext);
   this.customPreview=null;this.customBusy=true;this.customStatus='Interpreting…';
@@ -247,6 +375,7 @@ export class Match {
  }
  /** At most one background request per point; an unfinished request never blocks play. */
  private refreshStrategy(){
+  if(this.isLocalHuman){this.request?.abort();this.request=null;return;}
   if(this.playerAutonomy){this.request?.abort();this.request=null;this.brainStatus='Shared local auto-play';return;}
   if(this.brainStatus==='Shared local auto-play'){this.strategyPoint=-1;this.brainStatus='Local tactics';}
   if(this.brainMode!=='llm'){
@@ -261,7 +390,7 @@ export class Match {
   const timer=setTimeout(()=>controller.abort(),6000);
   requestStrategy(snapshot,controller.signal).then(strategy=>{
    if(this.generation!==generation||this.request!==controller||this.brainMode!=='llm'||controller.signal.aborted)return;
-   this.strategy=strategy;this.brainStatus=`LLM strategy · ${strategy.name}`;
+   const previous=this.strategy;this.strategy=strategy;try{if(this.onCheckpoint&&!this.practice)this.saveBoundary()}catch(error){this.strategy=previous;throw error;}this.brainStatus=`LLM strategy · ${strategy.name}`;
   }).catch(()=>{
    if(this.generation!==generation||this.request!==controller)return;
    this.brainStatus=this.strategy?`Keeping strategy · ${this.strategy.name}`:'Local fallback · strategy unavailable';
@@ -274,7 +403,7 @@ export class Match {
  private decidePartner(){this.decideAutomatic('partner')}
  private decideAutomatic(actor:PlayerId){
   let options=this.availableIntents;
-  if(actor==='partner'){
+  if(!this.isLocalHuman&&actor==='partner'){
    if(this.partnerInstructions.soft){const soft=options.filter(o=>['dink','drop','reset','block'].includes(o.type));if(soft.length)options=soft}
    if(this.partnerInstructions.backhand){const recommended=options.find(o=>o.type===this.recommendationType);if(recommended&&recommended.type!=='serve'){const aimed=options.filter(o=>JSON.stringify(o.target)===JSON.stringify(recommended.target));if(aimed.length)options=aimed}}
   }
@@ -286,8 +415,10 @@ export class Match {
   this.lastSnapshot=snapshot;
   const recent=this.autoChoices[actor]??[];
   const choice=localDecision(snapshot,manualOpponent&&this.brainMode==='llm'?this.strategy:undefined,{seed:(this.seed+this.point*104729+this.state.shotIndex*7919)>>>0,recent});
-  const intent={...options[choice],source:'ai' as const};this.submitIntent(intent);
-  recent.push({intent:structuredClone(intent),receiver:intendedReceiver(snapshot,intent)});this.autoChoices[actor]=recent.slice(-8);
+  const intent={...options[choice],source:'ai' as const};
+  const receiver=intendedReceiver(snapshot,intent);this.pendingAutomaticChoice={actor,intent,receiver};
+  try{this.submitIntent(intent)}finally{this.pendingAutomaticChoice=null}
+  recent.push({intent:structuredClone(intent),receiver});this.autoChoices[actor]=recent.slice(-8);
   if(actor==='partner')this.partnerChoices=this.autoChoices[actor]!;
  }
 
@@ -295,6 +426,8 @@ export class Match {
   this.awarded=false;this.observed=0;this.queuedReceptionIntent=null;this.queuedReceptionShot=null;this.pointRecords=[];this.replayFrames=[];this.replayShots=[];this.replayIndex=null;this.replayPlaying=false;this.replayClock=0;this.replayElapsed=0;this.replayAlpha=0;this.replayEndHold=0;
   const players:PlayerState[]=(Object.keys(PLAYER_PROFILES) as PlayerId[]).map(id=>({id,position:{x:0,y:0,z:0},team:id==='you'||id==='partner'?'home':'away',handedness:'right',facing:id==='you'||id==='partner'?0:Math.PI,skills:{...PLAYER_PROFILES[id].skills},tendencies:{...PLAYER_PROFILES[id].tendencies}}));
   for(const p of players){const side=p.team==='home'?1:-1,right=this.scoring.right[p.team]===p.id;p.position={x:(right?1:-1)*side*1.5,y:0,z:side*7};const profile=this.lineup[p.id]?ARCHETYPES[this.lineup[p.id]!]:PLAYER_PROFILES[p.id];p.tendencies=structuredClone(profile.tendencies);p.skills=structuredClone(profile.skills);const design=this.getPlayerDesign(p.id);if(design){p.skills={...design.skills};p.handedness=design.handedness}}
+  for(const p of players){const frozen=this.frozenRoster?.[p.id];if(frozen){p.skills={...frozen.skills};p.tendencies={...frozen.tendencies};p.handedness=frozen.handedness}}
+  if(this.isLocalHuman)for(const p of players){p.skills=Object.fromEntries(SKILLS.map(k=>[k,LOCAL_HUMAN_SKILL])) as PlayerState['skills'];p.tendencies={aggression:.5,middlePreference:.5,kitchenApproach:.6};p.handedness='right';}
   const server=players.find(p=>p.id===this.scoring.server)!;
   // Only the diagonally designated receiver may return serve.
   const receiving=players.filter(p=>p.team!==server.team),receiver=receiving.find(p=>p.position.x*server.position.x<0)!;
@@ -315,14 +448,17 @@ export class Match {
    setup:()=>({players,contact:{options:this.options(firstActor,opening,players,this.practice?2:0,this.practice?undefined:receiver.id)}}),
    shouldAutoPlay:()=>false,
    next:(state,shot)=>{
-    const r=shot.resolution!;if(shot.actor==='you'||shot.actor==='partner')this.memory.add({intent:shot.intent,lowBackhandError:!!r.result&&r.result.winner==='away'&&!!shot.feedback?.difficulty.includes('Low backhand'),crash:Math.abs(shot.contact.z)-Math.abs(shot.positions[shot.actor].z)>1.2});if(r.result)return {kind:'point-end',result:r.result};
-    const actor=state.players.find(p=>p.id===r.receiver)!;
-    const context:ShotContext={contact:{...state.ball.position},feet:{...actor.position},bounced:r.bounced,opening:!this.practice&&state.shotHistory.length===1?'return':'rally',twoBounceSatisfied:state.bounces>=2,timingPressure:r.timingPressure,movementZ:r.movementZ,incomingSpeed:Math.hypot(state.ball.velocity.x,state.ball.velocity.y,state.ball.velocity.z)};
-    const options=this.options(actor.id,context,state.players,state.shotHistory.length+(this.practice?2:0));
-    return options.length?{kind:'contact',contact:{options}}:{kind:'point-end',result:{winner:other(actor.team),reason:'failed-return',playerId:actor.id}};
+    return this.nextContact(state,shot);
    }
   };
   this.engine=new RallyEngine(provider);this.state.score={...this.scoring.score};if(this.practice){this.state.bounces=2;this.state.shotIndex=2}
+ }
+ private nextContact(state:Readonly<ReturnType<RallyEngine['snapshot']>>,shot:Readonly<RallyShot>){
+    const r=shot.resolution!;if(shot.actor==='you'||shot.actor==='partner')this.memory.add({intent:shot.intent,lowBackhandError:!!r.result&&r.result.winner==='away'&&!!shot.feedback?.difficulty.includes('Low backhand'),crash:Math.abs(shot.contact.z)-Math.abs(shot.positions[shot.actor].z)>1.2});if(r.result)return {kind:'point-end' as const,result:r.result};
+    const actor=state.players.find(p=>p.id===r.receiver)!;
+    const context:ShotContext={contact:{...state.ball.position},feet:{...actor.position},bounced:r.bounced,opening:!this.practice&&state.shotHistory.length===1?'return':'rally',twoBounceSatisfied:state.bounces>=2,timingPressure:r.timingPressure,movementZ:r.movementZ,incomingSpeed:Math.hypot(state.ball.velocity.x,state.ball.velocity.y,state.ball.velocity.z)};
+    const options=this.options(actor.id,context,state.players,state.shotHistory.length+(this.practice?2:0));
+    return options.length?{kind:'contact' as const,contact:{options}}:{kind:'point-end' as const,result:{winner:other(actor.team),reason:'failed-return' as const,playerId:actor.id}};
  }
  private receptionSetup(timing:'air'|'bounce'){
   if(!this.receptionDecision)return null;const branch=timing==='air'?this.shot.receptionChoice?.airborne:this.shot.receptionChoice?.bounced,actor=branch?.resolution.receiver;if(!branch||!actor)return null;
@@ -331,16 +467,16 @@ export class Match {
   return {actor,context,players,index:this.state.shotHistory.length+(this.practice?2:0)};
  }
  private options(actor:PlayerId,c:ShotContext,players:PlayerState[],index:number,serveReceiver?:PlayerId):RallyShot[]{
-  const hitter=players.find(p=>p.id===actor)!;if(hitter.team==='home'){this.currentContext=structuredClone(c);this.customIndex=index;this.customPreview=null;this.customStatus=''}
+  const hitter=players.find(p=>p.id===actor)!;if(this.isLocalHuman||hitter.team==='home'){this.currentContext=structuredClone(c);this.customIndex=index;this.customPreview=null;this.customStatus=''}
   let policy=chooseOpponentShot(actor,c,players);
-  if(actor==='partner'){
+  if(!this.isLocalHuman&&actor==='partner'){
    if(this.partnerInstructions.soft){const soft=buildDecisionMenu(actor,c,players).find(o=>['dink','drop','reset','block'].includes(o.intent.type));if(soft)policy=soft}
    if(policy&&this.partnerInstructions.backhand&&policy.intent.type!=='serve'){
     const aimed=commandIntent({...parseLocalCommand(`${policy.intent.type} ${this.partnerInstructions.backhand} backhand`),pace:policy.intent.pace},actor,c,players);
     policy={intent:aimed.intent,reason:'Finn follows your backhand instruction.'};
    }
-  }if(hitter.team==='home')this.recommendationType=actor==='partner'?policy?.intent.type??null:null;
-  const menu=buildDecisionMenu(actor,c,players).map(o=>({intent:{...o.intent,source:hitter.team==='away'?'ai' as const:'menu' as const},reason:o.reason}));const choices=actor==='partner'&&policy&&(this.partnerInstructions.backhand||this.partnerInstructions.soft)?[policy,...menu]:menu;
+  }if(this.isLocalHuman||hitter.team==='home')this.recommendationType=!this.isLocalHuman&&actor==='partner'?policy?.intent.type??null:null;
+  const menu=buildDecisionMenu(actor,c,players).map(o=>({intent:{...o.intent,source:!this.isLocalHuman&&hitter.team==='away'?'ai' as const:'menu' as const},reason:o.reason}));const choices=actor==='partner'&&policy&&(this.partnerInstructions.backhand||this.partnerInstructions.soft)?[policy,...menu]:menu;
   const expanded=choices.flatMap(choice=>{
    if(choice.intent.type==='serve')return [
     {intent:{...choice.intent,pace:'medium' as const,shape:'arc' as const,spin:{side:'none' as const,vertical:'topspin' as const,strength:'strong' as const},intendedNetClearance:.35},reason:'Topspin pulls the serve down into the court.'},
@@ -461,7 +597,7 @@ export class Match {
   if(result?.reason==='body-hit'&&result.playerId)positions[result.playerId]={...players.find(p=>p.id===result!.playerId)!.position};
   let receptionChoice:RallyShot['receptionChoice'];
   const airborne=receptions.find(item=>!item.miss&&!item.candidate.bounce),afterBounce=receptions.find(item=>!item.miss&&item.candidate.bounce);
-  if(!result&&team==='away'&&index>=2&&(airborne||afterBounce)&&!(receiver==='you'?this.playerAutonomy:this.partnerAutonomy)){
+  if(!result&&index>=2&&(airborne||afterBounce)&&(this.isLocalHuman||(team==='away'&&!(receiver==='you'?this.playerAutonomy:this.partnerAutonomy)))){
    const branch=(item:Reception)=>{
     const branchLegs=item.candidate.bounce?[execution.leg,interceptFlight(item.candidate.leg,item.t)]:[interceptFlight(execution.leg,item.t)];
     const branchDuration=branchLegs.reduce((sum,leg)=>sum+leg.duration,0);

@@ -1,5 +1,7 @@
+import {accountReturnUrl} from './auth-destination';
+import {authClient} from './auth-session';
 import type {MatchParticipant} from './player-history';
-import {createClient,type SupabaseClient,type User} from '@supabase/supabase-js';
+import {type SupabaseClient,type User} from '@supabase/supabase-js';
 import {parseLibrary,validatePlayer,type DesignedPlayer,type PlayerLibrary} from './player-design';
 
 export type LibraryChange={kind:'save';playerId:string}|{kind:'delete';playerId:string};
@@ -67,7 +69,7 @@ export class CloudPlayerSync{
   if(!url||!key){this.status('local');this.accountStatus({kind:'unavailable'});return structuredClone(local)}
   this.status('connecting');this.accountStatus({kind:'connecting'});
   try{
-   this.client=createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+   this.client=authClient()!;
    this.client.auth.onAuthStateChange((_event,nextSession)=>{
     const nextOwner=nextSession?.user.id??null;
     this.accountStatus(accountStateForUser(nextSession?.user??null));
@@ -107,7 +109,7 @@ export class CloudPlayerSync{
   const {error}=await this.client.auth.signInWithOtp({email:normalized,options:{emailRedirectTo:this.returnUrl(),shouldCreateUser:false}});if(error)throw error;
   this.accountStatus({kind:'pending',email:normalized});
  }
- private returnUrl(){return `${location.origin}${location.pathname}`}
+ private returnUrl(){return accountReturnUrl(new URL(location.href))}
  save(library:PlayerLibrary,change:LibraryChange){
   try{localStorage.setItem(CLOUD_DIRTY_KEY,'1')}catch{}
   if(!this.client||!this.ownerId)return;

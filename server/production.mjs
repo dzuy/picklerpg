@@ -7,11 +7,12 @@ import {createOpponentHandler} from './opponent.mjs';
 
 const defaultRoot=fileURLToPath(new URL('../dist/',import.meta.url));
 const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json','.wasm':'application/wasm','.glb':'model/gltf-binary','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.svg':'image/svg+xml','.ico':'image/x-icon','.woff':'font/woff','.woff2':'font/woff2','.wav':'audio/wav','.mp3':'audio/mpeg'};
-export function createProductionServer({root=defaultRoot,apiHandler=createOpponentHandler({provider:'api'})}={}){
+export function createProductionServer({root=defaultRoot,apiHandler=createOpponentHandler({provider:'api'}),matchHandler=null}={}){
  const directory=resolve(root);
  return createServer(async(req,res)=>{
   let pathname;
   try{pathname=decodeURIComponent(new URL(req.url,'http://localhost').pathname)}catch{res.writeHead(400).end();return}
+  if(pathname==='/api/matches'||pathname.startsWith('/api/matches/')||pathname.startsWith('/api/multiplayer/')){if(!matchHandler){res.writeHead(503,{'Content-Type':'application/json'}).end(JSON.stringify({error:{code:'disabled',message:'Remote play is not enabled.'}}));return}await matchHandler(req,res);return}
   if(pathname.startsWith('/api/')){req.url=pathname;await apiHandler(req,res);return}
   if(!['GET','HEAD'].includes(req.method)){res.writeHead(405,{'Allow':'GET, HEAD'}).end();return}
   if(pathname==='/healthz'){res.writeHead(200,{'Content-Type':'application/json'}).end(req.method==='HEAD'?undefined:'{"status":"ok"}');return}
@@ -30,7 +31,9 @@ if(process.argv[1]&&pathToFileURL(resolve(process.argv[1])).href===import.meta.u
  await access(resolve(defaultRoot,'index.html'));
  const port=Number(process.env.PORT||5173);
  if(!Number.isInteger(port)||port<1||port>65535)throw new Error('PORT must be between 1 and 65535.');
- const server=createProductionServer();
+ const {configuredMatchHandler}=await import('../dist-server/multiplayer.mjs');
+ const server=createProductionServer({matchHandler:configuredMatchHandler()});
+ server.requestTimeout=15000;server.headersTimeout=10000;
  server.listen(port,'0.0.0.0',()=>console.log(`Pickle RPG listening on 0.0.0.0:${port}`));
  for(const signal of ['SIGTERM','SIGINT'])process.on(signal,()=>{server.close(()=>process.exit(0));setTimeout(()=>process.exit(1),10000).unref()});
 }

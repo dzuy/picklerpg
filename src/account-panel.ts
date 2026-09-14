@@ -50,10 +50,10 @@ export function installAccountControls(cloud:CloudPlayerSync,roster:()=>{id:stri
  }
  window.addEventListener('online',()=>void retry().catch(()=>{}));
  const seen=new WeakSet<object>();
- return {async completed(score:object,result:Omit<Result,'id'>){
+ return {async completed(score:object,result:Omit<Result,'id'> & {id?:string}){
   if(seen.has(score)||!cloud.accountId)return;seen.add(score);
   const message=document.getElementById('match-save-status');
-  try{const results=pending();results.push({...result,id:crypto.randomUUID()});localStorage.setItem(pendingKey(),JSON.stringify(results));if(message)message.textContent='Saving match…';await retry();if(message)message.textContent='Match saved · View it in Settings → Match history';}
+  try{const results=pending();const id=result.id??crypto.randomUUID();if(!results.some(row=>row.id===id))results.push({...result,id});localStorage.setItem(pendingKey(),JSON.stringify(results));if(message)message.textContent='Saving match…';await retry();if(message)message.textContent='Match saved · View it in Settings → Match history';}
   catch{if(message)message.textContent='Match waiting to sync. Open Match history to retry.'}
  },retry};
 }

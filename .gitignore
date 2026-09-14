@@ -4,3 +4,8 @@ dist/
 .DS_Store
 
 .env.local
+
+dist-server/
+.multiplayer-test-accounts.json
+
+.multiplayer-phone-logins.md

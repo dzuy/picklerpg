@@ -82,3 +82,11 @@ body[data-screen=setup]{overflow:auto;background:#03122f}
 @media(max-width:699px){#match-setup{background-image:linear-gradient(#03122f18,#03122f45),url('/assets/picklebash-ui/backgrounds/picklebash-background-mobile-tall.png')}.setup-top{height:180px}.setup-team-title,.setup-away .setup-team-title{width:80%;margin-bottom:-23px}.setup-versus{width:120px;margin:8px 0 -13px}#match-setup .setup-start{width:100%;margin:0}}
 /* Leave the fixed-player badge clear of the overlapping team artwork. */
 .setup-you-badge{top:24px}
+
+.setup-mode {text-align:center;margin:0 auto 1rem;max-width:760px;color:#fff;}
+.setup-mode > div {display:flex;justify-content:center;gap:.6rem;flex-wrap:wrap;}
+.setup-mode button {padding:.65rem 1rem;border:2px solid #5d82ad;border-radius:12px;background:#102a51;color:#fff;font:700 16px/1.3 sans-serif;cursor:pointer;}
+.setup-mode button[aria-pressed="true"] {border-color:#e5fa55;background:#e5fa55;color:#102a51;}
+.setup-mode p {font:14px/1.4 sans-serif;margin:.65rem .8rem;}
+
+.setup-scoring{display:flex;justify-content:center;align-items:center;gap:12px;flex-wrap:wrap;margin:0 auto 18px;font-weight:700}.setup-scoring select{font:inherit;border-radius:12px;padding:10px;border:1px solid #aab6a2;background:#faffef;color:#244a37;max-width:100%}

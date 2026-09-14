@@ -1,3 +1,4 @@
+import {viewerPoint} from './engine/controllers';
 import {ballDisplayScale,bouncePulse,cameraBlend,courtOverlayOffset} from './scene-readability';
 import {styleCourtAthlete} from './athlete-rendering';
 import {athletePose} from './athlete-motion';
@@ -7,9 +8,11 @@ import {CourtTrees} from './trees';
 import {createPickleball} from './pickleball';
 import {createAthlete, animateAthlete, disposeAthlete, setAthleteHandedness} from './athlete';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
-import {COURT, type GameState, type PlayerId, type RallyShot} from './engine/model';
+import {COURT, type GameState, type PlayerId, type RallyShot, type Team} from './engine/model';
 import {sampleLeg} from './engine/rally-engine';
 export class CourtScene {
+ private viewTeam:Team='home';
+ setViewTeam(team:Team){if(this.viewTeam===team)return;this.viewTeam=team;this.lastOpponentShot=null;this.setShotPreview(null);this.customizedView=false;this.updateCamera();}
  onCourtTap:((point:{x:number;z:number;playerId?:PlayerId})=>boolean)|null=null;
  private selectedTarget:{x:number;z:number}|null=null;
  setSelectedTarget(point:{x:number;z:number}|null){this.selectedTarget=point}
@@ -154,7 +157,7 @@ export class CourtScene {
   const position=new THREE.Vector3(0,y,z);
   // Preserve the viewing angle when backing up to fit a narrow screen.
   if(aspect<1.15)position.sub(look).multiplyScalar(1.15/aspect).add(look);
-  return {position,look};
+  const p=viewerPoint(position,this.viewTeam),l=viewerPoint(look,this.viewTeam);return {position:new THREE.Vector3(p.x,position.y,p.z),look:new THREE.Vector3(l.x,look.y,l.z)};
  }
  private updateCamera(){
   // The scene is hidden in the lobby; wait for its resize before calculating aspect-based framing.
@@ -164,9 +167,9 @@ export class CourtScene {
  render(state:GameState,time:number,shot:RallyShot,serveCall:string|null=null){
   const renderDt=this.previousRenderTime?Math.max(0,time-this.previousRenderTime):0;this.previousRenderTime=time;
   if(state.simulationTime===0&&state.shotHistory.length===0)this.lastOpponentShot=null;
-  const actualShotByOpponent=state.players.find(player=>player.id===shot.actor)?.team==='away';
+  const actualShotByOpponent=state.players.find(player=>player.id===shot.actor)?.team!==this.viewTeam;
   if(state.phase==='flight'&&actualShotByOpponent)this.lastOpponentShot=shot;
-  const retainedOpponentShot=state.phase==='decision'&&state.possession==='home'&&!this.previewShot?this.lastOpponentShot:null;
+  const retainedOpponentShot=state.phase==='decision'&&state.possession===this.viewTeam&&!this.previewShot?this.lastOpponentShot:null;
   const displayShot=this.previewShot??retainedOpponentShot??shot;
   const serving=serveCall!==null&&state.phase==='decision'&&shot.intent.type==='serve';
   this.serveBubble.hidden=!serving;
@@ -200,9 +203,9 @@ export class CourtScene {
    this.trajectoryArrow.userData.hasDirection=!!previous;
    if(end&&previous){this.trajectoryArrow.position.copy(end);this.trajectoryArrow.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),end.clone().sub(previous).normalize())}
   }
-  const opponentShot=state.players.find(player=>player.id===displayShot.actor)?.team==='away';
+  const opponentShot=state.players.find(player=>player.id===displayShot.actor)?.team!==this.viewTeam;
   (this.trail.material as THREE.LineDashedMaterial).color.set(opponentShot?'#FF4F63':'#DFFF32');const dots=this.trailDots.material as THREE.PointsMaterial;dots.color.set(opponentShot?'#FF4F63':'#12E1F3');dots.size=opponentShot?3.6:2.4;
-  const opponentThinking=state.phase==='decision'&&state.possession==='away';
+  const opponentThinking=state.phase==='decision'&&state.possession!==this.viewTeam;
   const showingDecisionPath=!!this.previewShot||!!retainedOpponentShot;
   this.trail.visible=this.guides&&!opponentThinking&&(state.phase==='flight'||showingDecisionPath);this.trailDots.visible=this.trail.visible;const destination=this.selectedTarget?{...this.selectedTarget,y:.08}:displayShot.aimPoint;this.target.rotation.x=destination.y>.1?0:-Math.PI/2;this.target.position.set(destination.x,Math.max(.058,destination.y),destination.z);this.target.visible=!!this.selectedTarget||(this.guides&&state.phase==='decision'&&!!this.previewShot);
   if(!this.customizedView){const base=this.cameraPose().look,tracking=state.phase==='flight'?new THREE.Vector3(THREE.MathUtils.clamp(state.ball.position.x*.045,-.24,.24),0,THREE.MathUtils.clamp(state.ball.position.z*.025,-.3,.3)):new THREE.Vector3();const desired=base.add(tracking),delta=desired.clone().sub(this.controls.target).multiplyScalar(cameraBlend(state.paused?0:renderDt,this.reducedMotion.matches));this.controls.target.add(delta);this.camera.position.add(delta)}
