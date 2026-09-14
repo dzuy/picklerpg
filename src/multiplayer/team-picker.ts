@@ -1,7 +1,8 @@
+import {rosterStarters} from '../roster-membership';
 import {CommunitySection} from '../community-section';
-import {isCommunityPlayer,refreshCommunityDesigns} from '../community-players';
+import {refreshCommunityDesigns} from '../community-players';
 import type {DesignedPlayer} from '../player-design';
-import {setupLineup,cyclePlayer} from '../match-setup-state';
+import {cyclePlayer} from '../match-setup-state';
 import {parseLibrary,PLAYER_STORAGE_KEY} from '../player-design';
 import {preloadAthletes} from '../athlete';
 import {summarizeSkills} from '../player-skill-summary';
@@ -11,12 +12,13 @@ import type {TeamSelection} from './invitation-protocol';
 import '../match-setup.css';
 /** Same roster/preset selection and rendered athletes as solo setup, restricted to your team. */
 export class TeamPicker {
- private lineup=setupLineup(parseLibrary(localStorage.getItem(PLAYER_STORAGE_KEY)).players,[]);
+ private lineup={players:[...parseLibrary(localStorage.getItem(PLAYER_STORAGE_KEY)).players,...rosterStarters()],selected:[] as string[]};
  private community=new CommunitySection(players=>this.setCommunity(players));
- private setCommunity(players:DesignedPlayer[]){const own=this.lineup.players.filter(p=>!isCommunityPlayer(p)),all=[...own,...players];const current=this.lineup.selected.map(id=>all.find(p=>p.id===id)??null);this.lineup=setupLineup(all,current);this.draw();}
- async freshTeam(){return await refreshCommunityDesigns(this.team) as TeamSelection}
+ private setCommunity(players:DesignedPlayer[]){const all=[...parseLibrary(localStorage.getItem(PLAYER_STORAGE_KEY)).players,...players];const selected=this.lineup.selected.filter(id=>all.some(p=>p.id===id));for(const p of all)if(selected.length<2&&!selected.includes(p.id))selected.push(p.id);this.lineup={players:all,selected:selected.slice(0,2)};this.draw();}
+ private ready:Promise<void>=Promise.resolve();
+ async freshTeam(){await this.ready;if(this.lineup.selected.length<2)throw Error('Add at least two players to Your Roster.');return await refreshCommunityDesigns(this.team) as TeamSelection}
  private static portraits:AvatarThumbnails|undefined;
- constructor(private host:HTMLElement){this.draw();void this.community.load();void preloadAthletes().then(()=>{if(this.host.isConnected)this.draw()}).catch(()=>{})}
+ constructor(private host:HTMLElement){this.lineup.selected=this.lineup.players.slice(0,2).map(p=>p.id);this.draw();this.ready=this.community.load();void preloadAthletes().then(()=>{if(this.host.isConnected)this.draw()}).catch(()=>{})}
  get team():TeamSelection{return this.lineup.selected.slice(0,2).map(id=>structuredClone(this.lineup.players.find(p=>p.id===id)!)) as TeamSelection}
  private draw(){
   this.host.replaceChildren();this.host.className='remote-team-picker setup-team-players';

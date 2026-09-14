@@ -1,3 +1,5 @@
+import {SKILLS} from './engine/model';
+import {skillLevel} from './player-skill-summary';
 import {LOOKS} from './avatar-preview';
 import {summarizeSkills} from './player-skill-summary';
 import type {DesignedPlayer} from './player-design';
@@ -22,4 +24,10 @@ export function playerRecord(id:string|null,history:Promise<HistoryMatch[]>){
  const record=document.createElement('p');record.className='player-record';record.setAttribute('role','status');record.textContent=id?'Loading record…':'No tracked player record';
  if(id)void history.then(matches=>{const stats=playerHistory(matches,id);record.textContent=`${stats.wins} ${stats.wins===1?'win':'wins'} · ${stats.losses} ${stats.losses===1?'loss':'losses'}`;record.title='Recorded completed games; early exits are excluded.'}).catch(()=>{record.textContent='Record unavailable';});
  return record;
+}
+
+export function playerSkillDetails(player:DesignedPlayer){
+ const details=document.createElement('details'),label=document.createElement('summary');label.textContent='View all skills';details.append(label);
+ for(const skill of SKILLS){const title=skill.charAt(0).toUpperCase()+skill.slice(1);const line=document.createElement('div');line.className='roster-skill';const name=document.createElement('span');name.textContent=title;const meter=document.createElement('meter');meter.min=0;meter.max=100;meter.value=player.skills[skill];meter.setAttribute('aria-label',title);meter.title=skillLevel(player.skills[skill]);const value=document.createElement('span');value.textContent=String(player.skills[skill]);line.append(name,meter,value);details.append(line)}
+ return details;
 }

@@ -13,7 +13,7 @@ export async function database(){
  const server=new EmbeddedPostgres({databaseDir:join(directory,'db'),user:'postgres',password:'local-test-only',port,persistent:true,postgresFlags:['-h','127.0.0.1','-k',directory],onLog:()=>{},onError:()=>{}});
  await server.initialise();await server.start();
  let pool=new Pool({host:'127.0.0.1',port,user:'postgres',password:'local-test-only',database:'postgres'});
- await pool.query("create role anon; create role authenticated; create role service_role bypassrls; create schema auth; create table auth.users(id uuid primary key); create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$; grant usage on schema public,auth to anon,authenticated,service_role;");
+ await pool.query("create role anon; create role authenticated; create role service_role bypassrls; create schema auth; create table auth.users(id uuid primary key,raw_user_meta_data jsonb not null default '{}'); create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$; grant usage on schema public,auth to anon,authenticated,service_role;");
  for(const name of (await readdir(new URL('../../supabase/migrations/',import.meta.url))).sort())await pool.query(await readFile(new URL(`../../supabase/migrations/${name}`,import.meta.url),'utf8'));
  return {get pool(){return pool},async restart(){await pool.end();await server.stop();await server.start();pool=new Pool({host:'127.0.0.1',port,user:'postgres',password:'local-test-only',database:'postgres'});},async close(){await pool.end();await server.stop();await rm(directory,{recursive:true,force:true});}};
 }

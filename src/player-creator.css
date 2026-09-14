@@ -318,3 +318,45 @@
  #player-creator .skills-overview-stat{grid-template-columns:22px 52px minmax(90px,1fr) 25px;gap:5px}
  #player-creator .skills-details-body{padding:13px}
 }
+
+/* Compact shared roster cards with a distinct rating badge. */
+.roster-card{padding-bottom:8px}
+.roster-card .roster-banner{height:120px}
+.roster-card .roster-banner img{width:185px;height:185px;bottom:-32px}
+.roster-card .roster-card-identity{padding-top:8px}
+.roster-card h3{font-size:20px;margin-bottom:3px}
+.roster-card .roster-rating{background:#254cdb;color:#fff;padding:6px 4px;margin-top:7px;border-radius:9px;width:66px}
+.roster-card .roster-rating span,.roster-card .roster-rating strong{color:#fff}
+.roster-card .roster-rating strong{font-size:23px}
+.roster-card dl{margin-top:9px;margin-bottom:6px;gap:5px;padding-bottom:8px}
+.roster-card .roster-card-actions{margin-top:6px}
+.roster-card .roster-motto{font-size:18px;top:18px}
+
+/* Give names the full card width; keep rating beside the attribution. */
+.roster-card .roster-card-identity{grid-column:1/-1;grid-row:2;padding-right:12px;min-height:68px}
+.roster-card .roster-card-identity h3{white-space:normal;overflow-wrap:normal;word-break:normal;line-height:1.15}
+.roster-card .roster-card-identity .roster-role{max-width:calc(100% - 82px)}
+.roster-card .roster-rating{grid-row:2;margin-top:32px;z-index:1}
+.roster-card .player-record{max-width:calc(100% - 82px)}
+
+/* Keep the name and rating together directly beneath the portrait. */
+.roster-card .roster-rating{width:46px;padding:3px 4px;margin:3px 6px 0 0;border-radius:6px;line-height:1}
+.roster-card .roster-rating span{font-size:8px;line-height:1.1}
+.roster-card .roster-rating strong{font-size:18px;line-height:1.1}
+.roster-card .roster-card-identity{min-height:0;padding-top:3px;padding-bottom:0}
+.roster-card .roster-card-identity h3{padding-right:54px}
+.roster-card .roster-card-identity .roster-role,.roster-card .player-record{max-width:100%}
+@media(max-width:760px){
+ .roster-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .roster-grid .roster-card{min-width:0;padding:4px 4px 7px;border-radius:13px}
+ .roster-grid .roster-card .roster-banner{height:106px}
+ .roster-grid .roster-card .roster-banner img{left:-22px;width:165px;height:165px;bottom:-29px}
+ .roster-grid .roster-card .roster-card-identity{padding-left:5px;padding-right:4px}
+ .roster-grid .roster-card h3{font-size:16px;padding-right:54px;margin-top:0;overflow-wrap:anywhere}
+ .roster-grid .roster-card .roster-role{padding:3px 5px;font-size:10px}
+ .roster-grid .roster-card .roster-card-actions{margin:5px 3px 0}
+ .roster-grid .roster-card .roster-motto{white-space:nowrap;max-width:40%;overflow:hidden;font-size:15px;right:4px}
+ .community-section{padding:10px}
+}
+
+.roster-grid .roster-card .roster-card-identity .roster-role{max-width:calc(100% - 54px);box-sizing:border-box}

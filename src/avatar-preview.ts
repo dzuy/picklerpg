@@ -29,6 +29,7 @@ export class AvatarThumbnails {
   if(category==='profile'){y=1.08;z=-2.15;x=-.38}
   if(category==='hairStyle'||category==='hat'){y=1.23;z=-1.8;x=-.3}
   if(category==='full'||category==='presentation'||category.startsWith('hand-')){y=.78;z=-3.2;x=-.4}
+  if(category==='facialHair'){y=1.03;z=-1.25;x=-.12}
   if(category==='top'){y=.64;z=-1.15}
   if(category==='bottom'){y=.40;z=-1.0}
   if(category==='shoes'||category==='shoeStyle'){y=.12;z=.045;x=-.9}

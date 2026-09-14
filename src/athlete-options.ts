@@ -56,6 +56,19 @@ export function dressAthlete(model:THREE.Group,a:Appearance){
  else curve(0,1.505,.087,-.025,mouth,.009);
  attach(expression,'head');
 
+ // Facial hair stays attached to the head and leaves the mouth readable.
+ if(a.facialHair&&a.facialHair!=='none'){
+  const g=slot(`facial-hair-${a.facialHair}`),color=a.facialHairColor??hair,style=a.facialHair;
+  if(style!=='chops')for(const sign of [-1,1]){const m=box(g,H(sign*.049,1.535,-.282),[.105,.039,.031],color,.008);m.rotation.z=sign*.14;}
+  if(style==='goatee')plate(g,[[-.063,1.454],[.063,1.454],[.048,1.362],[0,1.337],[-.048,1.362]],.279,.035,color);
+  if(style==='short-beard'||style==='long-beard'){
+   const low=style==='long-beard'?1.13:1.355;
+   plate(g,[[-.27,1.52],[-.11,1.475],[-.075,1.435],[.075,1.435],[.11,1.475],[.27,1.52],[.25,1.36],[.13,low],[0,low-.035],[-.13,low],[-.25,1.36]],.277,.038,color);
+  }
+  if(style==='chops'||style==='short-beard'||style==='long-beard')for(const sign of [-1,1])box(g,H(sign*.268,1.53,-.23),[.068,.225,.12],color,.012);
+  attach(g,'head');
+ }
+
  // Use the same centered, colored-edge construction for every paddle shape.
  {
   const bounds=new THREE.Box3();model.updateMatrixWorld(true);
@@ -68,7 +81,7 @@ export function dressAthlete(model:THREE.Group,a:Appearance){
   });
   if(!bounds.isEmpty()){
    const g=slot(`paddle-${a.paddleShape}`),center=bounds.getCenter(new THREE.Vector3());
-   const w=a.paddleShape==='squarish'?.32:.30,h=a.paddleShape==='squarish'?.30:.34,r=a.paddleShape==='rectangular'?.014:a.paddleShape==='squarish'?.025:.075;
+   const w=a.paddleShape.startsWith('squarish')?.32:.30,h=a.paddleShape.startsWith('squarish')?.30:.34,r=a.paddleShape==='rectangular'?.014:a.paddleShape.startsWith('squarish')?.025:.075;
    center.y=bounds.max.y-h/2;
    function face(inset:number,depth:number,color:string){
     const shape=new THREE.Shape(),halfW=w/2-inset,halfH=h/2-inset;
@@ -82,7 +95,15 @@ export function dressAthlete(model:THREE.Group,a:Appearance){
     }
     return mesh(g,new THREE.ExtrudeGeometry(shape,{depth,bevelEnabled:false,curveSegments:16}),color,center.clone().add(new THREE.Vector3(0,0,-depth/2)));
    }
-   face(0,.027,a.paddle);face(.013,.030,'#101b2b');attach(g,'paddle_socket');
+   face(0,.027,a.paddle);face(.013,.030,'#101b2b');
+   const pattern=a.paddleShape.split('-')[1];
+   if(pattern)for(const side of [-1,1]){
+    const decoration=new THREE.Group();decoration.name=`paddle-pattern-${pattern}-${side}`;decoration.position.copy(center);decoration.position.z+=side*.016;decoration.rotation.y=side<0?Math.PI:0;g.add(decoration);
+    if(pattern==='stripes')for(let i=-1;i<=1;i++)box(decoration,new THREE.Vector3(0,i*.052,0),[w-.065,.023,.002],a.paddle,.002);
+    if(pattern==='circles')for(const [x,y,r] of [[-.045,.055,.038],[.043,-.02,.047],[-.04,-.078,.022]])mesh(decoration,new THREE.RingGeometry(r-.008,r,32),a.paddle,new THREE.Vector3(x,y,0));
+    if(pattern==='lines')for(let i=-1;i<=1;i++)line(decoration,[new THREE.Vector3(-.095,i*.043-.018,0),new THREE.Vector3(0,i*.043+.022,0),new THREE.Vector3(.095,i*.043-.018,0)],a.paddle,.003);
+   }
+   attach(g,'paddle_socket');
   }
  }
 
@@ -149,7 +170,12 @@ export function dressAthlete(model:THREE.Group,a:Appearance){
  }
  if(a.hat!=='none'){
   const g=slot(`hat-${a.hat}`),color=a.hatColor;
-  if(a.hat==='visor'||a.hat==='headband'){
+  if(a.hat==='crown'){
+   for(const sign of [-1,1]){box(g,H(sign*.35,1.94,0),[.045,.105,.59],color,.008);box(g,H(0,1.94,sign*.285),[.73,.105,.045],color,.008);}
+   for(const depth of [-.295,.295])for(let i=-2;i<=2;i++)plate(g,[[i*.14-.065,1.96],[i*.14+.065,1.96],[i*.14,2.12+(i===0?.035:0)]],-depth,.035,color);
+   for(const sign of [-1,1])for(const depth of [-.14,.14])mesh(g,new THREE.ConeGeometry(.045,.15,4),color,H(sign*.35,2.045,depth));
+   box(g,H(0,1.95,-.326),[.045,.045,.018],white,.006);
+  }else if(a.hat==='visor'||a.hat==='headband'){
    box(g,H(0,1.816,-.287),[.713,.079,.043],a.hat==='visor'?white:color,.012);
    for(const sign of [-1,1])box(g,H(sign*.34,1.816,.004),[.043,.079,.55],a.hat==='visor'?white:color,.012);
    box(g,H(0,1.816,.272),[.70,.079,.04],a.hat==='visor'?white:color,.01);
@@ -218,8 +244,8 @@ export function dressAthlete(model:THREE.Group,a:Appearance){
   attach(g,'chest');
   for(const side of ['L','R']){
    const shoulder=point('upper_arm.'+side),elbow=point('forearm.'+side),wrist=point('hand.'+side),upper=slot(`sleeve-${side}`);
-   link(upper,shoulder,shoulder.clone().lerp(elbow,a.top==='hoodie'?1:.58),.154,.152,cloth);attach(upper,'upper_arm.'+side);
-   if(a.top==='hoodie'){const lower=slot(`long-sleeve-${side}`);link(lower,elbow,elbow.clone().lerp(wrist,.76),.143,.142,cloth);attach(lower,'forearm.'+side)}
+   link(upper,shoulder,shoulder.clone().lerp(elbow,(a.top==='hoodie'||a.top==='long-sleeve')?1:.58),.154,.152,cloth);attach(upper,'upper_arm.'+side);
+   if(a.top==='hoodie'||a.top==='long-sleeve'){const lower=slot(`long-sleeve-${side}`);link(lower,elbow,elbow.clone().lerp(wrist,.76),.143,.142,cloth);attach(lower,'forearm.'+side)}
   }
  }
  if(a.bottom!=='skirt'){
@@ -238,7 +264,7 @@ export function dressAthlete(model:THREE.Group,a:Appearance){
   attach(g,'pelvis');
   if(a.bottom!=='pleated-skirt')for(const side of ['L','R']){
    const hip=point('thigh.'+side),knee=point('shin.'+side),group=slot(`short-leg-${side}`),start=hip.clone();start.y+=.045;
-   const end=hip.clone().lerp(knee,a.bottom==='long-shorts'?.90:.58);
+   const end=hip.clone().lerp(knee,a.bottom==='pants'?1.06:a.bottom==='long-shorts'?.90:.58);
    start.z-=.012;end.z-=.012;
    // The compacted thigh is wider across this rotated garment frame than
    // its source width. Keep clearance at the rounded front/side corners.
@@ -252,6 +278,7 @@ export function dressAthlete(model:THREE.Group,a:Appearance){
    shell.geometry.computeVertexNormals();
    if(a.bottom==='skort')box(group,end.clone().add(new THREE.Vector3(side==='L'?.113:-.113,0,.02)),[.012,.038,.15],white,.003);
    attach(group,'thigh.'+side);
+   if(a.bottom==='pants'){const lower=slot(`pants-shin-${side}`),ankle=point('foot.'+side);link(lower,knee.clone().lerp(hip,.07),ankle,.205,.225,a.bottomColor,.018);attach(lower,'shin.'+side);}
   }
  }
  if(a.shoeStyle!=='court'){

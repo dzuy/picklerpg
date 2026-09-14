@@ -95,3 +95,18 @@ test('expressions replace original eyes and mouth, and paddles retain their grip
  const legacy=JSON.parse(JSON.stringify(newPlayer('legacy')));delete legacy.appearance.expression;delete legacy.appearance.paddleShape;
  assert.equal(validatePlayer(legacy).appearance.expression,'happy');assert.equal(validatePlayer(legacy).appearance.paddleShape,'rectangular');
 });
+
+test('new facial hair is optional for legacy saves and colors survive round trips',()=>{
+ const legacy=JSON.parse(JSON.stringify(newPlayer('legacy')));delete legacy.appearance.facialHair;delete legacy.appearance.facialHairColor;
+ assert.equal(validatePlayer(legacy).appearance.facialHair,'none');assert.equal(validatePlayer(legacy).appearance.facialHairColor,legacy.appearance.hair);
+ for(const facialHair of APPEARANCE_OPTIONS.facialHair){const player=newPlayer('wardrobe');Object.assign(player.appearance,{facialHair,facialHairColor:'#aa6633',hat:'crown',top:'long-sleeve',bottom:'pants'});assert.deepEqual(validatePlayer(player).appearance,player.appearance);}
+ assert.throws(()=>validatePlayer({...legacy,appearance:{...legacy.appearance,facialHairColor:'bad'}}));
+});
+
+test('patterned paddles use trim color on both faces and attach to the paddle socket',()=>{
+ for(const paddleShape of APPEARANCE_OPTIONS.paddleShape.filter(s=>s.includes('-'))){
+  const model=clone(asset.scene);dressAthlete(model,{...LOOKS[0].appearance,paddleShape,paddle:'#ff3388'});
+  const group=model.getObjectByName(`option-paddle-${paddleShape}`)!;assert.ok(group.parent instanceof THREE.Bone);
+  for(const side of [-1,1]){const face=group.getObjectByName(`paddle-pattern-${paddleShape.split('-')[1]}-${side}`)!;assert.ok(face);assert.equal(face.children.length>0,true);face.traverse(o=>{if(o instanceof THREE.Mesh)assert.equal((o.material as THREE.MeshStandardMaterial).color.getHexString(),'ff3388')});}
+ }
+});

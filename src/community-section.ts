@@ -1,5 +1,8 @@
+import {attachPlayerDetails} from './player-details';
+import {startingPlayers,rosterStarters,loadRosterStarters,setStarterAdded} from './roster-membership';
 import {communityPlayers,setCommunityAdded,type CommunityPlayer} from './community-players';
-import {summarizeSkills} from './player-skill-summary';
+import {fillPlayerCard} from './player-card';
+import './player-creator.css';
 import {AvatarThumbnails} from './avatar-preview';
 import {preloadAthletes} from './athlete';
 import type {DesignedPlayer} from './player-design';
@@ -8,18 +11,25 @@ let portraits:AvatarThumbnails|undefined;
 /** Public designs remain read-only references, separate from the owner's saved library. */
 export class CommunitySection {
  readonly element=document.createElement('section');private rows:CommunityPlayer[]=[];private generation=0;
+ get addedPlayers(){return [...rosterStarters(),...this.rows.filter(r=>r.added).map(r=>r.player)]}
+ rosterCards(){return this.addedPlayers.map(player=>this.card(player,true))}
  constructor(private changed:(players:DesignedPlayer[])=>void=()=>{}){
-  this.element.className='community-section';this.element.innerHTML='<h2>Community Players</h2><p>Discover public players and add them to your selection. Their creators control updates; existing games keep their saved versions.</p><button type="button" data-community-refresh>Browse / refresh players</button><p data-community-status role="status"></p><div class="community-grid"></div>';
+  this.element.className='community-section';this.element.innerHTML='<h2>Get more players</h2><p>Add players below to Your Roster to choose them for your team.</p><button type="button" data-community-refresh>Browse / refresh players</button><p data-community-status role="status"></p><h3>Community</h3><div class="community-grid roster-grid"></div><h3>Starting Lineup</h3><div class="starting-grid roster-grid"></div>';
   this.element.querySelector('button')!.onclick=()=>void this.load();
  }
  async load(){const generation=++this.generation;const status=this.element.querySelector<HTMLElement>('[data-community-status]')!;status.textContent='Loading Community Players…';
-  try{const rows=await communityPlayers();await preloadAthletes();if(generation!==this.generation)return;this.rows=rows;this.changed(rows.filter(r=>r.added).map(r=>r.player));this.draw();status.textContent=rows.length?'':'No public players yet. Share one from the player creator!';}catch(e){status.textContent=(e as Error).message;}
+  await loadRosterStarters();
+  try{this.rows=await communityPlayers();status.textContent=this.rows.length?'':'No public players yet.';}catch(e){status.textContent=(e as Error).message;}
+  await preloadAthletes();if(generation!==this.generation)return;this.changed(this.addedPlayers);this.draw();
  }
- private draw(){const grid=this.element.querySelector('.community-grid')!;grid.replaceChildren();for(const row of this.rows){
-  const article=document.createElement('article');article.className='community-card';
-  try{portraits??=new AvatarThumbnails(256);const img=document.createElement('img');img.src=portraits.get(row.player.appearance,'profile');img.alt=row.player.name;article.append(img)}catch{}
-  const name=document.createElement('h3');name.textContent=row.player.name;const by=document.createElement('p');by.textContent=`By ${row.creator_name}`;const stats=document.createElement('p'),summary=summarizeSkills(row.player.skills);stats.textContent=`DUPR ${summary.estimatedDupr.toFixed(2)} · ${Object.entries(summary.meters).map(([k,v])=>`${k} ${Math.round(v)}`).join(' · ')}`;stats.title='Estimated game rating';
-  const button=document.createElement('button');button.type='button';button.textContent=row.added?'Remove from selection':'Add to selection';button.setAttribute('aria-label',`${row.added?'Remove':'Add'} ${row.player.name} ${row.added?'from':'to'} selection`);
-  button.onclick=()=>{button.disabled=true;void setCommunityAdded(row.public_id,!row.added).then(()=>this.load()).catch(e=>{this.element.querySelector('[data-community-status]')!.textContent=e.message;button.disabled=false;});};article.append(name,by,stats,button);grid.append(article);
- }}
+ private card(player:DesignedPlayer,inRoster:boolean){
+  const row=this.rows.find(r=>r.player.id===player.id),added=row?.added??rosterStarters().some(p=>p.id===player.id);
+  const article=document.createElement('article');article.className='roster-card community-card';
+  let portrait='';try{portraits??=new AvatarThumbnails(384);portrait=portraits.get(player.appearance,'roster')}catch{}
+  fillPlayerCard(article,player,row?`By ${row.creator_name}`:'Starting Lineup',portrait);attachPlayerDetails(article,player,row?`By ${row.creator_name}`:'Starting Lineup',portrait);
+  const actions=document.createElement('div');actions.className='roster-card-actions';
+  const button=document.createElement('button');button.type='button';button.className='roster-play';button.textContent=added?(inRoster?'Remove from roster':'In Your Roster'):'Add to roster';button.disabled=added&&!inRoster;button.setAttribute('aria-label',added&&!inRoster?`${player.name} is in Your Roster`:`${added?'Remove':'Add'} ${player.name} ${added?'from':'to'} Your Roster`);
+  button.onclick=()=>{button.disabled=true;void (row?setCommunityAdded(row.public_id,!added):setStarterAdded(player.id,!added)).then(()=>this.load()).catch(e=>{this.element.querySelector('[data-community-status]')!.textContent=e.message;button.disabled=false;});};actions.append(button);article.append(actions);return article;
+ }
+ private draw(){this.element.querySelector('.community-grid')!.replaceChildren(...this.rows.map(r=>this.card(r.player,false)));this.element.querySelector('.starting-grid')!.replaceChildren(...startingPlayers.map(p=>this.card(p,false)));}
 }

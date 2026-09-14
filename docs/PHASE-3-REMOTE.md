@@ -112,3 +112,9 @@ Custom players are private by default. The creator can enable “Anyone can use 
 New games resolve the latest public design. Existing match and invitation lineups retain their saved snapshots, including after updates or deletion. Unpublishing hides the character from new selections; deletion also removes saved community selections. Public catalog responses expose the design and creator display name, not account identifiers or email addresses.
 
 Migration `202609140005_community_players.sql` has been applied to the shared database, with all existing players remaining private. Nineteen targeted tests passed, including database ownership restrictions, opt-in visibility, canonical server resolution, and preserved match snapshots. The disposable browser fixture verified browsing, adding a Community Player, selecting them, and sending an invitation. Production build passed. No existing user character was published during testing; application code awaits push.
+
+### Your Roster and player discovery
+
+Your Roster contains owned custom players, added Community Players, and selected Starting Lineup characters. Emma and Leo are included by default. Community and Starting Lineup appear below as sources with Add to roster actions; adding a shared player preserves the existing creator reference. Starting Lineup membership is saved in account metadata (or locally when signed out). Team selection uses roster membership for the user's two slots; solo opponents can still come from the full Starting Lineup. Existing matches retain their lineups. Cards share the roster design, full-width names, and blue DUPR badges.
+
+Migration `202609140006_community_creator_names.sql` uses the creator's signup player name and has been applied to the shared database.

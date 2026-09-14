@@ -1,5 +1,6 @@
+import {rosterStarters} from './roster-membership';
 import {CommunitySection} from './community-section';
-import {isCommunityPlayer,refreshCommunityDesigns} from './community-players';
+import {refreshCommunityDesigns} from './community-players';
 import type {ScoringMode} from './engine/scoring';
 import {LOCAL_HUMAN_SKILL,type PlayMode} from './engine/controllers';
 import {AvatarThumbnails} from './avatar-preview';
@@ -18,7 +19,10 @@ const courts=[{id:'forest',name:'The Forest',description:'Shaded courts. Clean r
 export class MatchSetup {
  readonly element=document.createElement('main');
  private players:DesignedPlayer[]=[];
- private community=new CommunitySection(players=>{const all=[...this.players.filter(p=>!isCommunityPlayer(p)),...players];const current=this.selected.map(id=>all.find(p=>p.id===id)??null);const lineup=setupLineup(all,current);this.players=lineup.players;this.selected=lineup.selected;if(!this.element.hidden)this.render();});
+ private owned:DesignedPlayer[]=[];private eligible:string[]=[];
+ private setRoster(players:DesignedPlayer[]){const own=[...this.owned,...players];this.eligible=own.map(p=>p.id);const current=this.selected.map((id,i)=>i<2&&!this.eligible.includes(id)?null:this.players.find(p=>p.id===id)??null);const lineup=setupLineup(own,current);this.players=lineup.players;this.selected=lineup.selected;this.restrictTeam();if(!this.element.hidden)this.render();}
+ private restrictTeam(){for(let i=0;i<2;i++)if(!this.eligible.includes(this.selected[i])){const id=this.eligible.find(id=>!this.selected.slice(0,i).includes(id));if(id){const other=this.selected.indexOf(id);if(other>=0)[this.selected[i],this.selected[other]]=[id,this.selected[i]];else this.selected[i]=id;}}}
+ private community=new CommunitySection(players=>this.setRoster(players));
  private starting=false;
  private async startSelected(){if(this.starting||!this.canStart())return;this.starting=true;const button=this.element.querySelector<HTMLButtonElement>('[data-action=start]')!;button.disabled=true;const selection=this.selected.join('|'),mode=this.mode;try{const players=await refreshCommunityDesigns(this.selected.map(id=>this.players.find(p=>p.id===id)!));if(this.element.hidden||this.selected.join('|')!==selection||this.mode!==mode)return;this.start(Object.fromEntries(slots.map((slot,i)=>[slot,players[i]])) as Record<PlayerId,DesignedPlayer>,mode);}catch(e){const status=this.element.querySelector<HTMLElement>('[role=status]')!;status.className='setup-community-error';status.textContent=(e as Error).message;}finally{this.starting=false;button.disabled=false;}}
  private selected:string[]=[];
@@ -36,7 +40,7 @@ export class MatchSetup {
    if(button.dataset.mode==='solo'||button.dataset.mode==='local-human'){this.mode=button.dataset.mode;this.refresh(`[data-mode="${this.mode}"]`,this.mode==='solo'?'Solo selected.':'Two players selected. Each person controls one team, with equal skills.');}
    if(button.dataset.action==='random'){
     this.selected=[this.selected[0],...shufflePlayers(this.players.map(p=>p.id).filter(id=>id!==this.selected[0])).slice(0,3)];
-    this.refresh('[data-action=random]','New matchup selected.');
+    this.restrictTeam();this.refresh('[data-action=random]','New matchup selected.');
    }
    if(button.dataset.step)this.cycle(Number(button.dataset.slot),Number(button.dataset.step));
    if(button.dataset.court&&courts.some(c=>c.id===button.dataset.court&&c.playable)){
@@ -63,12 +67,12 @@ export class MatchSetup {
   });
  }
  show(saved:DesignedPlayer[],current:(DesignedPlayer|null)[],mode:PlayMode='solo',scoring:ScoringMode='rally-doubles'){
-  this.mode=mode;this.scoring=scoring;
-  const lineup=setupLineup(saved,current);this.players=lineup.players;this.selected=lineup.selected;this.court='forest';
+  this.mode=mode;this.scoring=scoring;this.owned=saved;this.eligible=[...saved,...rosterStarters()].map(p=>p.id);
+  const lineup=setupLineup([...saved,...rosterStarters()],current);this.players=lineup.players;this.selected=lineup.selected;this.restrictTeam();this.court='forest';
   this.render();this.element.hidden=false;void this.community.load();window.scrollTo(0,0);this.element.querySelector<HTMLButtonElement>('[data-action=back]')!.focus({preventScroll:true});
  }
  hide(){this.element.hidden=true;this.gesture=null}
- private canStart(){return validLineup(this.players.map(p=>p.id),this.selected)&&courts.some(c=>c.id===this.court&&c.playable)}
+ private canStart(){return this.selected.slice(0,2).every(id=>this.eligible.includes(id))&&validLineup(this.players.map(p=>p.id),this.selected)&&courts.some(c=>c.id===this.court&&c.playable)}
  private refresh(focus:string,announcement:string){
   const scroll=this.element.querySelector('.setup-courts')?.scrollLeft??0;
   this.render();this.element.querySelector('.setup-courts')!.scrollLeft=scroll;
@@ -76,7 +80,7 @@ export class MatchSetup {
   this.element.querySelector('[role=status]')!.textContent=announcement;
  }
  private cycle(slot:number,step:number){
-  this.selected=cyclePlayer(this.players.map(p=>p.id),this.selected,slot,step);
+  this.selected=cyclePlayer(slot<2?this.eligible:this.players.map(p=>p.id),this.selected,slot,step);this.restrictTeam();
   this.refresh(`[data-slot="${slot}"][data-step="${step}"]`,this.selected.map((id,i)=>`${labels[i]}: ${this.players.find(p=>p.id===id)!.name}`).join('. '));
   this.element.querySelector(`[data-card-slot="${slot}"]`)?.classList.add('setup-changed');
  }

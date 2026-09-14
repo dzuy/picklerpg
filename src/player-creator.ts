@@ -1,3 +1,5 @@
+import {ARCHETYPES} from './engine/player-profiles';
+import {attachPlayerDetails} from './player-details';
 import {CommunitySection} from './community-section';
 import {isCommunityPlayer} from './community-players';
 import {fillPlayerCard,playerRecord} from './player-card';
@@ -6,11 +8,11 @@ import {SUMMARY_SKILLS,setSummarySkillLevel,summarizeSkills,skillLevel} from './
 import {applyPresentation} from './player-looks';
 import {AvatarPreview,AvatarThumbnails,LOOKS} from './avatar-preview';
 import {SKILLS} from './engine/model';
-import {ARCHETYPES} from './engine/player-profiles';
 import {APPEARANCE_OPTIONS,PLAYER_STORAGE_KEY,newPlayer,parseLibrary,savePlayer,deletePlayer,type DesignedPlayer,type PlayerLibrary,type Appearance} from './player-design';
 import type {CloudSaveState,LibraryChange} from './cloud-players';
 import './player-creator.css';
 const iconPaths:Record<string,string>={
+ facialHair:'M5 9v5l3 6h8l3-6V9M8 11l4-2 4 2M10 14h4',
  hairStyle:'M5 15V9a7 7 0 0 1 14 0v6M5 10c4 0 5-4 5-4s3 4 9 4M7 15v4m10-4v4',
  hair:'M12 3s-6 7-6 11a6 6 0 0 0 12 0c0-4-6-11-6-11Z',skin:'M12 3s-6 7-6 11a6 6 0 0 0 12 0c0-4-6-11-6-11Z',
  face:'M5 10a7 7 0 0 1 14 0v4a7 7 0 0 1-14 0Zm3 1h1m6 0h1m-7 5q3 2 6 0',
@@ -28,7 +30,7 @@ const skillHelp:Record<typeof SKILLS[number],string>={serve:'Start the point wit
 export class PlayerCreator {
  readonly dialog=document.createElement('dialog');
  loadHistory:()=>Promise<HistoryMatch[]>=async()=>{throw new Error('History unavailable')};
- private community=new CommunitySection();
+ private community=new CommunitySection(()=>{if(this.dialog.open&&this.dialog.dataset.view==='roster')this.showRoster()});
  private rosterThumbnails:AvatarThumbnails|null=null;
  private thumbnails:AvatarThumbnails|null=null;private thumbnailsReady=false;
  private library:PlayerLibrary={version:1,activeId:null,players:[]};private draft=newPlayer();private baseline='';private preview:AvatarPreview|null=null;private previewFailed=false;private loadError='';private pending:(()=>void)|null=null;
@@ -37,20 +39,21 @@ export class PlayerCreator {
   const active=this.library.players.find(p=>p.id===this.library.activeId);
   if(active)this.draft=structuredClone(active);this.baseline=JSON.stringify(this.draft);
   this.dialog.id='player-creator';this.dialog.setAttribute('aria-labelledby','creator-title');
-  this.dialog.innerHTML=`<section class="player-roster-page" aria-labelledby="roster-title"><div class="roster-top"><div><h1 id="roster-title">Your roster</h1></div><div class="roster-cheer" aria-hidden="true">Good players.<br>Brighter rallies.<svg viewBox="0 0 70 80" fill="none"><ellipse cx="40" cy="29" rx="22" ry="26" fill="currentColor" transform="rotate(35 40 29)"/><path d="m27 48-17 22" stroke="currentColor" stroke-width="12" stroke-linecap="round"/><g fill="#fafbf3"><circle cx="38" cy="13" r="3"/><circle cx="49" cy="23" r="3"/><circle cx="29" cy="27" r="3"/><circle cx="40" cy="38" r="3"/><circle cx="53" cy="36" r="3"/></g></svg></div><button type="button" class="creator-close" data-close aria-label="Return to main game" title="Return to main game">×</button></div><div class="roster-actions"><button type="button" data-create-player>+ Create new player</button><button type="button" data-resume hidden>Continue editing</button></div><p data-roster-status role="status"></p><section data-saved-section><h2>Saved Players</h2><div data-saved-roster class="roster-grid"></div></section><div data-community-section></div><h2>Starting Lineup</h2><div data-default-roster class="roster-grid"></div></section><div class="creator-topline"><button type="button" data-back-roster>← Roster</button><span>PICKLE RPG <i>·</i> CREATE PLAYER</span></div>
-  <div class="creator-layout"><section class="creator-stage" aria-label="Avatar preview"><div class="creator-heading"><h2 id="creator-title">Create Your Player</h2><p>Different players.<br>A brighter court.</p></div>
+  this.dialog.innerHTML=`<section class="player-roster-page" aria-labelledby="roster-title"><div class="roster-top"><div><h1 id="roster-title">Your Roster</h1></div><div class="roster-cheer" aria-hidden="true">Good players.<br>Brighter rallies.<svg viewBox="0 0 70 80" fill="none"><ellipse cx="40" cy="29" rx="22" ry="26" fill="currentColor" transform="rotate(35 40 29)"/><path d="m27 48-17 22" stroke="currentColor" stroke-width="12" stroke-linecap="round"/><g fill="#fafbf3"><circle cx="38" cy="13" r="3"/><circle cx="49" cy="23" r="3"/><circle cx="29" cy="27" r="3"/><circle cx="40" cy="38" r="3"/><circle cx="53" cy="36" r="3"/></g></svg></div><button type="button" class="creator-close" data-close aria-label="Return to main game" title="Return to main game">×</button></div><div class="roster-actions"><button type="button" data-create-player>+ Create new player</button><button type="button" data-resume hidden>Continue editing</button></div><p data-roster-status role="status"></p><section data-saved-section><div data-saved-roster class="roster-grid"></div></section><div data-community-section></div></section><div class="creator-topline"><button type="button" data-back-roster>← Roster</button></div>
+  <div class="creator-layout"><section class="creator-stage" aria-label="Avatar preview"><div class="creator-heading"><h2 id="creator-title">Create Your Player</h2></div>
 
   <div class="creator-preview"></div><div class="creator-plinth"></div>
-  <div class="creator-identity"><label for="creator-name">PLAYER NAME<input id="creator-name" type="text" inputmode="text" enterkeyhint="done" autocapitalize="words" maxlength="24" autocomplete="off" placeholder="Name your player"></label><label class="creator-catchphrase-label" for="creator-catchphrase">CATCHPHRASE<input id="creator-catchphrase" type="text" inputmode="text" enterkeyhint="done" maxlength="25" autocomplete="off"></label>
+  <div class="creator-identity"><label for="creator-name">PLAYER NAME<input id="creator-name" type="text" inputmode="text" enterkeyhint="done" autocapitalize="words" maxlength="24" autocomplete="off" placeholder="Name your player"></label><label class="creator-catchphrase-label" for="creator-catchphrase">CATCHPHRASE<input id="creator-catchphrase" type="text" inputmode="text" enterkeyhint="done" maxlength="30" autocomplete="off"></label>
   <label class="creator-public-control"><input id="creator-public" type="checkbox"> Anyone can use this player</label>
-  <label class="style-heading">PLAY STYLE <span>(OPTIONAL)</span></label><div class="creator-style-chips"><button type="button" data-style="allCourt">All-Court</button><button type="button" data-style="attacker">Power</button><button type="button" data-style="defender">Quick Hands</button><button type="button" data-style="setup">Strategic</button></div>
-  <blockquote>“Small moves.<br>Big plans.”</blockquote><div class="creator-summary">${['Power','Control','Speed','Hands'].map(name=>`<div><span>${name}</span><meter aria-label="${name} summary" min="0" max="100" value="70" data-summary="${name}" title="${SUMMARY_SKILLS[name as keyof typeof SUMMARY_SKILLS].map(title).join(', ')}"></meter><output data-summary-value="${name}"></output></div>`).join('')}</div>
+  <div class="creator-summary">${['Power','Control','Speed','Hands'].map(name=>`<div><span>${name}</span><meter aria-label="${name} summary" min="0" max="100" value="70" data-summary="${name}" title="${SUMMARY_SKILLS[name as keyof typeof SUMMARY_SKILLS].map(title).join(', ')}"></meter><output data-summary-value="${name}"></output></div>`).join('')}</div>
   </div>
-  <div class="creator-stage-bottom"><button type="button" data-randomize aria-label="Randomize look" title="Randomize look"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h3c5 0 7 12 12 12h3m-4-4 4 4-4 4M3 18h3c2 0 3.5-2 5-5m2-2c1.5-3 3-5 5-5h3m-4-4 4 4-4 4"/></svg></button></div><span class="creator-motto">CHARACTERS · STRATEGY · PLAYFUL</span><span data-preview-name class="sr-only"></span></section>
+  <div class="creator-stage-bottom"><button type="button" data-randomize aria-label="Randomize look" title="Randomize look"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h3c5 0 7 12 12 12h3m-4-4 4 4-4 4M3 18h3c2 0 3.5-2 5-5m2-2c1.5-3 3-5 5-5h3m-4-4 4 4-4 4"/></svg></button></div><span data-preview-name class="sr-only"></span></section>
   <section class="creator-editor"><div class="creator-tabs" role="tablist" aria-label="Player controls"><button type="button" role="tab" id="appearance-tab" aria-controls="appearance-panel" aria-selected="true" data-tab="appearance">${rowIcon('top')} Appearance</button><button type="button" role="tab" id="skills-tab" aria-controls="skills-panel" aria-selected="false" tabindex="-1" data-tab="skills">${rowIcon('style')} Skills</button></div>
   <div id="appearance-panel" role="tabpanel" aria-labelledby="appearance-tab"><div class="creator-options">
   ${this.optionRow('hairStyle','Hair','⌁')}
   ${this.colorRow('hair','Hair Color',['#754732','#252429','#efc568','#b85b34','#814cac','#b8babc'])}
+  ${this.optionRow('facialHair','Facial Hair','')}
+  ${this.colorRow('facialHairColor','Facial Hair Color',['#754732','#252429','#efc568','#b85b34','#b8babc','#fff7ef'])}
   ${this.colorRow('skin','Skin Tone',['#f0cbae','#e7af8c','#c8926e','#ad7553','#875338','#543c32'])}
   ${this.optionRow('glasses','Glasses','∞')}
   ${this.colorRow('glassesColor','Frame Color',equipmentColors)}
@@ -73,7 +76,7 @@ export class PlayerCreator {
   <div id="skills-panel" role="tabpanel" aria-labelledby="skills-tab" hidden><section class="skills-overview-card" aria-label="Player skill summary"><header><div><strong data-skills-name>Your player</strong><span>Skill profile</span></div><p class="skills-overview-rating" title="Game skill estimate, not an official DUPR rating"><span>DUPR</span><strong data-dupr></strong></p></header><div class="skills-overview-stats">${(['Power','Control','Speed','Hands'] as const).map(name=>`<div class="skills-overview-stat" data-stat="${name}"><span class="skills-overview-icon" aria-hidden="true">${summaryIcons[name]}</span><label for="summary-${name.toLowerCase()}">${name}</label><input id="summary-${name.toLowerCase()}" type="range" min="0" max="100" step="1" value="70" data-summary-control="${name}" title="Adjusts ${SUMMARY_SKILLS[name].map(title).join(', ')}"><output data-summary-value="${name}"></output></div>`).join('')}</div></section><details class="skills-details"><summary><span>Fine-tune skills</span></summary><div class="skills-details-body"><label for="creator-preset">Start from an archetype<select id="creator-preset"><option value="">Custom skills</option>${Object.entries(ARCHETYPES).map(([id,p])=>`<option value="${id}">${p.name}</option>`).join('')}</select></label><div class="creator-skills">${SKILLS.map(skill=>`<div class="creator-skill"><label for="skill-${skill}">${title(skill)}<output for="skill-${skill}" id="value-${skill}">70</output></label><input id="skill-${skill}" data-skill="${skill}" type="range" min="0" max="100" step="1" aria-describedby="help-${skill}"><small id="help-${skill}">${skillHelp[skill]}</small></div>`).join('')}</div></div></details></div>
   <div class="creator-delete-confirm" hidden><p data-delete-message></p><button type="button" data-cancel-delete>Keep player</button><button type="button" data-confirm-delete>Delete player permanently</button></div>
   <div class="creator-confirm" hidden><p>Discard unsaved changes to switch players?</p><button type="button" data-keep>Keep editing</button><button type="button" data-discard>Discard and continue</button></div>
-  <div class="creator-footer"><button type="button" data-delete hidden>Delete player</button><p data-status role="status"></p><div><button type="button" data-save>Save Player &nbsp; →</button></div><small data-save-location>Saved on this device.</small></div></section></div>`;
+  <div class="creator-footer"><button type="button" data-delete hidden>Delete player</button><p data-status role="status"></p><div><button type="button" data-save>Save Player &nbsp; →</button></div></div></section></div>`;
   document.body.append(this.dialog);
   this.dialog.append(this.el('.creator-confirm'));
   this.setupAppearancePages();
@@ -93,8 +96,7 @@ export class PlayerCreator {
   this.input('#creator-name').addEventListener('input',()=>{this.draft.name=this.input('#creator-name').value;this.updateCaption();this.changed()});
   this.dialog.querySelectorAll<HTMLButtonElement>('[data-choice]').forEach(button=>button.addEventListener('click',()=>{if(button.dataset.key==='presentation')this.draft.appearance=applyPresentation(this.draft.appearance,button.dataset.choice as Appearance['presentation']);else Object.assign(this.draft.appearance,{[button.dataset.key!]:button.dataset.choice});this.syncAppearance();this.refreshPreview();this.changed()}));
   this.dialog.querySelectorAll<HTMLInputElement>('[data-color]').forEach(control=>{const apply=()=>{if(this.draft.appearance[control.dataset.color as keyof Appearance]===control.value)return;Object.assign(this.draft.appearance,{[control.dataset.color!]:control.value});this.syncAppearance();this.refreshPreview();this.changed()};control.addEventListener('input',apply);control.addEventListener('change',apply)});
-  this.dialog.querySelectorAll<HTMLButtonElement>('[data-style]').forEach(button=>button.addEventListener('click',()=>{this.draft.skills={...ARCHETYPES[button.dataset.style as keyof typeof ARCHETYPES].skills};this.fillSkills();this.updateSummary();this.changed()}));
-  this.el('[data-randomize]').addEventListener('click',()=>{const pick=<T,>(items:readonly T[])=>items[Math.floor(Math.random()*items.length)];const look=pick(LOOKS);this.draft.appearance={...look.appearance,expression:pick(APPEARANCE_OPTIONS.expression),paddleShape:pick(APPEARANCE_OPTIONS.paddleShape),hairStyle:pick(APPEARANCE_OPTIONS.hairStyle),hat:pick(APPEARANCE_OPTIONS.hat.filter(value=>value!=='beanie'&&value!=='bucket')),glasses:pick(APPEARANCE_OPTIONS.glasses),glassesColor:pick(equipmentColors),shoeStyle:pick(APPEARANCE_OPTIONS.shoeStyle),top:pick(APPEARANCE_OPTIONS.top),bottom:pick(APPEARANCE_OPTIONS.bottom.filter(value=>value!=='skort')),accessory:pick(APPEARANCE_OPTIONS.accessory)};this.syncAppearance();this.refreshPreview();this.changed()});
+  this.el('[data-randomize]').addEventListener('click',()=>{const pick=<T,>(items:readonly T[])=>items[Math.floor(Math.random()*items.length)];const look=pick(LOOKS);this.draft.appearance={...look.appearance,expression:pick(APPEARANCE_OPTIONS.expression),paddleShape:pick(APPEARANCE_OPTIONS.paddleShape.filter(value=>value!=='rectangular'&&value!=='circular')),hairStyle:pick(APPEARANCE_OPTIONS.hairStyle),hat:pick(APPEARANCE_OPTIONS.hat.filter(value=>value!=='beanie'&&value!=='bucket')),glasses:pick(APPEARANCE_OPTIONS.glasses),glassesColor:pick(equipmentColors),shoeStyle:pick(APPEARANCE_OPTIONS.shoeStyle),top:pick(APPEARANCE_OPTIONS.top),bottom:pick(APPEARANCE_OPTIONS.bottom.filter(value=>value!=='skort')),accessory:pick(APPEARANCE_OPTIONS.accessory)};this.syncAppearance();this.refreshPreview();this.changed()});
   this.dialog.querySelectorAll<HTMLButtonElement>('[data-hand]').forEach(button=>button.addEventListener('click',()=>{this.draft.handedness=button.dataset.hand as 'left'|'right';this.syncAppearance();this.refreshPreview();this.changed()}));
   this.dialog.querySelectorAll<HTMLInputElement>('[data-skill]').forEach(control=>control.addEventListener('input',()=>{const key=control.dataset.skill as typeof SKILLS[number];this.draft.skills[key]=Number(control.value);this.el(`#value-${key}`).textContent=control.value;this.el(`#help-${key}`).textContent=skillLevel(Number(control.value))+' · '+skillHelp[key];this.input('#creator-preset').value='';this.updateSummary();this.changed()}));
   this.dialog.querySelectorAll<HTMLInputElement>('[data-summary-control]').forEach(control=>control.addEventListener('input',()=>{const name=control.dataset.summaryControl as keyof typeof SUMMARY_SKILLS;this.draft.skills=setSummarySkillLevel(this.draft.skills,name,Number(control.value));this.fillSkills();this.input('#creator-preset').value='';this.updateSummary();this.changed()}));
@@ -108,7 +110,7 @@ export class PlayerCreator {
  private setupAppearancePages(){
   const track=this.el('.creator-options');
   const rows=Array.from(track.children);
-  const groups=[{name:'Hair',rows:[0,1]},{name:'Expression',rows:[18]},{name:'Glasses',rows:[3,4,5]},{name:'Headwear',rows:[6,7]},{name:'Skin Tone',rows:[2]},{name:'Top',rows:[8,9]},{name:'Bottom',rows:[10,11]},{name:'Shoes',rows:[12,13]},{name:'Paddle & hand',rows:[19,14,17]},{name:'Accessories',rows:[15,16]}];
+  const groups=[{name:'Hair',rows:[0,1]},{name:'Facial Hair',rows:[2,3]},{name:'Expression',rows:[20]},{name:'Glasses',rows:[5,6,7]},{name:'Headwear',rows:[8,9]},{name:'Skin Tone',rows:[4]},{name:'Top',rows:[10,11]},{name:'Bottom',rows:[12,13]},{name:'Shoes',rows:[14,15]},{name:'Paddle & hand',rows:[21,16,19]},{name:'Accessories',rows:[17,18]}];
   const pages=groups.map((group,index)=>{
    const page=document.createElement('section');page.className='appearance-page';page.id=`appearance-page-${index}`;page.setAttribute('aria-label',group.name);
    for(const row of group.rows)page.append(rows[row]);track.append(page);return page;
@@ -132,7 +134,7 @@ export class PlayerCreator {
   new ResizeObserver(()=>{if(mobile.matches&&track.clientWidth)track.scrollTo({left:current*track.clientWidth,behavior:'instant'})}).observe(track);
   mobile.addEventListener('change',sync);sync();
  }
- private optionRow(key:keyof typeof APPEARANCE_OPTIONS,label:string,icon:string){return `<div class="creator-option-row"><span class="row-icon" aria-hidden="true">${rowIcon(key)}</span><span class="row-label">${label}</span><div class="creator-choices" role="group" aria-label="${label}">${APPEARANCE_OPTIONS[key].filter(value=>!['skort','beanie','bucket'].includes(value)).sort((a,b)=>Number(b==='none')-Number(a==='none')).map(value=>`<button type="button" data-key="${key}" data-choice="${value}" aria-label="${label}: ${title(value)}" aria-pressed="false" title="${title(value)}">${value==='none'?'<span class="none-icon">⊘</span>':`<img alt="" data-thumb-key="${key}" data-thumb-value="${value}">`}<span class="choice-label">${title(value)}</span></button>`).join('')}</div></div>`}
+ private optionRow(key:keyof typeof APPEARANCE_OPTIONS,label:string,icon:string){return `<div class="creator-option-row"><span class="row-icon" aria-hidden="true">${rowIcon(key)}</span><span class="row-label">${label}</span><div class="creator-choices" role="group" aria-label="${label}">${APPEARANCE_OPTIONS[key].filter(value=>!['skort','beanie','bucket','rectangular','circular'].includes(value)).sort((a,b)=>Number(b==='none')-Number(a==='none')).map(value=>`<button type="button" data-key="${key}" data-choice="${value}" aria-label="${label}: ${title(value)}" aria-pressed="false" title="${title(value)}">${value==='none'?'<span class="none-icon">⊘</span>':`<img alt="" data-thumb-key="${key}" data-thumb-value="${value}">`}<span class="choice-label">${title(value)}</span></button>`).join('')}</div></div>`}
  private colorRow(key:keyof Appearance,label:string,colors:string[]){return `<div class="creator-option-row"><span class="row-icon" aria-hidden="true">${rowIcon(key)}</span><span class="row-label">${label}</span><div class="creator-choices color-choices" data-palette="${key}" role="group" aria-label="${label}">${colors.map(color=>`<button type="button" class="color-choice" data-key="${key}" data-choice="${color}" aria-label="${label}: ${color}" aria-pressed="false" style="--swatch:${color}"><span></span></button>`).join('')}<label class="custom-color" title="Custom ${label.toLowerCase()}"><input type="color" data-color="${key}" aria-label="Custom ${label.toLowerCase()}"><span>＋</span></label></div></div>`}
  private syncAppearance(){
   this.dialog.querySelectorAll<HTMLButtonElement>('[data-hand]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.hand===this.draft.handedness)));
@@ -142,7 +144,7 @@ export class PlayerCreator {
  private loadThumbnails(){if(this.thumbnailsReady)return;try{
   this.thumbnails??=new AvatarThumbnails();
   this.dialog.querySelectorAll<HTMLImageElement>('[data-hand-thumb]').forEach(img=>img.src=this.thumbnails!.get(LOOKS[0].appearance,`hand-${img.dataset.handThumb}`));
-  this.dialog.querySelectorAll<HTMLImageElement>('[data-thumb-key]').forEach(img=>{let appearance={...LOOKS[0].appearance,[img.dataset.thumbKey!]:img.dataset.thumbValue!};if(img.dataset.thumbKey==='presentation')appearance=applyPresentation(appearance,img.dataset.thumbValue as Appearance['presentation']);if(['face','hairStyle','glasses','expression'].includes(img.dataset.thumbKey!))appearance.hat='none';if(img.dataset.thumbKey==='expression')appearance.glasses='none';img.src=this.thumbnails!.get(appearance,img.dataset.thumbKey!)});
+  this.dialog.querySelectorAll<HTMLImageElement>('[data-thumb-key]').forEach(img=>{let appearance={...LOOKS[0].appearance,[img.dataset.thumbKey!]:img.dataset.thumbValue!};if(img.dataset.thumbKey==='presentation')appearance=applyPresentation(appearance,img.dataset.thumbValue as Appearance['presentation']);if(['face','hairStyle','glasses','expression','facialHair'].includes(img.dataset.thumbKey!))appearance.hat='none';if(img.dataset.thumbKey==='facialHair'){appearance.hairStyle='short';appearance.glasses='none'}if(img.dataset.thumbKey==='expression')appearance.glasses='none';img.src=this.thumbnails!.get(appearance,img.dataset.thumbKey!)});
   this.dialog.querySelectorAll<HTMLImageElement>('[data-portrait]').forEach(img=>img.src=this.thumbnails!.get(LOOKS[Number(img.dataset.portrait)].appearance,'full'));this.thumbnailsReady=true;
  }catch{/* Text labels remain usable if thumbnail rendering is unavailable. */}}
  private updateSummary(){const {meters,estimatedDupr}=summarizeSkills(this.draft.skills);
@@ -153,7 +155,6 @@ export class PlayerCreator {
   for(const [name,value] of Object.entries(meters)){const control=this.input(`[data-summary-control="${name}"]`);control.value=String(Math.round(value));control.style.setProperty('--value',value+'%');control.setAttribute('aria-valuetext',`${Math.round(value)} out of 100; adjusts ${SUMMARY_SKILLS[name as keyof typeof SUMMARY_SKILLS].map(title).join(', ')}`)}
   this.el('[data-dupr]').textContent=estimatedDupr.toFixed(2);
 
-  this.dialog.querySelectorAll<HTMLButtonElement>('[data-style]').forEach(button=>button.setAttribute('aria-pressed',String(SKILLS.every(skill=>this.draft.skills[skill]===ARCHETYPES[button.dataset.style as keyof typeof ARCHETYPES].skills[skill]))));
  }
  get savedPlayers(){return structuredClone(this.library.players)}
  get activePlayer(){const player=this.library.players.find(p=>p.id===this.library.activeId);return player?structuredClone(player):null}
@@ -165,11 +166,10 @@ export class PlayerCreator {
   if(this.dialog.open&&this.dialog.dataset.view==='roster')this.showRoster();
  }
  setCloudStatus(state:CloudSaveState){
-  this.el('[data-save-location]').textContent=state==='connecting'?'Connecting cloud save…':state==='saving'?'Saving to cloud…':state==='saved'?'Saved on this device and in cloud.':state==='offline'?'Saved on this device. Cloud sync will retry next visit.':'Saved on this device.';
  }
  createPlayer(){this.open();this.switchDraft(()=>{this.loadDraft(newPlayer());this.showEditor()})}
  editPlayer(player:DesignedPlayer|null){this.open();if(player&&isCommunityPlayer(player)){this.el('[data-roster-status]').textContent='Community Players can only be edited by their creator.';return;}this.showEditor();if(player&&player.id!==this.draft.id)this.switchDraft(()=>this.loadDraft(player))}
- open(){if(!this.dialog.open)this.dialog.showModal();this.showRoster()}
+ open(){if(!this.dialog.open)this.dialog.showModal();this.showRoster();void this.community.load()}
 
  private showEditor(){
   this.dialog.dataset.view='editor';this.dialog.setAttribute('aria-labelledby','creator-title');
@@ -181,29 +181,23 @@ export class PlayerCreator {
   this.el('[data-resume]').hidden=JSON.stringify(this.draft)===this.baseline;
   this.el('[data-roster-status]').textContent=this.loadError;
   this.el('[data-community-section]').append(this.community.element);
-  const saved=this.el('[data-saved-roster]'),defaults=this.el('[data-default-roster]');saved.replaceChildren();defaults.replaceChildren();
-  this.el('[data-saved-section]').hidden=this.library.players.length===0;
+  const saved=this.el('[data-saved-roster]');saved.replaceChildren();
+  this.el('[data-saved-section]').hidden=false;
   const history=this.loadHistory();void history.catch(()=>{});
   const card=(player:DesignedPlayer,role:string,isDefault:boolean)=>{
    const article=document.createElement('article');article.className='roster-card';
    const edit=()=>{if(this.draft.id===player.id){this.showEditor();return}this.switchDraft(()=>{this.loadDraft(player);this.showEditor()})};
-   if(!isDefault){
-   article.tabIndex=0;article.setAttribute('role','button');article.setAttribute('aria-label',`Edit ${player.name}`);
-   article.addEventListener('click',event=>{if((event.target as HTMLElement).closest('button,summary,a,input,select,textarea'))return;edit()});
-   article.addEventListener('keydown',event=>{if(event.target===article&&(event.key==='Enter'||event.key===' ')){event.preventDefault();edit()}});
-   }
    let portrait='';try{this.rosterThumbnails??=new AvatarThumbnails(384);portrait=this.rosterThumbnails.get(player.appearance,'roster')}catch{}
    fillPlayerCard(article,player,role,portrait);
    article.querySelector('.roster-card-identity')!.append(playerRecord(player.id,history));
-   const details=document.createElement('details'),label=document.createElement('summary');label.textContent='View all skills';details.append(label);
-   for(const skill of SKILLS){const line=document.createElement('div');line.className='roster-skill';const name=document.createElement('span');name.textContent=title(skill);const meter=document.createElement('meter');meter.min=0;meter.max=100;meter.value=player.skills[skill];meter.setAttribute('aria-label',title(skill));meter.title=skillLevel(player.skills[skill]);const value=document.createElement('span');value.textContent=String(player.skills[skill]);line.append(name,meter,value);details.append(line)}article.append(details);
+   attachPlayerDetails(article,player,role,portrait,isDefault?undefined:edit);
    const actions=document.createElement('div');actions.className='roster-card-actions';
    const play=document.createElement('button');play.type='button';play.className='roster-play';play.textContent='▶  Play as '+player.name;play.disabled=!isDefault&&!!this.loadError;
    play.addEventListener('click',()=>{if(isDefault){this.onPlay(structuredClone(player));this.dialog.close()}else{this.showEditor();this.switchDraft(()=>{this.loadDraft(player);this.save(true)})}});actions.append(play);
    article.append(actions);return article;
   };
   for(const player of this.library.players)saved.append(card(player,this.library.activeId===player.id?(player.isPublic?'Selected · Public player':'Selected player'):(player.isPublic?'Public player':'Saved player'),false));
-  for(const [index,look] of LOOKS.entries())defaults.append(card({...newPlayer('default-'+index),name:look.name,appearance:{...look.appearance},skills:{...look.skills}},look.role,true));
+  saved.append(...this.community.rosterCards());
   this.el('[data-create-player]').focus();
  }
  private el(selector:string){return this.dialog.querySelector<HTMLElement>(selector)!}
