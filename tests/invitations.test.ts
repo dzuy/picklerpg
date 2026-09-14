@@ -24,3 +24,17 @@ test('invitations require recipient acceptance, preserve creator team, and atomi
  await matches.act(first.id,B,action(first));
  }finally{await db.close()}
 });
+
+test('decline, sender dismissal, cancellation and acceptance races preserve invitation ownership',async()=>{
+ const db=await database();try{
+ await db.pool.query('insert into auth.users(id) values($1),($2),($3)',[A,B,C]);const repo=new PgRepository(db.pool),matches=new MatchService(repo,testers),invites=pgInvitations(repo),service=new InvitationService(invites,matches,testers),r=creation().roster;
+ const create=()=>service.create(A,{requestId:randomUUID(),opponentId:B,team:[r.you,r.partner],court:'forest',scoring:'rally-doubles'});
+ const team={team:[r['opponent-left'],r['opponent-right']]};
+ const declined=await create();await assert.rejects(service.close(declined.id,A,'decline'));await assert.rejects(service.close(declined.id,C,'cancel'));await assert.rejects(service.close(declined.id,B,'delete'));
+ assert.equal((await service.close(declined.id,B,'decline')).status,'declined');assert.equal((await service.close(declined.id,B,'decline')).status,'declined');
+ assert.equal((await service.list(B)).length,0);assert.equal((await service.list(A))[0].status,'declined');await assert.rejects(service.accept(declined.id,B,team));
+ await service.close(declined.id,A,'delete');await service.close(declined.id,A,'delete');assert.equal((await service.list(A)).length,0);
+ const cancelled=await create();await assert.rejects(service.close(cancelled.id,B,'cancel'));await service.close(cancelled.id,A,'cancel');await service.close(cancelled.id,A,'cancel');await assert.rejects(service.accept(cancelled.id,B,team));assert.equal((await service.list(B)).length,0);
+ for(const action of ['cancel','decline'] as const){const invite=await create();const results=await Promise.allSettled([service.accept(invite.id,B,team),service.close(invite.id,action==='cancel'?A:B,action)]);assert.equal(results.filter(r=>r.status==='fulfilled').length,1);const current=await service.get(invite.id,A);assert.equal(!!(await matches.list(A)).find(m=>m.id===invite.id),current.status==='accepted');}
+ }finally{await db.close()}
+});

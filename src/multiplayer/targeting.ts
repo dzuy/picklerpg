@@ -4,13 +4,13 @@ import type {TargetChoice,TargetingSource} from '../target-picker';
 import type {RemoteSession} from './match-session';
 
 /** Retain the server's shot and reception timing; only replace its aim. */
-export function remoteTargeting(current:()=>RemoteSession|null,beforePlay:()=>void,onError:(message:string)=>void):TargetingSource {
+export function remoteTargeting(current:()=>RemoteSession|null,beforePlay:()=>void,onError:(message:string)=>void,canPlay:()=>boolean=()=>true):TargetingSource {
  return {
   get team(){return current()?.state?.viewerTeam??null},
   get choices(){return current()?.state?.choices??[]},
   get context(){return current()},
   get decision(){return current()?.state?.decisionId??''},
-  get enabled(){const s=current();return !!s?.state&&s.state.status==='active'&&s.state.currentTeam===s.state.viewerTeam&&!s.busy&&!s.pending&&!s.offline},
+  get enabled(){const s=current();return canPlay()&&!!s?.state&&s.state.status==='active'&&s.state.currentTeam===s.state.viewerTeam&&!s.busy&&!s.pending&&!s.offline},
   aim:beforePlay,
   validate(choice,point){
    const s=current()?.state;

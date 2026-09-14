@@ -33,10 +33,11 @@ export function createMatchHandler(service:MatchService,authenticate:Authenticat
     if(req.method==='GET'){send(res,200,await invitations.list(actor));return;}
     if(req.method==='POST'){limit(`invite:${actor}`,6);send(res,201,await invitations.create(actor,await body(req)));return;}
    }
-   const invite=pathname.match(/^\/api\/invitations\/([^/]+)(\/accept)?$/);
+   const invite=pathname.match(/^\/api\/invitations\/([^/]+)(\/(?:accept|decline|cancel|delete))?$/);
    if(invitations&&invite&&uuid(invite[1])){
     if(req.method==='GET'&&!invite[2]){send(res,200,await invitations.get(invite[1],actor));return;}
-    if(req.method==='POST'&&invite[2]){limit(`accept:${actor}`,6);send(res,200,await invitations.accept(invite[1],actor,await body(req)));return;}
+    if(req.method==='POST'&&invite[2]&&invite[2]!=='/accept'){limit(`invite-close:${actor}`,12);send(res,200,await invitations.close(invite[1],actor,invite[2].slice(1) as 'decline'|'cancel'|'delete'));return;}
+    if(req.method==='POST'&&invite[2]==='/accept'){limit(`accept:${actor}`,6);send(res,200,await invitations.accept(invite[1],actor,await body(req)));return;}
    }
    if(pathname==='/api/matches'){
     if(req.method==='GET'){send(res,200,await service.list(actor));return;}

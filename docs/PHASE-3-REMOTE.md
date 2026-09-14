@@ -98,3 +98,9 @@ New games use a pending invitation before creating a playable match. The creator
 Migration `202609140003_async_invitations.sql` adds participant-restricted invitation storage and atomic, idempotent creation/acceptance procedures. It has been applied to the shared playtest database. Acceptance fixes the creator's stored lineup, stores the recipient as the home team, and creates exactly one match with the recipient serving first. Existing matches remain playable. Production routing rejects immediate match creation when the invitation service is configured.
 
 Validation: 22 invitation/remote tests passed, including concurrent acceptance, unauthorized access, no match before acceptance, preserved lineups, and recipient first serve. A disposable two-account browser test verified incoming/outgoing cards, player selection, acceptance, automatic creator entry, and opposite turn banners. The acceptance layout fits a 390px viewport without horizontal overflow. Production build passed. Code is local pending the next push.
+
+### Decline, cancel, and dismiss invitations
+
+Recipients can decline pending invitations. Declined invitations stay in the sender's lobby until the sender deletes the card. Senders can cancel pending invitations, removing them from both lobbies. Terminal rows are retained internally so retried requests cannot recreate invitations. Only pending invitations can be accepted, and all transitions lock the same row to prevent acceptance/cancellation races. Existing matches cannot be cancelled through invitation actions.
+
+Migration `202609140004_invitation_lifecycle.sql` was applied to the shared database. Database tests cover permissions, retries, declined visibility, sender deletion, and accept-versus-decline/cancel races. The disposable browser test covered all three user flows. Production build passed; code awaits push.

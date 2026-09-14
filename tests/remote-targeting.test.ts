@@ -11,11 +11,13 @@ test('wheel preserves server shot variants and reception timing across polling r
  const session=new RemoteSession(A,state.id,async()=>({owner:A,token:A}),async()=>{throw Error('No network expected')},{getItem:()=>null,setItem:()=>{},removeItem:()=>{}});
  session.state=state;let sent:PublicMatch['choices'][number]|undefined,skips=0;
  session.submit=async choice=>{sent=choice};
- const source=remoteTargeting(()=>session,()=>skips++,message=>assert.fail(message));
+ let celebrating=false;
+ const source=remoteTargeting(()=>session,()=>skips++,message=>assert.fail(message),()=>!celebrating);
  const choice={...state.choices[0],timing:'bounce' as const};state.choices=[choice];
  session.state=structuredClone(state); // Same version from a background poll: choice objects are new.
  source.play(choice,{x:1,z:-3});
  assert.deepEqual(sent,{...choice,intent:{...choice.intent,target:{kind:'point',x:1,z:-3}}});assert.equal(skips,1);
+ celebrating=true;assert.equal(source.enabled,false);assert.throws(()=>source.play(choice,{x:1,z:-3}));celebrating=false;assert.equal(source.enabled,true);
  session.busy=true;assert.equal(source.enabled,false);assert.throws(()=>source.play(choice,{x:1,z:-3}));session.busy=false;
  session.state.currentTeam='away';assert.equal(source.enabled,false);assert.throws(()=>source.play(choice,{x:1,z:-3}));
  session.state.currentTeam='home';session.state.choices=[];assert.throws(()=>source.play(choice,{x:1,z:-3}));
