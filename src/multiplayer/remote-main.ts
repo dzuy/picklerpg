@@ -27,7 +27,13 @@ let signup=true,accountEmail='',shownRoster='';
 const settings=el('game-settings') as HTMLDialogElement;
 const gameEnd=document.createElement('dialog');gameEnd.id='game-end';gameEnd.setAttribute('aria-labelledby','game-end-title');gameEnd.innerHTML=`<div class="game-end-card"><div class="game-end-kicker">GAME COMPLETE</div><div class="game-end-emblem" aria-hidden="true">✦</div><p class="game-end-label">THE WINNERS</p><h1 id="game-end-title"></h1><p class="game-end-subtitle">A game worth playing. A win worth celebrating.</p><div class="game-end-score" aria-label="Final score"><div><strong id="game-end-home-score"></strong><span id="game-end-home-names"></span></div><span class="game-end-dash">–</span><div><strong id="game-end-away-score"></strong><span id="game-end-away-names"></span></div></div><p class="game-end-rule" id="remote-end-rule"></p><div class="game-end-actions"><button id="remote-end-back">← Your games</button></div></div>`;document.body.append(gameEnd);
 gameEnd.addEventListener('cancel',e=>e.preventDefault());el('remote-end-back').onclick=()=>void lobby().catch(e=>status(e.message));
-function syncGameEnd(){const s=session?.state;if(gameEnd.open||!s||s.status!=='completed'||animation.length||el('remote-game').hidden)return;
+const GAME_END_PAUSE_MS=2500;
+let gameEndReadyAt:number|null=null;
+function syncGameEnd(){const s=session?.state;if(gameEnd.open)return;
+ // Give the final landing and result banner time on screen, including after replay.
+ if(!s||s.status!=='completed'||animation.length||el('remote-game').hidden||document.hidden||settings.open){gameEndReadyAt=null;return;}
+ gameEndReadyAt??=performance.now()+GAME_END_PAUSE_MS;
+ if(performance.now()<gameEndReadyAt)return;
  const home=['you','partner'] as const,away=['opponent-left','opponent-right'] as const,names=(ids:readonly (keyof PublicMatch['roster'])[])=>ids.map(id=>s.roster[id].name).join(' & ');
  el('game-end-title').textContent=`${names(s.score.home>s.score.away?home:away)} win!`;
  el('game-end-home-score').textContent=String(s.score.home);el('game-end-away-score').textContent=String(s.score.away);el('game-end-home-names').textContent=names(home);el('game-end-away-names').textContent=names(away);el('remote-end-rule').textContent=`FINAL SCORE · FIRST TO ${s.rules.target}`;
@@ -38,7 +44,7 @@ function animationShot(segment:TurnAnimation,state:GameState):RallyShot{return {
 let playbackSpeed=1,flightGuides=false,playerNames=true,playbackElapsed=0,lastFrame=0;
 try{const saved=JSON.parse(localStorage.getItem('pickle-remote-view')??'null');if(saved){if([1,2,3].includes(saved.speed))playbackSpeed=saved.speed;flightGuides=saved.guides===true;playerNames=saved.names!==false}}catch{}
 function saveView(){try{localStorage.setItem('pickle-remote-view',JSON.stringify({speed:playbackSpeed,guides:flightGuides,names:playerNames}))}catch{}}
-function leaveCourt(){document.body.classList.remove('remote-playing');settings.close();gameEnd.close();scene?.setRetainedTrajectory(null);}
+function leaveCourt(){gameEndReadyAt=null;document.body.classList.remove('remote-playing');settings.close();gameEnd.close();scene?.setRetainedTrajectory(null);}
 (el('remote-speed') as HTMLSelectElement).value=String(playbackSpeed);
 (el('remote-guides') as HTMLInputElement).checked=flightGuides;
 (el('remote-names') as HTMLInputElement).checked=playerNames;
@@ -59,7 +65,7 @@ let display:GameState|null=null,shot:RallyShot|null=null,shownVersion=-1,animati
 function showLogin(){selectedInvite=null;el('remote-invite').hidden=true;leaveCourt();el('remote-setup').hidden=true;el('remote-password-reset').hidden=true;clearTarget();session?.dispose();session=null;account='';display=null;animation=[];el('remote-name-setup').hidden=true;el('remote-login').hidden=false;el('remote-lobby').hidden=true;el('remote-game').hidden=true;el('remote-sign-out').hidden=true;el('remote-account').textContent='';}
 function accountLabel(){const name=config?.selfName??'Signed in';return accountEmail&&name!==accountEmail?`${name} · ${accountEmail}`:name;}
 function opponentLabel(s:PublicMatch){const id=s.accountIds?.[s.viewerTeam==='home'?'away':'home'];return config?.testers.find(t=>t.id===id)?.name??'Opponent';}
-function status(message:string){el('remote-status').textContent=message;el('remote-live-status').textContent=message;}
+function status(message:string){el('remote-status').textContent=message;el('remote-live-status').textContent=message;if(message)document.querySelector<HTMLElement>('.remote-move-banner')!.hidden=false;}
 function presentation(state:GameState,intent= session?.state?.choices[0]?.intent):RallyShot {
  const actor=session?.state?.serving&&!intent?session.state.server:intent?.actor??state.currentHitter??'you',p=state.ball.position;
  return {actor,intent:intent??{schemaVersion:1,actor,type:session?.state?.serving?'serve':'return',target:{kind:'zone',zone:'middle',depth:'deep'},pace:'medium',shape:'arc',intendedNetClearance:.4,tacticalIntent:'sustain',aggression:.5,source:'menu'},title:'',description:'',cue:'',contact:{...p},aimPoint:{...p},legs:[{from:{...p},to:{...p},duration:1,arc:0}],positions:Object.fromEntries(state.players.map(p=>[p.id,p.position])) as RallyShot['positions']};
@@ -71,8 +77,8 @@ function choiceLabel(intent:PublicMatch['choices'][number]['intent']){
 function clearTarget(){targetPicker?.clear();}
 function render(){
  if(!session)return;const s=session.state;
- status(session.message||(session.busy?'Saving turn…':session.offline?'Offline · showing the last saved state.':''));
- el('remote-retry').hidden=!session.pending;(el('remote-retry') as HTMLButtonElement).disabled=session.busy;
+ status(session.busy?'':session.message||(session.offline?'Offline · showing the last saved state.':''));
+ el('remote-retry').hidden=!session.pending||session.busy;(el('remote-retry') as HTMLButtonElement).disabled=session.busy;
  (el('remote-replay') as HTMLButtonElement).disabled=!s?.animation.length||session.busy||!!session.pending;
  if(!s)return;
  const opponentFlight=s.currentTeam===s.viewerTeam&&!s.result&&!session.busy&&!session.pending?[...s.animation].reverse().find(a=>s.display.players.find(p=>p.id===a.actor)?.team!==s.viewerTeam):undefined;scene?.setRetainedTrajectory(opponentFlight?animationShot(opponentFlight,s.display):null);
@@ -80,7 +86,12 @@ function render(){
  const own=s.viewerTeam==='home'?['you','partner'] as const:['opponent-left','opponent-right'] as const,other=s.viewerTeam==='home'?['opponent-left','opponent-right'] as const:['you','partner'] as const;
  el('remote-home-names').textContent=own.map(id=>s.roster[id].name).join(' & ');el('remote-away-names').textContent=other.map(id=>s.roster[id].name).join(' & ');
  el('remote-home-score').textContent=String(s.score[s.viewerTeam]);el('remote-away-score').textContent=String(s.score[s.viewerTeam==='home'?'away':'home']);
- el('remote-move').textContent=moveCopy(s);el('remote-settings-account').textContent=`Signed in as ${accountLabel()}`;
+ const lastActor=s.animation.at(-1)?.actor;
+ const ownMove=!!lastActor&&s.display.players.find(p=>p.id===lastActor)?.team===s.viewerTeam;
+ const hideCommentary=session.busy||!!session.pending||ownMove;
+ el('remote-move').hidden=hideCommentary;
+ el('remote-move').textContent=hideCommentary?'':moveCopy(s);
+ document.querySelector<HTMLElement>('.remote-move-banner')!.hidden=hideCommentary&&!el('remote-live-status').textContent&&el('remote-retry').hidden;el('remote-settings-account').textContent=`Signed in as ${accountLabel()}`;
  el('remote-rules').textContent=`${s.rules.scoring==='rally-doubles'?'Rally scoring':'Side-out scoring'} · First to ${s.rules.target}`;
  const lineup=el('remote-lineup');lineup.replaceChildren();for(const [label,ids] of [['Your team',own],['Opponents',other]] as const){const row=document.createElement('p');row.textContent=`${label}: ${ids.map(id=>s.roster[id].name).join(' & ')}`;lineup.append(row);}
  if(shownVersion!==s.version){
@@ -164,7 +175,8 @@ function frame(now:number){
    display.ball.position=sample.position;display.players=sample.players;display.elapsed=progress*segment.duration;display.phase='flight';display.paused=false;display.simulationTime=now/1000;shot=animationShot(segment,display);
    if(progress===1){animation.shift();animationStart=now;playbackElapsed=0;if(!animation.length)skip();}
   }
-  scene.render(display,now/1000,shot,!animation.length&&session?.state?.serving?session.state.serveCall:null);targetPicker?.sync(!el('remote-game').hidden&&!settings.open&&!gameEnd.open);
+  scene.setNextHitter(session?.state?.status==='active'&&!(animation.length&&session.state.result)?session.state.nextHitter??null:null);
+  scene.render(display,now/1000,shot,null);targetPicker?.sync(!el('remote-game').hidden&&!settings.open&&!gameEnd.open);
  }
  }catch(error){renderFailed=true;console.error('Remote court render failed',error);status('Court rendering failed. Reload to restore the saved match.');}
  syncGameEnd();lastFrame=now;requestAnimationFrame(frame);

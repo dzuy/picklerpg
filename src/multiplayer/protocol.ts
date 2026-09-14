@@ -12,6 +12,7 @@ export interface PublicMatch {
  createdAt?:string;
  id:string;version:number;status:'active'|'completed';viewerTeam:Team;currentTeam:Team|null;decisionId:string;
  rules:ScoringRules;score:Record<Team,number>;serveCall:string;serving?:boolean;server:PlayerId;pointIndex:number;
+ nextHitter?:PlayerId|null;
  display:GameState;roster:Record<PlayerId,DesignedPlayer>;
  choices:Array<{intent:ShotIntent;timing?:'air'|'bounce'}>;result:PointResult|null;
  animation:TurnAnimation[];

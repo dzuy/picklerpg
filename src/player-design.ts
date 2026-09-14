@@ -22,7 +22,7 @@ export function playerId(source:Pick<Crypto,'getRandomValues'> & Partial<Pick<Cr
  return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
 }
 export function newPlayer(id:string=playerId()):DesignedPlayer{return {id,name:'New player',appearance:{...DEFAULT_APPEARANCE},skills:{...PLAYER_PROFILES.you.skills},handedness:'right'}}
-export function validatePlayer(value:unknown):DesignedPlayer{return validatePlayerRecord(value,20)}
+export function validatePlayer(value:unknown):DesignedPlayer{return validatePlayerRecord(value,25)}
 function validatePlayerRecord(value:unknown,catchphraseLimit:number):DesignedPlayer{
  if(!value||typeof value!=='object')throw new Error('Invalid player record.');
  const p=value as DesignedPlayer;

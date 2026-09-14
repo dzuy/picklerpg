@@ -5,11 +5,11 @@ import {playerHistory,type HistoryMatch} from './player-history';
 export function fillPlayerCard(article:HTMLElement,player:DesignedPlayer,role:string,portrait:string){
    const themeIndex=LOOKS.findIndex(look=>look.name===player.name);
    const themes=[['#ff9389','All court.\nAll fun.'],['#78aff2','Power changes\ngames.'],['#ffda73','Think\nahead.'],['#95dfc0','Fast moves.\nBig plays.'],['#c5a3f2','Small details.\nBig wins.'],['#b0d2a7','Defend and\ndeliver.'],['#d1a0ef','Creativity keeps\nyou ahead.'],['#a5dfc4','Any court.\nAny day.']];
-   const [color,motto]=themes[themeIndex<0?Math.abs(player.name.length)%themes.length:themeIndex];
+   const [color]=themes[themeIndex<0?Math.abs(player.name.length)%themes.length:themeIndex];
    article.style.setProperty('--card-color',color);
    const banner=document.createElement('div');banner.className='roster-banner';
    if(portrait){const img=document.createElement('img');img.src=portrait;img.alt=player.name;banner.append(img)}
-   const slogan=document.createElement('span');slogan.className='roster-motto';slogan.textContent=player.catchphrase?.trim()||(themeIndex<0?'Your game.\nYour way.':motto);banner.append(slogan);
+   const slogan=document.createElement('span');slogan.className='roster-motto';slogan.textContent=player.catchphrase?.trim()??'';banner.append(slogan);
    const doodle=document.createElement('span');doodle.className='roster-doodle';doodle.textContent=themeIndex%2===0?'✧':'〰';doodle.setAttribute('aria-hidden','true');banner.append(doodle);article.append(banner);
    const heading=document.createElement('h3');heading.textContent=player.name;const identity=document.createElement('div');identity.className='roster-card-identity';identity.append(heading);article.append(identity);
    const description=document.createElement('p');description.textContent=role;description.className='roster-role';identity.append(description);

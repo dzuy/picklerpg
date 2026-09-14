@@ -27,6 +27,9 @@ export class CourtScene {
  private motion=new Map<PlayerId,{x:number;z:number;distance:number;time:number}>();
  private retainedTrajectory:RallyShot|null=null;
  setRetainedTrajectory(shot:RallyShot|null){this.retainedTrajectory=shot}
+ private turnArrow=document.createElement('div');
+ private nextHitter:PlayerId|null=null;
+ setNextHitter(id:PlayerId|null){this.nextHitter=id}
  private serveBubble=document.createElement('div');
  private pausedBallMarker=document.createElement('div');
  private ballScreenPosition=new THREE.Vector3();
@@ -35,10 +38,11 @@ export class CourtScene {
  private controls:OrbitControls;private customizedView=false;
  private players=new Map<PlayerId,THREE.Group>();private ball:THREE.Group;private ballHalo:THREE.Mesh;private shadow:THREE.Mesh;private trail:THREE.Line;private trailDots:THREE.Points;private target:THREE.Mesh;private labels=new Map<PlayerId,HTMLDivElement>();private cameraDistance=50;private guides=true;private lastShot:RallyShot|null=null;private previewShot:RallyShot|null=null;private lastOpponentShot:RallyShot|null=null;
  constructor(private host:HTMLElement,private selectPlayer:(id:PlayerId)=>void=()=>{}){
+  this.turnArrow.className='turn-arrow';this.turnArrow.hidden=true;this.turnArrow.setAttribute('role','img');host.append(this.turnArrow);
   this.serveBubble.className='serve-bubble';this.serveBubble.hidden=true;this.serveBubble.setAttribute('role','status');host.append(this.serveBubble);
   this.pausedBallMarker.className='paused-ball-marker';this.pausedBallMarker.hidden=true;this.pausedBallMarker.setAttribute('role','img');this.pausedBallMarker.setAttribute('aria-label','Ball location — play paused');host.append(this.pausedBallMarker);
   const horizonColor=new THREE.Color('#87b6a1');this.scene.background=horizonColor;this.scene.fog=new THREE.Fog(horizonColor,105,172);
-  this.renderer=new THREE.WebGLRenderer({antialias:true});this.renderer.setPixelRatio(Math.min(devicePixelRatio,2));this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;this.renderer.outputColorSpace=THREE.SRGBColorSpace;this.renderer.toneMapping=THREE.NeutralToneMapping;this.renderer.toneMappingExposure=1.12;host.append(this.renderer.domElement);
+  this.renderer=new THREE.WebGLRenderer({antialias:true});this.renderer.setPixelRatio(Math.min(devicePixelRatio,2));this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;this.renderer.outputColorSpace=THREE.SRGBColorSpace;this.renderer.toneMapping=THREE.NeutralToneMapping;this.renderer.toneMappingExposure=1.2;host.append(this.renderer.domElement);
   this.renderer.domElement.setAttribute('aria-label','Interactive 3D pickleball court. Drag to rotate, pinch or scroll to zoom, and use two fingers or right-drag to move the view.');this.renderer.domElement.setAttribute('role','img');
   this.renderer.domElement.style.touchAction='none';
   let pointerStart:{x:number;y:number}|null=null;
@@ -59,8 +63,9 @@ export class CourtScene {
   this.renderer.domElement.addEventListener('pointercancel',()=>pointerStart=null);
   this.controls=new OrbitControls(this.camera,this.renderer.domElement);this.controls.enableDamping=true;this.controls.dampingFactor=.09;this.controls.enablePan=true;this.controls.screenSpacePanning=true;this.controls.rotateSpeed=.65;this.controls.zoomSpeed=.8;this.controls.panSpeed=.55;this.controls.minDistance=6;this.controls.maxDistance=90;this.controls.minPolarAngle=.08;this.controls.maxPolarAngle=Math.PI*.40;this.controls.touches.ONE=THREE.TOUCH.ROTATE;this.controls.touches.TWO=THREE.TOUCH.DOLLY_PAN;
   this.controls.addEventListener('start',()=>{this.customizedView=true});
-  this.scene.add(new THREE.HemisphereLight('#c5e5ff','#365b49',1.55));const sun=new THREE.DirectionalLight('#fff1d8',2.9);sun.position.set(-9,18,10);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-14,right:14,top:14,bottom:-14});sun.shadow.bias=-.00015;sun.shadow.normalBias=.022;sun.shadow.radius=2;sun.shadow.camera.near=.5;sun.shadow.camera.far=65;sun.shadow.camera.updateProjectionMatrix();this.scene.add(sun);
-  const rim=new THREE.DirectionalLight('#a3e9f5',.45);rim.position.set(8,9,-10);this.scene.add(rim);
+  this.scene.add(new THREE.HemisphereLight('#e4f2ff','#91a58d',2.1));const sun=new THREE.DirectionalLight('#fff1d8',2.9);sun.position.set(-9,18,10);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-14,right:14,top:14,bottom:-14});sun.shadow.bias=-.00015;sun.shadow.normalBias=.022;sun.shadow.radius=2;sun.shadow.camera.near=.5;sun.shadow.camera.far=65;sun.shadow.camera.updateProjectionMatrix();this.scene.add(sun);
+  const rim=new THREE.DirectionalLight('#e0f4ff',1.1);rim.position.set(8,9,-10);this.scene.add(rim);
+  const faceFill=new THREE.DirectionalLight('#fff6e9',.65);faceFill.position.set(0,4,12);this.scene.add(faceFill);
   this.box(340,.15,340,0,-.22,0,'#76A64B');this.box(12,.16,21,0,-.1,0,'#178668');this.box(COURT.width+.32,.04,COURT.length+.32,0,-.005,0,'#07505A');this.box(COURT.width,.03,COURT.length,0,.025,0,'#08AABB');this.box(COURT.width,.012,COURT.kitchen*2,0,.047,0,'#83D9C9');
   const w=COURT.width,l=COURT.length,k=COURT.kitchen,t=COURT.line;
   for(const x of [-w/2+t/2,w/2-t/2])this.box(t,.009,l,x,.06,0,'#F7F5EB');
@@ -177,11 +182,11 @@ export class CourtScene {
   this.serveBubble.hidden=!serving;
   if(serving){
    const server=state.players.find(p=>p.id===shot.actor)!;
-   const point=new THREE.Vector3(server.position.x,1.8,server.position.z).project(this.camera);
+   const point=new THREE.Vector3(server.position.x,1.45,server.position.z).project(this.camera);
    const text=serveCall.replaceAll('–','-');
    if(this.serveBubble.textContent!==text)this.serveBubble.textContent=text;
    const playerX=(point.x*.5+.5)*this.host.clientWidth,side=playerX>this.host.clientWidth/2?-1:1;
-   this.serveBubble.style.left=`${Math.max(45,Math.min(this.host.clientWidth-45,playerX+side*78))}px`;
+   this.serveBubble.style.left=`${Math.max(45,Math.min(this.host.clientWidth-45,playerX+side*48))}px`;
    this.serveBubble.style.top=`${Math.max(48,Math.min(this.host.clientHeight-20,(-point.y*.5+.5)*this.host.clientHeight))}px`;
   }
   for(const p of state.players){
@@ -196,8 +201,10 @@ export class CourtScene {
    if(p.id==='you'){const pulse=this.reducedMotion.matches?1:1+Math.sin(time*2.6)*.035;mesh.getObjectByName('ground-ring')?.scale.setScalar(pulse);const halo=mesh.getObjectByName('selection-halo') as THREE.Mesh<THREE.RingGeometry,THREE.MeshBasicMaterial>;halo.material.opacity=this.reducedMotion.matches?.13:.13+Math.sin(time*2.6)*.035;}
    this.motion.set(p.id,{x:p.position.x,z:p.position.z,distance,time:state.simulationTime});
    this.labels.get(p.id)!.dataset.reaction=pose.reaction??'';
-   const projected=new THREE.Vector3(p.position.x,2.2,p.position.z).project(this.camera);const label=this.labels.get(p.id)!;const thinking=state.phase==='decision'&&state.currentHitter===p.id;if(thinking&&!label.classList.contains('is-thinking')){label.classList.add('is-thinking');label.setAttribute('aria-label',`View ${label.dataset.name} skills · currently thinking`);label.innerHTML='<i></i><i></i><i></i>'}else if(!thinking&&label.classList.contains('is-thinking')){label.classList.remove('is-thinking');label.setAttribute('aria-label',`View ${label.dataset.name} skills`);label.textContent=label.dataset.name!}label.style.left=`${(projected.x*.5+.5)*this.host.clientWidth}px`;label.style.top=`${(-projected.y*.5+.5)*this.host.clientHeight}px`;
+   const projected=new THREE.Vector3(p.position.x,1.8,p.position.z).project(this.camera);const label=this.labels.get(p.id)!;const thinking=this.nextHitter?this.nextHitter===p.id:state.phase==='decision'&&state.currentHitter===p.id;if(thinking&&!label.classList.contains('is-thinking')){label.classList.add('is-thinking');label.setAttribute('aria-label',`View ${label.dataset.name} skills · currently thinking`);label.innerHTML='<i></i><i></i><i></i>'}else if(!thinking&&label.classList.contains('is-thinking')){label.classList.remove('is-thinking');label.setAttribute('aria-label',`View ${label.dataset.name} skills`);label.textContent=label.dataset.name!}label.style.left=`${(projected.x*.5+.5)*this.host.clientWidth}px`;label.style.top=`${(-projected.y*.5+.5)*this.host.clientHeight}px`;
   }
+  const next=state.players.find(p=>p.id===this.nextHitter);this.turnArrow.hidden=!next;
+  if(next){const point=new THREE.Vector3(next.position.x,1.8,next.position.z).project(this.camera);this.turnArrow.hidden=point.z < -1||point.z > 1;this.turnArrow.style.left=`${(point.x*.5+.5)*this.host.clientWidth}px`;this.turnArrow.style.top=`${(-point.y*.5+.5)*this.host.clientHeight-25}px`;this.turnArrow.setAttribute('aria-label',`${this.labels.get(next.id)?.dataset.name??next.id} hits next`);}
   const spin=displayShot.intent.spin,strength={light:1,medium:1.8,strong:3}[spin?.strength??'medium'];
   const verticalRate=spin?.vertical==='topspin'?7*strength:spin?.vertical==='slice'?-5*strength:3.2,sideRate=spin?.side==='left'?-6*strength:spin?.side==='right'?6*strength:2.1;
   this.ball.position.set(state.ball.position.x,state.ball.position.y,state.ball.position.z);this.ballHalo.position.copy(this.ball.position);this.ballHalo.scale.setScalar(1);this.ball.rotation.x=state.simulationTime*verticalRate;this.ball.rotation.z=state.simulationTime*sideRate;this.shadow.position.set(state.ball.position.x,.056,state.ball.position.z);const shadowScale=1+state.ball.position.y*.22;this.shadow.scale.setScalar(shadowScale);(this.shadow.material as THREE.MeshBasicMaterial).opacity=Math.max(.12,.45-state.ball.position.y*.065);

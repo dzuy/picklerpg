@@ -9,6 +9,9 @@ test('remote full game commits once per action, advances points, restores after 
  db.rows.get(s.id)!.resolution_secret='7'.repeat(64);
  for(let i=0;i<600&&s.status!=='completed';i++){
   const actor=s.currentTeam==='home'?A:B;s=await service.get(s.id,actor);assert.ok(s.choices.length);
+  assert.equal(s.nextHitter,s.choices[0].intent.actor);
+  assert.equal(s.display.players.find(p=>p.id===s.nextHitter)?.team,s.currentTeam);
+  const otherView=await service.get(s.id,actor===A?B:A);assert.equal(otherView.nextHitter,s.nextHitter);
   const priorSeed=db.rows.get(s.id)!.checkpoint.seed;
   const before=s,request=action(s,i);const r=await service.act(s.id,actor,request);s=r.state;
   assert.equal(r.toVersion,r.fromVersion+1);assert.equal(s.version,before.version+1);assert.equal(db.receipts.size,i+1);
@@ -21,7 +24,7 @@ test('remote full game commits once per action, advances points, restores after 
   }
   service=new MatchService(db,testers);
  }
- assert.equal(s.status,'completed');assert.equal(s.currentTeam,null);assert.equal(Math.max(s.score.home,s.score.away),3);assert.ok(sameOwner,'point endings can retain the same action owner');
+ assert.equal(s.status,'completed');assert.equal(s.currentTeam,null);assert.equal(s.nextHitter,null);assert.equal(Math.max(s.score.home,s.score.away),3);assert.ok(sameOwner,'point endings can retain the same action owner');
  const row=db.rows.get(s.id)!;assert.equal(row.checkpoint.scoring.winner,s.score.home>s.score.away?'home':'away');
 });
 test('ownership, illegal targets, forgery, pinned versions and creation retries',async()=>{
@@ -53,14 +56,14 @@ test('different request IDs cannot reroll the same decision',async()=>{
  const one=await service.act(s.id,A,action(s)),two=await another.act(s.id,A,action(s));assert.deepEqual(one.state,two.state);
 });
 
-test('account names label one player on each team for both viewers, including existing matches',async()=>{
+test('selected player names stay visible for both viewers when account names change',async()=>{
  const db=new MemoryRepository(),names=new Map(testers),service=new MatchService(db,names),s=await service.create(A,creation());
  const saved=structuredClone(db.rows.get(s.id)!.checkpoint);
  names.set(A,'Morgan');names.set(B,'Riley');
  for(const actor of [A,B]){
   const viewed=await service.get(s.id,actor),listed=(await service.list(actor))[0];
   for(const game of [viewed,listed]){
-   assert.equal(game.roster.you.name,'Morgan');assert.equal(game.roster['opponent-left'].name,'Riley');
+   assert.equal(game.roster.you.name,saved.roster.you.design!.name);assert.equal(game.roster['opponent-left'].name,saved.roster['opponent-left'].design!.name);
    assert.equal(game.roster.partner.name,s.roster.partner.name);assert.equal(game.roster['opponent-right'].name,s.roster['opponent-right'].name);
   }
  }
