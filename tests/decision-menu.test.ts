@@ -33,8 +33,12 @@ test('return styles have distinct flights and preserve the opening bounce rule',
  assert.deepEqual(options.map(o=>o.label),['Drive','Topspin','Slice','Lob']);assert.equal(options.length,4);assert.ok(options.every(o=>o.intent.type==='return'));
  assert.ok(options.some(o=>o.intent.spin?.vertical==='topspin'));
  assert.ok(options.some(o=>o.intent.spin?.vertical==='slice'));
- const lob=options.find(o=>o.label==='Lob')!,drive=options.find(o=>o.label==='Drive')!;
- assert.ok(generateTrajectory(lob.intent,c,players).apex>generateTrajectory(drive.intent,c,players).apex);
+ const lob=options.find(o=>o.label==='Lob')!,drive=options.find(o=>o.label==='Drive')!,slice=options.find(o=>o.label==='Slice')!;
+ const lobFlight=generateTrajectory(lob.intent,c,players),driveFlight=generateTrajectory(drive.intent,c,players),sliceFlight=generateTrajectory(slice.intent,c,players);
+ assert.ok(lobFlight.apex>driveFlight.apex);
+ assert.equal(slice.intent.shape,'flat');assert.equal(slice.intent.spin?.strength,'strong');assert.notEqual(slice.intent.spin?.side,'none');
+ assert.ok(sliceFlight.apex<lobFlight.apex*.6,'slice should stay visibly below the lob');
+ assert.ok(Math.abs(sliceFlight.leg.sideCurve??0)>.6,'slice should visibly bend sideways');
  assert.equal(buildDecisionMenu('you',{...c,bounced:false,twoBounceSatisfied:false},players).length,0);
 });
 test('lob is offered across legal rally contacts, including low, high and airborne contacts',()=>{

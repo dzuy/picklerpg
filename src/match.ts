@@ -24,7 +24,7 @@ export type TargetServeStyle='flat'|'topspin'|'slice'|'lob'|'shallow';
 const TARGET_SERVES:Record<TargetServeStyle,Partial<ShotIntent>>={
  flat:{pace:'fast',shape:'flat',intendedNetClearance:.12,aggression:.75},
  topspin:{pace:'medium',shape:'arc',spin:{side:'none',vertical:'topspin',strength:'strong'},intendedNetClearance:.35,aggression:.65},
- slice:{pace:'medium',shape:'flat',spin:{side:'right',vertical:'slice',strength:'medium'},intendedNetClearance:.18,aggression:.55},
+ slice:{pace:'medium',shape:'flat',spin:{side:'right',vertical:'none',strength:'strong'},intendedNetClearance:.18,aggression:.55},
  lob:{pace:'soft',shape:'arc',intendedNetClearance:2.5,tacticalIntent:'sustain',aggression:.2},
  shallow:{pace:'soft',shape:'arc',intendedNetClearance:.3,tacticalIntent:'sustain',aggression:.3},
 };

@@ -337,9 +337,9 @@ body.match-mode[data-panel=play] .shot-strip .choice-target,body.match-mode[data
 .shot-spin.spin-strong{stroke-width:1.8;opacity:.85}
 .shot-speed{stroke:var(--shot-middle);stroke-width:1.8;opacity:.24}
 .shot-person{fill:#a1a6af}.shot-person-detail{stroke:#e8ecf4;stroke-width:1.2}
-.shot-ball{color:#293d66}
-.shot-ball>circle{fill:#5889ec;stroke:#4979d9;stroke-width:.6}
-.shot-ball-shine{fill:#abc7ff;opacity:.42}
+.shot-ball{color:#365937}
+.shot-ball>circle{fill:#d2ec58;stroke:#b9d949;stroke-width:.6}
+.shot-ball-shine{fill:#edffab;opacity:.42}
 .match-choice:is(.is-previewing,:focus-visible) .shot-visual{--shot-start:#96abd5;--shot-middle:#d4ddf0;--shot-end:#eff4ff;background:radial-gradient(circle at 32% 22%,#ffffff0c,#ffffff00 75%)}
 .match-choice:is(.is-previewing,:focus-visible) .shot-kind-slice{--shot-start:#f6d891;--shot-middle:#ffc183;--shot-end:#ffb17a}
 .match-choice:is(.is-previewing,:focus-visible) .shot-speed{opacity:.4}
@@ -416,8 +416,8 @@ body.match-mode[data-panel=play] .shot-panel-expand:hover{background:#dce5f6}
 @media(max-width:760px){body.match-mode[data-panel=play].shots-collapsed .shot-panel-expand{right:14px;bottom:12px}}
 
 /* Screen-space locator remains clear at every camera distance without blocking court input. */
-.paused-ball-marker{position:absolute;z-index:18;width:34px;height:34px;transform:translate(-50%,-50%);border:2px solid #3276ff;border-radius:50%;background:#1865ff1a;box-shadow:0 0 0 1px #223354b3,0 0 16px #1664ff70;pointer-events:none}
-.paused-ball-marker::after{content:'';position:absolute;inset:-2px;border:2px solid #3276ff;border-radius:50%;animation:ball-locator-pulse 1.8s ease-out infinite}
+.paused-ball-marker{position:absolute;z-index:18;width:34px;height:34px;transform:translate(-50%,-50%);border:2px solid #c2ff32;border-radius:50%;background:#adff181a;box-shadow:0 0 0 1px #284e39b3,0 0 16px #b6ff1670;pointer-events:none}
+.paused-ball-marker::after{content:'';position:absolute;inset:-2px;border:2px solid #c2ff32;border-radius:50%;animation:ball-locator-pulse 1.8s ease-out infinite}
 @keyframes ball-locator-pulse{from{transform:scale(1);opacity:.8}to{transform:scale(1.65);opacity:0}}
 @media(prefers-reduced-motion:reduce){.paused-ball-marker::after{animation:none;opacity:0}}
 

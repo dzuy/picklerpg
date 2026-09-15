@@ -28,7 +28,7 @@ export function buildDecisionMenu(actor:PlayerId,c:ShotContext,players:PlayerSta
    const variants:Array<{label:string;changes:Partial<ShotIntent>}>= [
     {label:'Drive',changes:{pace:'fast',shape:'flat',intendedNetClearance:.15,aggression:.7}},
     {label:'Topspin',changes:{spin:{side:'none',vertical:'topspin',strength:'strong'},intendedNetClearance:.35}},
-    {label:'Slice',changes:{spin:{side:'none',vertical:'slice',strength:'medium'},intendedNetClearance:.3}},
+    {label:'Slice',changes:{shape:'flat',spin:{side:'right',vertical:'slice',strength:'strong'},intendedNetClearance:.3}},
     {label:'Lob',changes:{pace:'soft',shape:'arc',intendedNetClearance:2.5,tacticalIntent:'sustain',aggression:.25}},
    ];
    for(const {label,changes} of variants){const intent={...structuredClone(base.intent),...changes};try{generateTrajectory(intent,c,players);options.push({intent,label,reason:label+' after the serve bounces.'})}catch{}}

@@ -110,7 +110,7 @@ test('targeted serve styles change spin and flight while preserving the tapped d
  const styles=['flat','topspin','slice','lob','shallow'] as const;
  for(const style of styles){const shot=match.targetShot('serve',point,style);assert.deepEqual(shot.aimPoint,{...point,y:.037});assert.equal(shot.intent.type,'serve')}
  assert.equal(match.targetShot('serve',point,'topspin').intent.spin?.vertical,'topspin');
- assert.equal(match.targetShot('serve',point,'slice').intent.spin?.vertical,'slice');
+ const slice=match.targetShot('serve',point,'slice');assert.equal(slice.intent.shape,'flat');assert.equal(slice.intent.spin?.vertical,'none');assert.equal(slice.intent.spin?.strength,'strong');assert.ok(Math.abs(slice.legs[0].sideCurve??0)>.6);
  assert.equal(match.targetShot('serve',point,'lob').intent.intendedNetClearance,2.5);
  assert.equal(match.targetShot('serve',point,'shallow').intent.pace,'soft');
  match.playTargetShot('serve',point,'topspin');assert.equal(match.state.phase,'flight');assert.equal(match.shot.intent.spin?.vertical,'topspin');
