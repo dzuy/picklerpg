@@ -8,6 +8,7 @@ export interface RemoteAction {
 export interface CreateRemoteMatch {creationId:string;opponentId:string;roster:Record<PlayerId,DesignedPlayer>;scoring:'rally-doubles'|'side-out-doubles'}
 /** Explicit public projection. Never substitute a MatchCheckpoint or RallyShot here. */
 export interface PublicMatch {
+ archived?:boolean;
  court?:'forest'|'venice'|'arizona';
  accountIds?:Record<Team,string>;
  createdAt?:string;
@@ -18,6 +19,6 @@ export interface PublicMatch {
  choices:Array<{intent:ShotIntent;timing?:'air'|'bounce'}>;result:PointResult|null;
  animation:TurnAnimation[];
 }
-export interface TurnAnimation {intent:ShotIntent;actor:PlayerId;duration:number;path:Vec3[];from:GameState['players'];to:GameState['players']}
+export interface TurnAnimation {intent:ShotIntent;actor:PlayerId;duration:number;path:Vec3[];pathTimes?:number[];from:GameState['players'];to:GameState['players']}
 export interface ActionReceipt {actionId:string;fromVersion:number;toVersion:number;state:PublicMatch}
 export interface RemoteConfig {selfId:string;selfName?:string;creationEnabled:boolean;testers:Array<{id:string;name:string}>}

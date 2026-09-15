@@ -21,7 +21,7 @@ export function publicMatch(row:StoredMatch,actor:string,names:ReadonlyMap<strin
  const currentTeam=row.status==='active'?match.decisionTeam:null;
  const menu=match.targetingMenu;
  const nextHitter=currentTeam?menu[0]?.intent.actor??null:null;
- return {court:row.checkpoint.court??'forest',nextHitter,id:row.id,createdAt:row.created_at,version:row.version,status:row.status,accountIds:{home:row.home_user_id,away:row.away_user_id},viewerTeam,currentTeam,decisionId:decisionId(row),rules:{...row.checkpoint.rules},score:{...match.scoring.score},serveCall:match.scoring.call,serving:row.status==='active'&&match.targetingMenu.some(c=>c.intent.type==='serve'),server:match.scoring.server,pointIndex:match.point,
+ return {archived:!!(viewerTeam==='home'?row.archived_home:row.archived_away),court:row.checkpoint.court??'forest',nextHitter,id:row.id,createdAt:row.created_at,version:row.version,status:row.status,accountIds:{home:row.home_user_id,away:row.away_user_id},viewerTeam,currentTeam,decisionId:decisionId(row),rules:{...row.checkpoint.rules},score:{...match.scoring.score},serveCall:match.scoring.call,serving:row.status==='active'&&match.targetingMenu.some(c=>c.intent.type==='serve'),server:match.scoring.server,pointIndex:match.point,
   display:{schemaVersion:2,phase:s.phase,stage:s.stage,shotIndex:s.shotIndex,legIndex:0,elapsed:0,simulationTime:0,paused:true,ball:structuredClone(s.ball),players:structuredClone(s.players),shotHistory:[],rallyHistory:[],bounces:s.bounces,score:{...s.score},currentHitter:s.currentHitter,possession:s.possession,result:s.result?{...s.result}:null},
   roster:Object.fromEntries(SLOTS.map(id=>{const f=row.checkpoint.roster[id];return [id,{...f.design!,skills:{...f.skills},handedness:f.handedness}]})) as PublicMatch['roster'],
   choices:currentTeam===viewerTeam?structuredClone(menu):[],result:row.last_result,animation:structuredClone(row.animation)};
@@ -34,13 +34,23 @@ function animations(match:Match):TurnAnimation[]{
   const total=shot.legs.reduce((n,l)=>n+l.duration,0);
   const endTime=end.receptionPrompt?end.shotElapsed:total;
   const duration=Math.max(.001,endTime-startTime);
-  const path=Array.from({length:25},(_,i)=>{let t=startTime+duration*i/24;for(const l of shot.legs){if(t<=l.duration)return sampleLeg(l,Math.max(0,t/l.duration));t-=l.duration;}return {...shot.legs.at(-1)!.to};});
-  return {intent:structuredClone(shot.intent),actor:shot.actor,duration,path,from:structuredClone(start.state.players),to:structuredClone(end.state.players)};
+  // Keep every bounce/contact boundary, even between the regular samples.
+  const times=Array.from({length:25},(_,i)=>duration*i/24);let boundary=0;
+  for(const leg of shot.legs){boundary+=leg.duration;const relative=boundary-startTime;if(relative>0&&relative<duration)times.push(relative);}
+  const pathTimes=[...new Set(times)].sort((a,b)=>a-b);
+  const path=pathTimes.map(time=>{let t=startTime+time;for(const l of shot.legs){if(t<=l.duration+1e-9)return sampleLeg(l,Math.max(0,Math.min(1,t/l.duration)));t-=l.duration;}return {...shot.legs.at(-1)!.to};});
+  return {intent:structuredClone(shot.intent),actor:shot.actor,duration,path,pathTimes,from:structuredClone(start.state.players),to:structuredClone(end.state.players)};
  });
 }
 export class MatchService {
  constructor(private repository:MatchRepository,private testers:ReadonlyMap<string,string>,private creationEnabled=true){}
  config(actor:string){return {selfId:actor,selfName:this.testers.get(actor)??'Previous playtest account',creationEnabled:this.creationEnabled&&this.testers.has(actor),testers:[...this.testers].filter(([id])=>id!==actor&&this.testers.has(actor)).map(([id,name])=>({id,name}))};}
+ async archive(id:string,actor:string,input:unknown){
+  if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).length!==1||typeof (input as {archived?:unknown}).archived!=='boolean')throw new ApiError(400,'archive','Choose archive or restore.');
+  const row=await this.repository.get(id,actor);if(!row)throw missing();teamFor(row,actor);
+  await this.repository.setArchived(id,actor,(input as {archived:boolean}).archived);
+  return {archived:(input as {archived:boolean}).archived};
+ }
  async get(id:string,actor:string){const row=await this.repository.get(id,actor);if(!row)throw missing();return publicMatch(row,actor,this.testers);}
  async list(actor:string){return (await this.repository.list(actor)).map(row=>publicMatch(row,actor,this.testers));}
  prepare(actor:string,input:unknown){

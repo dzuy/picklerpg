@@ -16,7 +16,7 @@ import {buildDecisionMenu} from './engine/decision-menu';
 import {parseShotIntent,sameShotIntent} from './engine/shot-intent';
 import {chooseOpponentShot} from './engine/opponent-policy';
 import {executeShot} from './engine/execution';
-import {interceptFlight,reboundFlight,outBallContinuation} from './engine/trajectory';
+import {interceptFlight,reboundFlight,finishRebound,outBallContinuation} from './engine/trajectory';
 import {planPositions} from './engine/positioning';
 import {DoublesScore,other,DEFAULT_RULES,LOCAL_TEST_RULES,type ScoringMode} from './engine/scoring';
 
@@ -132,6 +132,15 @@ export class Match {
   this.memory=new OpponentMemory();this.memory.observations=structuredClone(solo.memory);this.autoChoices=structuredClone(solo.recentChoices);this.partnerChoices=this.autoChoices.partner??[];this.strategy=solo.strategy??undefined;this.strategyPoint=solo.strategyPoint;
   this.partnerInstructions=structuredClone(solo.partnerInstructions);this.recommendationType=solo.recommendationType;
   this.engine=new RallyEngine(this.providerForRestore(),hydrateRally(c.rally));this.awarded=c.rally.kind==='point-end';this.lastResult=this.engine.state.result;
+  // Refresh saved serve decisions when the Lob arc is updated.
+  const serve=this.availableIntents.find(intent=>intent.type==='serve');
+  if(serve&&this.currentContext&&!this.availableIntents.some(intent=>intent.type==='serve'&&intent.intendedNetClearance>=5)){
+   const runtime=this.engine.runtime();
+   runtime.options=runtime.options.filter(option=>option.intent.type!=='serve'||option.intent.intendedNetClearance<=1);
+   this.engine.restoreRuntime(runtime);
+   const intent:ShotIntent={...serve,pace:'soft',shape:'arc',spin:{side:'none',vertical:'none',strength:'medium'},intendedNetClearance:5,aggression:.25};
+   this.engine.offerCustom(this.plan(intent,'Lob serve sends a high arc deep into the diagonal service box.',this.currentContext,this.state.players,this.customIndex));
+  }
  }
  private providerForRestore():RallyProvider{return {setup:()=>{throw new Error('Restored engines require an explicit match reset.');},shouldAutoPlay:()=>false,next:(state,shot)=>this.nextContact(state,shot)}}
  /** Commit the resolved boundary before a single presentation frame can run. */
@@ -484,6 +493,7 @@ export class Match {
     {intent:{...choice.intent,pace:'medium' as const,shape:'arc' as const,spin:{side:'none' as const,vertical:'slice' as const,strength:'strong' as const},intendedNetClearance:.4},reason:'Backspin floats the serve and slows its rebound.'},
     {intent:{...choice.intent,pace:'fast' as const,shape:'flat' as const,spin:{side:'none' as const,vertical:'none' as const,strength:'medium' as const},intendedNetClearance:.12,aggression:.8},reason:'Fast serve puts the receiver under time pressure.'},
     {intent:{...choice.intent,pace:'soft' as const,shape:'arc' as const,spin:{side:'none' as const,vertical:'none' as const,strength:'medium' as const},intendedNetClearance:.65,aggression:.25},reason:'Slow serve changes the pace with a gentle arc.'},
+    {intent:{...choice.intent,pace:'soft' as const,shape:'arc' as const,spin:{side:'none' as const,vertical:'none' as const,strength:'medium' as const},intendedNetClearance:5,aggression:.25},reason:'Lob serve sends a high arc deep into the diagonal service box.'},
    ];
    return [choice,{intent:{...choice.intent,target:{kind:'zone' as const,zone:'wide' as const,depth:['drop','reset','dink','block'].includes(choice.intent.type)?'kitchen' as const:'deep' as const}},reason:choice.reason+' Aim wider to move the defenders.'}];
   });
@@ -563,7 +573,7 @@ export class Match {
    const chosen=receptions[0];
    if(chosen&&!chosen.miss){receiver=chosen.receiver;receiveFeet=chosen.feet;bounced=chosen.candidate.bounce;legs=chosen.candidate.bounce?[base,interceptFlight(rebound,chosen.t)]:[interceptFlight(base,chosen.t)]}
    if(!receiver){
-    const second={from:{...rebound.to},to:{x:rebound.to.x,y:.037,z:rebound.to.z},duration:.45,arc:.1,bounceAtEnd:true};legs=[base,rebound,second];
+    const second=finishRebound(rebound);legs=[base,rebound,second];
     const nearest=[...opponents].sort((a,b)=>Math.hypot(a.position.x-base.to.x,a.position.z-base.to.z)-Math.hypot(b.position.x-base.to.x,b.position.z-base.to.z))[0];
     result={winner:team,playerId:chosen?.receiver??nearest?.id,reason:chosen?.miss?'missed-swing':intent.type==='overhead'?'winner':['drive','counter','volley','flick'].includes(intent.type)?'unreturned-attack':'double-bounce'};
    }

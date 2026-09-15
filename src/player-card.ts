@@ -6,7 +6,7 @@ import type {DesignedPlayer} from './player-design';
 import {playerHistory,type HistoryMatch} from './player-history';
 export function fillPlayerCard(article:HTMLElement,player:DesignedPlayer,role:string,portrait:string){
    const themeIndex=LOOKS.findIndex(look=>look.name===player.name);
-   const themes=[['#ff9389','All court.\nAll fun.'],['#78aff2','Power changes\ngames.'],['#ffda73','Think\nahead.'],['#95dfc0','Fast moves.\nBig plays.'],['#c5a3f2','Small details.\nBig wins.'],['#b0d2a7','Defend and\ndeliver.'],['#d1a0ef','Creativity keeps\nyou ahead.'],['#a5dfc4','Any court.\nAny day.']];
+   const themes=[['#ff9389','All court.\nAll fun.'],['#78aff2','Power changes\ngames.'],['#ffda73','Think\nahead.'],['#95aedf','Fast moves.\nBig plays.'],['#c5a3f2','Small details.\nBig wins.'],['#a7b5d2','Defend and\ndeliver.'],['#d1a0ef','Creativity keeps\nyou ahead.'],['#a5b8df','Any court.\nAny day.']];
    const [color]=themes[themeIndex<0?Math.abs(player.name.length)%themes.length:themeIndex];
    article.style.setProperty('--card-color',color);
    const banner=document.createElement('div');banner.className='roster-banner';

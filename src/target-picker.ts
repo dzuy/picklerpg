@@ -1,3 +1,4 @@
+import {isSpeedUp} from './engine/speed-up';
 import {isOpposingTarget} from './engine/controllers';
 import {COURT,type PlayerId,type Team,type ShotIntent} from './engine/model';
 import {shotIcon} from './shot-illustration';
@@ -71,18 +72,19 @@ export class CourtTargetPicker {
    // Reception choices are air-first. Keep one playable Lob, with a bounced fallback.
    const key=choice.intent.type==='lob'?'lob':JSON.stringify({...choice.intent,target:undefined,source:undefined,timing:choice.timing});
    if(seen.has(key))return [];seen.add(key);
-   const label=['serve','return'].includes(choice.intent.type)?choiceCopy(choice.intent).name:SHOT_FAMILIES[choice.intent.type].name;
+   const label=isSpeedUp(choice.intent)?'Speed Up':['serve','return'].includes(choice.intent.type)?choiceCopy(choice.intent).name:SHOT_FAMILIES[choice.intent.type].name;
    return [{...choice,label}];
   });
   if(!choices.length){this.clear();return}
   const slice=(choice:typeof choices[number],index:number)=>{
    const type=choice.intent.type,caption=choice.label;
+   const timing=choice.timing?(choice.timing==='air'?'Before bounce':'After bounce'):'';
    const step=360/choices.length,angle=index*step-90,start=angle-step/2+.35,end=angle+step/2-.35;
    const at=(degrees:number,radius:number)=>({x:50+radius*Math.cos(degrees*Math.PI/180),y:50+radius*Math.sin(degrees*Math.PI/180)});
    const edge=Array.from({length:17},(_,i)=>at(start+(end-start)*i/16,50));
    const clip=choices.length===1?'none':`polygon(50% 50%,${edge.map(p=>`${p.x}% ${p.y}%`).join(',')})`;
    const label=at(angle,33);
-   return `<button type="button" class="target-slice" style="clip-path:${clip}" data-type="${type}" data-choice="${index}"><span class="target-slice-content" style="left:${label.x}%;top:${label.y}%">${shotIcon(choice.intent,index,'wheel')}<span class="target-slice-label">${caption}</span></span></button>`;
+   return `<button type="button" class="target-slice" style="clip-path:${clip}" data-type="${type}" data-choice="${index}"><span class="target-slice-content" style="left:${label.x}%;top:${label.y}%">${shotIcon(choice.intent,index,'wheel')}<span class="target-slice-label">${caption}</span>${timing?`<span class="target-slice-timing">${timing}</span>`:''}</span></button>`;
   };
   this.panel.innerHTML=`<div class="target-wheel" role="group" aria-label="Shot type"><div class="target-slices">${choices.map(slice).join('')}</div><span class="target-wheel-center" aria-hidden="true"><svg viewBox="0 0 80 80" fill="none"><circle cx="40" cy="40" r="34"/><circle cx="40" cy="40" r="12"/><path d="M40 2v16M40 62v16M2 40h16M62 40h16"/><circle class="reticle-dot" cx="40" cy="40" r="2"/></svg></span></div><span class="target-picker-status sr-only" role="status"></span>`;
 

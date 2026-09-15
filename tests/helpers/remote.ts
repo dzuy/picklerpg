@@ -9,6 +9,7 @@ export const testers=new Map([[A,'A'],[B,'B']]);
 export function creation():CreateRemoteMatch{return {creationId:randomUUID(),opponentId:B,scoring:'rally-doubles',roster:Object.fromEntries(SLOTS.map(id=>[id,newPlayer(id)])) as CreateRemoteMatch['roster']};}
 export function action(s:PublicMatch,i=0):RemoteAction{return {actionId:randomUUID(),expectedVersion:s.version,decisionId:s.decisionId,action:{kind:'play_shot',...s.choices[i%s.choices.length]}};}
 export class MemoryRepository implements MatchRepository {
+ async setArchived(id:string,actor:string,archived:boolean){const row=this.rows.get(id);if(!row||![row.home_user_id,row.away_user_id].includes(actor))throw missing();if(row.home_user_id===actor)row.archived_home=archived;else row.archived_away=archived;}
  rows=new Map<string,StoredMatch>();receipts=new Map<string,StoredReceipt>();
  async get(id:string,actor:string){const r=this.rows.get(id);return r&&[r.home_user_id,r.away_user_id].includes(actor)?structuredClone(r):null;}
  async list(actor:string){return [...this.rows.values()].filter(r=>[r.home_user_id,r.away_user_id].includes(actor)).map(r=>structuredClone(r));}

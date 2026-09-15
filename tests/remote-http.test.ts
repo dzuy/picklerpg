@@ -27,6 +27,11 @@ test('emitted Node engine serves authenticated remote APIs alongside static, hea
   assert.equal((await request('/api/matches',A,{...creation(),extra:'x'.repeat(40000)})).status,413);
   const response=await request('/api/matches',A,creation());assert.equal(response.status,201);const s=await response.json();
   assert.equal((await request(`/api/matches/${s.id}`,C)).status,404);
+  assert.equal((await request(`/api/matches/${s.id}/archive`,C,{archived:true})).status,404);
+  assert.equal((await request(`/api/matches/${s.id}/archive`,A,{archived:true})).status,200);
+  assert.equal((await (await request(`/api/matches/${s.id}`,A)).json()).archived,true);
+  assert.equal((await (await request(`/api/matches/${s.id}`,B)).json()).archived,false);
+  assert.equal((await request(`/api/matches/${s.id}/archive`,A,{archived:false})).status,200);
   assert.equal((await request(`/api/matches/${s.id}/actions`,B,action(s))).status,403);
   const a=action(s),first=await request(`/api/matches/${s.id}/actions`,A,a);assert.equal(first.status,200);const receipt=await first.json();
   assert.deepEqual(await (await request(`/api/matches/${s.id}/actions`,A,a)).json(),receipt);

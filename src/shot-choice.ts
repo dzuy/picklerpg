@@ -1,7 +1,9 @@
+import {isSpeedUp} from './engine/speed-up';
 import type {ShotIntent} from './engine/model';
 import {SHOT_FAMILIES} from './engine/shot-families';
 import {targetLabel} from './engine/shot-intent';
 export function choiceCopy(intent:ShotIntent){
+ if(isSpeedUp(intent))return {name:'Speed Up',detail:'Compact topspin attack to change the pace of a dink rally'};
  if(intent.type==='return'){
   if(intent.intendedNetClearance>1)return {name:'Lob',detail:'High, arcing return'};
   if(intent.spin?.vertical==='topspin')return {name:'Topspin',detail:'Dipping topspin return'};
@@ -9,6 +11,7 @@ export function choiceCopy(intent:ShotIntent){
   return {name:'Drive',detail:'Direct, attacking return'};
  }
  if(intent.type==='serve'){
+  if(intent.intendedNetClearance>1)return {name:'Lob',detail:'High, arcing serve'};
   if(intent.spin?.vertical==='topspin')return {name:'Topspin',detail:'Dipping topspin'};
   if(intent.spin?.side&&intent.spin.side!=='none')return {name:'Slice',detail:'Sideways curve'};
   if(intent.spin?.vertical==='slice')return {name:'Backspin',detail:'Floating underspin'};

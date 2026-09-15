@@ -72,6 +72,13 @@ export function reboundFlight(leg:FlightLeg):FlightLeg{
  return {from:{...leg.to},to:{x:leg.to.x+dx/length*.45,y:.75,z:leg.to.z+dz/length*.45},duration:.38,arc:.2,sideCurve:(leg.sideCurve??0)*.2,verticalSpin:0};
 }
 
+/** Finish an unreturned rebound without stopping its horizontal momentum. */
+export function finishRebound(leg:FlightLeg):FlightLeg{
+ const velocity=sampleFlightVelocity(leg,1),gravity=9.81,ground=.037;
+ const duration=Math.max(.01,(velocity.y+Math.sqrt(velocity.y**2+2*gravity*Math.max(0,leg.to.y-ground)))/gravity);
+ return {from:{...leg.to},to:{x:leg.to.x+velocity.x*duration,y:ground,z:leg.to.z+velocity.z*duration},duration,arc:gravity*duration*duration/8,bounceAtEnd:true};
+}
+
 /** Dead-ball follow-through: preserve landing momentum beyond the court edges. */
 export function outBallContinuation(landing:FlightLeg):FlightLeg[]{
  if(!landing.bounceAtEnd)return [];

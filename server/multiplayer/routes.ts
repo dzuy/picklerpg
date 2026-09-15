@@ -44,6 +44,8 @@ export function createMatchHandler(service:MatchService,authenticate:Authenticat
     if(req.method==='GET'){send(res,200,await service.list(actor));return;}
     if(req.method==='POST'){if(invitations)throw new ApiError(400,'invitation_required','Send an invitation to start a new game.');limit(`create:${actor}`,6);send(res,201,await service.create(actor,await body(req)));return;}
    }
+   const archive=pathname.match(/^\/api\/matches\/([^/]+)\/archive$/);
+   if(archive&&uuid(archive[1])&&req.method==='POST'){send(res,200,await service.archive(archive[1],actor,await body(req)));return;}
    const match=pathname.match(/^\/api\/matches\/([^/]+)(\/actions)?$/);
    if(match&&uuid(match[1])){
     const id=match[1].toLowerCase();

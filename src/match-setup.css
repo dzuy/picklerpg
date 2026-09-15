@@ -1,7 +1,7 @@
 body[data-screen=setup] #app{display:none!important}
 body[data-screen=setup]{overflow:auto;background:#03122f}
 #match-setup[hidden]{display:none!important}
-#match-setup{--navy:#03122f;--cyan:#12e1f3;--pink:#ff3d7d;--lime:#dfff32;--display:Impact,Haettenschweiler,'Arial Narrow Bold',sans-serif;position:relative;isolation:isolate;box-sizing:border-box;width:100%;min-height:100dvh;color:#f9fcff;background:radial-gradient(ellipse at 12% 25%,#1688ff38,transparent 45%),radial-gradient(ellipse at 95% 50%,#b721ed30,transparent 43%),linear-gradient(180deg,#03122f 0%,#0b285e 63%,#03122f 100%);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:clip}
+#match-setup{--navy:#03122f;--cyan:#12e1f3;--pink:#ff3d7d;--lime:#3276ff;--display:Impact,Haettenschweiler,'Arial Narrow Bold',sans-serif;position:relative;isolation:isolate;box-sizing:border-box;width:100%;min-height:100dvh;color:#f9fcff;background:radial-gradient(ellipse at 12% 25%,#1688ff38,transparent 45%),radial-gradient(ellipse at 95% 50%,#b721ed30,transparent 43%),linear-gradient(180deg,#03122f 0%,#0b285e 63%,#03122f 100%);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow:clip}
 #match-setup::before{content:'';position:absolute;z-index:-1;inset:0;pointer-events:none;background:radial-gradient(ellipse at 16% 8%,#c9efff66,transparent 8%),radial-gradient(ellipse at 85% 8%,#c9efff55,transparent 8%),repeating-linear-gradient(110deg,transparent 0 160px,#12e1f308 162px 164px,transparent 166px 330px);box-shadow:inset 0 0 150px #010619aa}
 #match-setup::after{content:'';position:absolute;z-index:-1;left:-30%;right:-30%;height:48%;bottom:-10%;transform:perspective(450px) rotateX(45deg);background:linear-gradient(90deg,transparent 49.8%,#12e1f355 50%,transparent 50.2%),repeating-linear-gradient(0deg,transparent 0 100px,#1688ff33 102px 104px,transparent 106px 210px),repeating-linear-gradient(90deg,transparent 0 210px,#1688ff22 212px 214px,transparent 216px 420px);border-top:3px solid #12e1f344;pointer-events:none}
 #match-setup *{box-sizing:border-box}
@@ -21,7 +21,7 @@ body[data-screen=setup]{overflow:auto;background:#03122f}
 .setup-away .setup-team-title{background:var(--pink);transform:rotate(-2deg)}
 .setup-team-players{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}
 .setup-player{position:relative;min-width:0;aspect-ratio:.79;display:flex;flex-direction:column;border:2px solid color-mix(in srgb,var(--card-accent) 65%,#061a42);border-radius:18px;background:#061a42;box-shadow:0 14px 36px #0006,0 0 0 7px #03122faa;transition:transform .18s,box-shadow .18s;touch-action:pan-y}
-.setup-player.setup-you{border-color:var(--lime);box-shadow:0 0 0 3px #dfff3233,0 0 24px #dfff3266,0 14px 36px #0006}
+.setup-player.setup-you{border-color:var(--lime);box-shadow:0 0 0 3px #3276ff33,0 0 24px #3276ff66,0 14px 36px #0006}
 .setup-you-badge{position:absolute;left:5px;top:-15px;z-index:3;background:var(--lime);color:var(--navy);padding:7px 17px;font-family:var(--display);font-style:italic;font-size:22px;transform:rotate(-8deg);clip-path:polygon(4% 0,100% 0,95% 100%,0 93%)}
 .setup-portrait{position:relative;flex:1;min-height:0;overflow:hidden;border-radius:15px 15px 0 0;background:url('/assets/picklebash-select/decor/paint-cyan.svg') center/cover,radial-gradient(ellipse at 50% 40%,color-mix(in srgb,var(--player-color) 70%,white),var(--player-color) 55%,#061a42);}
 .setup-portrait::after{content:'';position:absolute;inset:0;background:linear-gradient(0deg,#061a42,transparent 24%);pointer-events:none}
@@ -43,7 +43,7 @@ body[data-screen=setup]{overflow:auto;background:#03122f}
 .setup-court[aria-pressed=true]{border-color:#fff;box-shadow:0 0 0 2px var(--cyan),0 0 18px #12e1f388}.setup-court-check{position:absolute;top:8px;right:8px;color:var(--navy);background:var(--cyan);border-radius:50%;width:22px;height:22px;text-align:center;font-weight:bold}
 .setup-court strong{font-family:var(--display);font-style:italic;font-size:clamp(17px,1.8vw,27px);text-transform:uppercase;line-height:1.1}.setup-court small{font-size:11px;margin-top:4px;color:#d6e3f5}
 .setup-locked{color:#b6c4d8!important}.setup-locked img{filter:grayscale(1);opacity:.55}.setup-locked small{color:#a9b8ce}.setup-coming{position:absolute;right:7px;top:6px;background:#03122fce;border-radius:4px;padding:3px 6px;font-size:9px;font-weight:800;font-style:italic;text-transform:uppercase}.setup-lock{position:absolute;top:29px;left:calc(50% - 16px);width:32px;filter:drop-shadow(0 2px 2px #03122f)}
-#match-setup .setup-start{position:relative;display:flex;align-items:center;justify-content:center;gap:18px;margin:0 4px 16px;padding:25px 18px;min-height:100px;border:3px solid #f9fcff;border-radius:3px;background:var(--lime);color:var(--navy);box-shadow:-6px 6px 0 var(--cyan),5px -5px 0 #ff3d7d99,0 0 25px #dfff3222;transform:skew(-10deg) rotate(-3deg);font-family:var(--display);font-style:italic;text-transform:uppercase;font-size:clamp(26px,3.1vw,49px);white-space:nowrap;transition:scale .18s,box-shadow .18s}
+#match-setup .setup-start{position:relative;display:flex;align-items:center;justify-content:center;gap:18px;margin:0 4px 16px;padding:25px 18px;min-height:100px;border:3px solid #f9fcff;border-radius:3px;background:var(--lime);color:var(--navy);box-shadow:-6px 6px 0 var(--cyan),5px -5px 0 #ff3d7d99,0 0 25px #3276ff22;transform:skew(-10deg) rotate(-3deg);font-family:var(--display);font-style:italic;text-transform:uppercase;font-size:clamp(26px,3.1vw,49px);white-space:nowrap;transition:scale .18s,box-shadow .18s}
 .setup-start span{transform:skew(10deg)}.setup-start span:last-child{color:var(--pink);font-size:.85em;letter-spacing:-8px}.setup-start:disabled{filter:grayscale(1);opacity:.5}
 .setup-footer{display:flex;align-items:center;gap:25px;margin-top:27px;color:#9db1c9}.setup-footer button{border:0;background:transparent;padding:8px 0;display:flex;align-items:center;gap:10px;font-size:12px!important;text-transform:uppercase;letter-spacing:1px}.setup-footer button>span{font-size:25px;color:#f9fcff}.setup-footer p{margin-left:auto;font-size:11px;letter-spacing:.4px}
 @media(hover:hover){.setup-player:hover{transform:translateY(-5px);box-shadow:0 0 25px color-mix(in srgb,var(--card-accent) 40%,transparent)}.setup-picker button:hover{background:#1688ff}.setup-start:hover:not(:disabled){scale:1.025}.setup-footer button:hover{color:#fff!important}}
@@ -77,7 +77,7 @@ body[data-screen=setup]{overflow:auto;background:#03122f}
 .setup-start img{display:block;width:100%;height:auto;object-fit:contain;pointer-events:none}
 #match-setup .setup-start:disabled{filter:grayscale(1);opacity:.5}
 .setup-footer{color:#d5e4f7;text-shadow:0 1px 4px #03122f}
-@media(hover:hover){#match-setup .setup-start:hover:not(:disabled){filter:drop-shadow(0 0 14px #dfff3266)}}
+@media(hover:hover){#match-setup .setup-start:hover:not(:disabled){filter:drop-shadow(0 0 14px #3276ff66)}}
 @media(max-width:1023px){.setup-top{height:210px}.setup-team-title,.setup-away .setup-team-title{width:66%;margin-bottom:-35px}.setup-versus{width:150px;margin:10px 0 -10px}#match-setup .setup-start{width:90%;margin:0;justify-self:center}}
 @media(max-width:699px){#match-setup{background-image:linear-gradient(#03122f18,#03122f45),url('/assets/picklebash-ui/backgrounds/picklebash-background-mobile-tall.png')}.setup-top{height:180px}.setup-team-title,.setup-away .setup-team-title{width:80%;margin-bottom:-23px}.setup-versus{width:120px;margin:8px 0 -13px}#match-setup .setup-start{width:100%;margin:0}}
 /* Leave the fixed-player badge clear of the overlapping team artwork. */
@@ -86,10 +86,10 @@ body[data-screen=setup]{overflow:auto;background:#03122f}
 .setup-mode {text-align:center;margin:0 auto 1rem;max-width:760px;color:#fff;}
 .setup-mode > div {display:flex;justify-content:center;gap:.6rem;flex-wrap:wrap;}
 .setup-mode button {padding:.65rem 1rem;border:2px solid #5d82ad;border-radius:12px;background:#102a51;color:#fff;font:700 16px/1.3 sans-serif;cursor:pointer;}
-.setup-mode button[aria-pressed="true"] {border-color:#e5fa55;background:#e5fa55;color:#102a51;}
+.setup-mode button[aria-pressed="true"] {border-color:#558cfa;background:#558cfa;color:#102a51;}
 .setup-mode p {font:14px/1.4 sans-serif;margin:.65rem .8rem;}
 
-.setup-scoring{display:flex;justify-content:center;align-items:center;gap:12px;flex-wrap:wrap;margin:0 auto 18px;font-weight:700}.setup-scoring select{font:inherit;border-radius:12px;padding:10px;border:1px solid #aab6a2;background:#faffef;color:#244a37;max-width:100%}
+.setup-scoring{display:flex;justify-content:center;align-items:center;gap:12px;flex-wrap:wrap;margin:0 auto 18px;font-weight:700}.setup-scoring select{font:inherit;border-radius:12px;padding:10px;border:1px solid #a2a9b6;background:#eff4ff;color:#202f4e;max-width:100%}
 .setup-court[data-court=venice] img{transform:none}
 .setup-court-check{display:none}.setup-court[aria-pressed=true] .setup-court-check{display:block}
 

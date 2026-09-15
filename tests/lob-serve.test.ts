@@ -1,9 +1,39 @@
-import {test} from 'node:test';
+import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Match} from '../src/match';
-import {parseLocalCommand,commandIntent,canParseInstantly} from '../src/engine/custom-command';
-import {preparedContact} from './helpers/prepared-shot';
-import {generateTrajectory} from '../src/engine/trajectory';
-test('lob serve is a serve with diagonal target and visibly higher arc',()=>{const m=new Match(),c=preparedContact('serve').context;const parse=(text:string)=>commandIntent(parseLocalCommand(text),'you',c,m.state.players).intent;const normal=generateTrajectory(parse('serve'),c,m.state.players),lob=generateTrajectory(parse('lob serve'),c,m.state.players);assert.equal(lob.intent.type,'serve');assert.equal(lob.intent.target.kind,'zone');assert.ok(lob.aimPoint.x*c.contact.x<0);assert.ok(lob.apex>normal.apex+1);assert.ok(lob.netClearance>=2.5-1e-8);assert.ok(canParseInstantly('high lob serve'));});
-test('lob serve immediately plays at serve contact without model call',async()=>{const m=new Match();await m.submitCommand('lob serve');assert.equal(m.state.phase,'flight',m.customStatus);assert.equal(m.shot.intent.type,'serve');assert.equal(m.shot.intent.intendedNetClearance,2.5);});
-test('lob serve remains unavailable mid-rally and plain lob remains a lob',async()=>{assert.equal(parseLocalCommand('lob left').shot,'lob');const m=new Match();m.startPractice('wide');await m.submitCommand('lob serve');assert.equal(m.state.phase,'decision');assert.equal(m.customPreview,null)});
+import {choiceCopy} from '../src/shot-choice';
+import {MatchService} from '../server/multiplayer/service';
+import {A,creation,testers,MemoryRepository,action} from './helpers/remote';
+test('saved lower Lob serves upgrade to the higher arc',()=>{
+ const checkpoint=new Match().exportCheckpoint();
+ const old=checkpoint.rally.options.find(option=>choiceCopy(option.intent).name==='Lob')!;
+ old.intent.intendedNetClearance=2.5;
+ const restored=Match.fromCheckpoint(checkpoint);
+ const lobs=restored.targetingMenu.filter(choice=>choiceCopy(choice.intent).name==='Lob');
+ assert.equal(lobs.length,1);assert.equal(lobs[0].intent.intendedNetClearance,5);
+ restored.playMenuTarget(lobs[0],{x:-1.5,z:-5.5});assert.equal(restored.state.phase,'flight');
+});
+test('older saved serve decisions gain a playable Lob without duplicates',()=>{
+ const checkpoint=new Match().exportCheckpoint();
+ checkpoint.rally.options=checkpoint.rally.options.filter(option=>choiceCopy(option.intent).name!=='Lob');
+ const restored=Match.fromCheckpoint(checkpoint);
+ const lob=restored.targetingMenu.find(choice=>choiceCopy(choice.intent).name==='Lob');assert.ok(lob);
+ const again=Match.fromCheckpoint(restored.exportCheckpoint());
+ assert.equal(again.targetingMenu.filter(choice=>choiceCopy(choice.intent).name==='Lob').length,1);
+ restored.playMenuTarget(lob,{x:-1.5,z:-5.5});assert.equal(restored.state.phase,'flight');
+});
+test('lob serve remains a serve, targets the same box and flies higher than slow serve',()=>{
+ const m=new Match(),choices=m.targetingMenu;
+ const lob=choices.find(c=>choiceCopy(c.intent).name==='Lob')!,slow=choices.find(c=>choiceCopy(c.intent).name==='Slow')!;
+ assert.ok(lob);assert.ok(slow);assert.equal(lob.intent.type,'serve');
+ assert.deepEqual(lob.intent.target,slow.intent.target);
+ const point={x:-1.5,z:-5.5};
+ const high=m.previewMenuTarget(lob,point),low=m.previewMenuTarget(slow,point);
+ assert.deepEqual(high.aimPoint,low.aimPoint);assert.ok(high.legs[0].arc>low.legs[0].arc+1);
+ m.playMenuTarget(lob,point);assert.equal(m.state.phase,'flight');assert.equal(m.shot.intent.type,'serve');
+});
+test('multiplayer advertises and accepts the lob serve',async()=>{
+ const service=new MatchService(new MemoryRepository(),testers),game=await service.create(A,creation());
+ const index=game.choices.findIndex(c=>choiceCopy(c.intent).name==='Lob');assert.ok(index>=0);
+ const result=await service.act(game.id,A,action(game,index));assert.equal(result.toVersion,1);assert.equal(result.state.animation[0].intent.type,'serve');assert.equal(choiceCopy(result.state.animation[0].intent).name,'Lob');
+});

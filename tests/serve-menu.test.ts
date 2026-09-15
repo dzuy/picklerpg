@@ -2,9 +2,9 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {Match} from '../src/match';
 import {choiceCopy} from '../src/shot-choice';
-test('serve dock and wheel offer exactly five distinct styles in requested order',()=>{
+test('serve dock and wheel offer exactly six distinct styles in requested order',()=>{
  const match=new Match(),choices=match.targetingMenu;
- assert.deepEqual(choices.map(c=>choiceCopy(c.intent).name),['Topspin','Slice','Backspin','Fast','Slow']);
+ assert.deepEqual(choices.map(c=>choiceCopy(c.intent).name),['Topspin','Slice','Backspin','Fast','Slow','Lob']);
  const point={x:-1,z:-4};
  const shots=choices.map(choice=>match.previewMenuTarget(choice,point));
  assert.equal(shots[0].intent.spin?.vertical,'topspin');

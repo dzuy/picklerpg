@@ -20,6 +20,7 @@ export async function database(){
 /** Test adapter exercises the exact production SQL functions using independent connections. */
 export class PgRepository implements MatchRepository {
  constructor(private pool:Pool){}
+ async setArchived(id:string,actor:string,archived:boolean){await this.query('select public.set_async_match_archived($1,$2,$3)',[id,actor,archived]);}
  async query(sql:string,args:unknown[]=[]){const c=await this.pool.connect();try{await c.query('set role service_role');return await c.query(sql,args);}finally{await c.query('reset role');c.release();}}
  async get(id:string,actor:string){const r=await this.query('select * from public.async_matches where id=$1 and $2 in (home_user_id,away_user_id)',[id,actor]);return r.rows[0] as StoredMatch??null;}
  async list(actor:string){return (await this.query('select * from public.async_matches where $1 in (home_user_id,away_user_id)',[actor])).rows as StoredMatch[];}

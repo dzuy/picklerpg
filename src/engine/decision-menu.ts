@@ -15,6 +15,12 @@ export function buildDecisionMenu(actor:PlayerId,c:ShotContext,players:PlayerSta
   try{generateTrajectory(intent,c,players)}catch{continue}
   options.push({intent,label:SHOT_FAMILIES[type].name,reason:SHOT_FAMILIES[type].description});
  }
+ // Change pace from a slow kitchen exchange, either after a bounce or out of the air.
+ if(c.opening==='rally'&&c.twoBounceSatisfied&&!deep&&Math.abs(c.feet.z)<=COURT.kitchen+1.2&&c.incomingSpeed<6&&c.contact.y>=.65&&c.contact.y<SHOT_FAMILIES.overhead.minHeight){
+  const type=c.bounced?'drive':'flick';
+  const intent:ShotIntent={schemaVersion:1,actor,type,target:{kind:'zone',zone:'middle',depth:'deep'},pace:'fast',shape:'flat',spin:{side:'none',vertical:'topspin',strength:'medium'},intendedNetClearance:.2,tacticalIntent:'pressure',aggression:.72,source:'menu'};
+  if(!contactIssue(type,c))try{generateTrajectory(intent,c,players);options.push({intent,label:'Speed Up',reason:'Attack a higher dink with a compact topspin shot. Low clearance trades safety for pressure.'})}catch{}
+ }
  if(c.opening==='return'){
   const base=options.find(o=>o.intent.type==='return');
   if(base){

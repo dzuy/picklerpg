@@ -35,7 +35,7 @@ const startScreen=document.createElement('main');startScreen.id='start-screen';s
 startScreen.innerHTML=`<h1 id="start-title" class="start-accessible-title">PickleBash</h1><div class="start-stage"><img class="start-background" src="/images/start/background.png" alt="" fetchpriority="high"><nav class="start-actions" aria-label="Main menu"><button id="start-new-game" aria-label="Start Game" disabled><img src="/images/start/start.png" alt="" draggable="false"></button><button id="start-roster" aria-label="Roster" disabled><img src="/images/start/roster.png" alt="" draggable="false"></button></nav><p class="start-loading" role="status">Getting the court ready…</p></div>`;
 document.body.append(startScreen);
 if(import.meta.env.VITE_MULTIPLAYER_ENABLED==='true'){
- const remote=document.createElement('a');remote.href='/?multiplayer=1';remote.textContent='Remote multiplayer test';remote.style.cssText='position:absolute;bottom:18px;left:50%;transform:translateX(-50%);color:#dfff32;z-index:5';startScreen.append(remote);
+ const remote=document.createElement('a');remote.href='/?multiplayer=1';remote.textContent='Remote multiplayer test';remote.style.cssText='position:absolute;bottom:18px;left:50%;transform:translateX(-50%);color:#3276ff;z-index:5';startScreen.append(remote);
 }
 
 app.innerHTML=`

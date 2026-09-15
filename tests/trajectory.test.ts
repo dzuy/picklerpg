@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {generateTrajectory,interceptFlight} from '../src/engine/trajectory';
+import {generateTrajectory,interceptFlight,reboundFlight,finishRebound,sampleFlightVelocity} from '../src/engine/trajectory';
 import {PreparedShotFixture,preparedContact} from './helpers/prepared-shot';
 import {sampleLeg} from '../src/engine/rally-engine';
 function input(){const lab=new PreparedShotFixture();return {intent:lab.shot.intent,context:preparedContact('drive').context,players:lab.state.players}}
@@ -39,4 +39,12 @@ test('topspin pulls the late flight down and preserves exact spin interception',
  const top=generateTrajectory({...intent,intendedNetClearance:.5,spin:{side:'left',vertical:'topspin',strength:'strong'}},context,players).leg;
  assert.ok(sampleLeg(top,.82).y<sampleLeg(plain,.82).y);assert.ok(sampleLeg(top,.82).x<sampleLeg(plain,.82).x);
  const t=.68,cut=interceptFlight(top,t);for(const u of [0,.2,.5,.8,1]){const a=sampleLeg(top,u*t),b=sampleLeg(cut,u);assert.ok(Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z)<1e-8)}
+});
+
+test('unreturned rebound preserves velocity into its final landing',()=>{
+ const rebound=reboundFlight({from:{x:0,y:1,z:4},to:{x:2,y:.037,z:-4},duration:1,arc:1,bounceAtEnd:true});
+ const finish=finishRebound(rebound),before=sampleFlightVelocity(rebound,1),after=sampleFlightVelocity(finish,0);
+ assert.deepEqual(finish.from,rebound.to);
+ for(const axis of ['x','y','z'] as const)assert.ok(Math.abs(before[axis]-after[axis])<1e-9);
+ assert.ok(finish.to.x>finish.from.x);assert.ok(finish.to.z<finish.from.z);assert.equal(finish.to.y,.037);assert.equal(finish.bounceAtEnd,true);
 });
