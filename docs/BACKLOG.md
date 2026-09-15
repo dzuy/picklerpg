@@ -31,6 +31,7 @@ Acceptance: a returning player immediately understands which game needs attentio
 1. **Match pacing.** Tune rally length and the number/clarity of decisions, so games feel satisfying and short enough to finish with friends. First-to-3 rally scoring is a testing choice, not a final format decision. Preserve strategic agency.
 2. **Rematches and rivalry.** Make playing the same friend again easy; add or complete rematch requests, head-to-head history, series lead, and streaks. Audit existing completion and team-stat features before implementing overlaps.
 3. **Turn and invitation notifications.** Add an opt-in return path with a direct match link, preferences, and suppression of stale alerts. Choose the external delivery channel before implementation; in-app turn status already exists.
+4. **Trash talk chat system.** Let players exchange playful messages within a match, with muting, blocking, reporting, and sensible moderation safeguards.
 
 These are the next priorities, not authorization to implement them all in one pass. Use the [multiplayer plan](../TURN_BASED_MULTIPLAYER_PLAN.md) for technical acceptance criteria, checking them against current code and confirmed playtests.
 

@@ -1,5 +1,6 @@
 import {playerHistory,type MatchParticipant} from './player-history';
 import type {CloudPlayerSync} from './cloud-players';
+import {browserStorage} from './browser-storage';
 
 export function installAccountControls(cloud:CloudPlayerSync,roster:()=>{id:string;name:string}[]=()=>[]){
  const host=document.querySelector('.settings-account')!;
@@ -41,11 +42,11 @@ export function installAccountControls(cloud:CloudPlayerSync,roster:()=>{id:stri
  let busy=false;
  const pendingKey=()=>`pickle-rpg-pending-matches:${cloud.accountId}`;
  type Result={id:string;home_names:string;away_names:string;home_score:number;away_score:number;ended_early?:boolean;participants?:MatchParticipant[]};
- function pending():Result[]{try{return JSON.parse(localStorage.getItem(pendingKey())??'[]')}catch{return []}}
+ function pending():Result[]{try{return JSON.parse(browserStorage.getItem(pendingKey())??'[]')}catch{return []}}
  async function retry(){
   if(busy)throw new Error('Match save is still in progress. Try again shortly.');if(!cloud.accountId)return;
   busy=true;const owner=cloud.accountId,key=pendingKey();
-  try{for(const result of pending()){await cloud.recordMatch(result,owner);const latest=JSON.parse(localStorage.getItem(key)??'[]') as Result[];localStorage.setItem(key,JSON.stringify(latest.filter(item=>item.id!==result.id)))}}
+  try{for(const result of pending()){await cloud.recordMatch(result,owner);const latest=JSON.parse(browserStorage.getItem(key)??'[]') as Result[];browserStorage.setItem(key,JSON.stringify(latest.filter(item=>item.id!==result.id)))}}
   finally{busy=false}
  }
  window.addEventListener('online',()=>void retry().catch(()=>{}));
@@ -53,7 +54,7 @@ export function installAccountControls(cloud:CloudPlayerSync,roster:()=>{id:stri
  return {async completed(score:object,result:Omit<Result,'id'> & {id?:string}){
   if(seen.has(score)||!cloud.accountId)return;seen.add(score);
   const message=document.getElementById('match-save-status');
-  try{const results=pending();const id=result.id??crypto.randomUUID();if(!results.some(row=>row.id===id))results.push({...result,id});localStorage.setItem(pendingKey(),JSON.stringify(results));if(message)message.textContent='Saving match…';await retry();if(message)message.textContent='Match saved · View it in Settings → Match history';}
+  try{const results=pending();const id=result.id??crypto.randomUUID();if(!results.some(row=>row.id===id))results.push({...result,id});browserStorage.setItem(pendingKey(),JSON.stringify(results));if(message)message.textContent='Saving match…';await retry();if(message)message.textContent='Match saved · View it in Settings → Match history';}
   catch{if(message)message.textContent='Match waiting to sync. Open Match history to retry.'}
  },retry};
 }

@@ -546,6 +546,7 @@ body[data-screen=start]{overflow:hidden;background:#001331}
 
 #local-save-status:not([hidden]) { position:fixed; z-index:1000; bottom:1rem; left:1rem; right:1rem; margin:0; padding:.8rem 1rem; border:1px solid #cf833f; border-radius:.5rem; background:#fff4df; color:#342315; font:14px/1.4 sans-serif; }
 #local-save-status + button:not([hidden]) {position:fixed;z-index:1001;bottom:5rem;left:1rem;padding:.6rem 1rem;}
+.browser-storage-warning{position:fixed;z-index:1100;left:50%;bottom:max(12px,env(safe-area-inset-bottom));width:max-content;max-width:calc(100% - 24px);transform:translateX(-50%);margin:0;padding:10px 14px;border:1px solid #e2a043;border-radius:10px;background:#fff4df;color:#342315;box-shadow:0 4px 18px #17243f2b;font:600 12px/1.4 sans-serif;text-align:center;pointer-events:none}
 
 #local-turn-banner:not([hidden]) {position:absolute;top:1rem;left:50%;transform:translateX(-50%);max-width:calc(100% - 360px);text-align:center;background:#0a3044ee;color:#bed4ff;border:1px solid #739bea;border-radius:12px;padding:.65rem 1rem;margin:0;z-index:8;font:700 15px/1.3 sans-serif;pointer-events:none;}
 .local-human-mode .match-settings,.local-human-mode .match-insights,.local-human-mode .settings-lineup,.local-human-mode label[for="partner-autonomy"],.local-human-mode label[for="player-autonomy"],.local-human-mode label[for="result-timer"],.local-human-mode #restart,.local-human-mode #open-player-design,.local-human-mode .voice-controls {display:none!important;}

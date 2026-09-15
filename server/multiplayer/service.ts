@@ -8,6 +8,7 @@ import type {ActionReceipt,PublicMatch,TurnAnimation} from '../../src/multiplaye
 import type {MatchRepository,StoredMatch,StoredReceipt} from './repository';
 import {ApiError,conflict,missing} from './errors';
 import {parseAction,parseCreation,requestHash} from './validation';
+import type {TurnNotifier} from './push';
 export const REMOTE_ENGINE='pickle-remote-1';
 export function teamFor(row:Pick<StoredMatch,'home_user_id'|'away_user_id'>,actor:string):Team {
  if(row.home_user_id===actor)return 'home';if(row.away_user_id===actor)return 'away';throw missing();
@@ -43,7 +44,7 @@ function animations(match:Match):TurnAnimation[]{
  });
 }
 export class MatchService {
- constructor(private repository:MatchRepository,private testers:ReadonlyMap<string,string>,private creationEnabled=true){}
+ constructor(private repository:MatchRepository,private testers:ReadonlyMap<string,string>,private creationEnabled=true,private notifyTurn?:TurnNotifier){}
  config(actor:string){return {selfId:actor,selfName:this.testers.get(actor)??'Previous playtest account',creationEnabled:this.creationEnabled&&this.testers.has(actor),testers:[...this.testers].filter(([id])=>id!==actor&&this.testers.has(actor)).map(([id,name])=>({id,name}))};}
  async archive(id:string,actor:string,input:unknown){
   if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).length!==1||typeof (input as {archived?:unknown}).archived!=='boolean')throw new ApiError(400,'archive','Choose archive or restore.');
@@ -91,6 +92,13 @@ export class MatchService {
   const current=match.decisionTeam;
   if(status==='active'&&!current)throw new ApiError(503,'invalid_state','Resolution did not reach a decision.');
   const next:StoredMatch={...row,checkpoint,status,animation,last_result:result,current_action_user_id:current?(current==='home'?row.home_user_id:row.away_user_id):null};
-  return receipt(await this.repository.commit({match:next,actor,hash,actionId:request.actionId,expectedVersion:row.version,action:request.action}));
+  const committed=await this.repository.commit({match:next,actor,hash,actionId:request.actionId,expectedVersion:row.version,action:request.action});
+  const response=receipt(committed);
+  const recipient=committed.result.current_action_user_id;
+  if(this.notifyTurn&&committed.result.status==='active'&&recipient&&recipient!==actor){
+   // Detached side effect: provider/storage failure cannot roll back or delay a turn.
+   void Promise.resolve().then(()=>this.notifyTurn!({userId:recipient,matchId:id,version:committed.to_version,opponentName:this.testers.get(actor)??'Your opponent'})).catch(()=>console.warn('Turn push unavailable'));
+  }
+  return response;
  }
 }

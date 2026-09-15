@@ -10,6 +10,7 @@ import {AvatarPreview,AvatarThumbnails,LOOKS} from './avatar-preview';
 import {SKILLS} from './engine/model';
 import {APPEARANCE_OPTIONS,PLAYER_STORAGE_KEY,newPlayer,parseLibrary,savePlayer,deletePlayer,type DesignedPlayer,type PlayerLibrary,type Appearance} from './player-design';
 import type {CloudSaveState,LibraryChange} from './cloud-players';
+import {browserStorage} from './browser-storage';
 import './player-creator.css';
 const iconPaths:Record<string,string>={
  facialHair:'M5 9v5l3 6h8l3-6V9M8 11l4-2 4 2M10 14h4',
@@ -35,7 +36,7 @@ export class PlayerCreator {
  private thumbnails:AvatarThumbnails|null=null;private thumbnailsReady=false;
  private library:PlayerLibrary={version:1,activeId:null,players:[]};private draft=newPlayer();private baseline='';private preview:AvatarPreview|null=null;private previewFailed=false;private loadError='';private pending:(()=>void)|null=null;
  constructor(private onPlay:(player:DesignedPlayer)=>void,private onDelete:(id:string)=>void=()=>{},private onLibraryChange:(library:PlayerLibrary,change:LibraryChange)=>void=()=>{}){
-  try{this.library=parseLibrary(localStorage.getItem(PLAYER_STORAGE_KEY))}catch{this.loadError='Saved players could not be read. Saving is disabled to protect your existing roster.'}
+  try{this.library=parseLibrary(browserStorage.getItem(PLAYER_STORAGE_KEY))}catch{this.loadError='Saved players could not be read. Saving is disabled to protect your existing roster.'}
   const active=this.library.players.find(p=>p.id===this.library.activeId);
   if(active)this.draft=structuredClone(active);this.baseline=JSON.stringify(this.draft);
   this.dialog.id='player-creator';this.dialog.setAttribute('aria-labelledby','creator-title');
@@ -207,7 +208,7 @@ export class PlayerCreator {
  private removePlayer(){
   if(this.loadError)return;
   const id=this.draft.id;if(!this.library.players.some(p=>p.id===id))return;
-  try{this.library=deletePlayer(localStorage,this.library,id);this.onLibraryChange(structuredClone(this.library),{kind:'delete',playerId:id});this.pending=null;this.el('.creator-delete-confirm').hidden=true;this.el('.creator-confirm').hidden=true;this.onDelete(id);this.loadDraft(this.activePlayer??this.library.players[0]??newPlayer());this.showRoster();this.el('[data-roster-status]').textContent=this.library.players.length?'Player deleted.':''}catch{this.el('[data-status]').textContent='Could not delete the player. Your saved roster is unchanged.'}
+  try{this.library=deletePlayer(browserStorage,this.library,id);this.onLibraryChange(structuredClone(this.library),{kind:'delete',playerId:id});this.pending=null;this.el('.creator-delete-confirm').hidden=true;this.el('.creator-confirm').hidden=true;this.onDelete(id);this.loadDraft(this.activePlayer??this.library.players[0]??newPlayer());this.showRoster();this.el('[data-roster-status]').textContent=this.library.players.length?'Player deleted.':''}catch{this.el('[data-status]').textContent='Could not delete the player. Your saved roster is unchanged.'}
  }
  private fill(){
   this.el('#creator-title').innerHTML=this.library.players.some(p=>p.id===this.draft.id)?'Edit Your Player':'Create Your Player';
@@ -228,7 +229,7 @@ export class PlayerCreator {
  private save(play:boolean){
   if(this.loadError)return;
   try{
-   this.library=savePlayer(localStorage,this.library,this.draft,play);this.draft=structuredClone(this.library.players.find(p=>p.id===this.draft.id)!);this.baseline=JSON.stringify(this.draft);this.fill();this.onLibraryChange(structuredClone(this.library),{kind:'save',playerId:this.draft.id});
+   this.library=savePlayer(browserStorage,this.library,this.draft,play);this.draft=structuredClone(this.library.players.find(p=>p.id===this.draft.id)!);this.baseline=JSON.stringify(this.draft);this.fill();this.onLibraryChange(structuredClone(this.library),{kind:'save',playerId:this.draft.id});
    this.pending=null;this.el('.creator-confirm').hidden=true;this.el('[data-status]').textContent='Player saved.';
    if(play){this.onPlay(structuredClone(this.draft));this.dialog.close()}else this.showRoster()
   }catch(error){this.el('[data-status]').textContent=error instanceof Error&&error.name==='QuotaExceededError'?'Browser storage is full. Your edits are still here; the player was not saved.':error instanceof Error?error.message:'Could not save. Your edits are still here.'}

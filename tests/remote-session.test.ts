@@ -34,3 +34,14 @@ test('a refresh during credential recovery cannot reapply a choice to a newer de
  latest=(await service.act(latest.id,A,action(latest))).state;await client.refresh();release();
  await assert.rejects(submission,/decision changed/);assert.equal(posts,0);assert.equal(client.pending,null);
 });
+test('notification resume loads completed state and clears cache when access is denied',async()=>{
+ const service=new MatchService(new MemoryRepository(),testers),s=await service.create(A,creation()),store=storage();
+ store.setItem(`pickle-remote:${A}:${s.id}:cache`,JSON.stringify(s));
+ const completed={...s,status:'completed',version:s.version+1,choices:[],currentTeam:null};
+ const client=new RemoteSession(A,s.id,async()=>({owner:A,token:'t'}),async<T>()=>completed as T,store);
+ assert.ok(client.offline);await client.refresh();assert.equal(client.state!.status,'completed');await assert.rejects(client.submit(s.choices[0]),/legal turn/);
+ for(const code of [401,403,404]){
+  const denied=new RemoteSession(A,s.id,async()=>({owner:A,token:'t'}),async()=>{throw new RemoteError(code,'unavailable','Match unavailable')},store);
+  await denied.refresh();assert.equal(denied.state,null);assert.equal(store.getItem(`pickle-remote:${A}:${s.id}:cache`),null);
+ }
+});

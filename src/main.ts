@@ -28,6 +28,7 @@ import './style.css';
 import './gameplay-hud.css';
 import {CourtScene} from './scene';
 import {preloadAthletes} from './athlete';
+import {browserStorage,browserStoragePersistent,STORAGE_UNAVAILABLE_MESSAGE} from './browser-storage';
 const app=document.querySelector<HTMLDivElement>('#app')!;
 let onStartScreen=true;
 document.body.dataset.screen='start';
@@ -54,9 +55,9 @@ const match=new Match();match.partnerAutonomy=true;match.randomizeSeedOnReset=tr
 try{scene=new CourtScene(document.querySelector('#court')!,id=>openPlayerDrawer(id))}catch(error){document.querySelector('#court')!.innerHTML='<div class="webgl-error"><h2>3D rendering is unavailable</h2><p>Enable hardware acceleration in your browser, then reload to play.</p></div>';throw error}
 function applyCourtLocation(court:'forest'|'venice'|'arizona'){
  scene.setLocation(court);const locationLabel=document.querySelector<HTMLElement>('.court-chip')!;locationLabel.hidden=court!=='forest';locationLabel.textContent=court==='forest'?'THE FOREST':'';document.body.dataset.location=court;
- try{localStorage.setItem('picklebash-location-v1',court)}catch{/* Cosmetic choice still works without storage. */}
+ browserStorage.setItem('picklebash-location-v1',court);
 }
-let savedCourt:'forest'|'venice'|'arizona'='forest';try{const saved=localStorage.getItem('picklebash-location-v1');if(saved==='venice'||saved==='arizona')savedCourt=saved}catch{}
+let savedCourt:'forest'|'venice'|'arizona'='forest';const savedLocation=browserStorage.getItem('picklebash-location-v1');if(savedLocation==='venice'||savedLocation==='arizona')savedCourt=savedLocation;
 applyCourtLocation(savedCourt);
 const byId=(id:string)=>document.getElementById(id)!;
  const turnBanner=document.createElement('p');turnBanner.id='local-turn-banner';turnBanner.setAttribute('role','status');turnBanner.hidden=true;document.querySelector('.court-wrap')!.append(turnBanner);
@@ -344,7 +345,7 @@ playerDrawer.addEventListener('click',event=>{if(event.target===playerDrawer)clo
 playerDrawer.addEventListener('cancel',event=>{event.preventDefault();closePlayerDrawer()});
 document.querySelector('label[for="partner-autonomy"]')!.insertAdjacentHTML('afterend','<label class="settings-toggle" for="gameplay-speed"><span>Gameplay speed<small>Speed up rallies and the wait between points.</small></span><select id="gameplay-speed" aria-label="Gameplay speed"><option value="1">1× · Normal</option><option value="2">2×</option><option value="3">3×</option></select></label>');
 let scoringPreference:ScoringMode='rally-doubles';
-try{const saved=JSON.parse(localStorage.getItem('pickle-rpg-controls-v1')??'null');if(saved&&typeof saved==='object'){if(saved.scoringPreference==='side-out-doubles'||saved.scoringPreference==='rally-doubles')scoringPreference=saved.scoringPreference;if(saved.speedVersion===3&&[1,2,3].includes(saved.speed))speed=saved.speed;if(typeof saved.guides==='boolean')guides=saved.guides;if(typeof saved.showPlayerNames==='boolean')showPlayerNames=saved.showPlayerNames;if(typeof saved.resultTimer==='boolean')resultTimer=saved.resultTimer;if(typeof saved.partnerAutonomy==='boolean')match.partnerAutonomy=saved.partnerAutonomy;if(typeof saved.cameraDistance==='number'&&Number.isFinite(saved.cameraDistance)&&saved.cameraDistance>=0&&saved.cameraDistance<=100)cameraDistance=saved.cameraDistance}}catch{/* Defaults remain usable when storage is unavailable or invalid. */}
+try{const saved=JSON.parse(browserStorage.getItem('pickle-rpg-controls-v1')??'null');if(saved&&typeof saved==='object'){if(saved.scoringPreference==='side-out-doubles'||saved.scoringPreference==='rally-doubles')scoringPreference=saved.scoringPreference;if(saved.speedVersion===3&&[1,2,3].includes(saved.speed))speed=saved.speed;if(typeof saved.guides==='boolean')guides=saved.guides;if(typeof saved.showPlayerNames==='boolean')showPlayerNames=saved.showPlayerNames;if(typeof saved.resultTimer==='boolean')resultTimer=saved.resultTimer;if(typeof saved.partnerAutonomy==='boolean')match.partnerAutonomy=saved.partnerAutonomy;if(typeof saved.cameraDistance==='number'&&Number.isFinite(saved.cameraDistance)&&saved.cameraDistance>=0&&saved.cameraDistance<=100)cameraDistance=saved.cameraDistance}}catch{/* Invalid saved settings leave defaults in place. */}
 document.querySelector('label[for="gameplay-speed"]')!.insertAdjacentHTML('beforebegin','<label class="settings-toggle" for="scoring-preference"><span>Scoring rules<small>Saved for new games. Rally awards every rally; side-out awards only the serving team.</small><small id="active-scoring-rules"></small></span><select id="scoring-preference" aria-label="Scoring rules for new games"><option value="rally-doubles">Rally</option><option value="side-out-doubles">Side-out</option></select></label>');
 function setScoringPreference(value:ScoringMode){scoringPreference=value;match.scoringPreference=value;(byId('scoring-preference') as HTMLSelectElement).value=value;saveControls();}
 match.scoringPreference=scoringPreference;(byId('scoring-preference') as HTMLSelectElement).value=scoringPreference;
@@ -357,10 +358,10 @@ byId('show-player-names').addEventListener('change',e=>{showPlayerNames=(e.targe
 (byId('result-timer') as HTMLInputElement).checked=resultTimer;byId('result-timer-state').textContent=resultTimer?'On':'Off';
 byId('result-timer').addEventListener('change',e=>{resultTimer=(e.target as HTMLInputElement).checked;byId('result-timer-state').textContent=resultTimer?'On':'Off';resultElapsed=0;resultExpired=false;saveControls()});
 document.querySelector('label[for="partner-autonomy"]')!.insertAdjacentHTML('beforebegin','<label class="settings-toggle" for="player-autonomy"><span>Your player auto-play<small>Choose your shots automatically. Enabling also turns on partner auto-play; points continue automatically.</small></span><span class="settings-switch-control"><strong id="player-autonomy-state">Off</strong><input id="player-autonomy" type="checkbox" role="switch"></span></label>');
-try{match.playerAutonomy=JSON.parse(localStorage.getItem('pickle-rpg-controls-v1')??'null')?.playerAutonomy===true}catch{/* Keep manual play by default. */}
+try{match.playerAutonomy=JSON.parse(browserStorage.getItem('pickle-rpg-controls-v1')??'null')?.playerAutonomy===true}catch{/* Keep manual play by default. */}
 (byId('player-autonomy') as HTMLInputElement).checked=match.playerAutonomy;byId('player-autonomy-state').textContent=match.playerAutonomy?'On':'Off';
 byId('player-autonomy').addEventListener('change',e=>{match.playerAutonomy=(e.target as HTMLInputElement).checked;if(match.playerAutonomy){match.partnerAutonomy=true;(byId('partner-autonomy') as HTMLInputElement).checked=true;byId('partner-autonomy-state').textContent='On';voice.stop();targetPicker.clear()}byId('player-autonomy-state').textContent=match.playerAutonomy?'On':'Off';lastUI='';saveControls();updateUI()});
-function saveControls(){try{localStorage.setItem('pickle-rpg-controls-v1',JSON.stringify({scoringPreference,speed,guides,showPlayerNames,resultTimer,cameraDistance,playerAutonomy:match.playerAutonomy,partnerAutonomy:match.partnerAutonomy,speedVersion:3}))}catch{/* Settings still apply for this visit. */}}
+function saveControls(){browserStorage.setItem('pickle-rpg-controls-v1',JSON.stringify({scoringPreference,speed,guides,showPlayerNames,resultTimer,cameraDistance,playerAutonomy:match.playerAutonomy,partnerAutonomy:match.partnerAutonomy,speedVersion:3}))}
 scene.setCamera(100-cameraDistance);
 byId('guides').addEventListener('change',e=>{guides=(e.target as HTMLInputElement).checked;byId('guides-state').textContent=guides?'On':'Off';scene.setGuides(guides);saveControls()});
 byId('partner-autonomy').addEventListener('change',e=>{match.partnerAutonomy=(e.target as HTMLInputElement).checked;byId('partner-autonomy-state').textContent=match.partnerAutonomy?'On':'Off';lastUI='';saveControls();updateUI()});
@@ -561,6 +562,7 @@ byId('start-roster').addEventListener('click',()=>creator.open());
 byId('back-to-lobby').addEventListener('click',()=>{if(settingsCloseTimer)window.clearTimeout(settingsCloseTimer);settingsDialog.close();settingsDialog.classList.remove('is-closing');showMatchSetup(true)});
 document.querySelector('.brand')!.addEventListener('click',event=>{event.preventDefault();showStartScreen()});
 const saveStatus=document.createElement('p');saveStatus.id='local-save-status';saveStatus.setAttribute('role','status');saveStatus.hidden=true;document.body.append(saveStatus);
+if(!browserStoragePersistent){const warning=document.createElement('p');warning.className='browser-storage-warning';warning.setAttribute('role','status');warning.textContent=STORAGE_UNAVAILABLE_MESSAGE;document.body.append(warning)}
 const discardSave=document.createElement('button');discardSave.textContent='Discard saved match';discardSave.hidden=true;saveStatus.after(discardSave);
 let localStore:LocalMatchStore|null=null;
 let resumeReady=false;
@@ -568,7 +570,7 @@ function reportSaveError(error:unknown){saveStatus.hidden=false;saveStatus.textC
 discardSave.onclick=()=>{try{localStore?.discard();discardSave.hidden=true;saveStatus.hidden=true;match.onCheckpoint=c=>localStore!.save(c);showStartScreen()}catch(error){reportSaveError(error)}};
 function initializeResume(owner:string){
  try{
-  localStore=new LocalMatchStore(localStorage,owner);
+  localStore=new LocalMatchStore(browserStorage,owner);
   const checkpoint=localStore.load();
   match.onCheckpoint=c=>{if(endedGames.has(match.scoring))return;try{localStore!.save(c);saveStatus.hidden=true}catch(error){reportSaveError(error);throw error}};
   if(checkpoint){
@@ -587,11 +589,11 @@ function initializeResume(owner:string){
 // An existing local checkpoint can resume offline without waiting on cloud roster sync.
 let earlyResumeOwner:string|null=null;
 try{
- const cachedOwner=localStorage.getItem('pickle-rpg-cloud-owner-v1')??'local';
- if(localStorage.getItem(`pickle-rpg-match-v1:${cachedOwner}`)!==null){earlyResumeOwner=cachedOwner;initializeResume(cachedOwner)}
+ const cachedOwner=browserStorage.getItem('pickle-rpg-cloud-owner-v1')??'local';
+ if(browserStorage.getItem(`pickle-rpg-match-v1:${cachedOwner}`)!==null){earlyResumeOwner=cachedOwner;initializeResume(cachedOwner)}
 }catch(error){reportSaveError(error)}
 void cloudReady.then(()=>{
- const owner=cloudPlayers.accountId??localStorage.getItem('pickle-rpg-cloud-owner-v1')??'local';
+ const owner=cloudPlayers.accountId??browserStorage.getItem('pickle-rpg-cloud-owner-v1')??'local';
  if(earlyResumeOwner!==null){if(owner!==earlyResumeOwner)location.reload();return;}
  initializeResume(owner);
 });

@@ -17,7 +17,7 @@ export class RemoteSession {
  private accept(state:PublicMatch){if(state.id!==this.matchId)throw new Error('Unexpected remote match.');if(!this.state||state.version>=this.state.version){this.state=state;try{this.storage.setItem(this.cacheKey,JSON.stringify(state))}catch{}}}
  async refresh(){const generation=this.generation;
   try{const c=await this.identity();const state=await this.request<PublicMatch>(c.token,`/api/matches/${this.matchId}`);await this.identity();if(generation!==this.generation)return;this.accept(state);this.offline=false;if(!this.pending)this.message='';}
-  catch(e){if(generation!==this.generation)return;this.offline=true;this.message=(e as Error).message;}finally{this.changed();}
+  catch(e){if(generation!==this.generation)return;this.offline=true;this.message=(e as Error).message;if(e instanceof RemoteError&&[401,403,404].includes(e.status)){this.state=null;try{this.storage.removeItem(this.cacheKey)}catch{}}}finally{this.changed();}
  }
  async submit(choice:PublicMatch['choices'][number]){
   if(this.busy||this.pending)throw new Error('Resolve your saved turn before choosing another shot.');

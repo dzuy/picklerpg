@@ -16,6 +16,8 @@ test('production serves game assets and HTTPS-origin AI on one port',async()=>{
  await writeFile(join(root,'assets','voice.wasm'),Buffer.from([0,97,115,109]));
  await writeFile(join(root,'models','player.glb'),'model');
  await writeFile(join(root,'voice-capture-worklet.js'),'worklet');
+ await writeFile(join(root,'sw.js'),'worker');
+ await writeFile(join(root,'manifest.webmanifest'),'{}');
  const server=createProductionServer({root,apiHandler:createOpponentHandler({choose:async()=>({choice:0})})});
  try{
   await new Promise<void>(resolve=>server.listen(0,'0.0.0.0',resolve));
@@ -25,6 +27,8 @@ test('production serves game assets and HTTPS-origin AI on one port',async()=>{
   for(const [path,type] of [['/assets/game.js','text/javascript'],['/assets/voice.wasm','application/wasm'],['/models/player.glb','model/gltf-binary'],['/voice-capture-worklet.js','text/javascript']]){
    const response=await fetch(url+path);assert.equal(response.status,200);assert.ok(response.headers.get('content-type')?.startsWith(type));
   }
+  for(const [path,type] of [['/sw.js','text/javascript'],['/manifest.webmanifest','application/manifest+json']]){const response=await fetch(url+path);assert.equal(response.status,200);assert.ok(response.headers.get('content-type')?.startsWith(type));assert.equal(response.headers.get('cache-control'),'no-cache');}
+  assert.equal((await fetch(url+'/?multiplayer=1&match=abc')).status,200);
   assert.equal((await fetch(url+'/.env.local')).status,404);
   assert.equal((await fetch(url+'/missing.js')).status,404);
   assert.equal(await (await fetch(url,{method:'HEAD'})).text(),'');

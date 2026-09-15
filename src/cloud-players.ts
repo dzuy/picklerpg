@@ -3,6 +3,7 @@ import {authClient} from './auth-session';
 import type {MatchParticipant} from './player-history';
 import {type SupabaseClient,type User} from '@supabase/supabase-js';
 import {parseLibrary,validatePlayer,type DesignedPlayer,type PlayerLibrary} from './player-design';
+import {browserStorage} from './browser-storage';
 
 export type LibraryChange={kind:'save';playerId:string}|{kind:'delete';playerId:string};
 export type CloudSaveState='local'|'connecting'|'saving'|'saved'|'offline';
@@ -35,12 +36,12 @@ export class CloudPlayerSync{
  async signOut(){
   if(!this.client)throw new Error('Connect before signing out.');
   await this.queue;
-  if(localStorage.getItem(CLOUD_DIRTY_KEY)==='1')throw new Error('Your player changes are not synced yet. Reconnect before signing out.');
+  if(browserStorage.getItem(CLOUD_DIRTY_KEY)==='1')throw new Error('Your player changes are not synced yet. Reconnect before signing out.');
   const {data:{session}}=await this.client.auth.getSession();
   if(session?.user.is_anonymous)throw new Error('Protect your progress before signing out.');
   this.signingOut=true;
   const {error}=await this.client.auth.signOut({scope:'local'});if(error){this.signingOut=false;throw error}
-  localStorage.removeItem('pickle-rpg-players-v1');localStorage.removeItem(CLOUD_OWNER_KEY);location.reload();
+  browserStorage.removeItem('pickle-rpg-players-v1');browserStorage.removeItem(CLOUD_OWNER_KEY);location.reload();
  }
  async resendLink(email:string,mode:'protect'|'sign-in'){
   if(mode==='sign-in')return this.sendSignInLink(email);
@@ -78,20 +79,20 @@ export class CloudPlayerSync{
    let {data:{session},error}=await this.client.auth.getSession();if(error)throw error;
    if(!session){const signedIn=await this.client.auth.signInAnonymously();if(signedIn.error)throw signedIn.error;session=signedIn.data.session}
    if(!session)throw new Error('Guest session was not created.');this.ownerId=session.user.id;
-   if(localStorage.getItem(CLOUD_OWNER_KEY)&&localStorage.getItem(CLOUD_OWNER_KEY)!==this.ownerId){local={version:1,activeId:null,players:[]};localStorage.setItem('pickle-rpg-players-v1',JSON.stringify(local));localStorage.removeItem(CLOUD_DIRTY_KEY)}
+   if(browserStorage.getItem(CLOUD_OWNER_KEY)&&browserStorage.getItem(CLOUD_OWNER_KEY)!==this.ownerId){local={version:1,activeId:null,players:[]};browserStorage.setItem('pickle-rpg-players-v1',JSON.stringify(local));browserStorage.removeItem(CLOUD_DIRTY_KEY)}
    this.accountStatus(accountStateForUser(session.user));
    const response=await this.client.from('players').select('id,name,catchphrase,appearance,skills,handedness,is_active,is_public').eq('owner_id',this.ownerId);
    if(response.error)throw response.error;
    const rows=(response.data??[]) as PlayerRow[];
    const remotePlayers=rows.map(playerFromRow),active=rows.find(row=>row.is_active)?.id??null;
    const remote:PlayerLibrary={version:1,activeId:active,players:remotePlayers};
-   const previousOwner=localStorage.getItem(CLOUD_OWNER_KEY);
-   const current=previousOwner&&previousOwner!==this.ownerId?{version:1 as const,activeId:null,players:[]}:parseLibrary(localStorage.getItem('pickle-rpg-players-v1'));
-   const needsUpload=!previousOwner||(previousOwner===this.ownerId&&localStorage.getItem(CLOUD_DIRTY_KEY)==='1');
+   const previousOwner=browserStorage.getItem(CLOUD_OWNER_KEY);
+   const current=previousOwner&&previousOwner!==this.ownerId?{version:1 as const,activeId:null,players:[]}:parseLibrary(browserStorage.getItem('pickle-rpg-players-v1'));
+   const needsUpload=!previousOwner||(previousOwner===this.ownerId&&browserStorage.getItem(CLOUD_DIRTY_KEY)==='1');
    const merged=needsUpload?mergePlayerLibraries(current,remote):remote;
-   localStorage.setItem('pickle-rpg-players-v1',JSON.stringify(merged));
+   browserStorage.setItem('pickle-rpg-players-v1',JSON.stringify(merged));
    if(needsUpload)await this.replaceCloudLibrary(merged);
-   localStorage.setItem(CLOUD_OWNER_KEY,this.ownerId);localStorage.removeItem(CLOUD_DIRTY_KEY);this.status('saved');return structuredClone(merged);
+   browserStorage.setItem(CLOUD_OWNER_KEY,this.ownerId);browserStorage.removeItem(CLOUD_DIRTY_KEY);this.status('saved');return structuredClone(merged);
   }catch(error){console.warn('Cloud player sync unavailable.',error);this.client=null;this.ownerId=null;this.status('offline');this.accountStatus({kind:'unavailable'});return structuredClone(local)}
  }
  async protectProgress(email:string){
@@ -111,10 +112,10 @@ export class CloudPlayerSync{
  }
  private returnUrl(){return accountReturnUrl(new URL(location.href))}
  save(library:PlayerLibrary,change:LibraryChange){
-  try{localStorage.setItem(CLOUD_DIRTY_KEY,'1')}catch{}
+  browserStorage.setItem(CLOUD_DIRTY_KEY,'1');
   if(!this.client||!this.ownerId)return;
   const version=++this.changeVersion;
-  this.status('saving');this.queue=this.queue.then(()=>this.persistChange(library,change)).then(()=>{if(version===this.changeVersion){try{localStorage.removeItem(CLOUD_DIRTY_KEY)}catch{}this.status('saved')}}).catch(error=>{console.warn('Cloud player save failed.',error);this.status('offline')});
+  this.status('saving');this.queue=this.queue.then(()=>this.persistChange(library,change)).then(()=>{if(version===this.changeVersion){browserStorage.removeItem(CLOUD_DIRTY_KEY);this.status('saved')}}).catch(error=>{console.warn('Cloud player save failed.',error);this.status('offline')});
  }
  private async persistChange(library:PlayerLibrary,change:LibraryChange){
   const client=this.client!,ownerId=this.ownerId!;
@@ -134,4 +135,4 @@ export class CloudPlayerSync{
  }
 }
 
-export function readLocalPlayerLibrary(){return parseLibrary(localStorage.getItem('pickle-rpg-players-v1'))}
+export function readLocalPlayerLibrary(){return parseLibrary(browserStorage.getItem('pickle-rpg-players-v1'))}

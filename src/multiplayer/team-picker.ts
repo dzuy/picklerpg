@@ -9,11 +9,12 @@ import {AvatarThumbnails} from '../avatar-preview';
 import {fillPlayerCard} from '../player-card';
 import {attachPlayerDetails} from '../player-details';
 import type {TeamSelection} from './invitation-protocol';
+import {browserStorage} from '../browser-storage';
 /** Same roster/preset selection and rendered athletes as solo setup, restricted to your team. */
 export class TeamPicker {
- private lineup={players:[...parseLibrary(localStorage.getItem(PLAYER_STORAGE_KEY)).players,...rosterStarters()],selected:[] as string[]};
+ private lineup={players:[...parseLibrary(browserStorage.getItem(PLAYER_STORAGE_KEY)).players,...rosterStarters()],selected:[] as string[]};
  private community=new CommunitySection(players=>this.setCommunity(players));
- private setCommunity(players:DesignedPlayer[]){const all=[...parseLibrary(localStorage.getItem(PLAYER_STORAGE_KEY)).players,...players];const selected=this.lineup.selected.filter(id=>all.some(p=>p.id===id));for(const p of all)if(selected.length<2&&!selected.includes(p.id))selected.push(p.id);this.lineup={players:all,selected:selected.slice(0,2)};this.draw();}
+ private setCommunity(players:DesignedPlayer[]){const all=[...parseLibrary(browserStorage.getItem(PLAYER_STORAGE_KEY)).players,...players];const selected=this.lineup.selected.filter(id=>all.some(p=>p.id===id));for(const p of all)if(selected.length<2&&!selected.includes(p.id))selected.push(p.id);this.lineup={players:all,selected:selected.slice(0,2)};this.draw();}
  private ready:Promise<void>=Promise.resolve();
  async freshTeam(){await this.ready;if(this.lineup.selected.length<2)throw Error('Add at least two players to Your Roster.');return await refreshCommunityDesigns(this.team) as TeamSelection}
  private static portraits:AvatarThumbnails|undefined;
