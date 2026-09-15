@@ -90,3 +90,7 @@ body[data-screen=setup]{overflow:auto;background:#03122f}
 .setup-mode p {font:14px/1.4 sans-serif;margin:.65rem .8rem;}
 
 .setup-scoring{display:flex;justify-content:center;align-items:center;gap:12px;flex-wrap:wrap;margin:0 auto 18px;font-weight:700}.setup-scoring select{font:inherit;border-radius:12px;padding:10px;border:1px solid #aab6a2;background:#faffef;color:#244a37;max-width:100%}
+.setup-court[data-court=venice] img{transform:none}
+.setup-court-check{display:none}.setup-court[aria-pressed=true] .setup-court-check{display:block}
+
+.setup-court[data-court=arizona] img{transform:none}

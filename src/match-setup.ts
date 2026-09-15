@@ -1,3 +1,4 @@
+import {COURT_LOCATIONS,type CourtLocation} from './locations';
 import {rosterStarters} from './roster-membership';
 import {CommunitySection} from './community-section';
 import {refreshCommunityDesigns} from './community-players';
@@ -15,7 +16,7 @@ const labels=['Your player','Your partner','Opponent 1','Opponent 2'];
 const assets='/assets/picklebash-select';
 const graphics='/assets/picklebash-ui';
 const escape=(text:string)=>text.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
-const courts=[{id:'forest',name:'The Forest',description:'Shaded courts. Clean rallies.',playable:true},{id:'beach',name:'The Beach',description:'Sun. Sand. High stakes.',playable:false},{id:'mountaintop',name:'The Mountaintop',description:'Higher altitude. Bigger rallies.',playable:false}];
+const courts=COURT_LOCATIONS.map(c=>({...c,playable:true}));
 export class MatchSetup {
  readonly element=document.createElement('main');
  private players:DesignedPlayer[]=[];
@@ -24,14 +25,14 @@ export class MatchSetup {
  private restrictTeam(){for(let i=0;i<2;i++)if(!this.eligible.includes(this.selected[i])){const id=this.eligible.find(id=>!this.selected.slice(0,i).includes(id));if(id){const other=this.selected.indexOf(id);if(other>=0)[this.selected[i],this.selected[other]]=[id,this.selected[i]];else this.selected[i]=id;}}}
  private community=new CommunitySection(players=>this.setRoster(players));
  private starting=false;
- private async startSelected(){if(this.starting||!this.canStart())return;this.starting=true;const button=this.element.querySelector<HTMLButtonElement>('[data-action=start]')!;button.disabled=true;const selection=this.selected.join('|'),mode=this.mode;try{const players=await refreshCommunityDesigns(this.selected.map(id=>this.players.find(p=>p.id===id)!));if(this.element.hidden||this.selected.join('|')!==selection||this.mode!==mode)return;this.start(Object.fromEntries(slots.map((slot,i)=>[slot,players[i]])) as Record<PlayerId,DesignedPlayer>,mode);}catch(e){const status=this.element.querySelector<HTMLElement>('[role=status]')!;status.className='setup-community-error';status.textContent=(e as Error).message;}finally{this.starting=false;button.disabled=false;}}
+ private async startSelected(){if(this.starting||!this.canStart())return;this.starting=true;const button=this.element.querySelector<HTMLButtonElement>('[data-action=start]')!;button.disabled=true;const selection=this.selected.join('|'),mode=this.mode,court=this.court;try{const players=await refreshCommunityDesigns(this.selected.map(id=>this.players.find(p=>p.id===id)!));if(this.element.hidden||this.selected.join('|')!==selection||this.mode!==mode||this.court!==court)return;this.start(Object.fromEntries(slots.map((slot,i)=>[slot,players[i]])) as Record<PlayerId,DesignedPlayer>,mode,court);}catch(e){const status=this.element.querySelector<HTMLElement>('[role=status]')!;status.className='setup-community-error';status.textContent=(e as Error).message;}finally{this.starting=false;button.disabled=false;}}
  private selected:string[]=[];
  private portraits:AvatarThumbnails|undefined;
- private court='forest';
+ private court:CourtLocation='venice';
  private mode:PlayMode='solo';
  private scoring:ScoringMode='rally-doubles';
  private gesture:{slot:number;x:number;y:number;id:number}|null=null;
- constructor(private start:(players:Record<PlayerId,DesignedPlayer>,mode:PlayMode)=>void,back:()=>void,private scoringChanged:(value:ScoringMode)=>void=()=>{}){
+ constructor(private start:(players:Record<PlayerId,DesignedPlayer>,mode:PlayMode,court:CourtLocation)=>void,back:()=>void,private scoringChanged:(value:ScoringMode)=>void=()=>{}){
   this.element.id='match-setup';this.element.hidden=true;this.element.setAttribute('aria-labelledby','setup-title');document.body.append(this.element);
   this.element.addEventListener('change',event=>{const el=event.target as HTMLSelectElement;if(el.id==='setup-scoring'&&(el.value==='rally-doubles'||el.value==='side-out-doubles')){this.scoring=el.value;this.scoringChanged(this.scoring);}});
   this.element.addEventListener('click',event=>{
@@ -44,7 +45,7 @@ export class MatchSetup {
    }
    if(button.dataset.step)this.cycle(Number(button.dataset.slot),Number(button.dataset.step));
    if(button.dataset.court&&courts.some(c=>c.id===button.dataset.court&&c.playable)){
-    this.court=button.dataset.court;this.refresh(`[data-court="${this.court}"]`,'The Forest selected.');
+    this.court=button.dataset.court as CourtLocation;this.refresh(`[data-court="${this.court}"]`,`${courts.find(c=>c.id===this.court)!.name} selected. Same regulation court and gameplay.`);
    }
    if(button.dataset.action==='start')void this.startSelected();
   });
@@ -68,7 +69,7 @@ export class MatchSetup {
  }
  show(saved:DesignedPlayer[],current:(DesignedPlayer|null)[],mode:PlayMode='solo',scoring:ScoringMode='rally-doubles'){
   this.mode=mode;this.scoring=scoring;this.owned=saved;this.eligible=[...saved,...rosterStarters()].map(p=>p.id);
-  const lineup=setupLineup([...saved,...rosterStarters()],current);this.players=lineup.players;this.selected=lineup.selected;this.restrictTeam();this.court='forest';
+  const lineup=setupLineup([...saved,...rosterStarters()],current);this.players=lineup.players;this.selected=lineup.selected;this.restrictTeam();
   this.render();this.element.hidden=false;void this.community.load();window.scrollTo(0,0);this.element.querySelector<HTMLButtonElement>('[data-action=back]')!.focus({preventScroll:true});
  }
  hide(){this.element.hidden=true;this.gesture=null}
@@ -104,8 +105,7 @@ export class MatchSetup {
   this.element.innerHTML=`<div class="setup-shell"><header class="setup-top"><p class="setup-motto">Rally friends.<br>Bash hard<span>✧</span></p><img class="setup-logo" src="${assets}/brand/picklebash-logo.png" alt="PickleBash — a pickleball strategy game"><p class="setup-tagline">Small court.<br>Big energy.<span></span></p><h1 id="setup-title" class="setup-sr-only">Choose your players and court</h1></header>
    <section class="setup-mode" aria-label="Play mode"><div><button type="button" data-mode="solo" aria-pressed="${this.mode==='solo'}">Solo · vs bots</button><button type="button" data-mode="local-human" aria-pressed="${this.mode==='local-human'}">Two players · same device</button></div><p>${this.mode==='solo'?'Your player and a partner against two bots.':'First to 3 points. One person per doubles team. Equal skills, right-handed athletes. Choose your look and take turns.'}</p></section>
    <label class="setup-scoring" for="setup-scoring">Scoring rules <select id="setup-scoring"><option value="rally-doubles" ${this.scoring==='rally-doubles'?'selected':''}>Rally · point for every rally</option><option value="side-out-doubles" ${this.scoring==='side-out-doubles'?'selected':''}>Side-out · serving team scores</option></select></label><div class="setup-matchup"><section class="setup-team setup-home" aria-label="${this.mode==='solo'?'Your team':'Player A team'}"><h2 class="setup-team-title"><img src="${graphics}/banners/picklebash-banner-team-a.png" alt="Team A" draggable="false"></h2><div class="setup-team-players">${card(0)}${card(1)}</div></section><div class="setup-versus" aria-hidden="true"><img src="${graphics}/badges/picklebash-badge-vs.png" alt="" draggable="false"></div><section class="setup-team setup-away" aria-label="${this.mode==='solo'?'Opponent team':'Player B team'}"><h2 class="setup-team-title"><img src="${graphics}/banners/picklebash-banner-team-b.png" alt="Team B" draggable="false"></h2><div class="setup-team-players">${card(2)}${card(3)}</div></section></div>
-   <div class="setup-lower"><section class="setup-locations" aria-labelledby="setup-location-title"><h2 id="setup-location-title">Choose a location</h2><div class="setup-courts">${courts.map(c=>`<button type="button" data-court="${c.id}" class="setup-court ${c.playable?'setup-playable':'setup-locked'}" ${c.playable?`aria-pressed="${this.court===c.id}"`:'disabled'} aria-label="${c.name}${c.playable?', playable':', locked, coming soon'}"><img src="${assets}/locations/${c.id}.jpg" alt="" draggable="false">${c.playable?'<span class="setup-court-check" aria-hidden="true">✓</span>':`<span class="setup-coming">Coming soon</span><span class="setup-lock">${lock}</span>`}<strong>${c.name}</strong><small>${c.description}</small></button>`).join('')}</div></section><button type="button" class="setup-start" data-action="start" aria-label="Start Match" ${this.canStart()?'':'disabled'}><img src="${graphics}/buttons/picklebash-button-start-match.png" alt="" draggable="false"></button></div>
+   <div class="setup-lower"><section class="setup-locations" aria-labelledby="setup-location-title"><h2 id="setup-location-title">Choose a location</h2><div class="setup-courts">${courts.map(c=>`<button type="button" data-court="${c.id}" class="setup-court ${c.playable?'setup-playable':'setup-locked'}" ${c.playable?`aria-pressed="${this.court===c.id}"`:'disabled'} aria-label="${c.name}${c.playable?', playable':', locked, coming soon'}"><img src="${c.image}" alt="" draggable="false">${c.playable?'<span class="setup-court-check" aria-hidden="true">✓</span>':`<span class="setup-coming">Coming soon</span><span class="setup-lock">${lock}</span>`}<strong>${c.name}</strong><small>${c.description}</small></button>`).join('')}</div></section><button type="button" class="setup-start" data-action="start" aria-label="Start Match" ${this.canStart()?'':'disabled'}><img src="${graphics}/buttons/picklebash-button-start-match.png" alt="" draggable="false"></button></div>
    <footer class="setup-footer"><button type="button" data-action="back"><span aria-hidden="true">←</span> Back</button><button type="button" data-action="random"><span aria-hidden="true">⤨</span> Shuffle matchup</button><p>Choose any player, then let’s play.</p></footer><p class="setup-sr-only" role="status" aria-live="polite" aria-atomic="true"></p></div>`;
-  this.element.querySelector('.setup-shell')!.append(this.community.element);
  }
 }

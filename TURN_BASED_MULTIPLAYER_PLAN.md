@@ -1,6 +1,6 @@
 # PickleBash: Turn-Based Multiplayer Plan
 
-Status: Phases 1 and 2 reviewed/tested. Phase 3 implemented; existing-project hosted Auth/database and two-session browser checks passed. Public deployment and two-physical-device acceptance remain pending. September 14, 2026. See [Phase 3 implementation notes](docs/PHASE-3-REMOTE.md).
+Status: Phases 1–3 implemented and deployed; the user confirmed successful two-device remote play. The user also confirmed match creation and joining friends' matches. Multiplayer home exists and needs substantial design updates. The active product direction is social-first; see [the current backlog](docs/BACKLOG.md). Phase descriptions below remain acceptance references, not an assertion that every listed feature is still unbuilt.
 
 **Outcome:** two friends can invite, play a complete asynchronous match, leave between turns, resume on another device, finish, see their series update, and start a rematch. Preserve the existing court, athletes, shot mechanics, scoring, and solo game.
 

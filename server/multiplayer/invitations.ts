@@ -10,7 +10,7 @@ export function parseTeam(value:unknown):TeamSelection {
  if(!Array.isArray(value)||value.length!==2)throw new ApiError(400,'team','Choose your player and partner.');
  try{const team=value.map(validatePlayer) as TeamSelection;if(team[0].id===team[1].id)throw Error();return team}catch{throw new ApiError(400,'team','Choose two different players.');}
 }
-export interface InviteRow {id:string;creator_id:string;recipient_id:string;team:TeamSelection;court:'forest';scoring:InviteRequest['scoring'];status:Invitation['status'];created_at:string;match_id:string|null;request_id:string;request_hash:string;accept_hash?:string}
+export interface InviteRow {id:string;creator_id:string;recipient_id:string;team:TeamSelection;court:'forest'|'venice'|'arizona';scoring:InviteRequest['scoring'];status:Invitation['status'];created_at:string;match_id:string|null;request_id:string;request_hash:string;accept_hash?:string}
 export type CloseInvitationAction='decline'|'cancel'|'delete';
 export interface InviteRepository {close(id:string,actor:string,action:CloseInvitationAction):Promise<InviteRow>;list(actor:string):Promise<InviteRow[]>;get(id:string,actor:string):Promise<InviteRow|null>;create(row:InviteRow):Promise<InviteRow>;accept(id:string,actor:string,hash:string,match:StoredMatch):Promise<StoredMatch>}
 export class SupabaseInviteRepository implements InviteRepository {
@@ -29,7 +29,7 @@ export class InvitationService {
  async get(id:string,actor:string){const r=await this.repo.get(id,actor);if(!r)throw missing();return this.view(r)}
  async close(id:string,actor:string,action:CloseInvitationAction){const r=await this.repo.get(id,actor);if(!r)throw missing();if((action==='decline'?r.recipient_id:r.creator_id)!==actor)throw new ApiError(403,'invitation','This action is not available to you.');return this.view(await this.repo.close(id,actor,action))}
  async create(actor:string,input:any){
-  if(!input||Object.keys(input).some(k=>!['requestId','opponentId','team','court','scoring'].includes(k))||!uuid(input.requestId)||!uuid(input.opponentId)||input.opponentId===actor||input.court!=='forest'||!['rally-doubles','side-out-doubles'].includes(input.scoring))throw new ApiError(400,'invitation','Choose a player, team, court, and scoring.');
+  if(!input||Object.keys(input).some(k=>!['requestId','opponentId','team','court','scoring'].includes(k))||!uuid(input.requestId)||!uuid(input.opponentId)||input.opponentId===actor||!['forest','venice','arizona'].includes(input.court)||!['rally-doubles','side-out-doubles'].includes(input.scoring))throw new ApiError(400,'invitation','Choose a player, team, court, and scoring.');
   if(!this.matches.config(actor).creationEnabled||!this.names.has(input.opponentId))throw new ApiError(403,'invitation','This player cannot be invited.');
   const parsed=parseTeam(input.team),normalized={...input,team:parsed},team=await this.resolveTeam(parsed);return this.view(await this.repo.create({id:randomUUID(),creator_id:actor,recipient_id:input.opponentId,team,court:input.court,scoring:input.scoring,status:'pending',created_at:new Date().toISOString(),match_id:null,request_id:input.requestId,request_hash:requestHash(normalized)}));
  }
@@ -37,7 +37,7 @@ export class InvitationService {
   const r=await this.repo.get(id,actor);if(!r)throw missing();if(r.recipient_id!==actor)throw new ApiError(403,'invitation','Only the invited player can accept.');
   if(!input||Object.keys(input).some(k=>k!=='team'))throw new ApiError(400,'team','Choose your team.');const parsed=parseTeam(input.team),team=r.status==='pending'?await this.resolveTeam(parsed):parsed;
   const match=this.matches.prepare(actor,{creationId:r.id,opponentId:r.creator_id,scoring:r.scoring,roster:{you:team[0],partner:team[1],'opponent-left':r.team[0],'opponent-right':r.team[1]}});
-  match.id=r.id;match.checkpoint.matchId=r.id;
+  match.id=r.id;match.checkpoint.matchId=r.id;match.checkpoint.court=r.court;
   return publicMatch(await this.repo.accept(id,actor,requestHash(parsed),match),actor,this.names);
  }
 }

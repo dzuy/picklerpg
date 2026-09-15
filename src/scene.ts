@@ -1,3 +1,4 @@
+import {ArizonaDesert} from './arizona-desert';
 import {viewerPoint} from './engine/controllers';
 import {ballDisplayScale,bouncePulse,cameraBlend,courtOverlayOffset} from './scene-readability';
 import {styleCourtAthlete} from './athlete-rendering';
@@ -5,6 +6,8 @@ import {athletePose} from './athlete-motion';
 import type {DesignedPlayer} from './player-design';
 import * as THREE from 'three';
 import {CourtTrees} from './trees';
+import {VeniceSunset} from './venice-sunset';
+import {LOCATION_PALETTES,type CourtLocation} from './locations';
 import {createPickleball} from './pickleball';
 import {createAthlete, animateAthlete, disposeAthlete, setAthleteHandedness} from './athlete';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
@@ -24,6 +27,11 @@ export class CourtScene {
  private speedStreak=new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(),new THREE.Vector3()]),new THREE.LineBasicMaterial({color:'#e6fa42',transparent:true,opacity:.7}));
  private bounceRing=new THREE.Mesh(new THREE.RingGeometry(.82,1,40),new THREE.MeshBasicMaterial({color:'#f0ff91',transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false}));
  private trees=new CourtTrees();
+ private forestFurniture=new THREE.Group();
+ private venice:VeniceSunset|undefined;
+ private arizona:ArizonaDesert|undefined;
+ private location:CourtLocation='forest';
+ private surfaces:THREE.Mesh<THREE.BoxGeometry,THREE.MeshStandardMaterial>[]=[];
  private motion=new Map<PlayerId,{x:number;z:number;distance:number;time:number}>();
  private retainedTrajectory:RallyShot|null=null;
  setRetainedTrajectory(shot:RallyShot|null){this.retainedTrajectory=shot}
@@ -66,7 +74,7 @@ export class CourtScene {
   this.scene.add(new THREE.HemisphereLight('#e4f2ff','#91a58d',2.1));const sun=new THREE.DirectionalLight('#fff1d8',2.9);sun.position.set(-9,18,10);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-14,right:14,top:14,bottom:-14});sun.shadow.bias=-.00015;sun.shadow.normalBias=.022;sun.shadow.radius=2;sun.shadow.camera.near=.5;sun.shadow.camera.far=65;sun.shadow.camera.updateProjectionMatrix();this.scene.add(sun);
   const rim=new THREE.DirectionalLight('#e0f4ff',1.1);rim.position.set(8,9,-10);this.scene.add(rim);
   const faceFill=new THREE.DirectionalLight('#fff6e9',.65);faceFill.position.set(0,4,12);this.scene.add(faceFill);
-  this.box(340,.15,340,0,-.22,0,'#76A64B');this.box(12,.16,21,0,-.1,0,'#178668');this.box(COURT.width+.32,.04,COURT.length+.32,0,-.005,0,'#07505A');this.box(COURT.width,.03,COURT.length,0,.025,0,'#08AABB');this.box(COURT.width,.012,COURT.kitchen*2,0,.047,0,'#83D9C9');
+  this.surfaces=[this.box(340,.15,340,0,-.22,0,'#76A64B'),this.box(12,.16,21,0,-.1,0,'#178668'),this.box(COURT.width+.32,.04,COURT.length+.32,0,-.005,0,'#07505A'),this.box(COURT.width,.03,COURT.length,0,.025,0,'#08AABB'),this.box(COURT.width,.012,COURT.kitchen*2,0,.047,0,'#83D9C9')];
   const w=COURT.width,l=COURT.length,k=COURT.kitchen,t=COURT.line;
   for(const x of [-w/2+t/2,w/2-t/2])this.box(t,.009,l,x,.06,0,'#F7F5EB');
   for(const z of [-l/2+t/2,l/2-t/2])this.box(w,.009,t,0,.06,z,'#F7F5EB');
@@ -84,6 +92,20 @@ export class CourtScene {
   this.bounceRing.rotation.x=-Math.PI/2;this.scene.add(this.heightGuide,this.speedStreak,this.bounceRing);
   new ResizeObserver(()=>this.resize()).observe(host);this.resize();
  }
+ setLocation(location:CourtLocation){
+  this.location=location;
+  const palette=LOCATION_PALETTES[location];
+  const colors=[palette.ground,palette.apron,palette.border,palette.court,palette.kitchen];
+  this.surfaces.forEach((surface,i)=>surface.material.color.set(colors[i]));
+  this.scene.background=new THREE.Color(palette.sky);this.scene.fog=new THREE.Fog(palette.sky,105,172);
+  this.trees.group.visible=location==='forest';
+  this.forestFurniture.visible=location==='forest';
+  if(location==='venice'&&!this.venice){this.venice=new VeniceSunset();this.scene.add(this.venice.group)}
+  if(this.venice)this.venice.group.visible=location==='venice';
+  if(location==='arizona'&&!this.arizona){this.arizona=new ArizonaDesert();this.scene.add(this.arizona.group)}
+  if(this.arizona)this.arizona.group.visible=location==='arizona';
+  this.renderer.domElement.dataset.location=location;
+ }
  private box(w:number,h:number,d:number,x:number,y:number,z:number,color:string){const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color,roughness:1}));mesh.position.set(x,y,z);mesh.receiveShadow=true;this.scene.add(mesh);return mesh}
  private net(){
   const points:THREE.Vector3[]=[];const top=(x:number)=>COURT.netCenter+(COURT.netSideline-COURT.netCenter)*(x/(COURT.width/2))**2;
@@ -98,6 +120,7 @@ export class CourtScene {
   }this.box(.032,COURT.netCenter,.015,0,COURT.netCenter/2,.01,'#F8FCFF');
  }
  private environment(){
+  const furnitureStart=this.scene.children.length;
   for(const x of [-4.6,4.6]){
    const side=Math.sign(x);
    // Slatted seats and backs, supported by a dark metal frame.
@@ -111,6 +134,8 @@ export class CourtScene {
    bottle.position.set(x,.64,-5.2);bottle.castShadow=true;this.scene.add(bottle);
    this.box(.055,.035,.055,x,.76,-5.2,'#294b40');
   }
+  for(const child of this.scene.children.slice(furnitureStart))this.forestFurniture.add(child);
+  this.scene.add(this.forestFurniture);
  }
  getPlayerAppearance(id:PlayerId){return {...this.players.get(id)!.userData.appearance} as DesignedPlayer['appearance']}
  setPlayerDesign(player:DesignedPlayer|null){this.substitutePlayer('you',player)}
@@ -244,6 +269,7 @@ export class CourtScene {
   const pulse=bounce?bouncePulse(state.simulationTime-bounce.time):null;
   this.bounceRing.visible=!!pulse;
   if(pulse&&bounce?.type==='bounce'){this.bounceRing.position.set(bounce.position.x,.065,bounce.position.z);this.bounceRing.scale.setScalar(pulse.radius);this.bounceRing.material.opacity=pulse.opacity}
-  this.trees.update(this.camera,this.ball.position,[...this.players.values()].map(player=>player.position.clone().add(new THREE.Vector3(0,1,0))));this.renderer.render(this.scene,this.camera);
+  if(this.location==='forest')this.trees.update(this.camera,this.ball.position,[...this.players.values()].map(player=>player.position.clone().add(new THREE.Vector3(0,1,0))));
+  else (this.location==='arizona'?this.arizona:this.venice)?.update(this.camera,[this.ball.position,...[...this.players.values()].map(player=>player.position.clone().add(new THREE.Vector3(0,1,0))),...[-1,1].flatMap(x=>[-1,1].map(z=>new THREE.Vector3(x*COURT.width/2,0,z*COURT.length/2)))]);this.renderer.render(this.scene,this.camera);
  }
 }

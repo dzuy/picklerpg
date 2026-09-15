@@ -52,6 +52,12 @@ app.insertAdjacentHTML('beforeend','<dialog id="player-drawer" aria-labelledby="
 await preloadAthletes();
 const match=new Match();match.partnerAutonomy=true;match.randomizeSeedOnReset=true;let scene:CourtScene;
 try{scene=new CourtScene(document.querySelector('#court')!,id=>openPlayerDrawer(id))}catch(error){document.querySelector('#court')!.innerHTML='<div class="webgl-error"><h2>3D rendering is unavailable</h2><p>Enable hardware acceleration in your browser, then reload to play.</p></div>';throw error}
+function applyCourtLocation(court:'forest'|'venice'|'arizona'){
+ scene.setLocation(court);const locationLabel=document.querySelector<HTMLElement>('.court-chip')!;locationLabel.hidden=court!=='forest';locationLabel.textContent=court==='forest'?'THE FOREST':'';document.body.dataset.location=court;
+ try{localStorage.setItem('picklebash-location-v1',court)}catch{/* Cosmetic choice still works without storage. */}
+}
+let savedCourt:'forest'|'venice'|'arizona'='forest';try{const saved=localStorage.getItem('picklebash-location-v1');if(saved==='venice'||saved==='arizona')savedCourt=saved}catch{}
+applyCourtLocation(savedCourt);
 const byId=(id:string)=>document.getElementById(id)!;
  const turnBanner=document.createElement('p');turnBanner.id='local-turn-banner';turnBanner.setAttribute('role','status');turnBanner.hidden=true;document.querySelector('.court-wrap')!.append(turnBanner);
 let speed=1;let guides=true,showPlayerNames=true,resultTimer=true,cameraDistance=50,lastUI='';
@@ -528,7 +534,8 @@ function syncPointResult(dt:number){
 }
 
 let setupReturnsToCourt=false;
-const matchup=new MatchSetup((players,mode)=>{
+const matchup=new MatchSetup((players,mode,court)=>{
+ applyCourtLocation(court);
  if(mode==='local-human'){document.body.classList.remove('shots-collapsed');match.startLocalHumanMatch(players);for(const slot of courtSlots)scene.substitutePlayer(slot,match.getPlayerDesign(slot));syncRosterNames();matchup.hide();enterCourt(false);return;}
  if(match.isLocalHuman)match.startSoloMatch();
  for(const slot of courtSlots){match.lineup[slot]=playerArchetype(players[slot]);match.substitutePlayer(slot,players[slot]);scene.substitutePlayer(slot,players[slot])}

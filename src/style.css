@@ -554,3 +554,6 @@ body[data-screen=start]{overflow:hidden;background:#001331}
 
 body.local-human-mode.match-mode[data-panel=play] .shot-strip .choice-target{display:block;font-size:10px;color:inherit;opacity:.75}
 body.local-human-mode.match-mode[data-panel=play] #match-panel .shot-strip>.match-choice>.shot-visual+span{flex-direction:column}
+/* Location tag sits clear of the scoreboard and the playing surface. */
+body[data-location] .court-chip{display:block;position:absolute;left:12px;top:140px;white-space:nowrap;background:#fff2dfeb;color:#694759;border:1px solid #ffffff80;font-size:9px;letter-spacing:1px;padding:7px 10px;border-radius:6px;pointer-events:none}
+@media(max-width:760px){body[data-location] .court-chip{top:102px;font-size:8px;padding:5px 7px}}

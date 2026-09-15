@@ -1,6 +1,6 @@
 # Phase 3 — Remote asynchronous test slice
 
-Implemented and tested against the existing picklebash Supabase project September 14, 2026. Hosted database/Auth acceptance and two isolated real-login browser sessions passed. Deployment and the two-physical-device acceptance test remain pending. Phase 4 is not started.
+Implemented and deployed to the existing PickleBash service. Hosted database/Auth acceptance and two isolated real-login browser sessions passed. The user has now confirmed that the two-physical-device playtest works. Later invitation and lobby work is recorded below; the original Phase 3 scope is retained as historical context.
 
 ## What is implemented
 
@@ -45,7 +45,7 @@ Set `MULTIPLAYER_CREATE_ENABLED=false` to stop creation while preserving existin
 
 ## Remaining Phase 3 acceptance work
 
-The existing `picklebash` project (`vwdtfnljcjbyokdvjiea`) now has both Phase 3 migrations applied through its authenticated Dashboard SQL Editor. Server credentials and the two dedicated test accounts plus the existing protected account are configured locally in ignored files. No public Node deployment was made. Deploy the tested server with its environment configuration and perform the two-physical-device test above before calling Phase 3 complete.
+The existing `picklebash` project (`vwdtfnljcjbyokdvjiea`) now has both Phase 3 migrations applied through its authenticated Dashboard SQL Editor. Server credentials and the two dedicated test accounts plus the existing protected account are configured locally in ignored files. The Node service has since been deployed to picklebash.app (see Railway rollout below). The user subsequently confirmed the two-physical-device test, completing that outstanding Phase 3 acceptance step.
 
 Public invites, social home, rematch/rivalry, notifications, and release-wide resilience remain later phases. The tester list is deliberately small and unpaginated (latest 30 games), and rate limiting is per process for the controlled beta. Animation is a compact committed movement sample, not full replay persistence. Persistent notification delivery and multiple retained remote engine implementations are not part of this increment.
 
@@ -118,3 +118,7 @@ Migration `202609140005_community_players.sql` has been applied to the shared da
 Your Roster contains owned custom players, added Community Players, and selected Starting Lineup characters. Emma and Leo are included by default. Community and Starting Lineup appear below as sources with Add to roster actions; adding a shared player preserves the existing creator reference. Starting Lineup membership is saved in account metadata (or locally when signed out). Team selection uses roster membership for the user's two slots; solo opponents can still come from the full Starting Lineup. Existing matches retain their lineups. Cards share the roster design, full-width names, and blue DUPR badges.
 
 Migration `202609140006_community_creator_names.sql` uses the creator's signup player name and has been applied to the shared database.
+
+## Current Phase 3 verification
+
+A fresh verification confirmed HTTP 200 from the deployed health endpoint and HTTP 401 from the multiplayer match endpoint without credentials. All 16 focused remote engine/session/playback/targeting, disposable PostgreSQL, and emitted-server HTTP tests passed. This check did not deploy or alter live match data. The user subsequently confirmed successful two-physical-device play and creating/joining friends’ matches. Earlier real-login browser acceptance is documented above.
