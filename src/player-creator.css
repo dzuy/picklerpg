@@ -360,3 +360,5 @@
 }
 
 .roster-grid .roster-card .roster-card-identity .roster-role{max-width:calc(100% - 54px);box-sizing:border-box}
+
+#player-creator .roster-top>.creator-close{padding:0!important}#player-creator .creator-close svg{width:28px;height:28px;display:block;pointer-events:none;flex:none}

@@ -8,6 +8,8 @@ import {InvitationService,SupabaseInviteRepository} from './invitations';
 import {resolvePublicTeam} from './public-players';
 import {uuid} from './validation';
 import {configuredPush,type PushService} from './push';
+import {TrashTalkService} from './trash-talk';
+import {NudgeService} from './nudges';
 export type Authenticate=(token:string)=>Promise<string>;
 function send(res:ServerResponse,status:number,value:unknown){res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}).end(JSON.stringify(value));}
 async function body(req:IncomingMessage){
@@ -16,7 +18,7 @@ async function body(req:IncomingMessage){
  for await(const chunk of req){size+=chunk.length;if(size>32768)throw new ApiError(413,'too_large','Request is too large.');chunks.push(Buffer.from(chunk));}
  try{return JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{throw new ApiError(400,'invalid_json','Invalid JSON.');}
 }
-export function createMatchHandler(service:MatchService,authenticate:Authenticate,register?: (input:unknown)=>Promise<unknown>,invitations?:InvitationService,push?:PushService){
+export function createMatchHandler(service:MatchService,authenticate:Authenticate,register?: (input:unknown)=>Promise<unknown>,invitations?:InvitationService,push?:PushService,nudges?:NudgeService,trashTalk?:TrashTalkService){
  const buckets=new Map<string,{start:number;count:number}>();
  function limit(key:string,max:number){const now=Date.now();let b=buckets.get(key);if(!b||now-b.start>=60000){if(buckets.size>=5000)for(const [k,v] of buckets)if(now-v.start>=60000)buckets.delete(k);if(buckets.size>=5000)throw new ApiError(429,'busy','Try again shortly.');b={start:now,count:0};buckets.set(key,b);}if(++b.count>max)throw new ApiError(429,'rate_limited','Too many requests. Try again shortly.');}
  return async(req:IncomingMessage,res:ServerResponse)=>{
@@ -56,6 +58,17 @@ export function createMatchHandler(service:MatchService,authenticate:Authenticat
     if(req.method==='GET'){send(res,200,await service.list(actor));return;}
     if(req.method==='POST'){if(invitations)throw new ApiError(400,'invitation_required','Send an invitation to start a new game.');limit(`create:${actor}`,6);send(res,201,await service.create(actor,await body(req)));return;}
    }
+   const nudge=pathname.match(/^\/api\/matches\/([^/]+)\/nudge$/);
+   if(nudge&&uuid(nudge[1])&&nudges){
+    const id=nudge[1].toLowerCase();
+    if(req.method==='GET'){send(res,200,await nudges.status(id,actor));return;}
+    if(req.method==='POST'){if(!nudges.unlimited)limit(`nudge:${actor}`,12);send(res,200,await nudges.send(id,actor,await body(req)));return;}
+   }
+   const chat=pathname.match(/^\/api\/matches\/([^/]+)\/trash-talk$/);
+   if(chat&&uuid(chat[1])&&trashTalk){
+    if(req.method==='GET'){send(res,200,await trashTalk.feed(chat[1],actor));return;}
+    if(req.method==='POST'){limit(`chat:${actor}`,30);send(res,200,await trashTalk.send(chat[1],actor,await body(req)));return;}
+   }
    const archive=pathname.match(/^\/api\/matches\/([^/]+)\/archive$/);
    if(archive&&uuid(archive[1])&&req.method==='POST'){send(res,200,await service.archive(archive[1],actor,await body(req)));return;}
    const match=pathname.match(/^\/api\/matches\/([^/]+)(\/actions)?$/);
@@ -81,5 +94,5 @@ export function configuredMatchHandler(env:NodeJS.ProcessEnv=process.env){
  const register=env.MULTIPLAYER_CREATE_ENABLED==='true'?async(input:unknown)=>{const result=await registerPlaytester(client,input);refreshed=0;return result;}:undefined;
  const push=configuredPush(client,env);
  const service=new MatchService(new SupabaseMatchRepository(client),testers,env.MULTIPLAYER_CREATE_ENABLED==='true',push?event=>push.notify(event):undefined);
- return createMatchHandler(service,authenticate,register,new InvitationService(new SupabaseInviteRepository(client),service,testers,team=>resolvePublicTeam(client,team)),push);
+ return createMatchHandler(service,authenticate,register,new InvitationService(new SupabaseInviteRepository(client),service,testers,team=>resolvePublicTeam(client,team)),push,new NudgeService(client,testers,push?event=>push.notifyNudge(event):undefined,env.NUDGE_TEST_UNLIMITED==='true'),new TrashTalkService(client));
 }

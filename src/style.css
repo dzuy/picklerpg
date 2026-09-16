@@ -523,9 +523,9 @@ body[data-screen=start]{overflow:hidden;background:#001331}
 .start-stage{position:relative;width:min(100%,56.28dvh);height:100%;background:#00183f;box-shadow:0 0 70px #0007}
 .start-background{display:block;width:100%;height:auto;max-height:100%;object-fit:contain;object-position:top;pointer-events:none;user-select:none;mask-image:linear-gradient(#000 82%,transparent 100%)}
 .start-accessible-title{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
-.start-actions{position:absolute;left:11%;right:11%;bottom:max(5%,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:clamp(40px,8dvh,72px)}
+.start-actions{position:absolute;left:11%;right:11%;bottom:max(5%,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:clamp(6px,1.2dvh,12px)}
 .start-actions button{display:block;width:100%;min-height:44px;margin:0;padding:0;border:0;border-radius:14px;background:transparent;cursor:pointer;touch-action:manipulation;transition:transform .15s ease,filter .15s ease;-webkit-tap-highlight-color:transparent}
-#start-roster{width:84%;align-self:center;position:relative;top:clamp(-48px,-5dvh,-24px)}
+#start-roster{width:84%;align-self:center;position:relative;top:0}
 .start-actions img{display:block;width:100%;height:auto;user-select:none;filter:drop-shadow(0 5px 8px #00133180)}
 .start-actions button:focus-visible{outline:3px solid #3578ff;outline-offset:5px}
 @media(hover:hover){.start-actions button:hover{transform:scale(1.035);filter:brightness(1.1)}}

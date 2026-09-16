@@ -29,6 +29,9 @@ export class TeamPicker {
    const controls=document.createElement('div');controls.className='roster-card-actions remote-team-controls';for(const step of [-1,1]){const button=document.createElement('button');button.type='button';button.dataset.teamSlot=String(i);button.dataset.teamStep=String(step);button.textContent=step<0?'‹ Previous':'Next ›';button.setAttribute('aria-label',`${step<0?'Previous':'Next'} ${i?'partner':'player'}`);button.onclick=()=>{this.lineup.selected=cyclePlayer(this.lineup.players.map(p=>p.id),this.lineup.selected.slice(0,2),i,step);this.draw();this.host.querySelector<HTMLButtonElement>(`[data-team-slot="${i}"][data-team-step="${step}"]`)?.focus()};controls.append(button)}
    card.append(controls);this.host.append(card);
   });
+  if(this.lineup.selected.length<2){
+   const empty=document.createElement('p');empty.className='remote-team-empty';empty.setAttribute('role','status');empty.textContent='Choose two players below to complete your team. Add them to Your Roster, then accept the game.';this.host.append(empty,this.community.element);
+  }
   const note=document.createElement('p');note.className='remote-team-stat-note';note.textContent='Player ratings shown. Multiplayer currently uses equal gameplay skills.';this.host.append(note);
  }
 }

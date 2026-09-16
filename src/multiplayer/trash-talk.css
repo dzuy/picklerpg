@@ -1,0 +1,29 @@
+.trash-talk{position:absolute;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:45;pointer-events:none;font-family:inherit}
+.trash-talk button,.trash-talk input{font:inherit}
+.remote-app .trash-toggle{pointer-events:auto;display:grid;place-items:center;width:56px;height:56px;padding:0;border:0;border-radius:50%;background:#071a43ed;color:#f8fcff;box-shadow:inset 0 0 0 1px #12e1f3,0 2px 8px #071a4344;cursor:pointer;transition:filter .16s,scale .16s}
+.trash-toggle svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.trash-panel{position:absolute;right:0;bottom:64px;width:min(330px,calc(100vw - 32px));padding:12px;border:1px solid #12e1f3;border-left:5px solid #3276ff;border-radius:16px;background:#071a43ed;box-shadow:0 6px 22px #03122f66;opacity:0;visibility:hidden;transform:translateY(14px);transition:transform .2s ease,opacity .2s ease,visibility .2s;color:#f8fcff;pointer-events:none;box-sizing:border-box;backdrop-filter:blur(8px)}
+.is-open .trash-panel{opacity:1;visibility:visible;transform:translateY(0);pointer-events:auto}
+.trash-options{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px;margin:0 0 10px}
+.remote-app .trash-options button{display:grid;place-items:center;min-width:0;min-height:38px;padding:2px;border:0;border-radius:50%;background:transparent;color:#f8fcff;font-size:26px;line-height:1;cursor:pointer}
+.remote-app .trash-options button:hover{background:#ffffff14}
+.trash-recents{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 9px}
+.trash-recents[hidden]{display:none}
+.remote-app .trash-recents button{min-width:0;max-width:100%;padding:5px 9px;border:1px solid #3b6c87;border-radius:999px;background:#ffffff12;color:#f8fcff;font-size:12px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.remote-app .trash-recents button:hover{border-color:#12e1f3;background:#ffffff1f}
+.trash-entry{display:flex;gap:6px}
+#app.remote-app .trash-entry input{min-width:0;width:100%;height:40px;margin:0;padding:8px 10px;border:1px solid #3b6c87;border-radius:9px;background:#f8fcff;color:#071a43;font-size:14px}
+#app.remote-app .trash-entry input:focus{border-color:#12e1f3;outline:0}
+.remote-app .trash-entry button{display:grid;place-items:center;flex:0 0 40px;width:40px;height:40px;min-height:40px;padding:0;border:1px solid #12e1f3;border-radius:9px;background:#3276ff;color:#fff;cursor:pointer}
+.trash-entry button svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.trash-footer{display:flex;justify-content:space-between;gap:10px;min-height:14px;margin-top:6px;color:#adc8ff;font-size:10px;line-height:1.4}
+.trash-footer small{white-space:nowrap}
+.trash-bubble{position:absolute;z-index:40;pointer-events:none;transform:translate(-50%,-100%);min-width:52px;max-width:min(280px,68vw);padding:12px 17px;border:1px solid #12e1f3;border-radius:16px;background:#fffdf6;color:#071a43;box-shadow:0 5px 16px #03122f66;font-size:18px;font-weight:800;line-height:1.3;overflow-wrap:anywhere;text-align:center}
+.trash-bubble.is-emoji{font-size:32px;line-height:1.1}
+.trash-bubble:after{content:'';position:absolute;bottom:-9px;left:calc(50% - 7px);width:14px;height:14px;background:#fffdf6;border-right:1px solid #12e1f3;border-bottom:1px solid #12e1f3;transform:rotate(45deg)}
+.trash-talk[hidden],.trash-bubble[hidden]{display:none}
+.trash-talk :focus-visible{outline:3px solid #12e1f3;outline-offset:3px}
+@media(hover:hover){.remote-app .trash-toggle:hover{filter:drop-shadow(0 0 8px #12e1f388);scale:1.05}}
+@media(prefers-reduced-motion:reduce){.trash-panel,.remote-app .trash-toggle{transition:none}}
+
+@media(max-width:760px){body.remote-playing .remote-move-banner{bottom:70px}.trash-talk{right:10px;bottom:calc(12px + env(safe-area-inset-bottom))}.remote-app .trash-toggle{width:46px;height:46px}.trash-toggle svg{width:22px;height:22px}.trash-panel{bottom:54px;width:min(320px,calc(100vw - 20px));max-height:calc(100dvh - 78px);overflow-y:auto}.trash-options{gap:4px}.remote-app .trash-options button{min-height:40px;font-size:28px}}

@@ -174,6 +174,7 @@ export class CourtScene {
   const offset=courtOverlayOffset(w,h,this.bottomOverlay,Number.isFinite(bottom)?bottom:h/2,elevation);
   this.camera.setViewOffset(w,h,0,offset,w,h);
  }
+ projectSpeech(point:{x:number;z:number}){const p=new THREE.Vector3(point.x,2.5,point.z).project(this.camera);return {x:(p.x*.5+.5)*this.host.clientWidth,y:(-p.y*.5+.5)*this.host.clientHeight,visible:p.z>=-1&&p.z<=1}}
  setPlayerNames(visible:boolean){for(const label of this.labels.values())label.hidden=!visible}
  setGuides(value:boolean){this.guides=value}
  setShotPreview(shot:RallyShot|null){this.previewShot=shot;this.lastShot=null}

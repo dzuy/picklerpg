@@ -35,11 +35,19 @@ export class PushService {
  async notify(event:TurnReady){
   const {data:claimed,error}=await this.client.rpc('claim_turn_push',{p_match_id:event.matchId,p_version:event.version,p_user_id:event.userId});
   if(error)throw Error('push claim');if(!claimed)return;
+  await this.deliverToUser(event,'turn');
+ }
+ async notifyNudge(event:TurnReady){
+  const {data,error}=await this.client.from('async_matches').select('id').eq('id',event.matchId).eq('version',event.version).eq('status','active').eq('current_action_user_id',event.userId).maybeSingle();
+  if(error)throw Error('nudge match check');if(!data)return;
+  await this.deliverToUser(event,'nudge');
+ }
+ private async deliverToUser(event:TurnReady,type:'turn'|'nudge'){
   const {data:rows,error:readError}=await this.client.from('push_subscriptions').select('id,endpoint,p256dh,auth,active_until').eq('user_id',event.userId);
   if(readError)throw Error('push subscriptions');
   // Any active device means the account is already seeing normal match updates.
   if(rows?.some(row=>Date.parse(row.active_until)>Date.now()))return;
-  const payload=JSON.stringify({type:'turn',matchId:event.matchId,version:event.version,opponentName:event.opponentName.slice(0,32)});
+  const payload=JSON.stringify({type,matchId:event.matchId,version:event.version,opponentName:event.opponentName.slice(0,32)});
   await Promise.allSettled((rows??[]).map(async row=>{
    try{
     await this.deliver({endpoint:row.endpoint,keys:{p256dh:row.p256dh,auth:row.auth}},payload,{TTL:300,urgency:'normal',timeout:5000,vapidDetails:{subject:this.subject,publicKey:this.publicKey,privateKey:this.privateKey}});

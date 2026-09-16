@@ -15,7 +15,7 @@ function fakeStore(rows:any[]){
  const operations:any[]=[];let claimed=false;
  const client:any={rpc:async()=>({data:!claimed&&(claimed=true),error:null}),from:(table:string)=>{
   const op:any={table,filters:[]};operations.push(op);
-  const q:any={select:()=>{op.kind='select';return q},upsert:(v:any)=>{op.kind='upsert';op.value=v;return q},update:(v:any)=>{op.kind='update';op.value=v;return q},delete:()=>{op.kind='delete';return q},eq:(key:string,value:any)=>{op.filters.push([key,value]);return q},then:(resolve:any)=>Promise.resolve({data:rows,error:null}).then(resolve)};return q;
+  const q:any={select:()=>{op.kind='select';return q},upsert:(v:any)=>{op.kind='upsert';op.value=v;return q},update:(v:any)=>{op.kind='update';op.value=v;return q},delete:()=>{op.kind='delete';return q},eq:(key:string,value:any)=>{op.filters.push([key,value]);return q},maybeSingle:async()=>({data:rows.length?{id:event.matchId}:null,error:null}),then:(resolve:any)=>Promise.resolve({data:rows,error:null}).then(resolve)};return q;
  }};
  return {client,operations};
 }
@@ -69,4 +69,18 @@ test('worker shows required notification, reuses match window, and routes closed
  let focused=false,navigated='';const reused=await worker([{url:'https://pickle.test/?multiplayer=1',focus:async()=>focused=true,navigate:async(url:string)=>{navigated=url;return {}}}]);await reused.fire('notificationclick',{notification});assert.ok(focused);assert.equal(navigated,w.opened[0]);assert.equal(reused.opened.length,0);
  await w.fire('notificationclick',{notification:{data:{url:'https://evil.test/'},close(){}}});assert.equal(w.opened[1],'https://pickle.test/?multiplayer=1');
  assert.equal(w.handlers.fetch,undefined,'no authoritative state caching');await w.fire('activate',{});await w.fire('install',{});
+});
+
+test('nudges recheck current turn and share active suppression, payload and dead endpoint cleanup',async()=>{
+ for(const mode of ['stale','active','ready']){
+  const db=fakeStore(mode==='stale'?[]:[{id:'dead',endpoint:'dead',auth:'secret',active_until:mode==='active'?new Date(Date.now()+30000).toISOString():null}]);let sent=0;
+  const push=new PushService(db.client,'p','s','mailto:test@example.com',async(_s,payload)=>{sent++;assert.equal(JSON.parse(payload as string).type,'nudge');throw {statusCode:410}});
+  await push.notifyNudge(event);assert.equal(sent,mode==='ready'?1:0);
+  assert.deepEqual(db.operations[0].filters,[['id',event.matchId],['version',event.version],['status','active'],['current_action_user_id',B]]);
+  assert.equal(db.operations.filter(o=>o.kind==='delete').length,mode==='ready'?1:0);
+ }
+ const w=await worker();await w.fire('push',{data:{json:()=>({...event,type:'nudge'})}});
+ assert.equal(w.shown[0][1].body,'Chris nudged you. Your turn.');
+ await w.fire('notificationclick',{notification:{data:w.shown[0][1].data,close(){}}});
+ assert.equal(w.opened[0],`https://pickle.test/?multiplayer=1&match=${event.matchId}`);
 });

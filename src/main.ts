@@ -1,3 +1,6 @@
+import {sounds,installSoundSetting} from './sound';
+import {RallySounds} from './game-sounds';
+const rallySounds=new RallySounds();
 import type {ScoringMode} from './engine/scoring';
 import {teamLabel} from './engine/controllers';
 import {LocalMatchStore} from './persistence/local-match-store';
@@ -33,11 +36,9 @@ const app=document.querySelector<HTMLDivElement>('#app')!;
 let onStartScreen=true;
 document.body.dataset.screen='start';
 const startScreen=document.createElement('main');startScreen.id='start-screen';startScreen.setAttribute('aria-labelledby','start-title');
-startScreen.innerHTML=`<h1 id="start-title" class="start-accessible-title">PickleBash</h1><div class="start-stage"><img class="start-background" src="/images/start/background.png" alt="" fetchpriority="high"><nav class="start-actions" aria-label="Main menu"><button id="start-new-game" aria-label="Start Game" disabled><img src="/images/start/start.png" alt="" draggable="false"></button><button id="start-roster" aria-label="Roster" disabled><img src="/images/start/roster.png" alt="" draggable="false"></button></nav><p class="start-loading" role="status">Getting the court ready…</p></div>`;
+startScreen.innerHTML=`<h1 id="start-title" class="start-accessible-title">PickleBash</h1><div class="start-stage"><img class="start-background" src="/images/start/background.png" alt="" fetchpriority="high"><nav class="start-actions" aria-label="Main menu"><button id="start-new-game" aria-label="Single Player" disabled><img src="/images/start/single-player.png" alt="" draggable="false"></button><button id="start-multiplayer" aria-label="Multiplayer"><img src="/images/start/multiplayer.png" alt="" draggable="false"></button><button id="start-roster" aria-label="Roster" disabled><img src="/images/start/roster.png" alt="" draggable="false"></button></nav><p class="start-loading" role="status">Getting the court ready…</p></div>`;
 document.body.append(startScreen);
-if(import.meta.env.VITE_MULTIPLAYER_ENABLED==='true'){
- const remote=document.createElement('a');remote.href='/?multiplayer=1';remote.textContent='Remote multiplayer test';remote.style.cssText='position:absolute;bottom:18px;left:50%;transform:translateX(-50%);color:#3276ff;z-index:5';startScreen.append(remote);
-}
+
 
 app.innerHTML=`
 <header class="header"><a class="brand" href="/" aria-label="Pickle RPG home"><span class="brand-ball">⠿</span> PICKLE<span>RPG</span></a><button id="back-to-lobby" class="header-lobby" type="button" aria-label="Open match lobby"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20v-7l8-7 8 7v7"/><path d="M8 20v-5h8v5M8 8V4h3v2"/></svg><span>Lobby</span></button><button id="open-settings" class="header-icon" aria-label="Settings" title="Settings" aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9.2 3-.6 2.2-1.5.9L4.9 6 2.8 9.6l1.6 1.6v1.7l-1.6 1.6 2.1 3.6 2.2-.2 1.5.9.6 2.2h4.2l.6-2.2 1.5-.9 2.2.2 2.1-3.6-1.6-1.6v-1.7l1.6-1.6L17.7 6l-2.2.1-1.5-.9-.6-2.2Z"/><circle cx="11.3" cy="12" r="3"/></svg></button></header>
@@ -68,15 +69,9 @@ document.querySelector('.court-wrap')!.insertAdjacentElement('afterend',voicePan
 const voiceSpeak=byId('voice-speak') as HTMLButtonElement;
 const voiceHandsFreeInput=byId('voice-handsfree') as HTMLInputElement,voiceHandsFreeLabel=voiceHandsFreeInput.parentElement!;
 voiceHandsFreeLabel.className='voice-handsfree-toggle';
-let chimeContext:AudioContext|undefined,wasListening=false;
-const unlockChime=()=>{try{chimeContext??=new AudioContext();void chimeContext.resume().catch(()=>{})}catch{}};
-const listeningChime=()=>{
- if(!chimeContext||chimeContext.state!=='running')return;
- const oscillator=chimeContext.createOscillator(),gain=chimeContext.createGain(),now=chimeContext.currentTime;
- oscillator.type='sine';oscillator.frequency.setValueAtTime(880,now);oscillator.frequency.exponentialRampToValueAtTime(1175,now+.12);
- gain.gain.setValueAtTime(0,now);gain.gain.linearRampToValueAtTime(.08,now+.015);gain.gain.exponentialRampToValueAtTime(.001,now+.18);
- oscillator.connect(gain);gain.connect(chimeContext.destination);oscillator.start(now);oscillator.stop(now+.2);oscillator.onended=()=>{oscillator.disconnect();gain.disconnect()};
-};
+let wasListening=false;
+const unlockChime=()=>sounds.unlock();
+const listeningChime=()=>sounds.play('listen');
 const voiceStatusText=byId('voice-status'),voiceFeedback=document.createElement('div'),voiceMeter=document.createElement('meter'),voiceThinking=document.createElement('span');
 voiceFeedback.className='voice-feedback';
 voiceMeter.min=0;voiceMeter.max=1;voiceMeter.value=0;voiceMeter.hidden=true;voiceMeter.setAttribute('aria-label','Microphone input level');
@@ -227,6 +222,7 @@ function reset(){if(match.isLocalHuman)return;voice.stop();voiceAttempt=null;mat
 function pause(){if(match.receptionDecision)return;if(match.state.phase==='flight'){match.state.paused=!match.state.paused;lastUI='';updateUI()}}
 byId('restart').addEventListener('click',()=>{reset();closeSettings()});
 const settingsDialog=byId('game-settings') as HTMLDialogElement;
+installSoundSetting(settingsDialog);
 const endedGames=new WeakSet<object>();
 const endGameButton=document.createElement('button');endGameButton.type='button';endGameButton.className='settings-restart';endGameButton.textContent='End game';endGameButton.id='end-current-game';settingsDialog.append(endGameButton);
 endGameButton.addEventListener('click',()=>{
@@ -557,7 +553,8 @@ function enterCourt(fresh=true){
  if(fresh){match.practice=null;reset()}
  onStartScreen=false;document.body.dataset.screen='court';app.inert=false;startScreen.hidden=true;showPanel('play');lastUI='';updateUI();byId('open-settings').focus();
 }
-byId('start-new-game').addEventListener('click',()=>showMatchSetup());
+byId('start-new-game').addEventListener('click',()=>{if(match.isLocalHuman)match.startSoloMatch();showMatchSetup()});
+byId('start-multiplayer').addEventListener('click',()=>location.assign('/?multiplayer=1'));
 byId('start-roster').addEventListener('click',()=>creator.open());
 byId('back-to-lobby').addEventListener('click',()=>{if(settingsCloseTimer)window.clearTimeout(settingsCloseTimer);settingsDialog.close();settingsDialog.classList.remove('is-closing');showMatchSetup(true)});
 document.querySelector('.brand')!.addEventListener('click',event=>{event.preventDefault();showStartScreen()});
@@ -568,6 +565,8 @@ let localStore:LocalMatchStore|null=null;
 let resumeReady=false;
 function reportSaveError(error:unknown){saveStatus.hidden=false;saveStatus.textContent=error instanceof Error?error.message:'Could not save this match.';}
 discardSave.onclick=()=>{try{localStore?.discard();discardSave.hidden=true;saveStatus.hidden=true;match.onCheckpoint=c=>localStore!.save(c);showStartScreen()}catch(error){reportSaveError(error)}};
+// Explicit Home navigation restores the save without navigating away from Home.
+const stayOnHome=new URLSearchParams(location.search).get('home')==='1';
 function initializeResume(owner:string){
  try{
   localStore=new LocalMatchStore(browserStorage,owner);
@@ -581,7 +580,7 @@ function initializeResume(owner:string){
    byId('partner-autonomy-state').textContent=match.partnerAutonomy?'On':'Off';
    (byId('player-autonomy') as HTMLInputElement).checked=match.playerAutonomy;
    byId('player-autonomy-state').textContent=match.playerAutonomy?'On':'Off';
-   enterCourt(false);
+   if(!stayOnHome)enterCourt(false);
   }
  }catch(error){reportSaveError(error);discardSave.hidden=false;match.onCheckpoint=()=>{throw new Error('Discard the unreadable saved match before replacing it.')}}
  finally{resumeReady=true;startScreen.querySelectorAll<HTMLButtonElement>('button').forEach(button=>button.disabled=false);}
@@ -607,6 +606,7 @@ startScreen.querySelector('.start-loading')!.textContent='';app.inert=onStartScr
 updateUI();let previous:number|undefined;function frame(now:number){
  if(onStartScreen||!resumeReady){previous=now;requestAnimationFrame(frame);return}
  const realDt=previous===undefined?0:Math.max(0,Math.min((now-previous)/1000,.1)),dt=realDt*1.125*speed;if(!creator.dialog.open&&(!endedGames.has(match.scoring)||match.replayIndex!==null))try{match.update(match.replayPlaying?realDt:dt)}catch(error){reportSaveError(error)};previous=now;updateUI();if(!endedGames.has(match.scoring))syncPointResult(realDt*speed);syncGameEnd();syncVoice();
+ rallySounds.update(match.state,cue=>sounds.play(cue),'home',match.scoring.winner==='home');
  const replay=match.replayView();syncReplayUI(replay);scene.setGuides(guides&&!replay);scene.render(replay?.state??match.state,now/1000,replay?.shot??match.shot,!match.practice&&!replay?match.scoring.call:null);targetPicker.sync(document.body.dataset.panel==='play'&&!settingsDialog.open&&!creator.dialog.open);requestAnimationFrame(frame)
 }requestAnimationFrame(frame);
 // Optional browser-native tools use the exact same validated simulation entry point.

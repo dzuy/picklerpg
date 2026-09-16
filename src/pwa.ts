@@ -16,19 +16,22 @@ const registration='serviceWorker' in navigator&&isSecureContext
 let subscription:PushSubscription|null=null;
 let eligible=false,enabled=false,busy=false,message='',publicKey:string|null=null;
 let owner:string|null=null;
+let restoringNotifications=true;
 const supported=()=> 'Notification' in window&&'PushManager' in window&&'serviceWorker' in navigator;
 const dismissed=()=>browserStorage.getItem('pickle-install-dismissed')==='1';
 export function setTurnPromptEligible(value:boolean){eligible=value;render();}
 export function mountTurnPrompt(host:HTMLElement){
  const card=document.createElement('section');card.className='turn-prompt';host.prepend(card);
  render=()=>{
-  card.replaceChildren();card.hidden=!eligible||!owner;if(card.hidden)return;
+  card.replaceChildren();card.hidden=!eligible||!owner||enabled||restoringNotifications;if(card.hidden)return;
   const installed=standalone();
-  if(!installed&&dismissed()){card.hidden=true;return;}
-  const title=document.createElement('strong');title.textContent=installed?"Know when it's your turn":'Never miss your turn';
-  const copy=document.createElement('p');copy.textContent=installed?'':"Add PickleBash to your Home Screen and we'll let you know when your friends play.";
+  const needsInstall=ios&&!installed;
+  if(!needsInstall&&(!supported()||Notification.permission==='denied')){card.hidden=true;return;}
+  if(needsInstall&&dismissed()){card.hidden=true;return;}
+  const title=document.createElement('strong');title.textContent=!needsInstall?"Know when it's your turn":'Never miss your turn';
+  const copy=document.createElement('p');copy.textContent=!needsInstall?'Get notified when your opponent plays, even while you’re using another app.':"Add PickleBash to your Home Screen and we'll let you know when your friends play.";
   const button=document.createElement('button');button.type='button';button.disabled=busy;
-  if(!installed){
+  if(needsInstall){
    button.textContent='Add PickleBash';button.onclick=()=>void install();
    if(installedThisSession){copy.textContent='Open PickleBash from your Home Screen to enable notifications.';button.hidden=true;}
    else if(!ios&&!installPrompt){copy.textContent+=' Use your browser’s menu to install PickleBash.';button.hidden=true;}
@@ -80,7 +83,7 @@ export async function disableDevicePush(){
 }
 let authRevision=0;
 authClient()?.auth.onAuthStateChange((_event,session)=>{
- const revision=++authRevision;
+ const revision=++authRevision;restoringNotifications=true;render();
  // Supabase auth callbacks must not await another auth API call.
  setTimeout(()=>void(async()=>{
   if(revision!==authRevision)return;
@@ -88,12 +91,14 @@ authClient()?.auth.onAuthStateChange((_event,session)=>{
   const reg=await registration;subscription=await reg?.pushManager.getSubscription()??null;
   if(subscription&&browserStorage.getItem('pickle-push-owner')!==owner){await subscription.unsubscribe();subscription=null;browserStorage.removeItem('pickle-push-owner');}
   if(!session){render();return;}
+  // A saved subscription already represents opt-in, even if the refresh API is offline.
+  enabled=!!subscription&&supported()&&Notification.permission==='granted'&&browserStorage.getItem('pickle-push-owner')===owner;
   const config=await remoteRequest<{publicKey:string|null}>(session.access_token,'/api/multiplayer/push/config');
   if(revision!==authRevision)return;publicKey=config.publicKey;
   // Existing opt-in: refresh persistence without ever asking permission on load.
   if(subscription&&publicKey&&Notification.permission==='granted'&&browserStorage.getItem('pickle-push-owner')===owner){await remoteRequest(session.access_token,'/api/multiplayer/push/subscribe',subscription.toJSON());enabled=true;await activity();}
   render();
- })().catch(()=>{render();}),0);
+ })().catch(()=>{}).finally(()=>{if(revision===authRevision){restoringNotifications=false;render();}}),0);
 });
 setInterval(()=>void activity(),15000);
 window.addEventListener('pagehide',()=>void activity(true));

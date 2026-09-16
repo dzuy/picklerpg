@@ -6,12 +6,12 @@ const matchUrl = id => /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9
   : new URL('/?multiplayer=1', self.location.origin).href;
 self.addEventListener('push', event => {
  event.waitUntil((async () => {
-  let data; try { data = event.data.json(); } catch { data = {}; }
+  let data; try { data = event.data.json() || {}; } catch { data = {}; }
   // Safari requires a visible notification for every push. Activity is suppressed
   // before delivery by a short server-side lease, never by silently dropping push.
   const name = typeof data.opponentName === 'string' ? data.opponentName.slice(0,32) : 'Your opponent';
   await self.registration.showNotification('PickleBash', {
-   body: `${name} played. Your turn.`, icon:'/icons/icon-192.png',
+   body: data.type === 'nudge' ? `${name} nudged you. Your turn.` : `${name} played. Your turn.`, icon:'/icons/icon-192.png',
    tag:`turn-${data.matchId || 'ready'}`, data:{url:matchUrl(data.matchId)}
   });
  })());

@@ -1,7 +1,8 @@
 import {attachPlayerDetails} from './player-details';
 import {startingPlayers,rosterStarters,loadRosterStarters,setStarterAdded} from './roster-membership';
 import {communityPlayers,setCommunityAdded,type CommunityPlayer} from './community-players';
-import {fillPlayerCard} from './player-card';
+import {fillPlayerCard,playerRecord} from './player-card';
+import type {HistoryMatch} from './player-history';
 import './player-creator.css';
 import {AvatarThumbnails} from './avatar-preview';
 import {preloadAthletes} from './athlete';
@@ -12,10 +13,9 @@ let portraits:AvatarThumbnails|undefined;
 export class CommunitySection {
  readonly element=document.createElement('section');private rows:CommunityPlayer[]=[];private generation=0;
  get addedPlayers(){return [...rosterStarters(),...this.rows.filter(r=>r.added).map(r=>r.player)]}
- rosterCards(){return this.addedPlayers.map(player=>this.card(player,true))}
+ rosterCards(history:Promise<HistoryMatch[]>){return this.addedPlayers.map(player=>{const card=this.card(player,true);card.querySelector('.roster-card-identity')!.append(playerRecord(player.id,history));return card})}
  constructor(private changed:(players:DesignedPlayer[])=>void=()=>{}){
-  this.element.className='community-section';this.element.innerHTML='<h2>Get more players</h2><p>Add players below to Your Roster to choose them for your team.</p><button type="button" data-community-refresh>Browse / refresh players</button><p data-community-status role="status"></p><h3>Community</h3><div class="community-grid roster-grid"></div><h3>Starting Lineup</h3><div class="starting-grid roster-grid"></div>';
-  this.element.querySelector('button')!.onclick=()=>void this.load();
+  this.element.className='community-section';this.element.innerHTML='<h2>Get more players</h2><p>Add players below to Your Roster to choose them for your team.</p><p data-community-status role="status"></p><h3>Community</h3><div class="community-grid roster-grid"></div><h3>Starting Lineup</h3><div class="starting-grid roster-grid"></div>';
  }
  async load(){const generation=++this.generation;const status=this.element.querySelector<HTMLElement>('[data-community-status]')!;status.textContent='Loading Community Players…';
   await loadRosterStarters();

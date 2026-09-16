@@ -26,3 +26,43 @@ body.remote-playing{overflow:hidden}body.remote-playing .remote-app{padding:0;ma
 .invitation-preview{margin:26px 0 30px;padding-bottom:26px;border-bottom:1px solid #d2d6df}.invitation-preview h2{font-size:22px;margin:22px 0 12px}.invitation-team{margin:14px 0}.invitation-location{display:grid;grid-template-columns:minmax(140px,42%) 1fr;align-items:center;overflow:hidden;margin:0;border:1px solid #d2d6df;border-radius:16px;background:#ebeef5}.invitation-location img{width:100%;height:160px;object-fit:cover}.invitation-location figcaption{padding:20px}.invitation-location strong,.invitation-location span{display:block}.invitation-location strong{font-size:22px;color:#17243f}.invitation-location span{font-size:14px;line-height:1.5;color:#3d5a95;margin-top:8px}@media(max-width:480px){.invitation-location img{height:135px}.invitation-location figcaption{padding:12px}.invitation-location strong{font-size:18px}.invitation-location span{font-size:12px}}
 
 .remote-replaying .remote-move-banner{display:none!important}
+.remote-nudge[hidden]{display:none}.remote-nudge{margin-top:8px}.remote-app .remote-nudge button{min-height:36px}.remote-nudge small{margin-top:6px;max-width:420px}.remote-nudge button:disabled{opacity:.65;cursor:default}
+
+.remote-app #game-settings .remote-nudge{margin:16px 0}.remote-app #game-settings .remote-nudge button{min-height:44px}.remote-app #game-settings .remote-nudge small{display:block;color:#3d5a95;line-height:1.4}
+
+.remote-declined-entry{position:relative}.remote-app .remote-declined-entry>.remote-game-card{width:100%;padding-right:76px}.remote-app .remote-invite-trash{position:absolute;top:14px;right:14px;display:grid;place-items:center;width:44px;height:44px;padding:10px;color:#963e43;background:#fffdf6}.remote-app .remote-invite-trash:hover{background:#fbe9e7;border-color:#963e43}
+
+.remote-team-picker>.remote-team-empty,.remote-team-picker>.community-section{grid-column:1/-1}.remote-app #remote-invite-status:empty{display:none}.remote-app #remote-invite-status{display:block;color:#963e43;font-weight:600;margin:16px 0}
+
+.remote-app #game-settings #remote-rules{font-size:24px;font-weight:800;line-height:1.25;color:#17243f;margin:0 0 8px}.remote-app #game-settings #settings-title{font-size:16px;margin:0;color:#53617b}.remote-app #game-settings #remote-settings-account{margin:24px 0 0;padding-top:16px;border-top:1px solid #d2d6df;font-size:12px;color:#53617b;overflow-wrap:anywhere}
+.remote-app #game-settings[open]{display:flex;flex-direction:column}.remote-app #game-settings>*{flex-shrink:0}.remote-app #game-settings #remote-settings-account{margin-top:auto;padding-top:20px}
+
+.remote-app #game-settings[open]{animation:remote-settings-in 240ms cubic-bezier(.2,.8,.2,1) both}
+.remote-app #game-settings[open]::backdrop{animation:remote-settings-backdrop-in 240ms ease-out both}
+.remote-app #game-settings[open].is-closing{animation:remote-settings-out 180ms ease-in both;pointer-events:none}
+.remote-app #game-settings[open].is-closing::backdrop{animation:remote-settings-backdrop-out 180ms ease-in both}
+@keyframes remote-settings-in{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes remote-settings-out{from{transform:translateX(0);opacity:1}to{transform:translateX(100%);opacity:0}}
+@keyframes remote-settings-backdrop-in{from{opacity:0}to{opacity:1}}
+@keyframes remote-settings-backdrop-out{from{opacity:1}to{opacity:0}}
+@media(prefers-reduced-motion:reduce){.remote-app #game-settings[open],.remote-app #game-settings[open]::backdrop{animation:none}}
+
+.remote-court-actions{position:absolute;z-index:12;display:flex;align-items:center;gap:6px;top:max(30px,calc(env(safe-area-inset-top) + 14px));right:max(90px,calc(env(safe-area-inset-right) + 74px))}
+.remote-app .remote-court-actions button{position:static;width:auto;height:32px;min-height:32px;padding:5px 9px;border:1px solid #12e1f3;border-radius:9px;background:#071a43ed;color:#fff;font-size:11px;line-height:1;white-space:nowrap;box-shadow:0 2px 8px #071a4344}
+@media(max-width:760px){.remote-court-actions{top:max(88px,calc(env(safe-area-inset-top) + 76px));right:max(14px,env(safe-area-inset-right))}}
+
+.remote-app #game-settings #remote-rules{margin:8px 0 0}
+
+/* Unified icon controls: settings, game list, replay. */
+.remote-app .remote-court-actions{flex-direction:column;gap:6px;top:max(16px,env(safe-area-inset-top));right:max(16px,env(safe-area-inset-right))}
+#app.remote-app .remote-court-actions button{position:static;display:block;width:56px;height:56px;min-height:44px;padding:0;border:0;border-radius:50%;background:none;box-shadow:none;transition:filter .16s,scale .16s}
+.remote-court-actions button img{display:block;width:100%;height:100%;pointer-events:none}
+@media(hover:hover){#app.remote-app .remote-court-actions button:hover:not(:disabled){filter:drop-shadow(0 0 8px #12e1f388);scale:1.05}}
+@media(max-width:760px){
+ .remote-app .remote-court-actions{top:max(12px,env(safe-area-inset-top));right:max(10px,env(safe-area-inset-right));gap:4px}
+ #app.remote-app .remote-court-actions button{width:46px;height:46px}
+ body.remote-playing #app .score{width:clamp(185px,56vw,240px);max-width:calc(100vw - 85px)}
+ body.remote-playing #app .score-row>span{font-size:clamp(10px,2.8vw,13px)}
+ body.remote-playing #app .score-row b{font-size:20px}
+}
+@media(prefers-reduced-motion:reduce){#app.remote-app .remote-court-actions button{transition:none}}
