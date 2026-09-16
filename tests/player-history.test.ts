@@ -17,3 +17,10 @@ test('same names do not merge identities and legacy results remain unassigned',(
 test('early exits appear without awarding wins or losses',()=>{
  const result=playerHistory([{...game,ended_early:true}], 'c');assert.equal(result.games,0);assert.equal(result.wins,0);assert.equal(result.losses,0);assert.equal(result.entries[0].result,'Ended early');
 });
+
+test('repeated characters count a match once and both-team appearances have no single win or loss',()=>{
+ const same={...game,participants:[game.participants![0],game.participants![0]]};
+ assert.equal(playerHistory([same],'a').wins,1);assert.equal(playerHistory([same],'a').games,1);
+ const both={...same,participants:[...same.participants,{...game.participants![0],team:'away' as const}]};
+ const history=playerHistory([both],'a');assert.equal(history.games,1);assert.equal(history.wins,0);assert.equal(history.losses,0);assert.equal(history.entries[0].result,'Both teams');
+});

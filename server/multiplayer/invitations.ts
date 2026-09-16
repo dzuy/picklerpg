@@ -8,7 +8,7 @@ import {uuid,requestHash} from './validation';
 import {ApiError,missing} from './errors';
 export function parseTeam(value:unknown):TeamSelection {
  if(!Array.isArray(value)||value.length!==2)throw new ApiError(400,'team','Choose your player and partner.');
- try{const team=value.map(validatePlayer) as TeamSelection;if(team[0].id===team[1].id)throw Error();return team}catch{throw new ApiError(400,'team','Choose two different players.');}
+ try{return value.map(validatePlayer) as TeamSelection}catch{throw new ApiError(400,'team','Choose a valid player for each team slot.');}
 }
 export interface InviteRow {id:string;creator_id:string;recipient_id:string;team:TeamSelection;court:'forest'|'venice'|'arizona';scoring:InviteRequest['scoring'];status:Invitation['status'];created_at:string;match_id:string|null;request_id:string;request_hash:string;accept_hash?:string}
 export type CloseInvitationAction='decline'|'cancel'|'delete';

@@ -16,7 +16,7 @@ test('chosen friend team survives creation, acceptance, and unrelated character 
  const team=[{...roster.you,name:'Selected captain'},{...roster.partner,name:'Selected partner'}];
  await db.pool.query("insert into public.players(owner_id,id,name,appearance,skills,handedness) values($1,'unrelated','Other character',$2,$3,'right')",[A,roster['opponent-left'].appearance,roster['opponent-left'].skills]);
  const request={name:'Max',requestId:randomUUID(),team};
- await assert.rejects(friends.create(A,{...request,team:[team[0],team[0]]}),/two different/);
+ const repeated=await friends.create(A,{...request,requestId:randomUUID(),team:[team[0],team[0]]});const repeatedRow=(await repo.get(repeated.matchId,A))!;assert.deepEqual(repeatedRow.checkpoint.roster.you.design,repeatedRow.checkpoint.roster.partner.design);
  const invite=await friends.create(A,request);assert.deepEqual(await friends.create(A,request),invite);
  await assert.rejects(friends.create(A,{...request,team:[{...team[0],name:'Changed'},team[1]]}));
  const before=(await repo.get(invite.matchId,A))!;

@@ -11,28 +11,28 @@ test('setup preserves saved user identity, latest skills and current teammates',
  assert.equal(players.find(p=>p.id==='custom')?.skills.drive,91);
  assert.ok(validLineup(players.map(p=>p.id),selected));
 });
-test('setup repairs duplicates and fills all four slots without replacing the user',()=>{
+test('setup preserves duplicates and fills all four slots without replacing the user',()=>{
  const user=newPlayer('custom');
  const {players,selected}=setupLineup([user],[user,user,null,null],()=>0);
  assert.equal(selected[0],user.id);assert.ok(validLineup(players.map(p=>p.id),selected));
  const shuffled=[selected[0],...shufflePlayers(players.map(p=>p.id).filter(id=>id!==selected[0]),()=>0).slice(0,3)];
  assert.equal(shuffled[0],user.id);assert.ok(validLineup(players.map(p=>p.id),shuffled));
 });
-test('arrows let every slot, including the user, select an unoccupied player',()=>{
+test('arrows let every slot, including the user, select any player independently',()=>{
  const roster=['a','b','c','d','e','f'],selected=['a','b','c','d'];
- assert.deepEqual(cyclePlayer(roster,selected,0,1),['e','b','c','d']);
+ assert.deepEqual(cyclePlayer(roster,selected,0,1),['b','b','c','d']);
  assert.deepEqual(cyclePlayer(roster,selected,0,-1),['f','b','c','d']);
- assert.deepEqual(cyclePlayer(roster,selected,1,1),['a','e','c','d']);
- assert.deepEqual(cyclePlayer(roster,selected,1,-1),['a','f','c','d']);
+ assert.deepEqual(cyclePlayer(roster,selected,1,1),['a','c','c','d']);
+ assert.deepEqual(cyclePlayer(roster,selected,1,-1),['a','a','c','d']);
  let lineup=selected;
  for(let i=0;i<100;i++){lineup=cyclePlayer(roster,lineup,i%4,i%2?1:-1);assert.ok(validLineup(roster,lineup))}
 });
-test('four-player roster swaps any slot without duplicates or an endless loop',()=>{
+test('four-player roster allows duplicates without changing other slots',()=>{
  const roster=['a','b','c','d'];
- assert.deepEqual(cyclePlayer(roster,roster,0,1),['b','a','c','d']);
- assert.deepEqual(cyclePlayer(roster,roster,0,-1),['d','b','c','a']);
- assert.deepEqual(cyclePlayer(roster,roster,1,1),['a','c','b','d']);
- assert.deepEqual(cyclePlayer(roster,roster,1,-1),['b','a','c','d']);
- assert.equal(validLineup(roster,['a','b','b','d']),false);
+ assert.deepEqual(cyclePlayer(roster,roster,0,1),['b','b','c','d']);
+ assert.deepEqual(cyclePlayer(roster,roster,0,-1),['d','b','c','d']);
+ assert.deepEqual(cyclePlayer(roster,roster,1,1),['a','c','c','d']);
+ assert.deepEqual(cyclePlayer(roster,roster,1,-1),['a','a','c','d']);
+ assert.equal(validLineup(roster,['a','b','b','d']),true);
  assert.equal(validLineup(roster,['a','b','c','missing']),false);
 });

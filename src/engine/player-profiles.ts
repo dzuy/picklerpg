@@ -1,4 +1,4 @@
-import type {PlayerId,PlayerSkills,Tendencies} from './model';
+import {SKILLS,type PlayerId,type PlayerSkills,type Tendencies} from './model';
 export interface PlayerProfile {name:string;description:string;skills:PlayerSkills;tendencies:Tendencies}
 const skills=(values:number[]):PlayerSkills=>Object.fromEntries(['serve','return','drive','drop','dink','reset','volley','counter','overhead','movement','hands'].map((key,i)=>[key,values[i]])) as PlayerSkills;
 /** Prototype 0–100 execution attributes, not DUPR ratings. */
@@ -20,3 +20,21 @@ export const ARCHETYPES={
  allCourt:{name:'All-rounder',description:'Balanced tools without a dominant specialty.',skills:skills([69,73,70,68,72,66,71,67,70,74,73]),tendencies:{aggression:.55,middlePreference:.5,kitchenApproach:.6}},
  defender:{name:'Defensive reset',description:'Absorb attacks; less finishing power.',skills:skills([60,78,50,78,76,92,76,62,52,78,88]),tendencies:{aggression:.2,middlePreference:.8,kitchenApproach:.4}}
 } satisfies Record<string,Omit<PlayerProfile,'name'> & {name:string}>;
+
+/** Existing created players store skills, so recognize their style without a schema migration. */
+export function isDinkSpecialist(skills:PlayerSkills){return skills.dink>=80&&skills.dink>=skills.drive+20&&skills.dink>=skills.overhead+20;}
+export type ArchetypeId=keyof typeof ARCHETYPES;
+/** Recognize preset-shaped skills, including small edits; don't label unrelated custom builds. */
+export function characterArchetype(skills:PlayerSkills):ArchetypeId|null{
+ let best:ArchetypeId|null=null,bestError=Infinity;
+ for(const [id,profile] of Object.entries(ARCHETYPES)){
+  const differences=SKILLS.map(key=>Math.abs(profile.skills[key]-skills[key]));
+  const error=differences.reduce((sum,d)=>sum+d*d,0)/SKILLS.length;
+  if(error<=36&&Math.max(...differences)<=18&&error<bestError){best=id as ArchetypeId;bestError=error;}
+ }
+ return best;
+}
+export function characterTendencies(skills:PlayerSkills,fallback:Tendencies):Tendencies{
+ const archetype=characterArchetype(skills);
+ return {...(archetype?ARCHETYPES[archetype].tendencies:isDinkSpecialist(skills)?ARCHETYPES.dinker.tendencies:fallback)};
+}

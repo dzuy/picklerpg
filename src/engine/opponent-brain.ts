@@ -1,3 +1,4 @@
+import {archetypeShotPreference} from './archetype-style';
 import {resolveTarget} from './targeting';
 import {overheadPressure} from './overhead-pressure';
 import type {GameState,ShotIntent} from './model';
@@ -41,7 +42,9 @@ export function localDecision(s:TacticalSnapshot,strategy?:{shots:readonly strin
  if(s.personality==='Gambler')score+=(o.target.kind==='zone'&&o.target.zone==='wide'?3:0)+(isAttack?2:0);
  if(s.personality==='Chess Player')score+=o.target.kind==='zone'&&o.target.zone==='open-court'?2:0;
  if(s.intelligence>=.5&&s.memory.samples>=3){if(s.memory.drives/s.memory.samples>.45)score+=['block','reset'].includes(o.type)?4:0;if(s.memory.speedups/s.memory.samples>.6)score+=o.type==='block'?2:0;if(s.memory.crashes>=2&&o.type==='lob'&&s.ball.position.y<1.5&&Math.hypot(s.ball.velocity.x,s.ball.velocity.y,s.ball.velocity.z)<10){const hitter=s.players.find(p=>p.id===o.actor);if(s.players.filter(p=>p.team!==hitter?.team).every(p=>Math.abs(p.position.z)<3.5))score+=1;}if(s.memory.lowBackhandErrors>=2)score+=o.target.kind==='player'&&['backhand-side','feet'].includes(o.target.aim)?6:0;const recent=s.memory.recentTypes;if(recent.length>=3&&new Set(recent.slice(-3)).size===1)score+=o.type==='counter'?1:0;const max=Math.max(0,...Object.values(s.memory.targets));if(max/s.memory.samples>.6)score+=o.target.kind==='zone'&&o.target.zone==='wide'?2:0;}
- const actor=s.players.find(p=>p.id===o.actor);if(s.intelligence>=.8&&actor)score+=(o.type==='flick'?Math.min(actor.skills.volley,actor.skills.hands):(actor.skills[o.type==='lob'?'drop':o.type==='block'?'volley':o.type]??50))/100;
+ const actor=s.players.find(p=>p.id===o.actor);
+ if(actor)score+=archetypeShotPreference(actor.skills,o,s.ball.position.y,Math.hypot(s.ball.velocity.x,s.ball.velocity.y,s.ball.velocity.z));
+ if(s.intelligence>=.8&&actor)score+=(o.type==='flick'?Math.min(actor.skills.volley,actor.skills.hands):(actor.skills[o.type==='lob'?'drop':o.type==='block'?'volley':o.type]??50))/100;
  if(variation){
   // A lob needs space behind the defense. A covered landing gives the opponent
   // time to set up an overhead; judge that from positions, never sampled outcomes.

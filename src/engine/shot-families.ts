@@ -49,5 +49,5 @@ export function buildFamilyFlight(type:ShotType,c:ShotContext,landing:Vec3,endpo
  const net=COURT.netCenter+(COURT.netSideline-COURT.netCenter)*(crossX/(COURT.width/2))**2;
  const straightHeight=c.contact.y+(landing.y-c.contact.y)*t;
  const lift=Math.max(family.lift,(net+.12-straightHeight)/(4*t*(1-t)));
- return {from:{...c.contact},to:{...landing},duration:Math.max(.4,Math.hypot(landing.x-c.contact.x,landing.z-c.contact.z)/family.speed),arc:lift,bounceAtEnd:endpoint==='landing'};
+ return {from:{...c.contact},to:{...landing},duration:Math.max(.12,Math.hypot(landing.x-c.contact.x,landing.z-c.contact.z)/family.speed),arc:lift,bounceAtEnd:endpoint==='landing'};
 }

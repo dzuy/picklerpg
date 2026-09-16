@@ -16,6 +16,17 @@ export function sampleVelocity(leg:FlightLeg,t:number):Vec3 {
  return sampleFlightVelocity(leg,t);
 }
 
+/** Pause three quarters of the way to the earliest available receiving contact. */
+export function receptionPauseTime(shot:RallyShot){
+ const duration=(legs:FlightLeg[])=>legs.reduce((sum,leg)=>sum+leg.duration,0);
+ return .75*Math.min(duration(shot.legs),...Object.values(shot.receptionChoice??{}).map(branch=>duration(branch.legs)));
+}
+export function flightCursor(legs:FlightLeg[],time:number){
+ let legIndex=0,elapsed=time;
+ while(legIndex<legs.length-1&&elapsed>=legs[legIndex].duration-1e-9){elapsed=Math.max(0,elapsed-legs[legIndex].duration);legIndex++;}
+ return {legIndex,elapsed};
+}
+
 /** Opening stages depend on completed contacts; later stages depend on tactical state. */
 export function classifyStage(completedShots:number,intent:ShotIntent,players:GameState['players']):RallyStage {
  if(completedShots<4)return (['serve','return','third','fourth'] as const)[completedShots];
@@ -94,10 +105,11 @@ export class RallyEngine {
 
  /** Continue an incoming pop-up to an airborne interception or its first bounce. */
  chooseReception(kind:'airborne'|'bounced'){
-  if(this.state.phase!=='flight'||!this.state.paused||!this.receptionPrompt||!this.shot.receptionChoice)throw new Error('Wait for a reception choice at the net.');
+  if(this.state.phase!=='flight'||!this.state.paused||!this.receptionPrompt||!this.shot.receptionChoice)throw new Error('Wait for a reception choice.');
   const selected=this.shot.receptionChoice[kind];if(!selected)throw new Error(kind==='airborne'?'This ball cannot be reached before its bounce.':'This ball must be taken out of the air.');
   const branch=structuredClone(selected);
-  if(this.state.legIndex!==0||this.state.elapsed>branch.legs[0].duration)throw new Error('The reception choice is no longer available.');
+  if(this.shotElapsed>=branch.legs.reduce((sum,leg)=>sum+leg.duration,0))throw new Error('The reception choice is no longer available.');
+  Object.assign(this.state,flightCursor(branch.legs,this.shotElapsed));
   this.activeShot.legs=branch.legs;this.activeShot.positions=branch.positions;this.activeShot.resolution=branch.resolution;delete this.activeShot.receptionChoice;
   this.receptionPrompt=false;this.state.paused=false;
  }
@@ -158,10 +170,10 @@ export class RallyEngine {
   let remaining=dt;
   while(remaining>0&&this.state.phase==='flight'){
    const leg=this.shot.legs[this.state.legIndex];
-   let step=Math.min(remaining,leg.duration-this.state.elapsed),pauseAtNet=false;
-   if(this.shot.receptionChoice&&!this.receptionPrompt&&this.state.legIndex===0&&leg.from.z*leg.to.z<=0&&leg.from.z!==leg.to.z){
-    const netElapsed=leg.duration*leg.from.z/(leg.from.z-leg.to.z);
-    if(netElapsed>=this.state.elapsed-1e-9&&netElapsed<=this.state.elapsed+step+1e-9){step=Math.max(0,netElapsed-this.state.elapsed);pauseAtNet=true}
+   let step=Math.min(remaining,leg.duration-this.state.elapsed),pauseForReception=false;
+   if(this.shot.receptionChoice&&!this.receptionPrompt){
+    const pauseTime=receptionPauseTime(this.shot);
+    if(pauseTime>=this.shotElapsed-1e-9&&pauseTime<=this.shotElapsed+step+1e-9){step=Math.max(0,pauseTime-this.shotElapsed);pauseForReception=true}
    }
    remaining-=step;this.state.elapsed+=step;this.shotElapsed+=step;this.state.simulationTime+=step;
    this.state.ball.position=sampleLeg(leg,this.state.elapsed/leg.duration);
@@ -169,8 +181,15 @@ export class RallyEngine {
    const total=this.shot.legs.reduce((sum,l)=>sum+l.duration,0);
    const alpha=Math.min(1,this.shotElapsed/total),smooth=alpha*alpha*(3-2*alpha);
    for(const player of this.state.players){const from=this.movementStart[player.id],to=this.shot.positions[player.id];player.position={x:from.x+(to.x-from.x)*smooth,y:0,z:from.z+(to.z-from.z)*smooth}}
-   if(pauseAtNet&&this.acceptCommittedBoundary())return;
-   if(pauseAtNet){this.state.ball.position={...this.state.ball.position,z:0};this.state.paused=true;this.receptionPrompt=true;return}
+   if(pauseForReception&&this.acceptCommittedBoundary())return;
+   if(pauseForReception){
+    // A pause exactly at a bounce owns that boundary before either branch resumes.
+    if(this.state.elapsed>=leg.duration-1e-9&&this.state.legIndex<this.shot.legs.length-1){
+     if(leg.bounceAtEnd){this.state.bounces++;this.state.rallyHistory.push({type:'bounce',time:this.state.simulationTime,shotIndex:this.state.shotIndex,position:{...leg.to}})}
+     this.state.legIndex++;this.state.elapsed=0;
+    }
+    this.state.paused=true;this.receptionPrompt=true;return;
+   }
    if(this.state.elapsed>=leg.duration-1e-9){
     this.state.ball.position={...leg.to};
     if(leg.bounceAtEnd){this.state.bounces++;this.state.rallyHistory.push({type:'bounce',time:this.state.simulationTime,shotIndex:this.state.shotIndex,position:{...leg.to}})}

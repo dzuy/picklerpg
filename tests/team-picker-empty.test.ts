@@ -21,8 +21,8 @@ test('empty roster exposes roster choices and can recover to an acceptable two-p
  'export const cyclePlayer=()=>[];'
 }));}}]});
  const context:any={document:{createElement:()=>new Element()},structuredClone};vm.runInNewContext(result.outputFiles[0].text,vm.createContext(context));
- const host=new Element(),picker=new context.Picker.TeamPicker(host);await assert.rejects(picker.freshTeam(),/at least two players/);
- assert.ok(host.children.some(c=>c.textContent.includes('Choose two players')));assert.ok(host.children.some(c=>c===picker.community.element));
- context.addRosterPlayers([{id:'one',appearance:{}}]);assert.ok(host.children.includes(picker.community.element));
- context.addRosterPlayers([{id:'one',appearance:{}},{id:'two',appearance:{}}]);assert.equal(host.children.includes(picker.community.element),false);assert.deepEqual(Array.from(await picker.freshTeam(),(p:any)=>p.id),['one','two']);
+ const host=new Element(),picker=new context.Picker.TeamPicker(host);await assert.rejects(picker.freshTeam(),/Add a player/);
+ assert.ok(host.children.some(c=>c.textContent.includes('Add a player')));assert.ok(host.children.some(c=>c===picker.community.element));
+ context.addRosterPlayers([{id:'one',appearance:{}}]);assert.equal(host.children.includes(picker.community.element),false);assert.deepEqual(Array.from(await picker.freshTeam(),(p:any)=>p.id),['one','one']);
+ context.addRosterPlayers([{id:'one',appearance:{}},{id:'two',appearance:{}}]);assert.equal(host.children.includes(picker.community.element),false);assert.deepEqual(Array.from(await picker.freshTeam(),(p:any)=>p.id),['one','one']);
 });

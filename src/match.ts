@@ -1,4 +1,4 @@
-import {controllersFor,teamOf,playerForTeam,LOCAL_HUMAN_SKILL,type PlayMode} from './engine/controllers';
+import {controllersFor,teamOf,playerForTeam,type PlayMode} from './engine/controllers';
 import type {TurnAction} from './engine/turn';
 import {CHECKPOINT_ENGINE,HUMAN_ENGINE,checkpointRally,hydrateRally,parseCheckpoint,SLOTS,type MatchCheckpoint,type FrozenAthlete} from './engine/checkpoint';
 import {receptionTiming,receptionRoll,swingMissChance} from './engine/reception-timing';
@@ -8,9 +8,9 @@ import {resolveBodyServe} from './engine/serve-body';
 import {commandIntent,canParseInstantly,parseLocalCommand,requestsBounce,validateCommand,COMMAND_SCHEMA} from './engine/custom-command';
 import {PATTERNS,recognizePatterns,assessChoice,type PatternId,type PracticeRecord} from './engine/patterns';
 import {OpponentMemory,tacticalSnapshot,localDecision,intendedReceiver,type OpponentChoiceHistory,requestStrategy,type OpponentStrategy,type Personality,type TacticalSnapshot} from './engine/opponent-brain';
-import {PLAYER_PROFILES,ARCHETYPES} from './engine/player-profiles';
+import {PLAYER_PROFILES,ARCHETYPES,characterTendencies,isDinkSpecialist} from './engine/player-profiles';
 import {RallyEngine,sampleLeg,sampleVelocity,type RallyRuntime} from './engine/rally-engine';
-import {COURT,SKILLS,type FlightLeg,type PlayerState,type PlayerId,type RallyShot,type RallyProvider,type ShotIntent,type ShotType,type PointResult,type Vec3} from './engine/model';
+import {COURT,type FlightLeg,type PlayerState,type PlayerId,type RallyShot,type RallyProvider,type ShotIntent,type ShotType,type PointResult,type Vec3} from './engine/model';
 import {contactIssue,type ShotContext,SHOT_FAMILIES} from './engine/shot-families';
 import {buildDecisionMenu} from './engine/decision-menu';
 import {parseShotIntent,sameShotIntent} from './engine/shot-intent';
@@ -91,7 +91,7 @@ export class Match {
   const current=this.state.players.find(p=>p.id===id)!;
   const profile=this.lineup[id]?ARCHETYPES[this.lineup[id]!]:PLAYER_PROFILES[id];
   current.skills={...(player?.skills??profile.skills)};current.handedness=player?.handedness??'right';
-  current.tendencies=structuredClone(profile.tendencies);
+  current.tendencies=player?characterTendencies(player.skills,profile.tendencies):structuredClone(profile.tendencies);
   if(this.frozenRoster)this.frozenRoster[id]={design:player,skills:{...current.skills},tendencies:{...current.tendencies},handedness:current.handedness};
   this.request?.abort();this.request=null;this.strategy=undefined;this.strategyPoint=-1;this.generation++;this.thinking=false;this.saveBoundary();
  }
@@ -232,7 +232,7 @@ export class Match {
  }
  async queueReceptionCommand(text:string,source:'text'|'voice'='text'){
   this.requireSolo();
-  if(!this.receptionDecision)throw new Error('Wait for the ball to cross the net.');
+  if(!this.receptionDecision)throw new Error('Wait for the incoming ball.');
   const requestEngine=this.engine,requestGeneration=this.generation;
   const command=text.trim();if(!command||command.length>300)throw new Error('Use 1–300 characters.');
   this.customBusy=true;this.customStatus='Interpreting…';let parsed;
@@ -434,9 +434,10 @@ export class Match {
  private startPoint(){
   this.awarded=false;this.observed=0;this.queuedReceptionIntent=null;this.queuedReceptionShot=null;this.pointRecords=[];this.replayFrames=[];this.replayShots=[];this.replayIndex=null;this.replayPlaying=false;this.replayClock=0;this.replayElapsed=0;this.replayAlpha=0;this.replayEndHold=0;
   const players:PlayerState[]=(Object.keys(PLAYER_PROFILES) as PlayerId[]).map(id=>({id,position:{x:0,y:0,z:0},team:id==='you'||id==='partner'?'home':'away',handedness:'right',facing:id==='you'||id==='partner'?0:Math.PI,skills:{...PLAYER_PROFILES[id].skills},tendencies:{...PLAYER_PROFILES[id].tendencies}}));
-  for(const p of players){const side=p.team==='home'?1:-1,right=this.scoring.right[p.team]===p.id;p.position={x:(right?1:-1)*side*1.5,y:0,z:side*7};const profile=this.lineup[p.id]?ARCHETYPES[this.lineup[p.id]!]:PLAYER_PROFILES[p.id];p.tendencies=structuredClone(profile.tendencies);p.skills=structuredClone(profile.skills);const design=this.getPlayerDesign(p.id);if(design){p.skills={...design.skills};p.handedness=design.handedness}}
-  for(const p of players){const frozen=this.frozenRoster?.[p.id];if(frozen){p.skills={...frozen.skills};p.tendencies={...frozen.tendencies};p.handedness=frozen.handedness}}
-  if(this.isLocalHuman)for(const p of players){p.skills=Object.fromEntries(SKILLS.map(k=>[k,LOCAL_HUMAN_SKILL])) as PlayerState['skills'];p.tendencies={aggression:.5,middlePreference:.5,kitchenApproach:.6};p.handedness='right';}
+  for(const p of players){const side=p.team==='home'?1:-1,right=this.scoring.right[p.team]===p.id;p.position={x:(right?1:-1)*side*1.5,y:0,z:side*7};const profile=this.lineup[p.id]?ARCHETYPES[this.lineup[p.id]!]:PLAYER_PROFILES[p.id];p.tendencies=structuredClone(profile.tendencies);p.skills=structuredClone(profile.skills);const design=this.getPlayerDesign(p.id);if(design){p.skills={...design.skills};p.handedness=design.handedness;p.tendencies=characterTendencies(design.skills,p.tendencies)}}
+  for(const p of players){const frozen=this.frozenRoster?.[p.id];if(frozen){p.skills={...frozen.skills};p.tendencies=characterTendencies(p.skills,frozen.tendencies);p.handedness=frozen.handedness}}
+  // Upgrade legacy equal-skill games only between rallies, preserving committed shots.
+  if(this.isLocalHuman)for(const p of players){const design=this.getPlayerDesign(p.id)!;p.skills={...design.skills};p.handedness=design.handedness;p.tendencies=characterTendencies(design.skills,PLAYER_PROFILES[p.id].tendencies);}
   const server=players.find(p=>p.id===this.scoring.server)!;
   // Only the diagonally designated receiver may return serve.
   const receiving=players.filter(p=>p.team!==server.team),receiver=receiving.find(p=>p.position.x*server.position.x<0)!;
@@ -570,7 +571,15 @@ export class Match {
     }
     if(!found&&emergency)receptions.push(emergency);
    }
-   const chosen=receptions[0];
+   let chosen=receptions[0];
+   // A soft-game specialist can let a safe kitchen ball bounce instead of
+   // automatically volleying every reachable ball. Never choose using the miss roll.
+   const bouncedOption=receptions.find(r=>r.candidate.bounce);
+   const automatic=(id:PlayerId)=>!this.isLocalHuman&&(teamOf(id)==='away'||(id==='you'?this.playerAutonomy:this.partnerAutonomy));
+   if(chosen&&!chosen.candidate.bounce&&bouncedOption&&automatic(chosen.receiver)&&automatic(bouncedOption.receiver)){
+    const airPoint=sampleLeg(chosen.candidate.leg,chosen.t),bouncePlayer=players.find(p=>p.id===bouncedOption.receiver)!;
+    if(isDinkSpecialist(bouncePlayer.skills)&&airPoint.y<1.9&&bouncedOption.pressure<=.4&&Math.abs(bouncedOption.feet.z)<=COURT.kitchen+1.2){chosen=bouncedOption;receptions.splice(receptions.indexOf(chosen),1);receptions.unshift(chosen);}
+   }
    if(chosen&&!chosen.miss){receiver=chosen.receiver;receiveFeet=chosen.feet;bounced=chosen.candidate.bounce;legs=chosen.candidate.bounce?[base,interceptFlight(rebound,chosen.t)]:[interceptFlight(base,chosen.t)]}
    if(!receiver){
     const second=finishRebound(rebound);legs=[base,rebound,second];

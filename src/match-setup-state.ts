@@ -18,24 +18,17 @@ export function setupLineup(saved:DesignedPlayer[],current:(DesignedPlayer|null)
  const available=shufflePlayers(players.map(p=>p.id).filter(id=>id!==selected[0]),random);
  for(let i=1;i<4;i++){
   const id=current[i]?.id;
-  selected.push(id&&!selected.includes(id)?id:available.find(candidate=>!selected.includes(candidate)&&!current.slice(i+1).some(p=>p?.id===candidate))??available.find(candidate=>!selected.includes(candidate))!);
+  selected.push(id?id:available.find(candidate=>!selected.includes(candidate)&&!current.slice(i+1).some(p=>p?.id===candidate))??available.find(candidate=>!selected.includes(candidate))!);
  }
  return {players,selected};
 }
 
 export function cyclePlayer(roster:string[],selected:string[],slot:number,step:number):string[]{
  if(slot<0||slot>3||![-1,1].includes(step)||!selected[slot])return selected;
+ if(!roster.length)return selected;
  const index=roster.indexOf(selected[slot]),next=[...selected];
- for(let offset=1;offset<roster.length;offset++){
-  const id=roster[(index+step*offset+roster.length)%roster.length];
-  if(!selected.includes(id)){next[slot]=id;return next}
- }
- // A full four-player roster can still change assignments by swapping slots.
- for(let offset=1;offset<roster.length;offset++){
-  const id=roster[(index+step*offset+roster.length)%roster.length],other=selected.indexOf(id);
-  if(other>=0&&other!==slot){[next[slot],next[other]]=[next[other],next[slot]];return next}
- }
- return selected;
+ next[slot]=roster[(index+step+roster.length)%roster.length];
+ return next;
 }
 
-export function validLineup(roster:string[],selected:string[]){return selected.length===4&&new Set(selected).size===4&&selected.every(id=>roster.includes(id))}
+export function validLineup(roster:string[],selected:string[]){return selected.length===4&&selected.every(id=>roster.includes(id))}

@@ -1,3 +1,4 @@
+import {receptionPauseTime} from '../src/engine/rally-engine';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {DoublesScore} from '../src/engine/scoring';
@@ -89,25 +90,25 @@ test('every home contact waits for explicit selection',()=>{
  }
  assert.equal(m.state.phase,'complete');assert.equal(decisions,m.state.shotHistory.filter(s=>s.actor==='you'||s.actor==='partner').length);
 });
-test('a playable pop-up pauses at the net and can be smashed before it bounces',()=>{
+test('a playable pop-up pauses at 75% of its trajectory and can be smashed before it bounces',()=>{
  const m=new Match();m.seed=1;m.reset();let found=false;
  for(let frame=0;frame<10000&&!found;frame++){
   if(m.receptionDecision){const contact=m.shot.receptionChoice?.airborne?.legs.at(-1)?.to;if(m.canTakeAir&&contact&&contact.y>=1.45){found=true;break}m.chooseReception(m.canLetBounce?'bounce':'air')}
   if(m.state.phase==='decision')m.submitIntent(m.availableIntents[(frame+1)%m.availableIntents.length]);
   m.update(.2);if(m.state.phase==='complete')m.nextPoint();
  }
- assert.equal(found,true);assert.equal(m.state.phase,'flight');assert.equal(m.state.paused,true);assert.ok(Math.abs(m.state.ball.position.z)<1e-9);
+ assert.equal(found,true);assert.equal(m.state.phase,'flight');assert.equal(m.state.paused,true);assert.ok(Math.abs(m.engine.runtime().shotElapsed-receptionPauseTime(m.shot))<1e-9);
  const bounces=m.state.bounces,overhead=m.receptionOptions.find(option=>option.timing==='air'&&option.intent.type==='overhead');assert.ok(overhead);m.chooseReceptionIntent(overhead);
  let exposedSecondDecision=false;for(let frame=0;frame<1000&&m.state.shotHistory.at(-1)?.type!=='overhead';frame++){m.update(.02);if(m.state.phase==='decision')exposedSecondDecision=true}
  assert.equal(exposedSecondDecision,false);assert.equal(m.state.bounces,bounces);assert.equal(m.state.shotHistory.at(-1)?.type,'overhead');
 });
-test('every playable incoming rally shot pauses at the net and accepts a queued custom shot',async()=>{
+test('every playable incoming rally shot pauses at 75% of its trajectory and accepts a queued custom shot',async()=>{
  const m=new Match();let found=false;
  for(let frame=0;frame<5000&&!found;frame++){
   if(m.receptionDecision){found=true;break}
   if(m.state.phase==='decision')m.submitIntent(m.availableIntents[0]);m.update(.05);if(m.state.phase==='complete'&&!m.scoring.winner)m.nextPoint();
  }
- assert.equal(found,true);assert.ok(Math.abs(m.state.ball.position.z)<1e-9);assert.equal(m.state.paused,true);
+ assert.equal(found,true);assert.ok(Math.abs(m.engine.runtime().shotElapsed-receptionPauseTime(m.shot))<1e-9);assert.equal(m.state.paused,true);
  const soft=m.receptionOptions.some(option=>option.timing==='bounce'&&option.intent.type==='dink')?'dink':'drop';
  const command=m.canLetBounce?`let it bounce then ${soft} far left`:'volley far left';await m.queueReceptionCommand(command);
  let exposedSecondDecision=false;for(let frame=0;frame<2000&&!m.state.shotHistory.some(intent=>intent.source==='text');frame++){m.update(.02);if(m.state.phase==='decision')exposedSecondDecision=true;await Promise.resolve()}

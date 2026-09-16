@@ -1,6 +1,6 @@
-import {LOCAL_HUMAN_SKILL,type PlayMode} from './controllers';
+import {type PlayMode} from './controllers';
 import {SKILLS,type GameState,type PlayerId,type PlayerState,type RallyShot,type Team,type Vec3} from './model';
-import type {RallyRuntime} from './rally-engine';
+import {flightCursor,sampleLeg,type RallyRuntime} from './rally-engine';
 import {parseShotIntent} from './shot-intent';
 import {PERSONALITIES,STRATEGIES,type Observation,type OpponentChoiceHistory,type OpponentStrategy,type Personality} from './opponent-brain';
 import type {ShotContext} from './shot-families';
@@ -18,7 +18,9 @@ export interface RallyCheckpoint {
  state:LogicalState;
  options:RallyShot[];
  shot:RallyShot;
- /** Required only at the net boundary to reconstruct reception branch movement. */
+ /** Fraction of total flight at the reception boundary; absent in legacy net saves. */
+ receptionProgress?:number;
+ /** Required at the reception boundary to reconstruct branch movement. */
  receptionOrigin:Record<PlayerId,Vec3>|null;
 }
 export interface FrozenAthlete {
@@ -45,15 +47,16 @@ export function checkpointRally(runtime:RallyRuntime):RallyCheckpoint {
  if(state.phase==='flight'&&!runtime.receptionPrompt)throw new Error('Save only at a logical decision boundary.');
  return structuredClone({kind:runtime.receptionPrompt?'reception':state.phase==='complete'?'point-end':'contact',
   state:{...state,rallyHistory:rallyHistory.map(({time,...event})=>event)},
+  ...(runtime.receptionPrompt?{receptionProgress:runtime.shotElapsed/runtime.shot.legs.reduce((sum,leg)=>sum+leg.duration,0)}:{}),
   options:runtime.options,shot:runtime.shot,receptionOrigin:runtime.receptionPrompt?runtime.movementStart:null});
 }
 export function hydrateRally(c:RallyCheckpoint):RallyRuntime {
  const reception=c.kind==='reception',leg=c.shot.legs[0];
- // This is a geometric net checkpoint, not a saved animation timestamp.
- const netTime=reception?leg.duration*leg.from.z/(leg.from.z-leg.to.z):0;
- return structuredClone({state:{...c.state,schemaVersion:2,simulationTime:0,elapsed:netTime,legIndex:0,paused:reception,
+ // Legacy saves retain their original net position; new saves record flight progress.
+ const time=reception?(c.receptionProgress===undefined?leg.duration*leg.from.z/(leg.from.z-leg.to.z):c.receptionProgress*c.shot.legs.reduce((sum,l)=>sum+l.duration,0)):0;
+ return structuredClone({state:{...c.state,schemaVersion:2,simulationTime:0,...flightCursor(c.shot.legs,time),paused:reception,
   rallyHistory:c.state.rallyHistory.map(event=>({...event,time:0}))},options:c.options,shot:c.shot,
-  movementStart:c.receptionOrigin??Object.fromEntries(c.state.players.map(p=>[p.id,p.position])),shotElapsed:netTime,receptionPrompt:reception}) as RallyRuntime;
+  movementStart:c.receptionOrigin??Object.fromEntries(c.state.players.map(p=>[p.id,p.position])),shotElapsed:time,receptionPrompt:reception}) as RallyRuntime;
 }
 
 /** Local saves are untrusted input. Reject incompatible or malformed records before hydration. */
@@ -108,12 +111,22 @@ export function parseCheckpoint(value:unknown):MatchCheckpoint {
    for(const o of r.options)if(o.actor!==s.currentHitter||Math.hypot(o.contact.x-s.ball.position.x,o.contact.y-s.ball.position.y,o.contact.z-s.ball.position.z)>1e-7)fail();
   }
   if(r.kind==='reception'){
-   positions(r.receptionOrigin);if(!r.shot.receptionChoice||!Object.keys(r.shot.receptionChoice).length||Math.abs(s.ball.position.z)>1e-7)fail();
-   const l=r.shot.legs[0];if(l.from.z*l.to.z>0||l.from.z===l.to.z)fail();
+   positions(r.receptionOrigin);if(!r.shot.receptionChoice||!Object.keys(r.shot.receptionChoice).length)fail();
+   if(r.receptionProgress===undefined){
+    const l=r.shot.legs[0];if(Math.abs(s.ball.position.z)>1e-7||l.from.z*l.to.z>0||l.from.z===l.to.z)fail();
+   }else{
+    number(r.receptionProgress,0,1);if(r.receptionProgress===1)fail();
+    const time=r.receptionProgress*r.shot.legs.reduce((sum:number,l:any)=>sum+l.duration,0);
+    for(const path of [r.shot,...Object.values(r.shot.receptionChoice)] as RallyShot[]){
+     if(time>=path.legs.reduce((sum,l)=>sum+l.duration,0))fail();
+     const cursor=flightCursor(path.legs,time),leg=path.legs[cursor.legIndex],point=sampleLeg(leg,cursor.elapsed/leg.duration);
+     if(Math.hypot(point.x-s.ball.position.x,point.y-s.ball.position.y,point.z-s.ball.position.z)>1e-7)fail();
+    }
+   }
   }else if(r.receptionOrigin!==null)fail();
   if(c.mode==='local-human'){
-   for(const id of SLOTS){const a=c.roster[id],p=s.players.find((p:any)=>p.id===id);if(SKILLS.some(k=>a.skills[k]!==LOCAL_HUMAN_SKILL||p.skills[k]!==LOCAL_HUMAN_SKILL)||a.handedness!=='right'||p.handedness!=='right')fail();}
-   if(SLOTS.some(id=>{const a=c.roster[id],p=s.players.find((p:any)=>p.id===id);return [a,p].some(v=>v.tendencies.aggression!==.5||v.tendencies.middlePreference!==.5||v.tendencies.kitchenApproach!==.6||v.tendencies.lobPreference!==undefined)||!a.design}))fail();
+   for(const id of SLOTS){const a=c.roster[id],p=s.players.find((p:any)=>p.id===id);if(SKILLS.some(k=>a.skills[k]!==p.skills[k])||a.handedness!==p.handedness||['aggression','middlePreference','kitchenApproach','lobPreference'].some(k=>a.tendencies[k]!==p.tendencies[k]))fail();}
+   if(SLOTS.some(id=>!c.roster[id].design))fail();
    if(c.solo.partnerAutonomy||c.solo.playerAutonomy||c.solo.brainMode!=='local'||Object.keys(c.solo.partnerInstructions).length)fail();
   }
   if(c.context!==null){object(c.context);vec(c.context.contact);vec(c.context.feet);bool(c.context.bounced);bool(c.context.twoBounceSatisfied);number(c.context.incomingSpeed,0);if(!['serve','return','rally'].includes(c.context.opening))fail();}

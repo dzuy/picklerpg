@@ -42,7 +42,7 @@ export function generateTrajectory(value:unknown,context:ShotContext,players:Pla
  const sideCurve=sideMagnitude*sideDirection*Math.cos(actor.facing);
  const verticalSpin=intent.spin?.vertical==='topspin'?-.22*strength:intent.spin?.vertical==='slice'?.16*strength:0;
  const hangTime=intent.spin?.vertical==='slice'?1+.06*strength:intent.spin?.vertical==='topspin'?1-.025*strength:1;
- const duration=Math.max(.22,base.duration/(pace*tactical*aggression)*hangTime*((intent.type==='lob'||intent.type==='serve')?1+Math.max(0,intent.intendedNetClearance-3)*.1:1));
+ let duration=Math.max(.22,base.duration/(pace*tactical*aggression)*hangTime*((intent.type==='lob'||intent.type==='serve')?1+Math.max(0,intent.intendedNetClearance-3)*.1:1));
  const t=context.contact.z/(context.contact.z-resolved.point.z);
  const x=context.contact.x+(resolved.point.x-context.contact.x)*t+4*sideCurve*t*(1-t);
  const net=COURT.netCenter+(COURT.netSideline-COURT.netCenter)*(x/(COURT.width/2))**2;
@@ -54,6 +54,14 @@ export function generateTrajectory(value:unknown,context:ShotContext,players:Pla
  const softPlacement=['drop','dink','reset','block'].includes(intent.type);
  const shapeLift=softPlacement?0:intent.shape==='flat'?family.lift*.35:intent.shape==='descending'?0:family.lift*1.3;
  const arc=Math.max(0,shapeLift,required);
+ // No shot should suspend a low arc in mid-air, regardless of stacked pace modifiers.
+ // For the parabolic 4*arc*t*(1-t) path, gravity is 8*arc / duration².
+ // Bound hang time by that arc, while leaving genuinely lofted shots more time.
+ {
+  const gravityTime=Math.sqrt(8*(arc+Math.abs(verticalSpin))/9.81);
+  const fallTime=Math.sqrt(2*Math.max(0,context.contact.y-resolved.point.y)/9.81);
+  duration=Math.min(duration,Math.max(softPlacement?.55:.22,gravityTime,fallTime));
+ }
  // A descending request must actually start descending; never silently turn it into a lob.
  const leg:FlightLeg={...base,duration,arc,...(sideCurve?{sideCurve}:{}),...(verticalSpin?{verticalSpin}:{})};
  if(intent.shape==='descending'&&sampleFlightVelocity(leg,0).y>1e-8)throw new Error('A descending shot cannot reach this target with that clearance. Lower the clearance or choose an arc.');

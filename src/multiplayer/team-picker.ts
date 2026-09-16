@@ -14,12 +14,12 @@ import {browserStorage} from '../browser-storage';
 export class TeamPicker {
  private lineup={players:[...ownedRosterPlayers(parseLibrary(browserStorage.getItem(PLAYER_STORAGE_KEY)).players),...rosterStarters()],selected:[] as string[]};
  private community=new CommunitySection(players=>this.setCommunity(players));
- private setCommunity(players:DesignedPlayer[]){const all=[...ownedRosterPlayers(this.ownedPlayers??parseLibrary(browserStorage.getItem(PLAYER_STORAGE_KEY)).players),...players];const selected=this.lineup.selected.filter(id=>all.some(p=>p.id===id));for(const p of all)if(selected.length<2&&!selected.includes(p.id))selected.push(p.id);this.lineup={players:all,selected:selected.slice(0,2)};this.draw();}
+ private setCommunity(players:DesignedPlayer[]){const all=[...ownedRosterPlayers(this.ownedPlayers??parseLibrary(browserStorage.getItem(PLAYER_STORAGE_KEY)).players),...players];const selected=this.lineup.selected.filter(id=>all.some(p=>p.id===id));for(const p of all)if(selected.length<2&&!selected.includes(p.id))selected.push(p.id);while(selected.length<2&&all.length)selected.push(all[0].id);this.lineup={players:all,selected:selected.slice(0,2)};this.draw();}
  private ready:Promise<void>=Promise.resolve();
- async freshTeam(){await this.ready;if(this.lineup.selected.length<2)throw Error('Add at least two players to Your Roster.');return await refreshCommunityDesigns(this.team) as TeamSelection}
+ async freshTeam(){await this.ready;if(this.lineup.selected.length<2)throw Error('Add a player to Your Roster.');return await refreshCommunityDesigns(this.team) as TeamSelection}
  private static portraits:AvatarThumbnails|undefined;
  async hasTeam(){await this.ready;return this.lineup.selected.length>=2;}
- constructor(private host:HTMLElement,private ownedPlayers?:DesignedPlayer[]){if(ownedPlayers)this.lineup.players=[...ownedRosterPlayers(ownedPlayers),...rosterStarters()];this.lineup.selected=this.lineup.players.slice(0,2).map(p=>p.id);this.draw();this.ready=this.community.load();void preloadAthletes().then(()=>{if(this.host.isConnected)this.draw()}).catch(()=>{})}
+ constructor(private host:HTMLElement,private ownedPlayers?:DesignedPlayer[]){if(ownedPlayers)this.lineup.players=[...ownedRosterPlayers(ownedPlayers),...rosterStarters()];this.lineup.selected=this.lineup.players.length?[this.lineup.players[0].id,(this.lineup.players[1]??this.lineup.players[0]).id]:[];this.draw();this.ready=this.community.load();void preloadAthletes().then(()=>{if(this.host.isConnected)this.draw()}).catch(()=>{})}
  get team():TeamSelection{return this.lineup.selected.slice(0,2).map(id=>structuredClone(this.lineup.players.find(p=>p.id===id)!)) as TeamSelection}
  private draw(){
   this.host.replaceChildren();this.host.className='remote-team-picker roster-grid';
@@ -31,8 +31,8 @@ export class TeamPicker {
    card.append(controls);this.host.append(card);
   });
   if(this.lineup.selected.length<2){
-   const empty=document.createElement('p');empty.className='remote-team-empty';empty.setAttribute('role','status');empty.textContent='Choose two players below to complete your team. Add them to Your Roster, then accept the game.';this.host.append(empty,this.community.element);
+   const empty=document.createElement('p');empty.className='remote-team-empty';empty.setAttribute('role','status');empty.textContent='Add a player below to complete your team. You can use the same character in both slots.';this.host.append(empty,this.community.element);
   }
-  const note=document.createElement('p');note.className='remote-team-stat-note';note.textContent='Player ratings shown. Multiplayer currently uses equal gameplay skills.';this.host.append(note);
+  const note=document.createElement('p');note.className='remote-team-stat-note';note.textContent='Your players use their actual skills in this match.';this.host.append(note);
  }
 }

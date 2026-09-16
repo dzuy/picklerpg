@@ -8,7 +8,7 @@
 
 
 
-.match-mode aside > :not(#match-panel):not(.panel-tabs):not(.shot-panel-collapse) {display:none}
+.match-mode aside > :not(#match-panel):not(.panel-tabs) {display:none}
 .match-mode .rally-strip {display:none}
 #match-panel {max-height:calc(100vh - 210px);overflow-y:auto;padding-right:8px}
 #match-panel p {line-height:1.5;margin:16px 0}
@@ -404,17 +404,8 @@ body.match-mode[data-panel=play] #match-panel .voice-handsfree-toggle{min-height
  body.match-mode[data-panel=play] #match-panel .shot-strip>.match-choice:is(:hover,:focus-visible,.is-previewing){transform:none}
 }
 
-/* Hide the entire dock while keeping a small, keyboard-accessible way back. */
-.shot-panel-collapse,.shot-panel-expand{display:none;align-items:center;justify-content:center;gap:9px;color:#213152;cursor:pointer}
-.shot-panel-collapse svg,.shot-panel-expand svg{width:20px;height:20px;flex:none}
-body.match-mode[data-panel=play] .shot-panel-collapse{display:flex;position:absolute;z-index:2;top:2px;right:8px;width:44px;height:44px;min-height:44px;padding:10px;border:0;border-radius:50%;background:transparent}
-body.match-mode[data-panel=play] .shot-panel-collapse:hover{background:#dbe1ed}
-body.match-mode[data-panel=play] .shot-panel-collapse:focus-visible{outline:2px solid #48649c;outline-offset:-4px}
-body.match-mode[data-panel=play].shots-collapsed aside{display:none}
-body.match-mode[data-panel=play].shots-collapsed:not(.voice-focus) .shot-panel-expand{display:flex;position:absolute;z-index:20;right:30px;bottom:28px;min-height:44px;padding:10px 16px;border:1px solid #fff;border-radius:24px;background:#f0f4fcf0;backdrop-filter:blur(12px);box-shadow:0 4px 18px #17243d24;font-size:13px;font-weight:700}
-body.match-mode[data-panel=play] .shot-panel-expand:hover{background:#dce5f6}
-@media(max-width:1000px){body.match-mode[data-panel=play].shots-collapsed .shot-panel-expand{right:22px;bottom:22px}}
-@media(max-width:760px){body.match-mode[data-panel=play].shots-collapsed .shot-panel-expand{right:14px;bottom:12px}}
+/* Gameplay uses the court targeting wheel; settings and insights keep their panels. */
+body.match-mode[data-panel=play] main > aside{display:none}
 
 /* Screen-space locator remains clear at every camera distance without blocking court input. */
 .paused-ball-marker{position:absolute;z-index:18;width:34px;height:34px;transform:translate(-50%,-50%);border:2px solid #c2ff32;border-radius:50%;background:#adff181a;box-shadow:0 0 0 1px #284e39b3,0 0 16px #b6ff1670;pointer-events:none}
@@ -476,7 +467,6 @@ body.match-mode[data-panel=play] .target-wheel .shot-icon,.target-wheel .shot-ic
 .shot-visual.shot-kind-power .shot-speed{stroke-width:2.4;opacity:.55}
 
 /* Keep the legacy shot dock available in code while its entry point is retired. */
-body .shot-panel-expand[hidden]{display:none!important}
 .header .player-design-entry{margin-left:auto}
 .header .player-design-entry~.header-icon{margin-left:0}
 

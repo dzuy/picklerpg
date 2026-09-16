@@ -8,10 +8,8 @@ import {fillPlayerCard,playerRecord} from './player-card';
 import {MatchSetup} from './match-setup';
 import {randomLineup} from './random-lineup';
 import {describePointResult} from './point-result';
-import {choiceCopy} from './shot-choice';
 import {TargetPicker} from './target-picker';
 import {LOOKS} from './player-looks';
-import {shotIcon,shotTraits,pickleballMark} from './shot-illustration';
 import {newPlayer,type DesignedPlayer} from './player-design';
 import {AvatarThumbnails} from './avatar-preview';
 import {localRecognition} from './local-voice';
@@ -25,7 +23,7 @@ import {PERSONALITIES} from './engine/opponent-brain';
 import {PLAYER_PROFILES,ARCHETYPES} from './engine/player-profiles';
 import {Match} from './match';
 import {SHOT_FAMILIES} from './engine/shot-families';
-import type {PlayerId,ShotIntent} from './engine/model';
+import type {PlayerId} from './engine/model';
 import {SHOT_INTENT_SCHEMA,targetLabel} from './engine/shot-intent';
 import './style.css';
 import './gameplay-hud.css';
@@ -57,7 +55,6 @@ app.innerHTML=`
 <div class="rally-strip"><div class="eyebrow">THE PATTERN <span>01 / PRESSURE THE MIDDLE</span></div><ol id="timeline">${['Serve','Deep return','Drive middle','High block','Overhead'].map((s,i)=>`<li data-step="${i}"><span class="step-number">${i+1}</span><span>${s}</span></li>`).join('')}</ol></div>
 </section><aside><button id="back-to-play" class="back-to-play">← Back to play</button><div class="aside-heading"><span class="eyebrow">PATTERN 01</span><span class="difficulty">INTERMEDIATE +</span></div><h2>Pressure.<br>Pop-up.<br><em>Put-away.</em></h2><p class="pattern-description">Create a weak ball through the middle. Recognize your chance to finish.</p><div class="aside-divider"></div><div id="decision" aria-live="polite"></div><div class="coach"><span class="coach-icon">✳</span><div><div class="eyebrow">COURT SENSE</div><p id="cue"></p></div></div><div class="aside-foot"><span class="script-dot"></span> Scripted opponents <span>·</span> Automatic positioning</div><section id="match-panel" hidden></section></aside></main><footer><span>READ THE COURT. MAKE THE CALL.</span><span><kbd>Space</kbd> play shot / pause <kbd>R</kbd> restart</span></footer><dialog id="game-settings" aria-labelledby="settings-title"><div class="settings-heading"><h2 id="settings-title">Settings</h2><button id="close-settings" aria-label="Close settings">✕</button></div><section class="settings-lineup" aria-labelledby="settings-lineup-title"><h3 id="settings-lineup-title">Current Players</h3><div id="settings-player-slots"></div></section><label class="settings-toggle" for="guides"><span>Flight guide<small>Show the ball path and target marker.</small></span><span class="settings-switch-control"><strong id="guides-state">On</strong><input id="guides" type="checkbox" role="switch" checked></span></label><label class="settings-toggle" for="show-player-names"><span>Show player names<small>Display name labels above players on the court.</small></span><span class="settings-switch-control"><strong id="show-player-names-state">On</strong><input id="show-player-names" type="checkbox" role="switch" checked></span></label><label class="settings-toggle" for="result-timer"><span>Result window timer<small>Automatically continue after 10 seconds at normal speed.</small></span><span class="settings-switch-control"><strong id="result-timer-state">On</strong><input id="result-timer" type="checkbox" role="switch" checked></span></label><section class="settings-account" aria-labelledby="settings-account-title"><div class="settings-account-heading"><h3 id="settings-account-title">Account</h3><span id="account-badge">Connecting…</span></div><p id="account-copy">Connecting your cloud saves…</p><form id="account-form" novalidate><label for="account-email">Email</label><input id="account-email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required><div class="settings-account-actions"><button id="protect-progress" type="submit">Protect progress</button><button id="account-sign-in" type="button">Sign in instead</button></div></form><p id="account-status" role="status" aria-live="polite"></p></section></dialog>`;
 document.querySelector('#game-settings .settings-lineup')!.insertAdjacentHTML('afterend','<button id="restart" class="settings-restart">Restart current game <span aria-hidden="true">↻</span></button><label class="settings-toggle" for="partner-autonomy"><span>Partner auto-play<small>Let your partner choose their own shots when the ball comes to them.</small></span><span class="settings-switch-control"><strong id="partner-autonomy-state">Off</strong><input id="partner-autonomy" type="checkbox" role="switch"></span></label>');
-app.insertAdjacentHTML('beforeend','<dialog id="shot-drawer" aria-labelledby="shot-drawer-title"><div class="drawer-heading"><div><div class="eyebrow">SHOT MENU</div><h2 id="shot-drawer-title">More options</h2></div><button id="close-shot-drawer" aria-label="Close more options">✕</button></div><p id="shot-drawer-description">Other playable choices for this contact.</p><div id="more-options-list"></div></dialog>');
 app.insertAdjacentHTML('beforeend','<dialog id="player-drawer" aria-labelledby="player-drawer-title"><div class="drawer-heading"><div><div class="eyebrow">PLAYER PROFILE</div><h2 id="player-drawer-title"></h2></div><button id="close-player-drawer" aria-label="Close player profile">✕</button></div><article id="player-profile-card" class="roster-card"></article><button type="button" id="edit-player-design" hidden>Edit Design ↗</button><p id="player-drawer-description"></p><div id="player-drawer-meta"></div><dl id="player-drawer-skills" class="player-skill-drawer"></dl></dialog>');
 await preloadAthletes();
 const match=new Match();match.partnerAutonomy=true;match.randomizeSeedOnReset=true;let scene:CourtScene;
@@ -143,7 +140,7 @@ function syncVoice(){
  const toggleParent=!focused&&composer?composer:voicePanel;
  if(voiceHandsFreeLabel.parentElement!==toggleParent)toggleParent.append(voiceHandsFreeLabel);
  const key=voiceToken();const changed=voiceContextKey!==key||voiceEngine!==match.engine;if(voiceEngine!==match.engine)voiceAttempt=null;voiceEngine=match.engine;
- const blocked=match.playerAutonomy||settingsDialog.open||creator.dialog.open||shotDrawer.open||playerDrawer.open||match.replayIndex!==null||document.hidden;
+ const blocked=match.playerAutonomy||settingsDialog.open||creator.dialog.open||playerDrawer.open||match.replayIndex!==null||document.hidden;
  if(blocked){if(voice.active){voice.stop();voiceStatus('')}voiceHandsFree=false;voiceHandsFreeInput.checked=false}
  else if(changed&&voice.active){voice.stop();voiceStatus('')}
  voiceMeter.hidden=voice.phase!=='listening'||!localFactory;
@@ -165,32 +162,7 @@ creator=new PlayerCreator(player=>{
  if(onStartScreen)showMatchSetup();
  lastUI='';updateUI();
 },id=>{if(match.isLocalHuman)return;for(const slot of courtSlots)if(match.getPlayerDesign(slot)?.id===id){match.substitutePlayer(slot,null);scene.substitutePlayer(slot,null)}syncRosterNames()},(library,change)=>cloudPlayers.save(library,change));
-// Lift the court framing above the decision dock without changing the user's orbit.
-const decisionDock=document.querySelector('main > aside') as HTMLElement;
-decisionDock.id='shot-selection-panel';
-const collapseShots=document.createElement('button');
-collapseShots.type='button';collapseShots.className='shot-panel-collapse';
-collapseShots.setAttribute('aria-label','Hide shots');collapseShots.title='Hide shots';
-collapseShots.setAttribute('aria-controls',decisionDock.id);collapseShots.setAttribute('aria-expanded','true');
-collapseShots.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
-decisionDock.prepend(collapseShots);
-const expandShots=document.createElement('button');
-expandShots.type='button';expandShots.className='shot-panel-expand';expandShots.hidden=true;
-expandShots.setAttribute('aria-controls',decisionDock.id);expandShots.setAttribute('aria-expanded','false');
-expandShots.innerHTML='<span>Show shots</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>';
-decisionDock.after(expandShots);
-document.body.classList.add('shots-collapsed');
-const setShotsCollapsed=(collapsed:boolean)=>{
- scene.setShotPreview(null);
- decisionDock.querySelectorAll('.is-previewing').forEach(card=>card.classList.remove('is-previewing'));
- document.body.classList.toggle('shots-collapsed',collapsed);
- (collapsed?byId('open-settings'):collapseShots).focus();
-};
-collapseShots.addEventListener('click',()=>setShotsCollapsed(true));
-expandShots.addEventListener('click',()=>setShotsCollapsed(false));
-const updateCourtFraming=()=>{const visible=document.body.classList.contains('match-mode')&&document.body.dataset.panel==='play'&&getComputedStyle(decisionDock).display!=='none';scene.setBottomOverlay(visible?decisionDock.getBoundingClientRect().height:0)};
-new ResizeObserver(updateCourtFraming).observe(decisionDock);
-new MutationObserver(updateCourtFraming).observe(document.body,{attributes:true,attributeFilter:['class','data-panel']});
+// Shot selection lives on the court through the targeting wheel.
 const savedPlayer=creator.activePlayer;
 creator.loadHistory=async()=>{await accountControls.retry();return (await cloudPlayers.history()).matches};
 if(savedPlayer){match.setPlayerDesign(savedPlayer);scene.setPlayerDesign(savedPlayer);document.querySelector('.score-row-home > span')!.textContent=`${savedPlayer.name} & FINN`}
@@ -240,7 +212,6 @@ endGameButton.addEventListener('click',()=>{
  if(settingsCloseTimer)window.clearTimeout(settingsCloseTimer);
  settingsDialog.close();settingsDialog.classList.remove('is-closing');syncGameEnd();
 });
-const shotDrawer=byId('shot-drawer') as HTMLDialogElement;
 const playerDrawer=byId('player-drawer') as HTMLDialogElement;
 const replayOverlay=document.createElement('section');replayOverlay.id='replay-overlay';replayOverlay.hidden=true;replayOverlay.setAttribute('aria-label','Point replay');
 replayOverlay.innerHTML='<div class="replay-player"><button id="replay-toggle" class="replay-toggle" aria-label="Pause point replay">Ⅱ</button><div class="replay-track"><div><strong>Replay</strong><output id="replay-time">0:00 / 0:00</output></div><input id="replay-position" type="range" min="0" max="0" value="0" step="0.01" aria-label="Replay timeline"></div><button id="close-replay" aria-label="Exit replay" title="Exit replay">✕</button></div>';
@@ -252,9 +223,7 @@ byId('replay-position').addEventListener('input',event=>{match.scrubReplayTime(N
 replayOverlay.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();closeReplay()}else if(event.code==='Space'&&event.target instanceof HTMLInputElement){event.preventDefault();match.replayPlaying?match.pauseReplay():match.resumeReplay()}});
 
 let profilePortraits:AvatarThumbnails|undefined;
-let shotDrawerCloseTimer:number|undefined,playerDrawerCloseTimer:number|undefined,settingsCloseTimer:number|undefined;
-function openShotDrawer(){if(shotDrawerCloseTimer)window.clearTimeout(shotDrawerCloseTimer);shotDrawer.classList.remove('is-closing');if(!shotDrawer.open)shotDrawer.showModal()}
-function closeShotDrawer(){if(!shotDrawer.open||shotDrawer.classList.contains('is-closing'))return;shotDrawer.classList.add('is-closing');const delay=matchMedia('(prefers-reduced-motion: reduce)').matches?0:180;shotDrawerCloseTimer=window.setTimeout(()=>{shotDrawer.close();shotDrawer.classList.remove('is-closing');shotDrawerCloseTimer=undefined},delay)}
+let playerDrawerCloseTimer:number|undefined,settingsCloseTimer:number|undefined;
 function openPlayerDrawer(id:PlayerId){
  if(playerDrawerCloseTimer)window.clearTimeout(playerDrawerCloseTimer);playerDrawer.classList.remove('is-closing');
  const player=match.state.players.find(candidate=>candidate.id===id);if(!player)return;
@@ -263,11 +232,11 @@ function openPlayerDrawer(id:PlayerId){
  const design=match.getPlayerDesign(id);
  const card=byId('player-profile-card');card.replaceChildren();
  let portrait='';try{profilePortraits??=new AvatarThumbnails(512);portrait=profilePortraits.get(scene.getPlayerAppearance(id),'roster')}catch{}
- fillPlayerCard(card,{...(design??newPlayer()),name:names[id],appearance:scene.getPlayerAppearance(id),skills:player.skills,handedness:player.handedness},match.isLocalHuman?'Equal skills':archetype.name,portrait);
+ fillPlayerCard(card,{...(design??newPlayer()),name:names[id],appearance:scene.getPlayerAppearance(id),skills:player.skills,handedness:player.handedness},match.isLocalHuman?'Character skills':archetype.name,portrait);
  if(!match.isLocalHuman)card.querySelector('.roster-card-identity')!.append(playerRecord(design?.id??null,creator.loadHistory()));
  byId('edit-player-design').hidden=match.isLocalHuman||id!=='you';
  byId('player-drawer-title').textContent=names[id];byId('player-drawer-description').textContent=match.isLocalHuman?'Fixed multiplayer attributes for this match.':archetype.description;
- byId('player-drawer-meta').innerHTML=`<span>${match.isLocalHuman?teamLabel(player.team):player.team==='home'?'Your team':'Opponent'}</span><span>${match.isLocalHuman?'Equal skills':archetype.name}</span><span>${player.handedness[0].toUpperCase()+player.handedness.slice(1)}-handed</span>`;
+ byId('player-drawer-meta').innerHTML=`<span>${match.isLocalHuman?teamLabel(player.team):player.team==='home'?'Your team':'Opponent'}</span><span>${match.isLocalHuman?'Character skills':archetype.name}</span><span>${player.handedness[0].toUpperCase()+player.handedness.slice(1)}-handed</span>`;
  byId('player-drawer-skills').innerHTML=Object.entries(player.skills).map(([skill,value])=>`<div><dt>${skill}</dt><dd><meter min="0" max="100" value="${value}" aria-label="${skill} ${value} out of 100"></meter><strong>${value}</strong></dd></div>`).join('');
  if(!playerDrawer.open)playerDrawer.showModal();
 }
@@ -341,9 +310,6 @@ byId('open-settings').addEventListener('click',openSettings);
 byId('close-settings').addEventListener('click',closeSettings);
 settingsDialog.addEventListener('click',event=>{if(event.target===settingsDialog)closeSettings()});
 settingsDialog.addEventListener('cancel',event=>{event.preventDefault();closeSettings()});
-byId('close-shot-drawer').addEventListener('click',closeShotDrawer);
-shotDrawer.addEventListener('click',event=>{if(event.target===shotDrawer)closeShotDrawer()});
-shotDrawer.addEventListener('cancel',event=>{event.preventDefault();closeShotDrawer()});
 byId('close-player-drawer').addEventListener('click',closePlayerDrawer);
 byId('edit-player-design').addEventListener('click',()=>{if(playerDrawerCloseTimer)window.clearTimeout(playerDrawerCloseTimer);playerDrawer.close();playerDrawer.classList.remove('is-closing');creator.editPlayer(match.playerDesign)});
 playerDrawer.addEventListener('click',event=>{if(event.target===playerDrawer)closePlayerDrawer()});
@@ -373,7 +339,6 @@ byId('partner-autonomy').addEventListener('change',e=>{match.partnerAutonomy=(e.
 document.addEventListener('keydown',event=>{if(onStartScreen||settingsDialog.open||creator.dialog.open||gameEnd.open)return;if(match.replayIndex!==null){if(event.key==='Escape'){event.preventDefault();closeReplay()}else if(event.code==='Space'&&!(event.target instanceof HTMLElement&&event.target.closest('button,input'))){event.preventDefault();match.replayPlaying?match.pauseReplay():match.resumeReplay()}return;}if(event.target instanceof HTMLElement&&event.target.closest('button, input, select, textarea, a'))return;if(event.code==='Space'){event.preventDefault();match.state.phase==='decision'||match.isLocalHuman&&match.receptionDecision?submit():match.state.phase==='complete'?(!match.scoring.winner?(match.nextPoint(),lastUI='',updateUI()):reset()):pause()}if(event.key.toLowerCase()==='r')reset()});
 function updateUI(){updateMatchUI()}
 
-function choiceButton(intent:ShotIntent,index:number){const copy=choiceCopy(intent);return `<button class="shot-button match-choice" data-choice="${index}" data-traits="${shotTraits(intent)}">${shotIcon(intent,index)}<span><strong>${copy.name}</strong><span class="choice-target">${match.isLocalHuman?escapeText(targetLabel(intent.target)):copy.detail}</span>${!match.isLocalHuman&&match.shot.actor==='partner'&&match.recommendationType===intent.type?'<small>Finn recommends</small>':''}</span><span aria-hidden="true">↗</span></button>`}
 function pointResultCopy(){
  const result=match.state.result,replayAtEnd=match.replayIndex===match.replayFrames.length-1&&!match.replayPlaying;if(match.state.phase!=='complete'||!result||match.replayIndex!==null&&!replayAtEnd)return null;
  return describePointResult(result,match.shot,id=>match.getPlayerDesign(id)?.name??({you:'You',partner:'Finn','opponent-left':'Jules','opponent-right':'Rio'}[id]));
@@ -393,7 +358,6 @@ function analysisCards(){
 function updateMatchUI(){
  byId('active-scoring-rules').textContent=`Current game: ${match.scoring.rules.scoring==='rally-doubles'?'Rally':'Side-out'} · first to ${match.scoring.rules.target}${match.scoring.rules.winBy>1?', win by '+match.scoring.rules.winBy:''}`;
  document.body.classList.toggle('local-human-mode',match.isLocalHuman);
- expandShots.hidden=!match.isLocalHuman||!document.body.classList.contains('shots-collapsed');
  const team=match.decisionTeam;
  if(match.isLocalHuman&&team)scene.setViewTeam(team);else if(!match.isLocalHuman)scene.setViewTeam('home');
  const banner=byId('local-turn-banner');banner.hidden=!match.isLocalHuman;
@@ -401,40 +365,10 @@ function updateMatchUI(){
  for(const id of ['restart','open-player-design','partner-autonomy','player-autonomy','result-timer']){const el=byId(id) as HTMLInputElement|HTMLButtonElement;el.disabled=match.isLocalHuman;}
  const s=match.state,score=match.scoring,key=`match:${match.mode}:${match.point}:${s.phase}:${s.shotIndex}:${s.paused}:${match.receptionDecision}:${score.call}:${score.winner}:${match.brainStatus}:${match.thinking}:${match.practice}:${match.variation}:${match.customBusy}:${match.customStatus}:${match.replayIndex===null?'live':match.replayPlaying?'replaying':'scrubbing'}`;if(key===lastUI)return;lastUI=key;
  byId('score-home').textContent=String(score.score.home);byId('score-away').textContent=String(score.score.away);
- const choiceEntries=match.availableIntents.map((intent,index)=>({intent,index})).filter(({intent})=>intent.source!=='text');
- const primaryChoices=choiceEntries,moreChoices:typeof choiceEntries=[];
- byId('shot-drawer-title').textContent=moreChoices[0]?.intent.type==='serve'?'More serves':'More options';
- byId('shot-drawer-description').textContent=moreChoices[0]?.intent.type==='serve'?'Try a less common serve for a different look.':'Other playable choices for this contact.';
- byId('more-options-list').innerHTML=moreChoices.map(({intent,index})=>choiceButton(intent,index)).join('');
- if(!moreChoices.length&&shotDrawer.open)closeShotDrawer();
- const receptionDecision=match.manualReceptionDecision,receptionChoices=match.displayedReceptionOptions,playerDecision=match.humanContact;
- const finalShotByHome=match.shot.actor==='you'||match.shot.actor==='partner';
- const endTitle=s.phase==='complete'&&s.result?.reason==='net'?(finalShotByHome?'Hit the net! Side out!':'They hit the net! Point won!'):s.phase==='complete'?'Point complete.':null;
- const endDetail=s.phase==='complete'&&s.result?.reason==='net'?(finalShotByHome?'The ball caught the net and dropped on your side.':'The opponent’s ball caught the net and dropped on their side.'):`${s.result?.winner==='home'?'Your team':'Opponents'} won the rally: ${s.result?.reason.replaceAll('-',' ')}.`;
+ const receptionDecision=match.manualReceptionDecision,playerDecision=match.humanContact;
  const courtResult=pointResultCopy();if(courtResult){if(match.isLocalHuman&&s.result)courtResult.detail=`${teamLabel(s.result.winner)} wins the rally.`;byId('court-result-title').textContent=courtResult.title;byId('court-result-detail').textContent=courtResult.detail}
  
- byId('match-panel').innerHTML=`<section class="match-settings"><h3>Make it your game.</h3><div class="eyebrow">${match.practice?'PATTERN PRACTICE · UNSCORED':`FREE PLAY · ${score.rules.scoring==='rally-doubles'?'RALLY':'SIDE-OUT'} SCORING`}</div><label for="practice-pattern">Practice focus</label><select id="practice-pattern"><option value="">Free play · no lesson</option>${PATTERNS.map(p=>`<option value="${p.id}" ${match.practice===p.id?'selected':''}>${p.name}</option>`).join('')}</select><button id="start-pattern">Start selected practice / game</button>${match.practice?`<p>${PATTERNS.find(p=>p.id===match.practice)!.cue} · Variation ${match.variation+1}</p>`:''}<h2>${score.score.home} : ${score.score.away}</h2>${match.practice?'<p>Mid-rally practice · opening bounces already satisfied.</p>':`<p>Serve call <strong>${score.call}</strong> · ${score.server==='you'?'You':score.server==='partner'?'Finn':score.server==='opponent-left'?'Jules':'Rio'} serving</p>`}<details><summary>Opponent brain</summary><label for="brain-mode">Decision engine</label><select id="brain-mode"><option value="local" ${match.brainMode==='local'?'selected':''}>Local adaptive</option><option value="llm" ${match.brainMode==='llm'?'selected':''}>LLM strategy · instant shots</option></select><label for="brain-personality">Personality</label><select id="brain-personality">${PERSONALITIES.map(p=>`<option ${match.personality===p?'selected':''}>${p}</option>`).join('')}</select><label for="brain-iq">Tactical intelligence</label><select id="brain-iq">${[.2,.5,.9].map(n=>`<option value="${n}" ${Math.abs(match.intelligence-n)<.11?'selected':''}>${n===.2?'Basic':n===.5?'Aware':'Adaptive'}</option>`).join('')}</select><button id="apply-brain">Apply for next opponent contact</button><p id="brain-status">${match.brainStatus}</p><p>Observed ${match.memory.summary().samples} recent team shots. Physical ratings are unchanged.</p></details><details><summary>Choose archetypes · starts a new game</summary>${Object.entries(PLAYER_PROFILES).map(([id,p])=>`<label for="profile-${id}">${p.name}</label><select id="profile-${id}" ${match.getPlayerDesign(id as PlayerId)?'disabled':''}><option value="">${match.getPlayerDesign(id as PlayerId)?'Selected player skills':'Original profile'}</option>${Object.entries(ARCHETYPES).map(([key,a])=>`<option value="${key}" ${match.lineup[id as keyof typeof PLAYER_PROFILES]===key?'selected':''}>${a.name}</option>`).join('')}</select>`).join('')}<button id="apply-lineup" class="shot-button">Start game with these profiles</button></details><p class="guided-note">${match.partnerAutonomy?'Your contacts wait for you; Finn chooses his own shots.':'Every team contact waits for your choice.'}</p><details><summary>Player skills · 0–100</summary>${Object.entries(PLAYER_PROFILES).map(([id,base])=>{const custom=match.getPlayerDesign(id as PlayerId);const p={...base,...(match.lineup[id as keyof typeof PLAYER_PROFILES]?ARCHETYPES[match.lineup[id as keyof typeof PLAYER_PROFILES]!]:{}),name:custom?escapeText(custom.name):base.name,...(custom?{skills:custom.skills,description:'Your saved Player Design skills.'}:{})};return `<h3>${p.name}</h3><p>${p.description}</p><dl class="player-skills">${Object.entries(p.skills).map(([name,value])=>`<div><dt>${name}</dt><dd>${value}</dd></div>`).join('')}</dl>`}).join('')}<p class="guided-note">Prototype attributes, not DUPR ratings. Shot skills affect execution; movement affects reach; hands affects fast volleys.</p></details></section><section class="match-play primary-choices${s.phase==='complete'?' point-result':''}"><h3>${endTitle??(receptionDecision?'Attack the pop-up?':playerDecision?'Choose your shot':s.currentHitter==='partner'&&match.partnerAutonomy?escapeText(playerNames().partner)+'’s play':'Read the court.')}</h3>${s.phase==='flight'&&match.shot.feedback&&!receptionDecision?`<p>Last execution · skill ${match.shot.feedback.skill} · quality ${(match.shot.feedback.quality*100).toFixed(0)}% · ${match.shot.feedback.difficulty.join(', ')} · deviation ${match.shot.feedback.deviation.toFixed(2)} m${match.shot.feedback.mishit?' · mishit':''}</p>`:''}${receptionDecision?'<p>The ball is crossing the net high enough to take in the air.</p>':s.phase==='complete'?`<p class="point-result-detail">${endDetail}</p>`:match.shot.intent.type==='serve'?'':`<p>${match.shot.description}</p>`}${s.phase==='complete'?(score.winner?'<button id="new-game" class="shot-button">New game ↗</button>':''):receptionDecision?'<div class="reception-actions"><button id="smash-popup" class="shot-button"><strong>Smash it</strong><span>Take it before the bounce</span></button><button id="let-bounce" class="shot-button secondary"><strong>Let it bounce</strong><span>Play it after the bounce</span></button></div>':playerDecision?`${primaryChoices.map(({intent,index})=>choiceButton(intent,index)).join('')}${moreChoices.length?'<button id="more-options" class="more-options-link" aria-haspopup="dialog">More options <span aria-hidden="true">→</span></button>':''}`:`<p>${match.thinking?(s.currentHitter==='partner'?escapeText(playerNames().partner)+' is thinking…':'Opponent thinking…'):s.paused?'Paused':'Rally in progress'} · ${s.shotHistory.length} shots</p>`}</section>`;
-
- if(receptionDecision){
-  const primary=byId('match-panel').querySelector<HTMLElement>('.primary-choices')!;
-  primary.querySelector('h3')!.textContent='Choose your shot';
-  const copy=primary.querySelector('p');if(copy)copy.textContent='The ball is crossing the net. Pick one move.';
-  primary.querySelector('.reception-actions')!.innerHTML=receptionChoices.map((option,index)=>`<button class="shot-button match-choice reception-shot" data-reception="${index}" data-traits="${shotTraits(option.intent)}">${shotIcon(option.intent,index)}<span><strong>${SHOT_FAMILIES[option.intent.type].name} <span class="reception-timing">${option.timing==='air'?'Before bounce':'After bounce'}</span></strong><span class="choice-target">${match.isLocalHuman?escapeText(playerNames()[option.intent.actor])+' · ':''}${targetLabel(option.intent.target)} · ${option.timing==='air'?'before bounce':'after bounce'}</span></span><span aria-hidden="true">↗</span></button>`).join('');
- }
- const shotSection=byId('match-panel').querySelector<HTMLElement>('.primary-choices')!;
- if(playerDecision||receptionDecision){
-  const heading=shotSection.querySelector('h3')!;
-  const intro=document.createElement('div');intro.className='shot-picker-heading';
-  intro.innerHTML=`<span class="shot-picker-mark">${pickleballMark}</span><h3>${heading.textContent}</h3>${receptionDecision?'':'<span class="shot-preview-hint" aria-hidden="true"></span>'}`;
-  heading.replaceWith(intro);
-  const strip=document.createElement('div');strip.className='shot-strip';strip.setAttribute('role','group');strip.setAttribute('aria-label','Available shots');
-  shotSection.querySelectorAll<HTMLButtonElement>('.match-choice').forEach(button=>{
-   const detail=button.querySelector('.choice-target')?.textContent??'';
-   const name=button.querySelector('strong')?.textContent??'';
-   button.title=`${name} · ${detail} · ${button.dataset.traits??''}`;button.setAttribute('aria-label',button.title);strip.append(button);
-  });
-  shotSection.querySelector('.reception-actions')?.remove();shotSection.append(strip);
- }
+ byId('match-panel').innerHTML=`<section class="match-settings"><h3>Make it your game.</h3><div class="eyebrow">${match.practice?'PATTERN PRACTICE · UNSCORED':`FREE PLAY · ${score.rules.scoring==='rally-doubles'?'RALLY':'SIDE-OUT'} SCORING`}</div><label for="practice-pattern">Practice focus</label><select id="practice-pattern"><option value="">Free play · no lesson</option>${PATTERNS.map(p=>`<option value="${p.id}" ${match.practice===p.id?'selected':''}>${p.name}</option>`).join('')}</select><button id="start-pattern">Start selected practice / game</button>${match.practice?`<p>${PATTERNS.find(p=>p.id===match.practice)!.cue} · Variation ${match.variation+1}</p>`:''}<h2>${score.score.home} : ${score.score.away}</h2>${match.practice?'<p>Mid-rally practice · opening bounces already satisfied.</p>':`<p>Serve call <strong>${score.call}</strong> · ${score.server==='you'?'You':score.server==='partner'?'Finn':score.server==='opponent-left'?'Jules':'Rio'} serving</p>`}<details><summary>Opponent brain</summary><label for="brain-mode">Decision engine</label><select id="brain-mode"><option value="local" ${match.brainMode==='local'?'selected':''}>Local adaptive</option><option value="llm" ${match.brainMode==='llm'?'selected':''}>LLM strategy · instant shots</option></select><label for="brain-personality">Personality</label><select id="brain-personality">${PERSONALITIES.map(p=>`<option ${match.personality===p?'selected':''}>${p}</option>`).join('')}</select><label for="brain-iq">Tactical intelligence</label><select id="brain-iq">${[.2,.5,.9].map(n=>`<option value="${n}" ${Math.abs(match.intelligence-n)<.11?'selected':''}>${n===.2?'Basic':n===.5?'Aware':'Adaptive'}</option>`).join('')}</select><button id="apply-brain">Apply for next opponent contact</button><p id="brain-status">${match.brainStatus}</p><p>Observed ${match.memory.summary().samples} recent team shots. Physical ratings are unchanged.</p></details><details><summary>Choose archetypes · starts a new game</summary>${Object.entries(PLAYER_PROFILES).map(([id,p])=>`<label for="profile-${id}">${p.name}</label><select id="profile-${id}" ${match.getPlayerDesign(id as PlayerId)?'disabled':''}><option value="">${match.getPlayerDesign(id as PlayerId)?'Selected player skills':'Original profile'}</option>${Object.entries(ARCHETYPES).map(([key,a])=>`<option value="${key}" ${match.lineup[id as keyof typeof PLAYER_PROFILES]===key?'selected':''}>${a.name}</option>`).join('')}</select>`).join('')}<button id="apply-lineup" class="shot-button">Start game with these profiles</button></details><p class="guided-note">${match.partnerAutonomy?'Your contacts wait for you; Finn chooses his own shots.':'Every team contact waits for your choice.'}</p><details><summary>Player skills · 0–100</summary>${Object.entries(PLAYER_PROFILES).map(([id,base])=>{const custom=match.getPlayerDesign(id as PlayerId);const p={...base,...(match.lineup[id as keyof typeof PLAYER_PROFILES]?ARCHETYPES[match.lineup[id as keyof typeof PLAYER_PROFILES]!]:{}),name:custom?escapeText(custom.name):base.name,...(custom?{skills:custom.skills,description:'Your saved Player Design skills.'}:{})};return `<h3>${p.name}</h3><p>${p.description}</p><dl class="player-skills">${Object.entries(p.skills).map(([name,value])=>`<div><dt>${name}</dt><dd>${value}</dd></div>`).join('')}</dl>`}).join('')}<p class="guided-note">Prototype attributes, not DUPR ratings. Shot skills affect execution; movement affects reach; hands affects fast volleys.</p></details></section>`;
  if(!match.isLocalHuman&&(playerDecision||receptionDecision)){
  byId('match-panel').insertAdjacentHTML('beforeend',`<section class="match-play custom-composer"><div class="shot-composer-heading"><span class="shot-composer-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/></svg></span><div><h4>Call your shot</h4><p>Or describe your shot with voice.</p></div></div><label class="sr-only" for="custom-command">Call your own shot</label><p id="custom-status" role="status"></p><div id="custom-quick"></div><div class="custom-input-row"><input id="custom-command" maxlength="300" placeholder="Call your shot…" aria-label="Call your own shot"><button id="submit-command" class="custom-send" aria-label="Send custom shot" title="Send custom shot" ${match.customBusy?'disabled':''}><span aria-hidden="true">↑</span></button></div></section>`);
  byId('custom-status').textContent=match.customBusy?'':match.customStatus;
@@ -454,23 +388,7 @@ function updateMatchUI(){
  byId('start-pattern').addEventListener('click',()=>{showPanel('play');match.startPractice((byId('practice-pattern') as HTMLSelectElement).value as typeof match.practice||null);lastUI='';updateUI()});
  byId('apply-brain').addEventListener('click',()=>{match.brainMode=(byId('brain-mode') as HTMLSelectElement).value as typeof match.brainMode;match.personality=(byId('brain-personality') as HTMLSelectElement).value as typeof match.personality;match.intelligence=Number((byId('brain-iq') as HTMLSelectElement).value);lastUI='';updateUI()});
  byId('apply-lineup').addEventListener('click',()=>{for(const id of Object.keys(PLAYER_PROFILES) as (keyof typeof PLAYER_PROFILES)[]){const value=(byId(`profile-${id}`) as HTMLSelectElement).value;match.lineup[id]=value?value as keyof typeof ARCHETYPES:undefined}match.reset();showPanel('play');lastUI='';updateUI()});
- byId('new-game')?.addEventListener('click',advancePoint);
- document.querySelectorAll<HTMLButtonElement>('.reception-shot').forEach(button=>button.addEventListener('click',()=>{const option=receptionChoices[Number(button.dataset.reception)];if(option)match.chooseReceptionIntent(option);lastUI='';updateUI()}));
- byId('more-options')?.addEventListener('click',openShotDrawer);
- document.querySelectorAll<HTMLButtonElement>('.match-choice:not(.reception-shot)').forEach(button=>{
-  const intent=match.availableIntents[Number(button.dataset.choice)];
-  const preview=()=>{const shot=match.previewIntent(intent);if(shot){scene.setShotPreview(shot);button.classList.add('is-previewing')}};
-  const clear=()=>{scene.setShotPreview(null);button.classList.remove('is-previewing')};
-  let hold:number|undefined,held=false,suppressClick=false,startX=0,startY=0;
-  button.addEventListener('pointerenter',event=>{if(event.pointerType==='mouse')preview()});
-  button.addEventListener('pointerleave',event=>{if(event.pointerType==='mouse')clear()});
-  button.addEventListener('focus',preview);button.addEventListener('blur',clear);
-  button.addEventListener('pointerdown',event=>{if(event.pointerType==='mouse')return;held=false;startX=event.clientX;startY=event.clientY;hold=window.setTimeout(()=>{held=true;preview()},260)});
-  button.addEventListener('pointermove',event=>{if(hold&&Math.hypot(event.clientX-startX,event.clientY-startY)>9){clearTimeout(hold);hold=undefined}});
-  const release=()=>{if(hold)clearTimeout(hold);hold=undefined;if(held){suppressClick=true;held=false;clear();window.setTimeout(()=>suppressClick=false,350)}};
-  button.addEventListener('pointerup',release);button.addEventListener('pointercancel',release);
-  button.addEventListener('click',event=>{if(suppressClick){event.preventDefault();return}clear();if(shotDrawer.open)closeShotDrawer();match.submitIntent(intent);lastUI='';updateUI()});
- });
+
 }
 const gameEnd=document.createElement('dialog');gameEnd.id='game-end';gameEnd.setAttribute('aria-labelledby','game-end-title');
 gameEnd.innerHTML=`<div class="game-end-card"><div class="game-end-kicker">GARDEN COURT · GAME COMPLETE</div><div class="game-end-emblem" aria-hidden="true">✦</div><p class="game-end-label">THE WINNERS</p><h1 id="game-end-title"></h1><p class="game-end-subtitle">A game worth playing. A win worth celebrating.</p><div class="game-end-score" aria-label="Final score"><div><strong id="game-end-home-score"></strong><span id="game-end-home-names"></span></div><span class="game-end-dash" aria-hidden="true">–</span><div><strong id="game-end-away-score"></strong><span id="game-end-away-names"></span></div></div><p class="game-end-rule">FINAL SCORE · FIRST TO 11, WIN BY 2</p><div class="game-end-actions"><button id="game-end-replay" type="button">▶ Full Game Replay</button><button id="game-end-new" type="button">New Game ↗</button></div></div>`;
@@ -542,7 +460,7 @@ function syncPointResult(dt:number){
 let setupReturnsToCourt=false;
 const matchup=new MatchSetup((players,mode,court)=>{
  applyCourtLocation(court);
- if(mode==='local-human'){document.body.classList.remove('shots-collapsed');match.startLocalHumanMatch(players);for(const slot of courtSlots)scene.substitutePlayer(slot,match.getPlayerDesign(slot));syncRosterNames();matchup.hide();enterCourt(false);return;}
+ if(mode==='local-human'){match.startLocalHumanMatch(players);for(const slot of courtSlots)scene.substitutePlayer(slot,match.getPlayerDesign(slot));syncRosterNames();matchup.hide();enterCourt(false);return;}
  if(match.isLocalHuman)match.startSoloMatch();
  for(const slot of courtSlots){match.lineup[slot]=playerArchetype(players[slot]);match.substitutePlayer(slot,players[slot]);scene.substitutePlayer(slot,players[slot])}
  syncRosterNames();matchup.hide();enterCourt();

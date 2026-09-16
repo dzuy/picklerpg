@@ -1,10 +1,10 @@
 import {sameShotIntent} from '../engine/shot-intent';
 import {isOpposingTarget} from '../engine/controllers';
-import type {TargetChoice,TargetingSource} from '../target-picker';
+import type {TargetChoice,TargetingSource,TargetPoint} from '../target-picker';
 import type {RemoteSession} from './match-session';
 
 /** Retain the server's shot and reception timing; only replace its aim. */
-export function remoteTargeting(current:()=>RemoteSession|null,beforePlay:()=>void,onError:(message:string)=>void,canPlay:()=>boolean=()=>true):TargetingSource {
+export function remoteTargeting(current:()=>RemoteSession|null,beforePlay:()=>void,onError:(message:string)=>void,canPlay:()=>boolean=()=>true,canTarget:(point:TargetPoint)=>boolean=()=>true):TargetingSource {
  return {
   get team(){return current()?.state?.viewerTeam??null},
   get choices(){return current()?.state?.choices??[]},
@@ -15,6 +15,7 @@ export function remoteTargeting(current:()=>RemoteSession|null,beforePlay:()=>vo
   validate(choice,point){
    const s=current()?.state;
    if(!this.enabled||!s||!s.choices.some(c=>c.timing===choice.timing&&sameShotIntent(c.intent,choice.intent)))throw Error('That shot is no longer available. Tap the court again.');
+   if(!canTarget(point))throw Error('Tap in the highlighted box to serve.');
    if(!isOpposingTarget(point,s.viewerTeam))throw Error('Aim on the opposing side of the net.');
    if(point.playerId&&!s.display.players.some(p=>p.id===point.playerId&&p.team!==s.viewerTeam))throw Error('Choose an opposing player.');
   },

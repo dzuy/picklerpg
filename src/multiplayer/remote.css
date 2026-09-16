@@ -66,3 +66,13 @@ body.remote-playing{overflow:hidden}body.remote-playing .remote-app{padding:0;ma
  body.remote-playing #app .score-row b{font-size:20px}
 }
 @media(prefers-reduced-motion:reduce){#app.remote-app .remote-court-actions button{transition:none}}
+
+/* Contextual guest guidance stays on the live court and uses the shared shot wheel. */
+.guest-target-area{position:fixed;inset:0;width:100%;height:100%;z-index:7;pointer-events:none;overflow:visible;display:none}
+.guest-target-area polygon{fill:#ff00cf12;stroke:#ff49db;stroke-width:3;stroke-linejoin:round;filter:drop-shadow(0 0 5px #ff00cf) drop-shadow(0 0 12px #ff00cf);animation:guest-box-pulse 1.4s ease-in-out infinite alternate}
+.guest-guide{position:absolute;z-index:16;bottom:max(22px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100% - 28px);padding:14px 22px;border:1px solid #ff49db;border-radius:16px;background:#071a43ed;color:#fff;text-align:center;pointer-events:none;box-shadow:0 0 18px #ff00cf33}
+.guest-guide strong,.guest-guide span{display:block;overflow-wrap:anywhere}.guest-guide strong{font-size:20px;line-height:1.3}.guest-guide span{font-size:14px;line-height:1.5;margin-top:4px}.guest-guide span:empty{display:none}
+.guest-guided .remote-move-banner:has(#remote-live-status:empty):has(#remote-retry[hidden]){display:none}
+.guest-guided .remote-move-banner:has(#remote-live-status:not(:empty)),.guest-guided .remote-move-banner:has(#remote-retry:not([hidden])){bottom:120px}
+@keyframes guest-box-pulse{from{opacity:.55}to{opacity:1}}
+@media(prefers-reduced-motion:reduce){.guest-target-area polygon{animation:none}}

@@ -25,7 +25,7 @@ export function invitationPreview(invite:Invitation){
  const caption=document.createElement('figcaption'),name=document.createElement('strong'),description=document.createElement('span');
  name.textContent=invite.court==='venice'?'The Beach':location.name;description.textContent=location.description;caption.append(name,description);venue.append(image,caption);
  const label=document.createElement('h2');label.textContent='Location';
- const note=document.createElement('p');note.className='remote-team-stat-note';note.textContent='Player ratings shown. Multiplayer uses equal gameplay skills.';
+ const note=document.createElement('p');note.className='remote-team-stat-note';note.textContent='Your players use their actual skills in this match.';
  section.append(heading,team,note,label,venue);
  void preloadAthletes().then(()=>{if(section.isConnected)draw(true)}).catch(()=>{});
  return section;

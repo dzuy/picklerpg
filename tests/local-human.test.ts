@@ -15,9 +15,9 @@ function create(seed=7,team:'home'|'away'='home'){
  m.startLocalHumanMatch(roster,team);return {m,roster};
 }
 function action(m:Match,i=0):TurnAction{const choices=m.targetingMenu;assert.ok(choices.length,`no options at ${m.state.stage}/${m.state.phase}`);const c=choices[i%choices.length];return {decisionId:m.decisionId,playerId:m.currentPlayer!,intent:c.intent,...(c.timing?{timing:c.timing}:{})};}
-test('local humans own all four equal athletes and cannot change the active roster',()=>{
+test('local humans own all four selected athletes and cannot change the active roster',()=>{
  const {m,roster}=create();assert.equal(roster.you.skills.serve,99);assert.equal(roster.partner.handedness,'left');assert.equal(m.getPlayerDesign('you')!.skills.serve,99);assert.equal(Match.fromCheckpoint(m.exportCheckpoint()).getPlayerDesign('partner')!.handedness,'left');
- for(const p of m.state.players){assert.ok(Object.values(p.skills).every(v=>v===70));assert.equal(p.handedness,'right');assert.equal(m.controllers[p.id].kind,'human');}
+ for(const p of m.state.players){assert.deepEqual(p.skills,roster[p.id].skills);assert.equal(p.handedness,roster[p.id].handedness);assert.equal(m.controllers[p.id].kind,'human');}
  assert.throws(()=>m.substitutePlayer('you',newPlayer()));assert.throws(()=>m.setPlayerDesign(newPlayer()));assert.throws(()=>m.reset());
  roster.you.name='Changed elsewhere';assert.notEqual(m.getPlayerDesign('you')!.name,roster.you.name);
  assert.deepEqual(json(Match.fromCheckpoint(m.exportCheckpoint()).exportCheckpoint()),json(m.exportCheckpoint()));
@@ -63,7 +63,7 @@ test('old solo checkpoints migrate; rotated targeting is reversible for either s
  const c:any=json(new Match().exportCheckpoint());c.schemaVersion=1;delete c.mode;delete c.revision;
  const restored=Match.fromCheckpoint(c);assert.equal(restored.mode,'solo');assert.equal(restored.exportCheckpoint().schemaVersion,2);
  const point={x:1.25,z:-4};assert.deepEqual(viewerPoint(viewerPoint(point,'away'),'away'),point);assert.ok(isOpposingTarget(point,'home'));assert.ok(isOpposingTarget(viewerPoint(point,'away'),'away'));
- const bad=json(create().m.exportCheckpoint());bad.roster.you.skills.serve=99;assert.throws(()=>parseCheckpoint(bad));
+ const bad=json(create().m.exportCheckpoint());bad.roster.you.skills.serve=98;assert.throws(()=>parseCheckpoint(bad));
 });
 test('a deuce game wins by two and animation completes at the committed boundary',()=>{
  const source=create(22).m.exportCheckpoint();source.rules={...DEFAULT_RULES};source.scoring.serverNumber=2;source.scoring.score={home:10,away:10};source.rally.state.score={home:10,away:10};

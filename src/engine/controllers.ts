@@ -12,4 +12,3 @@ export function controllersFor(mode:PlayMode,playerAutonomy:boolean,partnerAuton
 /** World coordinates stay fixed. A 180-degree camera turn rotates both horizontal axes. */
 export function viewerPoint<T extends {x:number;z:number}>(point:T,team:Team):T{return {...point,x:team==='home'?point.x:-point.x,z:team==='home'?point.z:-point.z};}
 export function isOpposingTarget(point:{z:number},team:Team){return team==='home'?point.z<0:point.z>0;}
-export const LOCAL_HUMAN_SKILL=70;
