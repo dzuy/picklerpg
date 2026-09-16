@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {accountStateForUser,mergePlayerLibraries} from '../src/cloud-players';
+import {accountStateForUser,mergePlayerLibraries,playerFromRow} from '../src/cloud-players';
 import {newPlayer,type PlayerLibrary} from '../src/player-design';
 
 test('cloud merge retains cloud-only players and gives local edits precedence',()=>{
@@ -23,4 +23,11 @@ test('cloud active player is used when local storage has no selection',()=>{
 test('account state distinguishes guests from protected accounts',()=>{
  assert.deepEqual(accountStateForUser({email:undefined,is_anonymous:true}),{kind:'guest'});
  assert.deepEqual(accountStateForUser({email:'player@example.com',is_anonymous:false}),{kind:'authenticated',email:'player@example.com'});
+});
+
+test('saved roster players normalize empty database catchphrases before validation',()=>{
+ const row={...newPlayer('saved-ryan'),name:'Ryan',is_active:true,is_public:false};
+ for(const catchphrase of [null,'']){const player=playerFromRow({...row,catchphrase});assert.equal(player.name,'Ryan');assert.equal(player.catchphrase,undefined);}
+ assert.equal(playerFromRow({...row,catchphrase:'Nice shot!'}).catchphrase,'Nice shot!');
+ assert.throws(()=>playerFromRow({...row,catchphrase:'x'.repeat(31)}),/catchphrase/);
 });

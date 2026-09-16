@@ -20,7 +20,7 @@ export async function loadPlaytesters(client:SupabaseClient){
  const users=new Map<string,string>();
  for(let page=1;page<=10;page++){
   const {data,error}=await client.auth.admin.listUsers({page,perPage:100});if(error)throw new ApiError(503,'accounts','Player list is unavailable. Try again.');
-  for(const user of data.users)if(user.app_metadata?.multiplayer_playtest===true&&user.email){let name=user.email;try{name=playerName(user.user_metadata?.player_name);}catch{}users.set(user.id,name);}
+  for(const user of data.users)if(user.app_metadata?.multiplayer_playtest===true&&(user.email||user.is_anonymous)){let name=user.email??'Player';try{name=playerName(user.user_metadata?.player_name);}catch{}users.set(user.id,name);}
   if(data.users.length<100)break;
  }
  return users;

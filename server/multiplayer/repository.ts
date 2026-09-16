@@ -3,7 +3,7 @@ import type {MatchCheckpoint} from '../../src/engine/checkpoint';
 import type {PointResult} from '../../src/engine/model';
 import type {TurnAnimation} from '../../src/multiplayer/protocol';
 import {ApiError,conflict,missing} from './errors';
-export interface StoredMatch {archived_home?:boolean;archived_away?:boolean;id:string;home_user_id:string;away_user_id:string;version:number;status:'active'|'completed';current_action_user_id:string|null;checkpoint:MatchCheckpoint&{court?:'forest'|'venice'|'arizona'};last_result:PointResult|null;animation:TurnAnimation[];creation_request_id:string;creation_hash:string;resolution_secret:string;seed_version:number;engine_version:string;created_at?:string;updated_at?:string;completed_at?:string|null}
+export interface StoredMatch {friend_state?:'pending'|'accepted'|'cancelled';invited_name?:string;archived_home?:boolean;archived_away?:boolean;id:string;home_user_id:string;away_user_id:string|null;version:number;status:'active'|'completed';current_action_user_id:string|null;checkpoint:MatchCheckpoint&{court?:'forest'|'venice'|'arizona'};last_result:PointResult|null;animation:TurnAnimation[];creation_request_id:string;creation_hash:string;resolution_secret:string;seed_version:number;engine_version:string;created_at?:string;updated_at?:string;completed_at?:string|null}
 export interface StoredReceipt {match_id:string;action_id:string;actor_id:string;request_hash:string;from_version:number;to_version:number;checkpoint:MatchCheckpoint&{court?:'forest'|'venice'|'arizona'};result:Pick<StoredMatch,'status'|'current_action_user_id'|'animation'|'last_result'>}
 export interface CommitInput {match:StoredMatch;actor:string;hash:string;actionId:string;expectedVersion:number;action:unknown}
 export interface MatchRepository {

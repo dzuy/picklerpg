@@ -1,3 +1,4 @@
+import {inviteFriend,shareMatch,createYourPlayer} from './friend-flow';
 import {invitationCard} from './invitation-card';
 import {TrashTalkControl} from './trash-talk-control';
 import {sounds,installSoundSetting} from '../sound';
@@ -36,6 +37,8 @@ root.innerHTML=`<header class="remote-nav"><a id="remote-solo" class="remote-hom
 const el=(id:string)=>document.getElementById(id)!;
 const createStatus=document.createElement('p');createStatus.id='remote-create-status';createStatus.setAttribute('role','status');createStatus.setAttribute('aria-live','polite');el('remote-create').before(createStatus);
 const inviteStatus=document.createElement('p');inviteStatus.id='remote-invite-status';inviteStatus.setAttribute('role','status');el('remote-accept').before(inviteStatus);
+const claimPlayer=document.createElement('button');claimPlayer.className='remote-quiet';claimPlayer.textContent='Create your player';claimPlayer.hidden=true;claimPlayer.onclick=()=>void createYourPlayer(async()=>{await enter();}).catch(e=>status(e.message));el('remote-settings-account').before(claimPlayer);
+const reshare=document.createElement('button');reshare.className='remote-quiet';reshare.textContent='Send Challenge';reshare.hidden=true;reshare.onclick=()=>{if(session)void shareMatch(session.state!.id).catch(e=>status(e.message));};el('remote-retry').after(reshare);
 const nudgeHost=document.createElement('div');el('remote-settings-account').before(nudgeHost);
 const nudgeControl=new NudgeControl(nudgeHost,matchCredentials);
 if(!browserStoragePersistent){const warning=document.createElement('p');warning.className='browser-storage-warning';warning.setAttribute('role','status');warning.textContent=STORAGE_UNAVAILABLE_MESSAGE;document.body.append(warning)}
@@ -59,6 +62,9 @@ settings.addEventListener('close',()=>{clearTimeout(settingsCloseTimer);settings
 settings.addEventListener('cancel',event=>{event.preventDefault();closeSettings()});
 
 const gameEnd=document.createElement('dialog');gameEnd.id='game-end';gameEnd.setAttribute('aria-labelledby','game-end-title');gameEnd.innerHTML=`<div class="game-end-card"><div class="game-end-kicker">GAME COMPLETE</div><div class="game-end-emblem" aria-hidden="true">✦</div><p class="game-end-label">THE WINNERS</p><h1 id="game-end-title"></h1><p class="game-end-subtitle">A game worth playing. A win worth celebrating.</p><div class="game-end-score" aria-label="Final score"><div><strong id="game-end-home-score"></strong><span id="game-end-home-names"></span></div><span class="game-end-dash">–</span><div><strong id="game-end-away-score"></strong><span id="game-end-away-names"></span></div></div><p class="game-end-rule" id="remote-end-rule"></p><div class="game-end-actions"><button id="remote-end-back">← Your games</button></div></div>`;document.body.append(gameEnd);
+const challengeNext=document.createElement('button');challengeNext.textContent='Challenge a Friend';challengeNext.onclick=()=>{gameEnd.close();inviteFriend(open);};el('remote-end-back').before(challengeNext);
+const rematchStatus=document.createElement('p');rematchStatus.setAttribute('role','status');el('remote-end-back').before(rematchStatus);
+const rematch=document.createElement('button');rematch.textContent='Rematch';rematch.onclick=()=>{const current=session?.state;if(!current||rematch.disabled)return;rematchStatus.textContent='';rematch.disabled=true;rematch.textContent='Opening rematch…';void(async()=>{const c=await matchCredentials();const next=await remoteRequest<{invitationId:string;matchId:string|null}>(c.token,`/api/matches/${current.id}/rematch`,{});if(next.matchId){gameEnd.close();await open(next.matchId);}else{await lobby();await showInvitation(next.invitationId);}})().catch(e=>{rematchStatus.textContent=e.message;}).finally(()=>{rematch.disabled=false;rematch.textContent='Rematch';});};el('remote-end-back').before(rematch);
 gameEnd.addEventListener('cancel',e=>e.preventDefault());el('remote-end-back').onclick=()=>void lobby().catch(e=>status(e.message));
 const GAME_END_PAUSE_MS=2500;
 let gameEndReadyAt:number|null=null;
@@ -154,7 +160,7 @@ function render(){
  const hideCommentary=session.busy||!!session.pending||(ownMove&&!s.result);
  el('remote-move').hidden=hideCommentary;
  el('remote-move').textContent=hideCommentary?'':moveCopy(s);
- document.querySelector<HTMLElement>('.remote-move-banner')!.hidden=hideCommentary&&!el('remote-live-status').textContent&&el('remote-retry').hidden;el('remote-settings-account').textContent=`Signed in as ${accountLabel()}`;
+ document.querySelector<HTMLElement>('.remote-move-banner')!.hidden=hideCommentary&&!el('remote-live-status').textContent&&el('remote-retry').hidden;el('remote-settings-account').textContent=`Playing as ${accountLabel()}`;reshare.hidden=session?.state?.friendState!=='pending';if(!reshare.hidden)el('remote-move').textContent=`Waiting for ${session?.state?.invitedName} to join…`;else if(s.friendState==='cancelled')el('remote-move').textContent='This challenge is no longer available.';
  el('remote-rules').textContent=`${s.rules.scoring==='rally-doubles'?'Rally scoring':'Side-out scoring'} · First to ${s.rules.target}`;
  if(shownVersion!==s.version){
   const initial=shownVersion<0;endReplay();clearTarget();shownVersion=s.version;display=structuredClone(s.display);shot=presentation(display);
@@ -183,7 +189,7 @@ async function lobby(){nudgeControl.update(null);selectedInvite=null;el('remote-
  const c=await matchCredentials();account=c.owner;config=await remoteRequest<RemoteConfig>(c.token,'/api/multiplayer/config');
  el('remote-account').textContent=`Signed in as ${accountLabel()}`;el('remote-login').hidden=true;el('remote-sign-out').hidden=false;
  const select=el('remote-opponent') as HTMLSelectElement;select.replaceChildren();for(const tester of config.testers){const option=document.createElement('option');option.value=tester.id;option.textContent=tester.name.replace('Tester ','Player ');select.append(option);}
- for(const id of ['remote-create','remote-start-setup'])(el(id) as HTMLButtonElement).disabled=!config.creationEnabled||!config.testers.length;
+ (el('remote-create') as HTMLButtonElement).disabled=!config.creationEnabled||!config.testers.length;(el('remote-start-setup') as HTMLButtonElement).disabled=!config.creationEnabled;
  await refreshLobbyCards();
  status(config.creationEnabled?'':'New games are unavailable for this account. You can still open your existing games.');
 }
@@ -215,15 +221,15 @@ function renderGames(){
  if(!visible.length&&gameFilter!=='active'&&!(gameFilter==='turn'&&invitations.some(i=>i.recipientId===account&&i.status==='pending'))){const empty=document.createElement('div');empty.className='remote-empty';const title=document.createElement('h3');title.textContent=gameFilter==='archived'?'No archived games.':gameFilter==='turn'?'You’re all caught up.':gameFilter==='completed'?'The first finish is ahead.':'No games here yet.';const copy=document.createElement('p');copy.textContent=gameFilter==='archived'?'Games you archive will appear here. You can restore them anytime.':gameFilter==='turn'?'Your opponents are up. Check back for your next shot.':gameFilter==='completed'?'Completed games will be waiting here.':'Choose a player and start your first game.';empty.append(title,copy);container.append(empty);}
  for(const game of visible){
   const card=document.createElement('button');card.className='remote-game-card';const yours=game.currentTeam===game.viewerTeam,done=game.status==='completed';card.dataset.state=done?'finished':yours?'ready':'waiting';
-  const badge=document.createElement('span');badge.className='remote-badge '+(done?'finished':yours?'ready':'waiting');badge.textContent=done?'Finished':yours?'Your turn':'Their turn';
-  const names=document.createElement('strong');const own=game.viewerTeam==='home'?['you','partner'] as const:['opponent-left','opponent-right'] as const;names.textContent=`vs ${opponentLabel(game)}`;
+  const badge=document.createElement('span');badge.className='remote-badge '+(done?'finished':yours?'ready':'waiting');badge.textContent=game.friendState==='pending'?`Waiting for ${game.invitedName}`:game.friendState==='cancelled'?'Challenge cancelled':done?'Finished':yours?'Your turn':'Their turn';
+  const names=document.createElement('strong');const own=game.viewerTeam==='home'?['you','partner'] as const:['opponent-left','opponent-right'] as const;names.textContent=game.friendState?`${config?.selfName??'You'} vs. ${game.friendState==='pending'?game.invitedName:opponentLabel(game)}`:`vs ${opponentLabel(game)}`;
   const opponents=document.createElement('span');opponents.className='remote-card-opponent';opponents.textContent=`Your team: ${game.roster[own[0]].name} & ${game.roster[own[1]].name}`;
   const score=document.createElement('span');score.className='remote-card-score';score.setAttribute('aria-label','Score, your team first');score.textContent=`${game.score[game.viewerTeam]} – ${game.score[game.viewerTeam==='home'?'away':'home']}`;
   const action=document.createElement('span');action.className='remote-card-action';action.textContent=done?'View result ↗':yours?'Take your shot ↗':'Open game ↗';
   const ref=document.createElement('span');ref.className='remote-card-ref';ref.textContent=`${game.court==='venice'?'The Beach':game.court==='arizona'?'Arizona Desert':'The Forest'} · ${game.rules.scoring==='rally-doubles'?'Rally':'Side-out'} · First to ${game.rules.target}`;
   const created=document.createElement('time');created.className='remote-card-created';
   if(game.createdAt&&Number.isFinite(Date.parse(game.createdAt))){created.dateTime=game.createdAt;created.textContent=`Created ${new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(new Date(game.createdAt))}`;created.title=new Intl.DateTimeFormat(undefined,{dateStyle:'full',timeStyle:'long'}).format(new Date(game.createdAt));}
-  card.append(badge,names,opponents,score);if(created.textContent)card.append(created);card.append(ref,action);card.onclick=()=>void open(game.id).catch(e=>status(e.message));const entry=document.createElement('div');entry.className='remote-game-entry';
+  card.append(badge,names,opponents,score);if(created.textContent)card.append(created);card.append(ref,action);card.onclick=()=>void (game.friendState==='pending'?shareMatch(game.id):open(game.id)).catch(e=>status(e.message));const entry=document.createElement('div');entry.className='remote-game-entry';
   const archive=document.createElement('button');archive.className='remote-quiet remote-archive-action';archive.textContent=game.archived?'Restore game':'Archive game';archive.setAttribute('aria-label',`${game.archived?'Restore':'Archive'} game vs ${opponentLabel(game)}`);archive.title='Only changes your game list';archive.onclick=()=>{archive.disabled=true;void archiveGame(game.id,!game.archived).catch(e=>{status(e.message);archive.disabled=false})};entry.append(card,archive);container.append(entry);
  }
 }
@@ -238,7 +244,9 @@ async function create(){
 let selectedCourt:'forest'|'venice'|'arizona'='forest';
 for(const button of Array.from(document.querySelectorAll<HTMLButtonElement>('[data-remote-court]')))button.onclick=()=>{selectedCourt=button.dataset.remoteCourt as typeof selectedCourt;for(const other of Array.from(document.querySelectorAll('[data-remote-court]')))other.setAttribute('aria-pressed',String(other===button));setupSummary();};
 function setupSummary(){const select=el('remote-opponent') as HTMLSelectElement;el('remote-setup-summary').textContent=`${config?.selfName??'You'} vs ${select.selectedOptions[0]?.textContent??'Choose a player'} · ${selectedCourt==='arizona'?'Arizona Desert':selectedCourt==='venice'?'The Beach':'The Forest'}`;}
-el('remote-start-setup').onclick=()=>{el('remote-lobby').hidden=true;el('remote-setup').hidden=false;createTeam=new TeamPicker(el('remote-create-team'));setupSummary();el('remote-opponent').focus();};
+const existingPlayer=document.createElement('button');existingPlayer.className='remote-quiet';existingPlayer.textContent='Challenge an existing PickleBash player';el('remote-start-setup').after(existingPlayer);
+el('remote-start-setup').textContent='Invite a Friend';el('remote-start-setup').onclick=()=>inviteFriend(open);
+existingPlayer.onclick=()=>{el('remote-lobby').hidden=true;el('remote-setup').hidden=false;createTeam=new TeamPicker(el('remote-create-team'));setupSummary();el('remote-opponent').focus();};
 el('remote-opponent').onchange=setupSummary;
 el('remote-cancel-setup').onclick=()=>void lobby().catch(e=>status(e.message));
 el('remote-create').onclick=()=>{const button=el('remote-create') as HTMLButtonElement;if(button.disabled)return;button.disabled=true;button.textContent='Sending invitation…';button.setAttribute('aria-busy','true');status('Preparing your team and sending invitation…');void create().catch(e=>status(e.message)).finally(()=>{button.disabled=!config?.creationEnabled||!config.testers.length;button.textContent='Send invitation ↗';button.removeAttribute('aria-busy');});};
@@ -262,7 +270,7 @@ function frame(now:number){
 }requestAnimationFrame(frame);
 setInterval(()=>{if(document.hidden)return;if(session&&!session.busy)void session.refresh();else if(!el('remote-lobby').hidden)void refreshLobbyCards().catch(e=>status(e.message));else if(selectedInvite&&!accepting){const id=selectedInvite.id;void matchCredentials().then(c=>remoteRequest<Invitation>(c.token,`/api/invitations/${id}`)).then(i=>{if(selectedInvite?.id===id){if(i.status==='accepted'&&i.matchId)return open(i.matchId);if(i.status!==selectedInvite.status)return showInvitation(id);}}).catch(e=>status(e.message));}},5000);
 window.addEventListener('focus',()=>{if(session)void session.refresh();});window.addEventListener('online',()=>{if(session)void session.refresh();});
-authClient()?.auth.onAuthStateChange((_event,s)=>{if(account&&s?.user.id!==account){showLogin();status('Sign in to continue with this account.');}});
+authClient()?.auth.onAuthStateChange((_event,s)=>{claimPlayer.hidden=!s?.user.is_anonymous;if(account&&s?.user.id!==account){showLogin();status('Sign in to continue with this account.');}});
 async function enter(){const client=authClient();if(!client){showLogin();status('Cloud accounts are not configured.');return;}
  const recovery=new URLSearchParams(location.hash.slice(1));
  if(recovery.get('type')==='recovery'&&recovery.get('token_hash')){
@@ -278,7 +286,7 @@ async function enter(){const client=authClient();if(!client){showLogin();status(
  }
  const marker='pickle-email-accounts-v1';if(!browserStorage.getItem(marker)){await client.auth.signOut({scope:'local'});browserStorage.setItem(marker,'1');const clean=new URL(location.href);clean.hash='';history.replaceState(null,'',clean);showLogin();status('Sign in or create an account for this device.');return;}
  const fragment=new URLSearchParams(location.hash.slice(1));if(fragment.has('error')){await client.auth.signOut({scope:'local'});showLogin();status('That sign-in link failed. Use your email and password below.');return;}
- const {data:{session:auth}}=await client.auth.getSession();if(!auth){showLogin();status('');return;}accountEmail=auth.user.email??'';if(!auth.user.user_metadata?.player_name){showLogin();el('remote-login').hidden=true;el('remote-name-setup').hidden=false;status(`Signed in as ${accountEmail}`);return;}el('remote-name-setup').hidden=true;const inviteId=new URLSearchParams(location.search).get('invite');if(inviteId&&/^[a-f0-9-]{36}$/i.test(inviteId)){await lobby();await showInvitation(inviteId);return;}const matchId=new URLSearchParams(location.search).get('match');if(matchId&&/^[a-f0-9-]{36}$/i.test(matchId))await open(matchId);else await lobby();}
+ const {data:{session:auth}}=await client.auth.getSession();if(!auth){showLogin();status('');return;}claimPlayer.hidden=!auth.user.is_anonymous;accountEmail=auth.user.email??'';if(!auth.user.user_metadata?.player_name){showLogin();el('remote-login').hidden=true;el('remote-name-setup').hidden=false;status(`Signed in as ${accountEmail}`);return;}el('remote-name-setup').hidden=true;const inviteId=new URLSearchParams(location.search).get('invite');if(inviteId&&/^[a-f0-9-]{36}$/i.test(inviteId)){await lobby();await showInvitation(inviteId);return;}const matchId=new URLSearchParams(location.search).get('match');if(matchId&&/^[a-f0-9-]{36}$/i.test(matchId))await open(matchId);else await lobby();}
 function authMode(){el('remote-auth-copy').textContent=signup?'Choose a player name, use a different email on each device, and choose a password of at least 6 characters. No confirmation email is needed.':'Sign in with the email and password you registered on this device.';el('remote-name-label').hidden=!signup;(el('remote-player-name') as HTMLInputElement).required=signup;el('remote-login').querySelector('h1')!.textContent=signup?'Create your account':'Welcome back';el('remote-sign-in').textContent=signup?'Create account ↗':'Sign in ↗';el('remote-auth-mode').textContent=signup?'Already registered? Sign in':'New here? Create an account';(el('remote-password') as HTMLInputElement).autocomplete=signup?'new-password':'current-password';(el('remote-password') as HTMLInputElement).minLength=signup?6:1;}
 el('remote-auth-mode').onclick=()=>{signup=!signup;authMode();status('');};
 (el('remote-login-form') as HTMLFormElement).onsubmit=e=>{e.preventDefault();const button=el('remote-sign-in') as HTMLButtonElement;button.disabled=true;status(signup?'Creating account…':'Signing in…');void(async()=>{const client=authClient();if(!client)throw Error('Cloud accounts are not configured.');const credentials={email:(el('remote-email') as HTMLInputElement).value.trim(),password:(el('remote-password') as HTMLInputElement).value};

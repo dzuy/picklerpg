@@ -24,6 +24,10 @@ test('production serves game assets and HTTPS-origin AI on one port',async()=>{
   const port=server.address().port,url=`http://127.0.0.1:${port}`;
   assert.equal((await fetch(url)).status,200);
   assert.equal((await fetch(url+'/healthz')).status,200);
+  const challenge=await fetch(url+'/challenge/'+'a'.repeat(43));assert.equal(challenge.status,200);assert.equal(challenge.headers.get('referrer-policy'),'no-referrer');assert.equal(challenge.headers.get('x-robots-tag'),'noindex, nofollow');assert.match(await challenge.text(),/Pickle RPG/);
+  assert.equal((await fetch(url+'/challenge/malformed')).status,200);
+  assert.equal((await fetch(url+'/challenge/'+'a'.repeat(43)+encodeURIComponent(' Dzuy challenged you to PickleBash.'))).status,200);
+
   for(const [path,type] of [['/assets/game.js','text/javascript'],['/assets/voice.wasm','application/wasm'],['/models/player.glb','model/gltf-binary'],['/voice-capture-worklet.js','text/javascript']]){
    const response=await fetch(url+path);assert.equal(response.status,200);assert.ok(response.headers.get('content-type')?.startsWith(type));
   }

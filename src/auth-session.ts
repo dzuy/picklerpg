@@ -13,3 +13,12 @@ export async function matchCredentials(){
  if(!session)throw new Error('Use Solo & settings to sign in to your tester account, then reopen this match.');
  return {owner:session.user.id,token:session.access_token};
 }
+
+/** Obtain fresh password tokens without replacing the current player until identity is checked. */
+export async function playerPasswordSession(credentials:{email:string;password:string}){
+ const url=import.meta.env.VITE_SUPABASE_URL,key=import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+ if(!url||!key)throw new Error('Cloud accounts are not configured.');
+ const exchange=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false,storageKey:'pickle-player-password-exchange'}});
+ const {data,error}=await exchange.auth.signInWithPassword(credentials);if(error)throw error;if(!data.session)throw new Error('Could not reconnect to your player.');
+ return data.session;
+}

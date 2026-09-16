@@ -1,3 +1,4 @@
+import {FriendService} from './friends';
 import type {IncomingMessage,ServerResponse} from 'node:http';
 import {createClient} from '@supabase/supabase-js';
 import {MatchService} from './service';
@@ -18,7 +19,7 @@ async function body(req:IncomingMessage){
  for await(const chunk of req){size+=chunk.length;if(size>32768)throw new ApiError(413,'too_large','Request is too large.');chunks.push(Buffer.from(chunk));}
  try{return JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{throw new ApiError(400,'invalid_json','Invalid JSON.');}
 }
-export function createMatchHandler(service:MatchService,authenticate:Authenticate,register?: (input:unknown)=>Promise<unknown>,invitations?:InvitationService,push?:PushService,nudges?:NudgeService,trashTalk?:TrashTalkService){
+export function createMatchHandler(service:MatchService,authenticate:Authenticate,register?: (input:unknown)=>Promise<unknown>,invitations?:InvitationService,push?:PushService,nudges?:NudgeService,trashTalk?:TrashTalkService,friends?:FriendService){
  const buckets=new Map<string,{start:number;count:number}>();
  function limit(key:string,max:number){const now=Date.now();let b=buckets.get(key);if(!b||now-b.start>=60000){if(buckets.size>=5000)for(const [k,v] of buckets)if(now-v.start>=60000)buckets.delete(k);if(buckets.size>=5000)throw new ApiError(429,'busy','Try again shortly.');b={start:now,count:0};buckets.set(key,b);}if(++b.count>max)throw new ApiError(429,'rate_limited','Too many requests. Try again shortly.');}
  return async(req:IncomingMessage,res:ServerResponse)=>{
@@ -29,6 +30,9 @@ export function createMatchHandler(service:MatchService,authenticate:Authenticat
    limit(`ip:${req.socket.remoteAddress}`,300);
    const pathname=new URL(req.url!,'http://localhost').pathname;
    if(pathname==='/api/multiplayer/register'&&req.method==='POST'){if(!register)throw new ApiError(403,'registration_disabled','Registration is closed.');limit('registration:global',6);send(res,201,await register(await body(req)));return;}
+   const challenge=pathname.match(/^\/api\/multiplayer\/challenges\/([A-Za-z0-9_-]{43})(\/(?:accept|cancel))?$/);
+   if(friends&&challenge&&!challenge[2]&&req.method==='GET'){const i=await friends.get(challenge[1]);await friends.event(null,'invite_link_opened',i);send(res,200,friends.preview(i));return;}
+   if(pathname.startsWith('/api/multiplayer/challenges/')&&req.method==='GET')throw new ApiError(404,'challenge','This challenge link is invalid or no longer available.');
    const token=req.headers.authorization?.match(/^Bearer ([^\s]+)$/i)?.[1];if(!token||token.length>8192)throw new ApiError(401,'authentication','Sign in to open this match.');
    const actor=await authenticate(token);if(!uuid(actor))throw new ApiError(401,'authentication','Sign in again.');
    limit(`user:${actor}`,180);
@@ -43,6 +47,12 @@ export function createMatchHandler(service:MatchService,authenticate:Authenticat
     else throw new ApiError(404,'not_found','Endpoint not found.');
     send(res,200,{ok:true});return;
    }
+   if(friends&&pathname==='/api/multiplayer/invite-event'&&req.method==='POST'){limit(`event:${actor}`,30);send(res,200,await friends.clientEvent(actor,await body(req)));return;}
+   if(friends&&pathname==='/api/multiplayer/challenges'&&req.method==='POST'){limit(`friend:${actor}`,6);send(res,201,await friends.create(actor,await body(req)));return;}
+   if(friends&&challenge&&challenge[2]&&req.method==='POST'){limit(`claim:${actor}`,12);const input=await body(req);send(res,200,await friends.accept(challenge[1],actor,challenge[2]==='/cancel',input?.acceptAs,input?.team));return;}
+   const ownChallenge=pathname.match(/^\/api\/multiplayer\/challenge-for-match\/([a-f0-9-]{36})$/);
+   if(friends&&ownChallenge&&req.method==='GET'){send(res,200,await friends.own(actor,ownChallenge[1]));return;}
+   if(friends&&pathname==='/api/multiplayer/claim-player'&&req.method==='POST'){limit(`upgrade:${actor}`,6);send(res,200,await friends.upgrade(actor,await body(req)));return;}
    if(pathname==='/api/multiplayer/config'&&req.method==='GET'){send(res,200,service.config(actor));return;}
    if(invitations&&pathname==='/api/invitations'){
     if(req.method==='GET'){send(res,200,await invitations.list(actor));return;}
@@ -58,6 +68,8 @@ export function createMatchHandler(service:MatchService,authenticate:Authenticat
     if(req.method==='GET'){send(res,200,await service.list(actor));return;}
     if(req.method==='POST'){if(invitations)throw new ApiError(400,'invitation_required','Send an invitation to start a new game.');limit(`create:${actor}`,6);send(res,201,await service.create(actor,await body(req)));return;}
    }
+   const rematch=pathname.match(/^\/api\/matches\/([^/]+)\/rematch$/);
+   if(invitations&&rematch&&uuid(rematch[1])&&req.method==='POST'){limit(`rematch:${actor}`,12);send(res,200,await invitations.rematch(rematch[1].toLowerCase(),actor));return;}
    const nudge=pathname.match(/^\/api\/matches\/([^/]+)\/nudge$/);
    if(nudge&&uuid(nudge[1])&&nudges){
     const id=nudge[1].toLowerCase();
@@ -90,9 +102,9 @@ export function configuredMatchHandler(env:NodeJS.ProcessEnv=process.env){
  const testers=new Map<string,string>();
  let refreshed=0,refreshing:Promise<void>|null=null;
  async function refreshTesters(){if(Date.now()-refreshed<5000)return;if(!refreshing)refreshing=(async()=>{const enrolled=await loadPlaytesters(client);testers.clear();for(const [id,email] of enrolled)testers.set(id,email);refreshed=Date.now();})().finally(()=>{refreshing=null;});await refreshing;}
- const authenticate:Authenticate=async token=>{const {data,error}=await client.auth.getUser(token);if(error||!data.user)throw new ApiError(401,'authentication','Your session expired. Sign in again, then retry.');await refreshTesters();if(testers.has(data.user.id)){try{testers.set(data.user.id,playerName(data.user.user_metadata?.player_name));}catch{}}return data.user.id;};
+ const authenticate:Authenticate=async token=>{const {data,error}=await client.auth.getUser(token);if(error||!data.user)throw new ApiError(401,'authentication','Your session expired. Sign in again, then retry.');await refreshTesters();if(testers.has(data.user.id)||data.user.is_anonymous||data.user.app_metadata?.multiplayer_playtest===true){try{testers.set(data.user.id,playerName(data.user.user_metadata?.player_name));}catch{}}return data.user.id;};
  const register=env.MULTIPLAYER_CREATE_ENABLED==='true'?async(input:unknown)=>{const result=await registerPlaytester(client,input);refreshed=0;return result;}:undefined;
  const push=configuredPush(client,env);
  const service=new MatchService(new SupabaseMatchRepository(client),testers,env.MULTIPLAYER_CREATE_ENABLED==='true',push?event=>push.notify(event):undefined);
- return createMatchHandler(service,authenticate,register,new InvitationService(new SupabaseInviteRepository(client),service,testers,team=>resolvePublicTeam(client,team)),push,new NudgeService(client,testers,push?event=>push.notifyNudge(event):undefined,env.NUDGE_TEST_UNLIMITED==='true'),new TrashTalkService(client));
+ return createMatchHandler(service,authenticate,register,new InvitationService(new SupabaseInviteRepository(client),service,testers,team=>resolvePublicTeam(client,team)),push,new NudgeService(client,testers,push?event=>push.notifyNudge(event):undefined,env.NUDGE_TEST_UNLIMITED==='true'),new TrashTalkService(client),new FriendService(client,service));
 }

@@ -8,9 +8,10 @@ export interface RemoteAction {
 export interface CreateRemoteMatch {creationId:string;opponentId:string;roster:Record<PlayerId,DesignedPlayer>;scoring:'rally-doubles'|'side-out-doubles'}
 /** Explicit public projection. Never substitute a MatchCheckpoint or RallyShot here. */
 export interface PublicMatch {
+ friendState?:'pending'|'accepted'|'cancelled';invitedName?:string;
  archived?:boolean;
  court?:'forest'|'venice'|'arizona';
- accountIds?:Record<Team,string>;
+ accountIds?:Record<Team,string|null>;
  createdAt?:string;
  id:string;version:number;status:'active'|'completed';viewerTeam:Team;currentTeam:Team|null;decisionId:string;
  rules:ScoringRules;score:Record<Team,number>;serveCall:string;serving?:boolean;server:PlayerId;pointIndex:number;

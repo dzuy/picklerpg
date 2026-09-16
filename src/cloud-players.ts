@@ -12,7 +12,7 @@ export type CloudAccountState={kind:'unavailable'|'connecting'|'guest'|'pending'
 type PlayerRow={id:string;name:string;catchphrase:string|null;appearance:unknown;skills:unknown;handedness:'left'|'right';is_active:boolean;is_public?:boolean};
 const CLOUD_OWNER_KEY='pickle-rpg-cloud-owner-v1',CLOUD_DIRTY_KEY='pickle-rpg-cloud-dirty-v1';
 
-function playerFromRow(row:PlayerRow):DesignedPlayer{
+export function playerFromRow(row:PlayerRow):DesignedPlayer{
  return validatePlayer({id:row.id,name:row.name,isPublic:row.is_public??false,...(row.catchphrase?{catchphrase:row.catchphrase}:{}),appearance:row.appearance,skills:row.skills,handedness:row.handedness});
 }
 function rowFromPlayer(ownerId:string,player:DesignedPlayer,activeId:string|null){return {owner_id:ownerId,id:player.id,name:player.name,is_public:player.isPublic===true,catchphrase:player.catchphrase??null,appearance:player.appearance,skills:player.skills,handedness:player.handedness,is_active:player.id===activeId}}

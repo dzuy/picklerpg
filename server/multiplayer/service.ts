@@ -1,5 +1,9 @@
 import {createHmac,randomBytes,randomUUID} from 'node:crypto';
 import {Match} from '../../src/match';
+import {LOOKS} from '../../src/player-looks';
+import {newPlayer} from '../../src/player-design';
+import type {TeamSelection} from '../../src/multiplayer/invitation-protocol';
+import {randomInt} from 'node:crypto';
 import {HUMAN_ENGINE,parseCheckpoint,SLOTS} from '../../src/engine/checkpoint';
 import {playerForTeam} from '../../src/engine/controllers';
 import {sampleLeg} from '../../src/engine/rally-engine';
@@ -19,13 +23,13 @@ function seed(row:StoredMatch){return createHmac('sha256',row.resolution_secret)
 /** Whitelist display fields and action descriptors, excluding options, resolution and all seeds. */
 export function publicMatch(row:StoredMatch,actor:string,names:ReadonlyMap<string,string>=new Map()):PublicMatch {
  const viewerTeam=teamFor(row,actor);compatible(row);const match=Match.fromCheckpoint(row.checkpoint),s=match.state;
- const currentTeam=row.status==='active'?match.decisionTeam:null;
+ const currentTeam=row.status==='active'&&(!row.friend_state||row.friend_state==='accepted')?match.decisionTeam:null;
  const menu=match.targetingMenu;
  const nextHitter=currentTeam?menu[0]?.intent.actor??null:null;
- return {archived:!!(viewerTeam==='home'?row.archived_home:row.archived_away),court:row.checkpoint.court??'forest',nextHitter,id:row.id,createdAt:row.created_at,version:row.version,status:row.status,accountIds:{home:row.home_user_id,away:row.away_user_id},viewerTeam,currentTeam,decisionId:decisionId(row),rules:{...row.checkpoint.rules},score:{...match.scoring.score},serveCall:match.scoring.call,serving:row.status==='active'&&match.targetingMenu.some(c=>c.intent.type==='serve'),server:match.scoring.server,pointIndex:match.point,
+ return {friendState:row.friend_state,invitedName:row.invited_name,archived:!!(viewerTeam==='home'?row.archived_home:row.archived_away),court:row.checkpoint.court??'forest',nextHitter,id:row.id,createdAt:row.created_at,version:row.version,status:row.status,accountIds:{home:row.home_user_id,away:row.away_user_id},viewerTeam,currentTeam,decisionId:decisionId(row),rules:{...row.checkpoint.rules},score:{...match.scoring.score},serveCall:match.scoring.call,serving:row.status==='active'&&match.targetingMenu.some(c=>c.intent.type==='serve'),server:match.scoring.server,pointIndex:match.point,
   display:{schemaVersion:2,phase:s.phase,stage:s.stage,shotIndex:s.shotIndex,legIndex:0,elapsed:0,simulationTime:0,paused:true,ball:structuredClone(s.ball),players:structuredClone(s.players),shotHistory:[],rallyHistory:[],bounces:s.bounces,score:{...s.score},currentHitter:s.currentHitter,possession:s.possession,result:s.result?{...s.result}:null},
   roster:Object.fromEntries(SLOTS.map(id=>{const f=row.checkpoint.roster[id];return [id,{...f.design!,skills:{...f.skills},handedness:f.handedness}]})) as PublicMatch['roster'],
-  choices:currentTeam===viewerTeam?structuredClone(menu):[],result:row.last_result,animation:structuredClone(row.animation)};
+  choices:currentTeam===viewerTeam&&(!row.friend_state||row.friend_state==='accepted')?structuredClone(menu):[],result:row.last_result,animation:structuredClone(row.animation)};
 }
 function animations(match:Match):TurnAnimation[]{
  return match.turnPlayback.map(({start,end})=>{
@@ -54,9 +58,22 @@ export class MatchService {
  }
  async get(id:string,actor:string){const row=await this.repository.get(id,actor);if(!row)throw missing();return publicMatch(row,actor,this.testers);}
  async list(actor:string){return (await this.repository.list(actor)).map(row=>publicMatch(row,actor,this.testers));}
- prepare(actor:string,input:unknown){
+ async friendOpening(id:string,inviter:string,team?:TeamSelection){
+  const row=await this.repository.get(id,inviter);if(!row)throw missing();
+  if(row.friend_state!=='pending')return null;
+  const match=Match.fromCheckpoint(row.checkpoint);
+  const roster=Object.fromEntries(SLOTS.map(slot=>[slot,row.checkpoint.roster[slot].design!])) as PublicMatch['roster'];
+  if(team){roster['opponent-left']=team[0];roster['opponent-right']=team[1];}
+  else{const index=randomInt(LOOKS.length),look=LOOKS[index];roster['opponent-right']={...newPlayer(`preset-${index}`),name:look.name,appearance:structuredClone(look.appearance),skills:{...look.skills}};}
+  match.scoringPreference=row.checkpoint.rules.scoring;
+  match.startLocalHumanMatch(roster,'away');match.matchId=row.id;
+  const checkpoint:StoredMatch['checkpoint']=match.exportCheckpoint();checkpoint.rules=structuredClone(row.checkpoint.rules);
+  checkpoint.court=row.checkpoint.court;
+  return checkpoint;
+ }
+ prepare(actor:string,input:unknown,friend=false){
   if(!this.creationEnabled||!this.testers.has(actor))throw new ApiError(403,'creation_disabled','New remote test matches are disabled for this account.');
-  const request=parseCreation(input);if(request.opponentId===actor||!this.testers.has(request.opponentId))throw new ApiError(400,'invalid_opponent','Choose a different enabled tester.');
+  const request=parseCreation(input);if(request.opponentId===actor||(!friend&&!this.testers.has(request.opponentId)))throw new ApiError(400,'invalid_opponent','Choose a different enabled tester.');
   const match=new Match();match.scoringPreference=request.scoring;match.seed=randomBytes(4).readUInt32BE();match.startLocalHumanMatch(request.roster);match.matchId=randomUUID();match.revision=0;
   const row:StoredMatch={id:match.matchId,home_user_id:actor,away_user_id:request.opponentId,version:0,status:'active',current_action_user_id:actor,checkpoint:match.exportCheckpoint(),last_result:null,animation:[],creation_request_id:request.creationId,creation_hash:requestHash(request),resolution_secret:randomBytes(32).toString('hex'),seed_version:1,engine_version:REMOTE_ENGINE};
   row.checkpoint.seed=seed(row);
@@ -68,6 +85,7 @@ export class MatchService {
  async act(id:string,actor:string,input:unknown):Promise<ActionReceipt>{
   const request=parseAction(input),hash=requestHash(request);
   const row=await this.repository.get(id,actor);if(!row)throw missing();teamFor(row,actor);
+  if(row.friend_state==='pending'||row.friend_state==='cancelled')throw new ApiError(409,'waiting','This challenge is not ready to play.');
   const old=await this.repository.receipt(id,request.actionId);
   const receipt=(r:StoredReceipt):ActionReceipt=>{
    if(r.actor_id!==actor||r.request_hash!==hash)throw conflict();

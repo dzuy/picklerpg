@@ -1,0 +1,37 @@
+# Invite a Friend
+
+The friend’s `opponent-left` slot is part of an authoritative match before an account exists. `away_user_id` is nullable only during the pending challenge. A 256-bit random token is a bearer invitation; forwarding it lets another person accept. The private invitation and match are created in one transaction. Claims and cancellation lock the invitation and match, and competing claims cannot replace the winner. Repeated acceptance by that winner returns the same match.
+
+Acceptance uses the existing persistent Supabase anonymous session, or the current registered account. Registration upgrades that same Supabase user ID. It follows the existing playtest policy of server-confirmed email registration. No match ownership migration or checkpoint replacement is needed. Character saves update only the primary slot’s name and appearance in active friend matches; gameplay skills, slot IDs, rally, scores, and action receipts remain intact.
+
+Deployment prerequisites:
+
+- Apply `supabase/migrations/202609160004_friend_challenges.sql` after the existing migrations.
+- Enable Supabase anonymous sign-ins. This is already required by the existing solo cloud-save architecture.
+- Keep the existing Supabase client/server keys and multiplayer feature flags configured. `MULTIPLAYER_CREATE_ENABLED` controls new challenges.
+- Deploy both the client and Node server together so `/challenge/{token}` resolves to the app and the new APIs are available.
+
+There is no time-based expiry in the existing multiplayer rules. Friend links remain usable until cancelled; a claimed link resumes only for its existing owner. Missing and cancelled links have an unavailable state. Clearing browser storage loses an unregistered identity; normal close/reopen retains it. An email already attached to another account cannot be used to upgrade a guest; the guest and match remain safe after the error.
+
+`invite_events` is private server-owned analytics storage, added because the project had no analytics provider. Creation, acceptance, first turn, completion, character creation, and onward invitation events originate from transactions. Client interaction events use an allowlist and never send names, email, or invite tokens into analytics. Join `invite_events.invite_id` to `friend_challenges.id` for inviter, recipient kind, and creation/acceptance timestamps. Registration events join via `actor_id`; timestamp differences give the requested funnel durations. UI events are best effort; transactional milestones are deduplicated.
+
+Validation performed:
+
+- Production TypeScript/client/server build.
+- Real local PostgreSQL migrations, immediate unclaimed slot creation, retry idempotency, competing claims, cancellation, access restrictions, full match completion, appearance updates during play, and funnel milestones.
+- Unit coverage verifies account upgrade targets the original user ID and never calls account creation; existing multiplayer invitation, session, archive, and HTTP regressions also run.
+- Actual invitation screens checked in the browser at 390 × 844 and 1440 × 900 using `node scripts/friend-browser-check.mjs`. This fixture simulates auth/API responses and never touches hosted data.
+
+Real hosted anonymous-to-email conversion, fresh password token exchange, preservation of the user ID, and subsequent token refresh were verified using a disposable Supabase account, which was then removed. Assigning a password revokes the old guest refresh token, so registration now obtains fresh password tokens and verifies the original user ID before installing the session. Hosted deployment and the device-native share sheet still need a deployment smoke test. The browser environment verifies the fallback and screen behavior; it does not emulate a phone’s native share sheet. Supabase’s [admin update implementation](https://github.com/supabase/auth/blob/master/internal/api/admin.go) confirms the same user and changes `is_anonymous` when a confirmed email is attached.
+
+Accepted challenge links expose Sign in to return and an inline email/password form. Missing sessions offer sign-in immediately; a stale session rejected by the match API opens the form instead of leaving a dead-end error. Successful sign-in retries acceptance for the original token, and the server checks that the account owns the slot before returning the match. Recovery navigation was checked with simulated expired auth using `FRIEND_QA_STATE=accepted FRIEND_QA_SESSION=expired node scripts/friend-browser-check.mjs`.
+
+Rematches require migration `202609160005_shared_rematches.sql`. Each completed match has at most one rematch invitation (`async_invitations.rematch_of`, unique). The first player requests it; the other player’s Rematch tap accepts it with their previous team. The existing invitation screen remains available for normal acceptance. Simultaneous taps, retries, and server restarts return the same invitation and match. A cancelled or declined rematch stays closed; players can start a separate challenge. Existing duplicates are not deleted or merged.
+
+For a pending invitation addressed to a different name than the browser’s current player, acceptance now shows the actual identity (for example, Accept as Ryan). A registered player can choose Play as Max to sign out locally and start a fresh anonymous session. An existing unregistered player is directed to another browser profile so their only session is not discarded. The API requires confirmation tied to the authenticated user ID before accepting a mismatched named identity. Already-accepted slots are not reassigned.
+
+Apply `202609160006_invited_player_serves.sql` with the server update: accepting a pending friend challenge atomically installs an engine-generated opening rally with the invited player serving and owning the first turn. This also covers invitations created before the update that are still pending. Accepted games and repeated acceptance requests retain their current state. Test by accepting a fresh invite: the recipient should see serve choices, while the inviter waits; after the serve, play continues normally.
+
+Invite a Friend now starts with two roster cards using the shared TeamPicker. Each slot supports Previous/Next, and the submitted team is included in retry identity and stored in the pending match. Apply `202609160007_friend_selected_team.sql` so creation preserves the chosen appearances; subsequent home character saves update only slots using that design ID. Browser checks covered desktop and 390 × 844, and the database regression verifies selected designs through acceptance and unrelated character edits.
+
+Apply `202609160008_friend_recipient_team.sql` for recipient setup. Anonymous recipients enter directly with their invited name and a random Starting Lineup partner. Registered recipients load their own saved players and roster membership; with at least two players they choose a pair before Start game, otherwise they enter with the assigned team. Selected recipient names and appearances are preserved at acceptance and on unrelated character saves. Returning to an accepted link never reselects or randomizes the existing team. The browser fixture verifies guest, registered roster, and empty-roster navigation; SQL tests verify assignment, selected designs, first serve, and retries.
