@@ -362,3 +362,7 @@
 .roster-grid .roster-card .roster-card-identity .roster-role{max-width:calc(100% - 54px);box-sizing:border-box}
 
 #player-creator .roster-top>.creator-close{padding:0!important}#player-creator .creator-close svg{width:28px;height:28px;display:block;pointer-events:none;flex:none}
+
+#player-creator[data-view=editor] { background: var(--page-blue-gradient); background-attachment: fixed; }
+#player-creator[data-view=editor] > .creator-topline { color: #edf5ff; }
+#player-creator[data-view=editor] > .creator-layout { background: #eff2f7; border-radius: 18px; padding: 16px; }

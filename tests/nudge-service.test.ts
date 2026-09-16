@@ -41,3 +41,8 @@ test('unlimited testing is server-controlled and returns ready after repeated se
  assert.ok(calls.every(args=>args.p_unlimited===true));
  await assert.rejects(service.send(id,A,{expectedVersion:3,p_unlimited:true}));
 });
+
+test('missing nudge RPC reports setup required instead of a retryable availability failure',async()=>{
+ const service=new NudgeService({rpc:async()=>({error:{code:'PGRST202'}})} as any,testers,async()=>{});
+ await assert.rejects(service.status(id,A),(error:any)=>error.code==='nudge_setup_required'&&error.status===503);
+});

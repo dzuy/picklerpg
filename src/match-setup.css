@@ -94,3 +94,7 @@ body[data-screen=setup]{overflow:auto;background:#03122f}
 .setup-court-check{display:none}.setup-court[aria-pressed=true] .setup-court-check{display:block}
 
 .setup-court[data-court=arizona] img{transform:none}
+
+/* Match the shared roster/lobby page canvas at every breakpoint. */
+body[data-screen=setup], #match-setup { background: var(--page-blue-gradient); background-attachment: fixed; }
+#match-setup::before { box-shadow: none; }

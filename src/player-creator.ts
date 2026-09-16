@@ -1,3 +1,5 @@
+import {teamDisplayName} from './team-name';
+import {ownedRosterPlayers,setOwnedPlayerAdded} from './roster-membership';
 import {ARCHETYPES} from './engine/player-profiles';
 import {attachPlayerDetails} from './player-details';
 import {CommunitySection} from './community-section';
@@ -12,6 +14,7 @@ import {APPEARANCE_OPTIONS,PLAYER_STORAGE_KEY,newPlayer,parseLibrary,savePlayer,
 import type {CloudSaveState,LibraryChange} from './cloud-players';
 import {browserStorage} from './browser-storage';
 import './player-creator.css';
+import './roster.css';
 const iconPaths:Record<string,string>={
  facialHair:'M5 9v5l3 6h8l3-6V9M8 11l4-2 4 2M10 14h4',
  hairStyle:'M5 15V9a7 7 0 0 1 14 0v6M5 10c4 0 5-4 5-4s3 4 9 4M7 15v4m10-4v4',
@@ -30,6 +33,12 @@ const skillHelp:Record<typeof SKILLS[number],string>={serve:'Start the point wit
 
 export class PlayerCreator {
  readonly dialog=document.createElement('dialog');
+ private creatorName='You';private teamName='';
+ saveTeamName:(name:string)=>Promise<string>=async()=>{throw new Error('Connect to your account to save a team name.')};
+ setTeamName(name?:string){this.teamName=name?.trim()||'';this.updateTeamHeading();}
+ private updateTeamHeading(){const name=teamDisplayName(this.creatorName,this.teamName);this.el('#roster-title').textContent=`${name}’s Roster`;}
+
+ setCreatorName(name?:string){const next=name?.trim()||'You';if(next===this.creatorName)return;this.creatorName=next;this.updateTeamHeading();if(this.dialog.open&&this.dialog.dataset.view==='roster')this.showRoster();}
  loadHistory:()=>Promise<HistoryMatch[]>=async()=>{throw new Error('History unavailable')};
  private community=new CommunitySection(()=>{if(this.dialog.open&&this.dialog.dataset.view==='roster')this.showRoster()});
  private rosterThumbnails:AvatarThumbnails|null=null;
@@ -40,7 +49,7 @@ export class PlayerCreator {
   const active=this.library.players.find(p=>p.id===this.library.activeId);
   if(active)this.draft=structuredClone(active);this.baseline=JSON.stringify(this.draft);
   this.dialog.id='player-creator';this.dialog.setAttribute('aria-labelledby','creator-title');
-  this.dialog.innerHTML=`<section class="player-roster-page" aria-labelledby="roster-title"><div class="roster-top"><div><h1 id="roster-title">Your Roster</h1></div><div class="roster-cheer" aria-hidden="true">Good players.<br>Brighter rallies.<svg viewBox="0 0 70 80" fill="none"><ellipse cx="40" cy="29" rx="22" ry="26" fill="currentColor" transform="rotate(35 40 29)"/><path d="m27 48-17 22" stroke="currentColor" stroke-width="12" stroke-linecap="round"/><g fill="#fafbf3"><circle cx="38" cy="13" r="3"/><circle cx="49" cy="23" r="3"/><circle cx="29" cy="27" r="3"/><circle cx="40" cy="38" r="3"/><circle cx="53" cy="36" r="3"/></g></svg></div><button type="button" class="creator-close" data-close aria-label="Return to main game" title="Return to main game"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div><div class="roster-actions"><button type="button" data-create-player>+ Create new player</button><button type="button" data-resume hidden>Continue editing</button></div><p data-roster-status role="status"></p><section data-saved-section><div data-saved-roster class="roster-grid"></div></section><div data-community-section></div></section><div class="creator-topline"><button type="button" data-back-roster>← Roster</button></div>
+  this.dialog.innerHTML=`<section class="player-roster-page" aria-labelledby="roster-title"><div class="roster-top"><div class="roster-title-row"><h1 id="roster-title">Your Roster</h1><button type="button" class="roster-team-edit" data-edit-team aria-label="Edit team name" title="Edit team name"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 3 5 5M4 15 16 3a2.1 2.1 0 0 1 5 5L9 20l-6 1 1-6Z"/></svg></button></div><button type="button" class="creator-close" data-close aria-label="Return to main game" title="Return to main game"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div><form class="roster-team-form" data-team-form hidden><label for="roster-team-name">Team name</label><p>Leave blank to use your account player name.</p><input id="roster-team-name" type="text" maxlength="48" autocomplete="off"><div><button type="submit">Save team name</button><button type="button" data-cancel-team>Cancel</button></div><p data-team-status role="status"></p></form><div class="roster-actions"><button type="button" data-create-player>+ Create new player</button><button type="button" data-resume hidden>Continue editing</button></div><p data-roster-status role="status"></p><section data-saved-section><div data-saved-roster class="roster-grid"></div></section><div data-community-section></div></section><div class="creator-topline"><button type="button" data-back-roster>← Roster</button></div>
   <div class="creator-layout"><section class="creator-stage" aria-label="Avatar preview"><div class="creator-heading"><h2 id="creator-title">Create Your Player</h2></div>
 
   <div class="creator-preview"></div><div class="creator-plinth"></div>
@@ -79,6 +88,14 @@ export class PlayerCreator {
   <div class="creator-confirm" hidden><p>Discard unsaved changes to switch players?</p><button type="button" data-keep>Keep editing</button><button type="button" data-discard>Discard and continue</button></div>
   <div class="creator-footer"><button type="button" data-delete hidden>Delete player</button><p data-status role="status"></p><div><button type="button" data-save>Save Player &nbsp; →</button></div></div></section></div>`;
   document.body.append(this.dialog);
+  const teamForm=this.el('[data-team-form]') as HTMLFormElement,teamInput=this.input('#roster-team-name') as HTMLInputElement;
+  const teamStatus=this.el('[data-team-status]');
+  this.el('[data-edit-team]').onclick=()=>{teamInput.value=this.teamName;teamInput.placeholder=teamDisplayName(this.creatorName);teamStatus.textContent='';teamForm.hidden=false;teamInput.focus();};
+  this.el('[data-cancel-team]').onclick=()=>{teamForm.hidden=true;this.el('[data-edit-team]').focus();};
+  teamForm.onsubmit=event=>{event.preventDefault();const buttons=Array.from(teamForm.querySelectorAll('button'));buttons.forEach(button=>button.disabled=true);teamInput.disabled=true;teamStatus.textContent='Saving…';
+   void this.saveTeamName(teamInput.value).then(name=>{this.setTeamName(name);teamForm.hidden=true;this.el('[data-edit-team]').focus();}).catch(error=>{teamStatus.textContent=(error as Error).message;}).finally(()=>{buttons.forEach(button=>button.disabled=false);teamInput.disabled=false;});
+  };
+  this.updateTeamHeading();
   this.dialog.append(this.el('.creator-confirm'));
   this.setupAppearancePages();
   this.dialog.querySelectorAll<HTMLButtonElement>('[data-close]').forEach(button=>button.addEventListener('click',()=>this.dialog.close()));
@@ -157,7 +174,7 @@ export class PlayerCreator {
   this.el('[data-dupr]').textContent=estimatedDupr.toFixed(2);
 
  }
- get savedPlayers(){return structuredClone(this.library.players)}
+ get savedPlayers(){return structuredClone(ownedRosterPlayers(this.library.players))}
  get activePlayer(){const player=this.library.players.find(p=>p.id===this.library.activeId);return player?structuredClone(player):null}
  get playerLibrary(){return structuredClone(this.library)}
  applyCloudLibrary(library:PlayerLibrary){
@@ -185,20 +202,24 @@ export class PlayerCreator {
   const saved=this.el('[data-saved-roster]');saved.replaceChildren();
   this.el('[data-saved-section]').hidden=false;
   const history=this.loadHistory();void history.catch(()=>{});
-  const card=(player:DesignedPlayer,role:string,isDefault:boolean)=>{
+  const card=(player:DesignedPlayer,role:string)=>{
    const article=document.createElement('article');article.className='roster-card';
    const edit=()=>{if(this.draft.id===player.id){this.showEditor();return}this.switchDraft(()=>{this.loadDraft(player);this.showEditor()})};
-   let portrait='';try{this.rosterThumbnails??=new AvatarThumbnails(384);portrait=this.rosterThumbnails.get(player.appearance,'roster')}catch{}
+   let portrait='';try{this.rosterThumbnails??=new AvatarThumbnails(384);portrait=this.rosterThumbnails.get(player.appearance,'roster',player.handedness)}catch{}
    fillPlayerCard(article,player,role,portrait);
    article.querySelector('.roster-card-identity')!.append(playerRecord(player.id,history));
-   attachPlayerDetails(article,player,role,portrait,isDefault?undefined:edit);
-   const actions=document.createElement('div');actions.className='roster-card-actions';
-   const play=document.createElement('button');play.type='button';play.className='roster-play';play.textContent='▶  Play as '+player.name;play.disabled=!isDefault&&!!this.loadError;
-   play.addEventListener('click',()=>{if(isDefault){this.onPlay(structuredClone(player));this.dialog.close()}else{this.showEditor();this.switchDraft(()=>{this.loadDraft(player);this.save(true)})}});actions.append(play);
-   article.append(actions);return article;
+   const added=ownedRosterPlayers([player]).length>0;
+   const change=async()=>{await setOwnedPlayerAdded(player.id,!added);this.showRoster();};
+   attachPlayerDetails(article,player,role,portrait,edit,{label:added?'Remove from roster':'Add to roster',change});
+   if(!added){const actions=document.createElement('div');actions.className='roster-card-actions';const button=document.createElement('button');button.type='button';button.className='roster-play';button.textContent='Add to roster';button.onclick=()=>{button.disabled=true;void change().catch(error=>{this.el('[data-roster-status]').textContent=(error as Error).message;button.disabled=false;});};actions.append(button);article.append(actions);}
+   return article;
   };
-  for(const player of this.library.players)saved.append(card(player,this.library.activeId===player.id?(player.isPublic?'Selected · Public player':'Selected player'):(player.isPublic?'Public player':'Saved player'),false));
+  for(const player of ownedRosterPlayers(this.library.players))saved.append(card(player,`By ${this.creatorName}`));
   saved.append(...this.community.rosterCards(history));
+  this.dialog.querySelector('[data-owned-outside-roster]')?.remove();
+  const outside=this.library.players.filter(player=>!ownedRosterPlayers([player]).length);
+  if(outside.length){const section=document.createElement('section');section.dataset.ownedOutsideRoster='';section.className='community-section';const heading=document.createElement('h2');heading.textContent='Your saved players';const copy=document.createElement('p');copy.textContent='These characters are saved, but not in your roster. Add them back anytime.';const grid=document.createElement('div');grid.className='roster-grid';grid.append(...outside.map(player=>card(player,`By ${this.creatorName}`)));section.append(heading,copy,grid);this.el('[data-community-section]').before(section);}
+
   this.el('[data-create-player]').focus();
  }
  private el(selector:string){return this.dialog.querySelector<HTMLElement>(selector)!}

@@ -1,7 +1,8 @@
 begin;
 -- Only accepted gameplay advances this clock. Archiving cannot reset the wait.
 alter table public.async_matches add column action_ready_at timestamptz not null default now();
-update public.async_matches set action_ready_at=updated_at;
+update public.async_matches set action_ready_at=updated_at
+where action_ready_at is distinct from updated_at;
 create function public.track_async_action_ready() returns trigger
 language plpgsql set search_path='' as $$
 begin

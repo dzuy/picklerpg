@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 280" fill="none">
+  <defs>
+    <pattern id="dots" width="15" height="15" patternUnits="userSpaceOnUse" patternTransform="rotate(-18)">
+      <circle cx="4" cy="4" r="2.4" fill="#36cfff"/>
+    </pattern>
+    <radialGradient id="fade" cx="1" cy="0" r="1">
+      <stop stop-color="white" stop-opacity=".65"/>
+      <stop offset="1" stop-color="white" stop-opacity="0"/>
+    </radialGradient>
+    <mask id="dotFade"><path fill="url(#fade)" d="M0 0h320v280H0z"/></mask>
+  </defs>
+  <path fill="url(#dots)" mask="url(#dotFade)" d="M0 0h320v280H0z"/>
+  <path fill="#12e1f3" d="M230 0h42L124 118l47-58-44 18Z"/>
+  <path fill="#ff3d7d" d="M296 0h24v17L218 86l32-36-26 12Z"/>
+  <path fill="#d1ef62" d="M320 53v24l-80 57 28-34-22 10Z"/>
+</svg>

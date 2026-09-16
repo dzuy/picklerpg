@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {RemoteError} from '../src/multiplayer/api';
 import {NudgeControl,nudgeCopy} from '../src/multiplayer/nudge-control';
 class Element {
  children:Element[]=[];hidden=false;disabled=false;textContent='';className='';type='';onclick:()=>void=()=>{};
@@ -39,4 +40,15 @@ test('lost send response disables further sends until authoritative status is re
 test('countdown uses server time rather than device time and daily cap explains all games',()=>{
  assert.match(nudgeCopy({...status('waiting'),state:'waiting',availableAt:'2026-09-15T00:30:00Z',serverTime:'2026-09-15T00:05:00Z'}).hint,/25 min/);
  assert.match(nudgeCopy({...status(),state:'daily_limit'}).hint,/24 hours across all games/);
+});
+
+test('nudge setup errors remain visible while the button stays disabled',async()=>{
+ const previous=globalThis.document;globalThis.document={createElement:()=>new Element()} as any;
+ try{
+  const host=new Element();
+  const message='Nudges need a server setup update before they can be used.';
+  const control=new NudgeControl(host as any,async()=>({owner:'user',token:'token'}),async()=>{throw new RemoteError(503,'nudge_setup_required',message)});
+  control.update(match);await flush();
+  assert.equal(host.children[0].disabled,true);assert.equal(host.children[1].textContent,message);
+ }finally{globalThis.document=previous}
 });

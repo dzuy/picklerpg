@@ -37,6 +37,7 @@ These are the next priorities, not authorization to implement them all in one pa
 
 ## Supporting polish and reliability
 
+- [ ] Limit nudging before wider release: disable `NUDGE_TEST_UNLIMITED` and verify the existing server-enforced limits (30-minute wait, one nudge per turn, and one nudge per opponent per rolling 24 hours across games). Clearly explain cooldowns in the UI and verify limits persist across reloads and devices. Keep unlimited mode available for deliberate testing only.
 - [ ] Sound effects and music, with user controls.
 - [ ] Consistent PickleBash naming and design across screens, navigation, titles, and copy.
 - [ ] Finish the previously requested targeting-wheel cleanup; audit the remaining legacy shot dock/expander and retain necessary input/accessibility paths.

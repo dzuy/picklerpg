@@ -29,15 +29,23 @@ import type {PlayerId,ShotIntent} from './engine/model';
 import {SHOT_INTENT_SCHEMA,targetLabel} from './engine/shot-intent';
 import './style.css';
 import './gameplay-hud.css';
+import './settings.css';
 import {CourtScene} from './scene';
 import {preloadAthletes} from './athlete';
 import {browserStorage,browserStoragePersistent,STORAGE_UNAVAILABLE_MESSAGE} from './browser-storage';
 const app=document.querySelector<HTMLDivElement>('#app')!;
+const rosterRoute=new URLSearchParams(location.search);
+const directRoster=rosterRoute.get('roster')==='1';
 let onStartScreen=true;
 document.body.dataset.screen='start';
 const startScreen=document.createElement('main');startScreen.id='start-screen';startScreen.setAttribute('aria-labelledby','start-title');
 startScreen.innerHTML=`<h1 id="start-title" class="start-accessible-title">PickleBash</h1><div class="start-stage"><img class="start-background" src="/images/start/background.png" alt="" fetchpriority="high"><nav class="start-actions" aria-label="Main menu"><button id="start-new-game" aria-label="Single Player" disabled><img src="/images/start/single-player.png" alt="" draggable="false"></button><button id="start-multiplayer" aria-label="Multiplayer"><img src="/images/start/multiplayer.png" alt="" draggable="false"></button><button id="start-roster" aria-label="Roster" disabled><img src="/images/start/roster.png" alt="" draggable="false"></button></nav><p class="start-loading" role="status">Getting the court ready…</p></div>`;
+startScreen.hidden=directRoster;
 document.body.append(startScreen);
+const rosterLoading=document.createElement('div');
+rosterLoading.className='roster-route-loading';rosterLoading.hidden=!directRoster;
+rosterLoading.setAttribute('role','status');rosterLoading.textContent='Loading your roster…';
+document.body.append(rosterLoading);
 
 
 app.innerHTML=`
@@ -147,7 +155,7 @@ function syncVoice(){
 }
 
 let creator!:PlayerCreator,cloudAccountState:CloudAccountState={kind:'connecting'};
-const cloudPlayers=new CloudPlayerSync(state=>creator.setCloudStatus(state),state=>{cloudAccountState=state;renderAccount()});
+const cloudPlayers=new CloudPlayerSync(state=>creator.setCloudStatus(state),state=>{cloudAccountState=state;creator?.setCreatorName(state.playerName);creator?.setTeamName(state.teamName);renderAccount()});
 const accountControls=installAccountControls(cloudPlayers,()=>creator.playerLibrary.players);
 
 creator=new PlayerCreator(player=>{
@@ -186,6 +194,7 @@ new MutationObserver(updateCourtFraming).observe(document.body,{attributes:true,
 const savedPlayer=creator.activePlayer;
 creator.loadHistory=async()=>{await accountControls.retry();return (await cloudPlayers.history()).matches};
 if(savedPlayer){match.setPlayerDesign(savedPlayer);scene.setPlayerDesign(savedPlayer);document.querySelector('.score-row-home > span')!.textContent=`${savedPlayer.name} & FINN`}
+creator.saveTeamName=name=>cloudPlayers.saveTeamName(name);
 const cloudReady=cloudPlayers.connect(creator.playerLibrary).then(library=>{creator.applyCloudLibrary(library);void accountControls.retry().catch(()=>{})});
 // Keep navigation and player management in Settings; the court gets only the HUD.
 const settingsActions=document.createElement('section');settingsActions.className='settings-game-actions';
@@ -580,7 +589,7 @@ function initializeResume(owner:string){
    byId('partner-autonomy-state').textContent=match.partnerAutonomy?'On':'Off';
    (byId('player-autonomy') as HTMLInputElement).checked=match.playerAutonomy;
    byId('player-autonomy-state').textContent=match.playerAutonomy?'On':'Off';
-   if(!stayOnHome)enterCourt(false);
+   if(!stayOnHome&&!directRoster)enterCourt(false);
   }
  }catch(error){reportSaveError(error);discardSave.hidden=false;match.onCheckpoint=()=>{throw new Error('Discard the unreadable saved match before replacing it.')}}
  finally{resumeReady=true;startScreen.querySelectorAll<HTMLButtonElement>('button').forEach(button=>button.disabled=false);}
@@ -597,10 +606,15 @@ void cloudReady.then(()=>{
  initializeResume(owner);
 });
 // Open roster directly, and return multiplayer visitors to their saved game on close.
-const rosterRoute=new URLSearchParams(location.search);
-if(rosterRoute.get('roster')==='1')void cloudReady.then(()=>{
- showStartScreen();creator.open();
- if(rosterRoute.get('from')==='multiplayer')creator.dialog.addEventListener('close',()=>{const back=new URL('/?multiplayer=1',location.origin);const matchId=rosterRoute.get('match');if(matchId)back.searchParams.set('match',matchId);location.assign(back.href)},{once:true});
+if(directRoster)void cloudReady.then(()=>{
+ creator.open();rosterLoading.hidden=true;
+ creator.dialog.addEventListener('close',()=>{
+  if(rosterRoute.get('from')==='multiplayer'){
+   rosterLoading.textContent='Returning to your game…';rosterLoading.hidden=false;
+   const back=new URL('/?multiplayer=1',location.origin);const matchId=rosterRoute.get('match');
+   if(matchId)back.searchParams.set('match',matchId);location.assign(back.href);
+  }else if(onStartScreen)showStartScreen();
+ },{once:true});
 });
 startScreen.querySelector('.start-loading')!.textContent='';app.inert=onStartScreen;
 updateUI();let previous:number|undefined;function frame(now:number){

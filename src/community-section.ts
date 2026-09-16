@@ -25,11 +25,24 @@ export class CommunitySection {
  private card(player:DesignedPlayer,inRoster:boolean){
   const row=this.rows.find(r=>r.player.id===player.id),added=row?.added??rosterStarters().some(p=>p.id===player.id);
   const article=document.createElement('article');article.className='roster-card community-card';
-  let portrait='';try{portraits??=new AvatarThumbnails(384);portrait=portraits.get(player.appearance,'roster')}catch{}
-  fillPlayerCard(article,player,row?`By ${row.creator_name}`:'Starting Lineup',portrait);attachPlayerDetails(article,player,row?`By ${row.creator_name}`:'Starting Lineup',portrait);
+  let portrait='';try{portraits??=new AvatarThumbnails(384);portrait=portraits.get(player.appearance,'roster',player.handedness)}catch{}
+  const change=async()=>{await (row?setCommunityAdded(row.public_id,!added):setStarterAdded(player.id,!added));await this.load();};
+  fillPlayerCard(article,player,row?`By ${row.creator_name}`:'Starting Lineup',portrait);
+  attachPlayerDetails(article,player,row?`By ${row.creator_name}`:'Starting Lineup',portrait,undefined,added?{label:'Remove from roster',change}:undefined);
+  if(inRoster)return article;
   const actions=document.createElement('div');actions.className='roster-card-actions';
   const button=document.createElement('button');button.type='button';button.className='roster-play';button.textContent=added?(inRoster?'Remove from roster':'In Your Roster'):'Add to roster';button.disabled=added&&!inRoster;button.setAttribute('aria-label',added&&!inRoster?`${player.name} is in Your Roster`:`${added?'Remove':'Add'} ${player.name} ${added?'from':'to'} Your Roster`);
   button.onclick=()=>{button.disabled=true;void (row?setCommunityAdded(row.public_id,!added):setStarterAdded(player.id,!added)).then(()=>this.load()).catch(e=>{this.element.querySelector('[data-community-status]')!.textContent=e.message;button.disabled=false;});};actions.append(button);article.append(actions);return article;
  }
- private draw(){this.element.querySelector('.community-grid')!.replaceChildren(...this.rows.map(r=>this.card(r.player,false)));this.element.querySelector('.starting-grid')!.replaceChildren(...startingPlayers.map(p=>this.card(p,false)));}
+ private draw(){
+  const added=new Set(this.addedPlayers.map(player=>player.id));
+  const community=this.element.querySelector<HTMLElement>('.community-grid')!;
+  const starters=this.element.querySelector<HTMLElement>('.starting-grid')!;
+  community.replaceChildren(...this.rows.filter(row=>!added.has(row.player.id)).map(row=>this.card(row.player,false)));
+  starters.replaceChildren(...startingPlayers.filter(player=>!added.has(player.id)).map(player=>this.card(player,false)));
+  for(const grid of [community,starters]){
+   grid.hidden=grid.childElementCount===0;
+   (grid.previousElementSibling as HTMLElement).hidden=grid.hidden;
+  }
+ }
 }

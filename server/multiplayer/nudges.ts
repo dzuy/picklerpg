@@ -6,7 +6,7 @@ export class NudgeService {
  constructor(private client:SupabaseClient,private names:ReadonlyMap<string,string>,private notify?:TurnNotifier,readonly unlimited=false){}
  private async rpc(name:string,args:Record<string,unknown>){
   const {data,error}=await this.client.rpc(name,this.unlimited?{...args,p_unlimited:true}:args);
-  if(error){if(error.code==='P0002')throw missing();throw new ApiError(503,'nudge_unavailable','Nudges are unavailable. Try again shortly.');}
+  if(error){if(error.code==='P0002')throw missing();if(error.code==='PGRST202')throw new ApiError(503,'nudge_setup_required','Nudges need a server setup update before they can be used.');throw new ApiError(503,'nudge_unavailable','Nudges are unavailable. Try again shortly.');}
   return data;
  }
  async status(id:string,actor:string):Promise<NudgeStatus>{

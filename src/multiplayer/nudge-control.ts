@@ -1,4 +1,4 @@
-import {remoteRequest} from './api';
+import {remoteRequest,RemoteError} from './api';
 import type {Credentials,Transport} from './match-session';
 import type {NudgeResult,NudgeStatus} from './nudge-protocol';
 export interface NudgeMatch {id:string;version:number;owner:string;waiting:boolean;online:boolean}
@@ -48,7 +48,7 @@ export class NudgeControl {
  private async refresh(){
   const match=this.match!,revision=this.revision;this.fetching=true;this.checkedAt=Date.now();
   try{const c=await this.identity(match.owner);const status=await this.request<NudgeStatus>(c.token,`/api/matches/${match.id}/nudge`);if(revision!==this.revision)return;this.status=status.version===match.version?status:{...status,state:'stale'};this.notice='';}
-  catch{if(revision===this.revision){this.status=null;this.notice='Could not check nudges. We’ll try again shortly.';}}
+  catch(error){if(revision===this.revision){this.status=null;this.notice=error instanceof RemoteError?error.message:'Could not check nudges. We’ll try again shortly.';}}
   finally{if(revision===this.revision){this.fetching=false;this.draw();}}
  }
  private async send(){

@@ -1,3 +1,4 @@
+import {normalizeTeamName} from './team-name';
 import {accountReturnUrl} from './auth-destination';
 import {authClient} from './auth-session';
 import type {MatchParticipant} from './player-history';
@@ -7,7 +8,7 @@ import {browserStorage} from './browser-storage';
 
 export type LibraryChange={kind:'save';playerId:string}|{kind:'delete';playerId:string};
 export type CloudSaveState='local'|'connecting'|'saving'|'saved'|'offline';
-export type CloudAccountState={kind:'unavailable'|'connecting'|'guest'|'pending'|'authenticated';email?:string};
+export type CloudAccountState={kind:'unavailable'|'connecting'|'guest'|'pending'|'authenticated';email?:string;playerName?:string;teamName?:string};
 type PlayerRow={id:string;name:string;catchphrase:string|null;appearance:unknown;skills:unknown;handedness:'left'|'right';is_active:boolean;is_public?:boolean};
 const CLOUD_OWNER_KEY='pickle-rpg-cloud-owner-v1',CLOUD_DIRTY_KEY='pickle-rpg-cloud-dirty-v1';
 
@@ -25,12 +26,22 @@ export function mergePlayerLibraries(local:PlayerLibrary,remote:PlayerLibrary):P
  return {version:1,activeId:requested&&merged.some(player=>player.id===requested)?requested:null,players:merged};
 }
 
-export function accountStateForUser(user:Pick<User,'email'|'is_anonymous'>|null):CloudAccountState{
+export function accountStateForUser(user:(Pick<User,'email'|'is_anonymous'>&Partial<Pick<User,'user_metadata'>>)|null):CloudAccountState{
  if(!user)return {kind:'connecting'};
- return user.is_anonymous?{kind:'guest'}:{kind:'authenticated',...(user.email?{email:user.email}:{})};
+ const name=user.user_metadata?.player_name;
+ const playerName=typeof name==='string'?name.trim():'';
+ const team=user.user_metadata?.team_name;const teamName=typeof team==='string'?team.trim():'';
+ return user.is_anonymous?{kind:'guest'}:{kind:'authenticated',...(user.email?{email:user.email}:{}),...(playerName?{playerName}:{}),...(teamName?{teamName}:{})};
 }
 
 export class CloudPlayerSync{
+ async saveTeamName(value:string){
+  const name=normalizeTeamName(value);
+  if(!this.client||!this.ownerId)throw new Error('Connect to your account to save a team name.');
+  const {data,error}=await this.client.auth.updateUser({data:{team_name:name||null}});
+  if(error)throw new Error('Could not save your team name. Please try again.');
+  this.accountStatus(accountStateForUser(data.user));return name;
+ }
  private signingOut=false;
  get accountId(){return this.ownerId}
  async signOut(){

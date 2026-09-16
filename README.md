@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-Open the local URL Vite prints. `npm run build` checks TypeScript and creates `dist/`; `npm run preview` serves that production build. `npm test` runs simulation checks.
+Open the local URL Vite prints. The development server also runs the multiplayer API, so no separate `npm run multiplayer-server` process is needed for local play. Multiplayer still requires the Supabase and multiplayer settings in `.env.local` (see `.env.example`); restart `npm run dev` after changing them. The standalone `multiplayer-server` command remains available for backend-only development. `npm run build` checks TypeScript and creates `dist/`; `npm run preview` serves that production build. `npm test` runs simulation checks.
 
 ## First milestone
 
@@ -24,6 +24,10 @@ An elevated camera behind your team, four procedural stylized players, regulatio
 The two required bounces occur before the third shot. Overhead contact and foot positions stay behind the kitchen. Completion awards one demonstration point; replay resets to 0–0. This is a guided scenario, not a complete scoring engine or match.
 
 Click the shot card or press Space at a decision. During flight, Space pauses/resumes. R restarts. Controls include three playback speeds, tactical/lower camera views, and a flight guide toggle. Keyboard shortcuts do not override focused buttons or selects.
+
+## Visual style
+
+The agreed color direction, usage rules, and foundation for future marketing content are documented in [docs/STYLE-GUIDE.md](docs/STYLE-GUIDE.md). Shared page and panel gradient tokens live in [src/page-theme.css](src/page-theme.css).
 
 ## Backlog and build order
 

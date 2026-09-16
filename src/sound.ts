@@ -117,11 +117,12 @@ export function installMenuSounds(){
  });
 }
 
-export function installSoundSetting(dialog:HTMLElement){
+export function installSoundSetting(dialog:HTMLElement,options:{checkbox?:boolean;before?:HTMLElement}={}){
  const label=document.createElement('label');label.className='settings-toggle';
  label.innerHTML='<span>Sound effects<small>Menu clicks, paddle hits, and point feedback.</small></span><span class="settings-switch-control"><strong></strong><input type="checkbox" role="switch" data-sound-toggle aria-label="Sound effects"></span>';
- const input=label.querySelector('input')!,state=label.querySelector('strong')!;
- const sync=()=>{input.checked=sounds.enabled;state.textContent=sounds.enabled?'On':'Off';};sync();
+ if(options.checkbox){const input=label.querySelector('input')!;label.querySelector('.settings-switch-control')!.replaceWith(input);}
+ const input=label.querySelector('input')!,state=label.querySelector('strong');
+ const sync=()=>{input.checked=sounds.enabled;if(state)state.textContent=sounds.enabled?'On':'Off';};sync();
  input.addEventListener('change',()=>{sounds.setEnabled(input.checked);sync();sounds.play('toggle');});
- dialog.querySelector('.settings-heading')!.after(label);
+ if(options.before)options.before.before(label);else dialog.querySelector('.settings-heading')!.after(label);
 }

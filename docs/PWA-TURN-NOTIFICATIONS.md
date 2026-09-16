@@ -131,3 +131,9 @@ Final nudge verification: production build and diff whitespace checks passed; 22
 ### Temporary unlimited testing
 
 Set the server-only `NUDGE_TEST_UNLIMITED=true` to skip the 30-minute wait, per-turn cap, rolling daily cap and HTTP nudge rate limit. It is enabled in this workspace's ignored `.env.local`. The server passes a privileged RPC flag; clients cannot choose it. Participant, current-turn, active-match and expected-version checks still apply. Successful sends return `ready` so the button can be tapped again. Set the variable to `false` (or remove it) and restart the API to restore normal limits. The local preview also defaults to immediate unlimited simulated sends. The pending nudge migration includes the optional RPC argument; real notifications still require that migration and VAPID configuration. Build and all 10 targeted nudge tests passed, including 15 repeated sends and the normal-limit cases.
+
+### Nudge setup completed (September 15 local playtest)
+
+Applied `202609150002_match_nudges.sql` to the existing PickleBash Supabase project. Preflight confirmed the table, function, and turn-clock column were absent. The timestamp backfill now updates only rows whose clock differs from `updated_at`. Verified row-level security, denied browser-role table/RPC access, and service-role RPC execution (all four checks passed).
+
+Restored the existing VAPID configuration from the private backup into ignored, owner-only `.env.local`, without rotating keys. Vite reloaded the configuration. The actual waiting match returned `state: ready` and the browser displayed an enabled Nudge opponent button. Existing `NUDGE_TEST_UNLIMITED=true` remains in effect locally. No nudge was sent during verification; recipient-device delivery still needs a user-triggered test. This setup did not deploy application code to Railway.

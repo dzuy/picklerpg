@@ -68,3 +68,61 @@ export function poseAthleteForPortrait(root:THREE.Group){
 }
 export function disposeAthlete(root:THREE.Group){root.traverse(object=>{if(object instanceof THREE.Mesh){if(object.userData.ownedGeometry)object.geometry.dispose();for(const material of Array.isArray(object.material)?object.material:[object.material])material.dispose()}})}
 export function setAthleteHandedness(root:THREE.Group,hand:'left'|'right'){root.scale.x=hand==='left'?-1:1}
+
+/** Compact two-handed ready stance, with a gentle breathing cycle. */
+function poseRosterReady(root:THREE.Group,time=0){
+ const breath=Math.sin(time*1.8)*.018;
+ const rig=resetRig(root);
+ rotate(rig,'chest',.1,0,breath*.3);
+ rotate(rig,'head',-.08);
+ rotate(rig,'upper_arm.R',-.75+breath,0,-.35);
+ rotate(rig,'forearm.R',-.8,0,-.25);
+ rotate(rig,'hand.R',-.3,1.2,-.25);
+ rotate(rig,'upper_arm.L',-.75+breath,0,.35);
+ rotate(rig,'forearm.L',-.8,0,.25);
+ rotate(rig,'thigh.L',-.4,0,-.14);
+ rotate(rig,'thigh.R',-.4,0,.14);
+ rotate(rig,'shin.L',.7);
+ rotate(rig,'shin.R',.7);
+ rotate(rig,'foot.L',-.3);
+ rotate(rig,'foot.R',-.3);
+ const pelvis=rig.bones.get('pelvis');if(pelvis)pelvis.position.y-=.065-breath*.2;
+ const ring=root.getObjectByName('ground-ring');if(ring)ring.visible=false;
+}
+
+function poseRosterSwing(root:THREE.Group,phase:'load'|'contact'|'follow'){
+ // Keep the stroke forward of the chest; broad cross-body finishes clip this compact rig.
+ const frames={load:[-.85,.7,-.25,-.2],contact:[-1.2,.15,-.15,0],follow:[-1.3,-.2,-.2,.2]};
+ const [armX,armZ,elbow,torso]=frames[phase];
+ animateAthlete(root,{style:'forehand',reaction:null,armX,armY:0,armZ,elbow,wrist:0,offArm:-.4,torso,lean:0,crouch:.045,stride:phase==='follow'?.18:-.12,celebrate:false});
+ const rig=root.userData.playerRig as ReturnType<typeof collectRig>;
+ rotate(rig,'upper_arm.L',-.7,0,-.3);
+ rotate(rig,'forearm.L',-.6);
+ const ring=root.getObjectByName('ground-ring');if(ring)ring.visible=false;
+}
+/** Stable card variety: ready stance, forehand preparation, or low follow-through. */
+export function poseAthleteForRoster(root:THREE.Group){
+ const seed=JSON.stringify(root.userData.appearance).split('').reduce((sum,char)=>sum+char.charCodeAt(0),0);
+ if(seed%3===1)poseRosterReady(root);
+ else poseRosterSwing(root,seed%3===0?'load':'follow');
+}
+type ShowcaseFrame=Map<string,{rotation:THREE.Quaternion;position:THREE.Vector3}>;
+/** A smooth practice loop: settle, prepare, swing, follow through, and recover. */
+export function animateRosterAthlete(root:THREE.Group,time:number){
+ const rig=root.userData.playerRig as ReturnType<typeof collectRig>;
+ let frames=root.userData.rosterShowcaseFrames as ShowcaseFrame[]|undefined;
+ if(!frames){
+  frames=[];
+  for(const pose of ['ready','load','contact','follow'] as const){
+   if(pose==='ready')poseRosterReady(root);else poseRosterSwing(root,pose);
+   frames.push(new Map([...rig.bones].map(([name,bone])=>[name,{rotation:bone.quaternion.clone(),position:bone.position.clone()}])));
+  }
+  root.userData.rosterShowcaseFrames=frames;
+ }
+ const beats=[{at:0,pose:0},{at:1.4,pose:0},{at:2.3,pose:1},{at:2.65,pose:2},{at:3.15,pose:3},{at:3.5,pose:3},{at:4.05,pose:2},{at:4.8,pose:0},{at:6,pose:0}];
+ const t=((time%6)+6)%6;
+ const index=beats.findIndex((beat,i)=>i<beats.length-1&&t>=beat.at&&t<beats[i+1].at);
+ const from=beats[index],to=beats[index+1],progress=(t-from.at)/(to.at-from.at),blend=progress*progress*(3-2*progress);
+ for(const [name,bone] of rig.bones){const a=frames[from.pose].get(name)!,b=frames[to.pose].get(name)!;bone.quaternion.slerpQuaternions(a.rotation,b.rotation,blend);bone.position.lerpVectors(a.position,b.position,blend);}
+ root.rotation.z=0;
+}
