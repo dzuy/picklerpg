@@ -30,14 +30,24 @@ export class SoundEffects {
    }catch{return null;}
   })).then(samples=>{this.paddleSamples=samples.filter(sample=>sample!==null);});
  }
- unlock(){
+ unlock(cue?:SoundCue){
   if(!this.enabled)return;
   try{
    if(!this.context){
+    // Safari otherwise treats Web Audio as ambient audio (affected by Silent Mode).
+    // Leave an active recording session alone for voice controls.
+    try{
+     const session=(navigator as Navigator & {audioSession?:{type:string}}).audioSession;
+     if(session&&session.type!=='play-and-record')session.type='playback';
+    }catch{/* AudioSession is optional and may be read-only. */}
     this.context=new AudioContext();this.master=this.context.createGain();
     this.master.gain.value=.65;this.master.connect(this.context.destination);
    }
-   if(this.context.state==='suspended')void this.context.resume().catch(()=>{});
+   const ctx=this.context;
+   // iOS adds an interrupted state after backgrounding, calls, or audio-route changes.
+   if(ctx.state!=='running'&&ctx.state!=='closed'){
+    void ctx.resume().then(()=>{if(cue&&this.context===ctx)this.play(cue);}).catch(()=>{});
+   }else if(cue)this.play(cue);
    this.loadPaddles(this.context);
   }catch{/* Audio is optional on unsupported devices. */}
  }
@@ -47,6 +57,7 @@ export class SoundEffects {
   if(enabled)this.unlock();
  }
  syncVisibility(){
+  if(!document.hidden&&this.context&&this.enabled)this.unlock();
   if(this.context&&this.master)this.master.gain.setTargetAtTime(!document.hidden&&this.enabled?.65:0,this.context.currentTime,.01);
  }
  play(cue:SoundCue){
@@ -101,10 +112,11 @@ export function installMenuSounds(){
  const enabled=(element:HTMLElement|null)=>!!element&&!element.matches(':disabled, [aria-disabled="true"]')&&!element.closest('[inert], [data-sound="none"]');
  document.addEventListener('pointerdown',()=>sounds.unlock(),{capture:true});
  document.addEventListener('keydown',()=>sounds.unlock(),{capture:true});
+ document.addEventListener('touchend',()=>sounds.unlock(),{capture:true,passive:true});
  // Capture before handlers replace menus or disable submitted buttons.
  document.addEventListener('click',event=>{
   const item=control(event.target);if(!enabled(item)||item!.matches('input,select,[data-sound-toggle]'))return;
-  sounds.unlock();sounds.play('select');
+  sounds.unlock('select');
  },true);
  document.addEventListener('change',event=>{const item=control(event.target);if(enabled(item)&&!item!.hasAttribute('data-sound-toggle'))sounds.play('toggle');},true);
  document.addEventListener('pointerover',event=>{

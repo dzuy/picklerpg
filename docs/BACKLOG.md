@@ -35,6 +35,13 @@ Acceptance: a returning player immediately understands which game needs attentio
 
 These are the next priorities, not authorization to implement them all in one pass. Use the [multiplayer plan](../TURN_BASED_MULTIPLAYER_PLAN.md) for technical acceptance criteria, checking them against current code and confirmed playtests.
 
+## Onboarding and opponent discovery
+
+- [ ] **Player and team onboarding.** Guide new users through creating their player and setting up their team, including choosing a team name and adding players to their roster. Build on the existing player creator and roster tools; default the team name to the account owner's player name.
+- [ ] **Find opponents during multiplayer game creation.** Add a “Find opponents” entry point with a scrollable list of real, recently active players. Let users choose a player and challenge them through the existing invitation/acceptance flow. Use actual account activity rather than sample players; show useful recency and handle an empty list clearly.
+
+- [ ] **Multiplayer XP for meeting new opponents.** Add an XP system that rewards challenging and playing against opponents a user has not played before. Favor accepted challenges and completed games over simply sending invitations, so the incentive encourages real play rather than invite spam. Define rewards, repeat-opponent limits, and how XP is shown before implementation. Keep this focused on social multiplayer participation, separate from the archived career/RPG progression ideas.
+
 ## Supporting polish and reliability
 
 - [ ] Limit nudging before wider release: disable `NUDGE_TEST_UNLIMITED` and verify the existing server-enforced limits (30-minute wait, one nudge per turn, and one nudge per opponent per rolling 24 hours across games). Clearly explain cooldowns in the UI and verify limits persist across reloads and devices. Keep unlimited mode available for deliberate testing only.
