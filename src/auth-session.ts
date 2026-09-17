@@ -10,7 +10,7 @@ export function authClient(){
 export async function matchCredentials(){
  const client=authClient();if(!client)throw new Error('Cloud accounts are not configured.');
  const {data:{session},error}=await client.auth.getSession();if(error)throw error;
- if(!session)throw new Error('Use Solo & settings to sign in to your tester account, then reopen this match.');
+ if(!session)throw new Error('Sign in to Open Play, then reopen this match.');
  return {owner:session.user.id,token:session.access_token};
 }
 

@@ -24,5 +24,7 @@ test('empty roster exposes roster choices and can recover to an acceptable two-p
  const host=new Element(),picker=new context.Picker.TeamPicker(host);await assert.rejects(picker.freshTeam(),/Add a player/);
  assert.ok(host.children.some(c=>c.textContent.includes('Add a player')));assert.ok(host.children.some(c=>c===picker.community.element));
  context.addRosterPlayers([{id:'one',appearance:{}}]);assert.equal(host.children.includes(picker.community.element),false);assert.deepEqual(Array.from(await picker.freshTeam(),(p:any)=>p.id),['one','one']);
+ const seeded=new context.Picker.TeamPicker(new Element(),undefined,[{id:'saved',appearance:{}},{id:'saved',appearance:{}}]);assert.deepEqual(Array.from(await seeded.freshTeam(),(p:any)=>p.id),['saved','saved']);
+ context.addRosterPlayers=(players:any[])=>picker.setCommunity(players);
  context.addRosterPlayers([{id:'one',appearance:{}},{id:'two',appearance:{}}]);assert.equal(host.children.includes(picker.community.element),false);assert.deepEqual(Array.from(await picker.freshTeam(),(p:any)=>p.id),['one','one']);
 });

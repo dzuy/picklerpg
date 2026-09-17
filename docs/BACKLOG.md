@@ -1,64 +1,145 @@
-# PickleBash backlog
+# PickleBash V1 launch checklist
+
+This is the canonical checklist for building, validating, and finalizing the PickleBash V1 launch. When deciding what to build next, use this list as the source of truth.
+
+Check an item only after it has been implemented and verified at the level implied by the item. Features that already exist still remain unchecked until their V1 behavior has been explicitly confirmed.
 
 ## Product direction
 
 **Social-first asynchronous pickleball with friends.** The core loop is invite → play a short strategic match → return when it is your turn → finish → play again. Prioritize making that loop easy, enjoyable, and worth returning to.
 
-This backlog supersedes the earlier simulation/solo/RPG build order. Existing solo play, player creation, and simulation remain supporting capabilities. Their presence does not make career progression or additional game modes roadmap commitments.
+## Core social loop
 
-## Verified foundation
+- [ ] Invite a friend in a few taps.
+- [ ] Recipient gets into the match quickly.
+- [ ] First turn is obvious.
+- [ ] Waiting state is obvious.
+- [ ] Turn notification arrives reliably.
+- [ ] Notification opens the exact game.
+- [ ] Match resumes correctly after leaving.
+- [ ] Match ends cleanly.
+- [ ] Rematch is one obvious tap.
+- [ ] Rivalry record updates immediately.
 
-- [x] Local save/resume and same-device two-human doubles.
-- [x] Server-authoritative remote matches, authenticated turns, and persistent shared state. User confirmed a successful two-physical-device playtest.
-- [x] Creating matches and joining friends' matches. User confirmed these flows work.
-- [x] Multiplayer home/game list exists. User confirmed it needs considerable visual design improvement.
-- [x] Rally/side-out scoring preference. New test matches default to rally scoring, first to 3 without win-by-two; existing matches retain their rules.
+## Games lobby
 
-Other implemented capabilities include invitations with acceptance/decline/cancellation, player rosters/customization, community players, team stats, and last-move replay. These are foundations to refine, not features to rebuild from scratch. Existing team stats do not by themselves complete friend-pair rivalry or rematches.
+- [x] **Your Turn** games are visually prioritized.
+- [x] **Waiting** games are clearly different.
+- [x] Opponent name/avatar is prominent.
+- [x] Current score is visible.
+- [x] One tap opens a game.
+- [x] Multiple simultaneous games are easy to scan.
+- ~~Recently completed games are accessible.~~ **Removed from V1 scope.**
+- [x] Start New Game is obvious.
+- [x] No unnecessary traditional-game menu clutter.
 
-## Current priority: multiplayer home design
+## Turn experience
 
-- [ ] Redesign the multiplayer home/game list to fit PickleBash's visual identity.
-- [ ] Make Your turn, Waiting, invitations, and Finished easy to distinguish and scan.
-- [ ] Improve match cards: opponent/team identity, score, latest activity, and a clear resume action.
-- [ ] Refine mobile layout, typography, spacing, hierarchy, and navigation.
-- [ ] Polish empty, loading, offline, and error states alongside the normal flow.
+- [x] Player instantly knows which team they control.
+- [x] Player instantly knows whose turn it is.
+- [x] Available shot choices are obvious.
+- [x] Target selection is obvious.
+- [x] Submitted shot has clear feedback.
+- [x] Opponent's previous shot is understandable when returning later.
+- [x] Transition from opponent action → your decision feels natural.
+- [x] No accidental double-submit.
+- [x] Refreshing never changes the result.
 
-Acceptance: a returning player immediately understands which game needs attention and reaches that game easily on a phone. Build on the working creation/join/resume flows.
+## Async pacing
 
-## Next social-loop priorities
+Test explicitly:
 
-1. **Match pacing.** Tune rally length and the number/clarity of decisions, so games feel satisfying and short enough to finish with friends. First-to-3 rally scoring is a testing choice, not a final format decision. Preserve strategic agency.
-2. **Rematches and rivalry.** Make playing the same friend again easy; add or complete rematch requests, head-to-head history, series lead, and streaks. Audit existing completion and team-stat features before implementing overlaps.
-3. **Turn and invitation notifications.** Add an opt-in return path with a direct match link, preferences, and suppression of stale alerts. Choose the external delivery channel before implementation; in-app turn status already exists.
-4. **Trash talk chat system.** Let players exchange playful messages within a match, with muting, blocking, reporting, and sensible moderation safeguards.
+- [ ] How long does one turn feel?
+- [ ] How many turns does an average rally take?
+- [ ] How many turns does an average match take?
+- [ ] How long does a real async match take to finish?
+- [ ] Does first-to-11 feel too long?
+- [ ] Test first-to-7.
+- [ ] Test first-to-5.
+- [ ] Does one-shot-per-turn remain satisfying?
+- [ ] Does a match still feel good when players reply hours apart?
+- [ ] Does it feel fast when both players happen to be online?
 
-These are the next priorities, not authorization to implement them all in one pass. Use the [multiplayer plan](../TURN_BASED_MULTIPLAYER_PLAN.md) for technical acceptance criteria, checking them against current code and confirmed playtests.
+## Match completion
 
-## Onboarding and opponent discovery
+- [ ] Winner/result is unmistakable.
+- [ ] Final score is prominent.
+- [ ] Head-to-head series is shown.
+- [ ] Current streak is shown.
+- [ ] Total matches together is shown.
+- [ ] **REMATCH** is the primary CTA.
+- [ ] Rematch preserves the relationship/history.
+- [ ] Starting Match #2 requires almost no setup.
 
-- [ ] **Player and team onboarding.** Guide new users through creating their player and setting up their team, including choosing a team name and adding players to their roster. Build on the existing player creator and roster tools; default the team name to the account owner's player name.
-- [ ] **Find opponents during multiplayer game creation.** Add a “Find opponents” entry point with a scrollable list of real, recently active players. Let users choose a player and challenge them through the existing invitation/acceptance flow. Use actual account activity rather than sample players; show useful recency and handle an empty list clearly.
+## Identity
 
-- [ ] **Multiplayer XP for meeting new opponents.** Add an XP system that rewards challenging and playing against opponents a user has not played before. Favor accepted challenges and completed games over simply sending invitations, so the incentive encourages real play rather than invite spam. Define rewards, repeat-opponent limits, and how XP is shown before implementation. Keep this focused on social multiplayer participation, separate from the archived career/RPG progression ideas.
+- [ ] Player has a display name.
+- [ ] Player has recognizable avatar/character.
+- [ ] Opponent always feels like a real person.
+- [ ] Identity carries across games.
+- [ ] Customization does not block getting into the first match.
 
-## Supporting polish and reliability
+## Notifications
 
-- [ ] Limit nudging before wider release: disable `NUDGE_TEST_UNLIMITED` and verify the existing server-enforced limits (30-minute wait, one nudge per turn, and one nudge per opponent per rolling 24 hours across games). Clearly explain cooldowns in the UI and verify limits persist across reloads and devices. Keep unlimited mode available for deliberate testing only.
-- [ ] Sound effects and music, with user controls.
-- [ ] Consistent PickleBash naming and design across screens, navigation, titles, and copy.
-- [ ] Finish the previously requested targeting-wheel cleanup; audit the remaining legacy shot dock/expander and retain necessary input/accessibility paths.
-- [ ] Improve invite, account recovery, and return-to-match UX based on actual friction; basic account and invitation flows already work.
-- [ ] Broaden reconnect, retry, long-inactive-match, and old-engine compatibility checks.
-- [ ] Backup/restore and rollback drills, performance under load, and useful operational diagnostics.
+- [ ] Only notify when action is required.
+- [ ] Never notify repeatedly for the same turn.
+- [ ] Suppress push when player is already active.
+- [ ] Notification names the opponent.
+- [ ] Notification deep-links correctly.
+- [ ] Push works after app/browser is closed.
+- [ ] Denied/disabled notification state has understandable UX.
 
-Core authorization, transaction, retry, and persistence safeguards are already implemented and tested. Reliability work here extends coverage for wider use rather than treating the existing remote implementation as unfinished.
+## Onboarding
 
-## Outside the active roadmap
+- [ ] New user understands how to serve.
+- [ ] New user understands shot selection.
+- [ ] New user understands that turns are asynchronous.
+- [ ] New user understands they can leave and come back.
+- [ ] Account/profile friction comes after first useful interaction.
+- [ ] No lengthy tutorial before playing a friend.
 
-Career Mode, Arcade Mode, RPG progression, tournament ladders, skill unlocks, stamina/fatigue, scouting, and long-term character development belong to the earlier solo-oriented plan. They are **archived ideas, not promised later phases**. Reconsider only if they clearly support the social experience and are explicitly prioritized.
+## Strategic/gameplay quality
 
-Voice improvements, real-time multiplayer, and deeper physical simulation are also outside the current focus. Preserve working functionality; do not expand it by default.
+- [ ] Outcomes feel like believable pickleball.
+- [ ] Shot choices create meaningful decisions.
+- [ ] No obvious dominant choice.
+- [ ] Different rallies feel meaningfully different.
+- [ ] Randomness adds uncertainty without feeling arbitrary.
+- [ ] Equal multiplayer attributes keep matches fair.
+- [ ] UI never makes the game feel like training/homework.
+
+## Reliability
+
+- [ ] Two devices can play through a complete match.
+- [ ] Closing/reopening never loses state.
+- [ ] Network failure does not duplicate a turn.
+- [ ] Stale clients recover cleanly.
+- [ ] Completed games cannot accidentally reopen.
+- [ ] Rematches do not create duplicate matches.
+- [ ] Authentication recovery does not lose active games.
+
+## Analytics — minimum
+
+Instrument:
+
+- [ ] `invite_sent`
+- [ ] `invite_accepted`
+- [ ] `match_started`
+- [ ] `turn_taken`
+- [ ] `match_completed`
+- [ ] `rematch_started`
+
+Track friend pairs reaching:
+
+- [ ] Match #2 started.
+- [ ] Match #3 completed.
+- [ ] 10 completed.
+- [ ] 25 completed.
+- [ ] 100 completed.
+
+## Scope guardrails
+
+Career Mode, Arcade Mode, RPG progression, tournament ladders, skill unlocks, stamina/fatigue, scouting, and long-term character development are archived ideas, not V1 launch requirements. Voice improvements, real-time multiplayer, and deeper physical simulation are also outside the V1 launch scope unless explicitly reprioritized.
 
 ## History and references
 
@@ -66,5 +147,6 @@ Voice improvements, real-time multiplayer, and deeper physical simulation are al
 - [Original supplied roadmap](roadmap-source.txt).
 - [Multiplayer architecture and acceptance plan](../TURN_BASED_MULTIPLAYER_PLAN.md).
 - [Remote implementation and rollout notes](PHASE-3-REMOTE.md).
+- [Push notification implementation and acceptance notes](PWA-TURN-NOTIFICATIONS.md).
 
-Current user-confirmed status supersedes older pending-deployment and pending-playtest notes in the historical documents.
+Current user-confirmed status and this checklist supersede older pending-deployment, pending-playtest, and roadmap-priority notes in the historical documents.

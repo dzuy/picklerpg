@@ -18,7 +18,7 @@ import {chooseOpponentShot} from './engine/opponent-policy';
 import {executeShot} from './engine/execution';
 import {interceptFlight,reboundFlight,finishRebound,outBallContinuation} from './engine/trajectory';
 import {planPositions} from './engine/positioning';
-import {DoublesScore,other,DEFAULT_RULES,LOCAL_TEST_RULES,type ScoringMode} from './engine/scoring';
+import {DoublesScore,other,isValidTargetScore,DEFAULT_RULES,LOCAL_TEST_RULES,type ScoringMode} from './engine/scoring';
 
 export type TargetServeStyle='flat'|'topspin'|'slice'|'lob'|'shallow';
 const TARGET_SERVES:Record<TargetServeStyle,Partial<ShotIntent>>={
@@ -35,6 +35,7 @@ export class Match {
  private resolving=false;
  private applyingTurn=false;
  scoringPreference:ScoringMode|null=null;
+ private soloTarget=DEFAULT_RULES.target;
  revision=0;
  get mode(){return this.playMode}
  get isLocalHuman(){return this.playMode==='local-human'}
@@ -55,7 +56,7 @@ export class Match {
   try{this.designedPlayer=players.you;this.substitutes={partner:players.partner,'opponent-left':players['opponent-left'],'opponent-right':players['opponent-right']};this.lineup={};this.practice=null;this.openingTeam=openingTeam;this.partnerAutonomy=false;this.playerAutonomy=false;this.partnerInstructions={};this.brainMode='local';this.reset();this.frozenRoster=this.checkpointMetadata().roster;}
   finally{this.startingMatch=false;}
  }
- startSoloMatch(){this.playMode='solo';this.practice=null;this.openingTeam='home';this.partnerAutonomy=true;this.playerAutonomy=false;this.reset();}
+ startSoloMatch(target=DEFAULT_RULES.target){if(!isValidTargetScore(target))throw new Error('Choose a target score from 1 to 99.');this.soloTarget=target;this.playMode='solo';this.practice=null;this.openingTeam='home';this.partnerAutonomy=true;this.playerAutonomy=false;this.reset();}
  submitTurn(action:TurnAction){
   if(!this.isLocalHuman)throw new Error('Human team turns require two-player mode.');
   if(this.committed||this.replayIndex!==null||this.customBusy||this.thinking||(!this.humanContact&&!this.receptionDecision))throw new Error('Wait for the next decision.');
@@ -125,6 +126,7 @@ export class Match {
  restoreCheckpoint(value:unknown){const c=parseCheckpoint(value);this.request?.abort();this.request=null;this.generation++;this.stopReplay();this.replayFrames=[];this.replayShots=[];this.gameReplay=[];this.customBusy=false;this.customPreview=null;this.customDraft='';this.customStatus='';this.thinking=false;this.queuedReceptionIntent=null;this.queuedReceptionShot=null;this.committed=null;this.committedPlayback=[];this.lastTurnPlayback=[];this.practice=null;this.hydrateCheckpoint(c)}
  private hydrateCheckpoint(c:MatchCheckpoint){
   this.playMode=c.mode;this.revision=c.revision;this.matchId=c.matchId;this.seed=c.seed;this.point=c.pointIndex;this.openingTeam=c.openingTeam;
+  if(c.mode==='solo')this.soloTarget=c.rules.target;
   this.scoring=new DoublesScore(structuredClone(c.rules));Object.assign(this.scoring,structuredClone(c.scoring));
   this.frozenRoster=structuredClone(c.roster);this.designedPlayer=c.roster.you.design;this.substitutes={};for(const id of SLOTS)if(id!=='you'&&c.roster[id].design)this.substitutes[id]=structuredClone(c.roster[id].design!);
   this.currentContext=structuredClone(c.context);this.customIndex=c.customIndex;
@@ -276,7 +278,7 @@ export class Match {
  }
  previewIntent(intent:unknown){return this.engine.previewIntent(intent)}
  snapshot(){return this.engine.snapshot()}
- reset(){this.requireSolo();this.revision=0;this.committed=null;this.committedPlayback=[];this.frozenRoster=null;this.matchId=playerId();if(this.randomizeSeedOnReset)this.seed=globalThis.crypto.getRandomValues(new Uint32Array(1))[0];this.autoChoices={};this.partnerChoices=[];this.stopReplay();this.gameReplay=[];this.customPreview=null;this.customBusy=false;this.customStatus='';this.queuedReceptionIntent=null;this.queuedReceptionShot=null;this.request?.abort();this.request=null;this.strategy=undefined;this.strategyPoint=-1;this.generation++;this.thinking=false;this.memory=new OpponentMemory();this.observed=0;this.scoring=new DoublesScore({...this.isLocalHuman?LOCAL_TEST_RULES:DEFAULT_RULES,...(this.scoringPreference?{scoring:this.scoringPreference}:{})});this.scoring.serving=this.openingTeam;this.scoring.server=this.openingTeam==='home'?'you':'opponent-left';this.point=0;this.lastResult=null;this.startPoint();this.saveBoundary()}
+ reset(){this.requireSolo();this.revision=0;this.committed=null;this.committedPlayback=[];this.frozenRoster=null;this.matchId=playerId();if(this.randomizeSeedOnReset)this.seed=globalThis.crypto.getRandomValues(new Uint32Array(1))[0];this.autoChoices={};this.partnerChoices=[];this.stopReplay();this.gameReplay=[];this.customPreview=null;this.customBusy=false;this.customStatus='';this.queuedReceptionIntent=null;this.queuedReceptionShot=null;this.request?.abort();this.request=null;this.strategy=undefined;this.strategyPoint=-1;this.generation++;this.thinking=false;this.memory=new OpponentMemory();this.observed=0;this.scoring=new DoublesScore({...this.isLocalHuman?LOCAL_TEST_RULES:{...DEFAULT_RULES,target:this.soloTarget},...(this.scoringPreference?{scoring:this.scoringPreference}:{})});this.scoring.serving=this.openingTeam;this.scoring.server=this.openingTeam==='home'?'you':'opponent-left';this.point=0;this.lastResult=null;this.startPoint();this.saveBoundary()}
  nextPoint(){if(this.state.phase!=='complete'||this.scoring.winner)throw new Error('Finish the current point first.');this.point++;this.revision++;this.variation++;this.startPoint();this.saveBoundary()}
  submitIntent(intent:unknown){if(this.isLocalHuman&&!this.applyingTurn){this.submitTurn({decisionId:this.decisionId,playerId:this.currentPlayer!,intent:parseShotIntent(intent)});return;}const checkpoint=this.checkpointsEnabled?this.exportCheckpoint():null;const before=this.snapshot(),actualShotIndex=before.shotIndex;if(this.practice)before.shotIndex+=before.shotHistory.length?2:0;this.engine.submitIntent(intent);if(!this.isLocalHuman&&before.possession==='home'){const selected=this.shot.intent;for(const pattern of this.practice?[this.practice]:recognizePatterns(before)){const assessment=assessChoice(before,selected,pattern);const row={pattern,...assessment,intent:structuredClone(selected),shotIndex:actualShotIndex};this.records.push(row);this.pointRecords.push(row)}this.records=this.records.slice(-500)}if(checkpoint)this.commitFlight(checkpoint)}
  startPractice(id:PatternId|null){this.requireSolo();this.practice=id;this.variation++;this.reset()}
@@ -284,11 +286,24 @@ export class Match {
  private gameReplay:{frames:ReturnType<RallyEngine['snapshot']>[];shots:RallyShot[]}[]=[];
  private pointReplay:{frames:ReturnType<RallyEngine['snapshot']>[];shots:RallyShot[]}|null=null;
  private replayBreaks=new Set<number>();
- get replayScope(){return this.pointReplay?'game':'point'}
+ private replayKind:'game'|'point'='point';
+ private replayPoint:number|null=null;
+ get replayScope(){return this.replayKind}
+ get replayPointIndex(){return this.replayPoint??this.point}
+ get canReplay(){return !this.thinking&&!this.customBusy&&(this.replayFrames.some(f=>f.phase==='flight')||this.gameReplay.some(p=>p.frames.length>1))}
+ startRecentReplay(){
+  if(!this.canReplay||this.replayIndex!==null)return;
+  if(!this.replayFrames.some(f=>f.phase==='flight')){
+   const previous=this.gameReplay.at(-1);if(!previous)return;
+   this.pointReplay={frames:this.replayFrames,shots:this.replayShots};
+   this.replayFrames=previous.frames;this.replayShots=previous.shots;this.replayPoint=Math.max(0,this.point-1);
+  }
+  this.startReplay();
+ }
  get recordedPoints(){return this.gameReplay.length}
  startGameReplay(){
   if(!this.scoring.winner||!this.gameReplay.length)return;
-  this.stopReplay();this.pointReplay={frames:this.replayFrames,shots:this.replayShots};
+  this.stopReplay();this.replayKind='game';this.pointReplay={frames:this.replayFrames,shots:this.replayShots};
   this.replayFrames=[];this.replayShots=[];this.replayBreaks.clear();let time=0,shotOffset=0;
   for(const point of this.gameReplay){
    const first=point.frames[0]?.simulationTime??0;
@@ -301,8 +316,8 @@ export class Match {
   }
   this.startReplay();
  }
- startReplay(){if(this.state.phase!=='complete'||!this.replayFrames.length)return;this.replayIndex=0;this.replayElapsed=0;this.replayAlpha=0;this.replayEndHold=0;this.replayPlaying=true}
- stopReplay(){if(this.pointReplay){this.replayFrames=this.pointReplay.frames;this.replayShots=this.pointReplay.shots;this.pointReplay=null}this.replayBreaks.clear();this.replayIndex=null;this.replayPlaying=false;this.replayElapsed=0;this.replayAlpha=0;this.replayEndHold=0}
+ startReplay(){if(this.thinking||this.customBusy||!this.replayFrames.length)return;this.replayIndex=0;this.replayElapsed=0;this.replayAlpha=0;this.replayEndHold=0;this.replayPlaying=true}
+ stopReplay(){this.replayKind='point';this.replayPoint=null;if(this.pointReplay){this.replayFrames=this.pointReplay.frames;this.replayShots=this.pointReplay.shots;this.pointReplay=null}this.replayBreaks.clear();this.replayIndex=null;this.replayPlaying=false;this.replayElapsed=0;this.replayAlpha=0;this.replayEndHold=0}
  pauseReplay(){this.replayPlaying=false;this.replayEndHold=0}
  resumeReplay(){if(this.replayIndex===null||this.replayIndex>=this.replayFrames.length-1){this.startReplay();return}const start=this.replayFrames[0].simulationTime,a=this.replayFrames[this.replayIndex],b=this.replayFrames[this.replayIndex+1]??a,at=a.simulationTime+(b.simulationTime-a.simulationTime)*this.replayAlpha;this.replayElapsed=Math.max(0,(at-start)/1.5);this.replayEndHold=0;this.replayPlaying=true}
  scrubReplay(position:number){if(!this.replayFrames.length)return;const value=Math.max(0,Math.min(this.replayFrames.length-1,position));this.replayIndex=Math.floor(value);this.replayAlpha=value-this.replayIndex;this.replayPlaying=false;this.replayEndHold=0}

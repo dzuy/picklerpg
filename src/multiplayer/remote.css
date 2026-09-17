@@ -76,3 +76,14 @@ body.remote-playing{overflow:hidden}body.remote-playing .remote-app{padding:0;ma
 .guest-guided .remote-move-banner:has(#remote-live-status:not(:empty)),.guest-guided .remote-move-banner:has(#remote-retry:not([hidden])){bottom:120px}
 @keyframes guest-box-pulse{from{opacity:.55}to{opacity:1}}
 @media(prefers-reduced-motion:reduce){.guest-target-area polygon{animation:none}}
+
+/* Match the solo court's corner navigation and bottom-right control stack. */
+#app.remote-app .remote-court-actions{display:contents}
+#app.remote-app .remote-court-actions button{position:absolute;width:var(--hud-size);height:var(--hud-size);z-index:12}
+#app.remote-app #remote-back{top:max(12px,env(safe-area-inset-top));right:max(var(--hud-edge),env(safe-area-inset-right))}
+#app.remote-app #remote-open-settings,#app.remote-app #remote-replay{top:auto;left:auto;right:max(var(--hud-edge),env(safe-area-inset-right))}
+#app.remote-app #remote-open-settings{bottom:calc(var(--hud-bottom) + 2 * (var(--hud-size) + var(--hud-gap)))}
+#app.remote-app #remote-replay{bottom:calc(var(--hud-bottom) + var(--hud-size) + var(--hud-gap))}
+@media(max-width:760px){
+ body.remote-playing #app .remote-move-banner{right:auto;left:max(10px,env(safe-area-inset-left));transform:none;bottom:calc(12px + env(safe-area-inset-bottom));max-width:calc(100% - 82px - env(safe-area-inset-left) - env(safe-area-inset-right))}
+}

@@ -5,6 +5,7 @@ export type ScoringMode='side-out-doubles'|'rally-doubles';
 export interface ScoringRules {scoring:ScoringMode;target:number;winBy:number}
 export const DEFAULT_RULES:ScoringRules={scoring:'side-out-doubles',target:11,winBy:2};
 export const LOCAL_TEST_RULES:ScoringRules={scoring:'rally-doubles',target:3,winBy:1};
+export function isValidTargetScore(value:number){return Number.isSafeInteger(value)&&value>=1&&value<=99;}
 export class DoublesScore {
  constructor(public rules:ScoringRules={...DEFAULT_RULES}){if(rules.scoring==='rally-doubles')this.serverNumber=1;}
  score:Record<Team,number>={home:0,away:0};serving:Team='home';server:PlayerId='you';serverNumber:1|2=2;winner:Team|null=null;

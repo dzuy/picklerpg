@@ -15,13 +15,16 @@ test('chosen friend team survives creation, acceptance, and unrelated character 
  const friends=new FriendService(client,matches),roster=creation().roster;
  const team=[{...roster.you,name:'Selected captain'},{...roster.partner,name:'Selected partner'}];
  await db.pool.query("insert into public.players(owner_id,id,name,appearance,skills,handedness) values($1,'unrelated','Other character',$2,$3,'right')",[A,roster['opponent-left'].appearance,roster['opponent-left'].skills]);
- const request={name:'Max',requestId:randomUUID(),team};
+ const request={name:'Max',requestId:randomUUID(),team,court:'venice',scoring:'side-out-doubles',target:7};
+ for(const target of [0,100,2.5])await assert.rejects(friends.create(A,{...request,target}));
  const repeated=await friends.create(A,{...request,requestId:randomUUID(),team:[team[0],team[0]]});const repeatedRow=(await repo.get(repeated.matchId,A))!;assert.deepEqual(repeatedRow.checkpoint.roster.you.design,repeatedRow.checkpoint.roster.partner.design);
  const invite=await friends.create(A,request);assert.deepEqual(await friends.create(A,request),invite);
  await assert.rejects(friends.create(A,{...request,team:[{...team[0],name:'Changed'},team[1]]}));
  const before=(await repo.get(invite.matchId,A))!;
+ assert.equal(before.checkpoint.court,'venice');assert.equal(before.checkpoint.rules.target,7);assert.equal(before.checkpoint.rules.scoring,'side-out-doubles');
  assert.deepEqual(before.checkpoint.roster.you.design,team[0]);assert.deepEqual(before.checkpoint.roster.partner.design,team[1]);
  const opening=await matches.friendOpening(invite.matchId,A);
+ assert.equal(opening.court,'venice');assert.equal(opening.rules.target,7);assert.equal(opening.rules.scoring,'side-out-doubles');
  assert.ok(LOOKS.some(look=>look.name===opening!.roster['opponent-right'].design!.name));assert.notEqual(opening!.roster['opponent-right'].design!.name,'Partner');
  await repo.query('select public.claim_friend_challenge($1,$2,$3,false,true,$4)',[invite.token,B,'Max',opening]);
  await db.pool.query("update public.players set name='Unrelated edit' where owner_id=$1",[A]);

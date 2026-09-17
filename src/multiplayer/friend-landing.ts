@@ -1,3 +1,4 @@
+import {defaultTeam} from './team-directory';
 import '../style.css';
 import './remote.css';
 import './lobby.css';
@@ -42,7 +43,7 @@ async function prepareJoin(session:Session,acceptAs?:string){
    message.textContent='Loading your roster…';
    const {data,error}=await authClient()!.from('players').select('id,name,catchphrase,appearance,skills,handedness,is_active,is_public').eq('owner_id',session.user.id);
    if(error)throw Error('Could not load your roster. Please try again.');
-   teamPicker=new TeamPicker(teamHost,(data??[]).map(playerFromRow));
+   teamPicker=new TeamPicker(teamHost,(data??[]).map(playerFromRow),defaultTeam(session.user.user_metadata.open_play_team)??undefined);
    const hasTeam=await teamPicker.hasTeam();teamOwner=session.user.id;
    if(hasTeam){teamSection.hidden=false;button.textContent='Start game';message.textContent='Choose your player and partner, then start the game.';return null;}
    teamPicker=undefined;

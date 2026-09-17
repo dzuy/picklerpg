@@ -387,3 +387,10 @@
  #player-creator .creator-preview{margin-bottom:8px}
  #player-creator .creator-stage-bottom{left:auto;right:0;bottom:4px}
 }
+
+/* Leave room for the shared navigation on roster and editor screens. */
+#player-creator[data-view]{padding-bottom:calc(94px + env(safe-area-inset-bottom))}
+#player-creator>.creator-confirm{z-index:90;bottom:calc(104px + env(safe-area-inset-bottom))}
+@media(max-width:760px){
+ #player-creator[data-view=editor] .creator-layout{height:calc(100dvh - 138px - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
+}

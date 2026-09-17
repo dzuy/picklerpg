@@ -1,10 +1,12 @@
+import {starterPlayer} from '../../src/starter-player';
+import {isValidTargetScore} from '../../src/engine/scoring';
 import {challengeIdentity} from '../../src/multiplayer/challenge-identity';
 import {randomBytes,randomUUID} from 'node:crypto';
 import type {SupabaseClient} from '@supabase/supabase-js';
 import {newPlayer} from '../../src/player-design';
 import {parseTeam} from './invitations';
 import {MatchService} from './service';
-import {playerName,registrationInput} from './accounts';
+import {playerName,registrationInput,requireAvailableUsername} from './accounts';
 import {ApiError} from './errors';
 import {uuid,requestHash} from './validation';
 export class FriendService {
@@ -16,12 +18,15 @@ export class FriendService {
  preview(i:any){return {inviterName:i.inviter_name,invitedName:i.invited_name,status:i.status};}
  async own(actor:string,match:string){const {data,error}=await this.client.from('friend_challenges').select('*').eq('match_id',match).eq('inviter_id',actor).maybeSingle();this.check(error);if(!data)throw new ApiError(404,'challenge','Challenge not found.');return {...this.preview(data),token:data.token,matchId:data.match_id};}
  async create(actor:string,input:any){
-  if(!input||Object.keys(input).some(k=>!['name','requestId','team'].includes(k))||!uuid(input.requestId))throw new ApiError(400,'challenge','Enter your friend’s name.');
+  if(!input||Object.keys(input).some(k=>!['name','requestId','team','court','scoring','target'].includes(k))||!uuid(input.requestId))throw new ApiError(400,'challenge','Enter your friend’s name.');
   const name=playerName(input.name);if(name.length>24)throw new ApiError(400,'name','Use a friend’s name of up to 24 characters.');const self=this.matches.config(actor).selfName;
+  const court=input.court??'forest',scoring=input.scoring??'rally-doubles',target=input.target??3;
+  if(!['forest','venice','arizona'].includes(court)||!['rally-doubles','side-out-doubles'].includes(scoring)||!isValidTargetScore(target))throw new ApiError(400,'settings','Choose valid scoring, points limit, and court.');
   const team=parseTeam(input.team);
   const make=(name:string)=>({...newPlayer(randomUUID()),name:name.slice(0,24)});
-  const m=this.matches.prepare(actor,{creationId:input.requestId,opponentId:randomUUID(),scoring:'rally-doubles',roster:{you:team[0],partner:team[1],'opponent-left':make(name),'opponent-right':make('Partner')}},true);
-  const {data,error}=await this.client.rpc('create_friend_challenge',{p_match:m,p_invite:{id:randomUUID(),token:randomBytes(32).toString('base64url'),inviter_id:actor,inviter_name:self,invited_name:name,request_id:input.requestId,request_hash:requestHash({name,team})}});this.check(error);
+  const m=this.matches.prepare(actor,{creationId:input.requestId,opponentId:randomUUID(),scoring,roster:{you:team[0],partner:team[1],'opponent-left':make(name),'opponent-right':make('Partner')}},true);
+  m.checkpoint.court=court;m.checkpoint.rules.target=target;
+  const {data,error}=await this.client.rpc('create_friend_challenge',{p_match:m,p_invite:{id:randomUUID(),token:randomBytes(32).toString('base64url'),inviter_id:actor,inviter_name:self,invited_name:name,request_id:input.requestId,request_hash:requestHash({name,team,...(input.court!==undefined?{court}:{}),...(input.scoring!==undefined?{scoring}:{}),...(input.target!==undefined?{target}:{})})}});this.check(error);
   return {...this.preview(data),token:data.token,matchId:data.match_id};
  }
  async accept(token:string,actor:string,cancel=false,acceptAs?:string,selectedTeam?:unknown){
@@ -37,10 +42,11 @@ export class FriendService {
   return {matchId:data.match_id};
  }
  async upgrade(actor:string,input:unknown){
-  const {email,password,playerName:name}=registrationInput(input);
+  const {email,password,playerName:name,username:handle}=registrationInput(input);
   const {data:{user},error}=await this.client.auth.admin.getUserById(actor);if(error||!user)throw new ApiError(401,'authentication','Please reopen your game.');
   if(!user.is_anonymous){if(user.email===email)return {created:true};throw new ApiError(409,'registration','This player already has an account.');}
-  const {error:saveError}=await this.client.auth.admin.updateUserById(actor,{email,password,email_confirm:true,user_metadata:{...user.user_metadata,player_name:name},app_metadata:{...user.app_metadata,multiplayer_playtest:true}});
+  await requireAvailableUsername(this.client,handle,actor);
+  const {error:saveError}=await this.client.auth.admin.updateUserById(actor,{email,password,email_confirm:true,user_metadata:{...user.user_metadata,player_name:name,username:handle,starter_player:starterPlayer(name,'starter')},app_metadata:{...user.app_metadata,multiplayer_playtest:true}});
   if(saveError)throw new ApiError(400,'registration','Could not save your player. That email may already have an account. Your game is still here.');
   await this.event(actor,'guest_registration_completed');
   return {created:true};

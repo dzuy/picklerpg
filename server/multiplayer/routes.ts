@@ -1,3 +1,5 @@
+import {signInAccount} from './sign-in';
+import {TeamDirectoryService} from './team-directory';
 import {FriendService} from './friends';
 import type {IncomingMessage,ServerResponse} from 'node:http';
 import {createClient} from '@supabase/supabase-js';
@@ -19,7 +21,7 @@ async function body(req:IncomingMessage){
  for await(const chunk of req){size+=chunk.length;if(size>32768)throw new ApiError(413,'too_large','Request is too large.');chunks.push(Buffer.from(chunk));}
  try{return JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{throw new ApiError(400,'invalid_json','Invalid JSON.');}
 }
-export function createMatchHandler(service:MatchService,authenticate:Authenticate,register?: (input:unknown)=>Promise<unknown>,invitations?:InvitationService,push?:PushService,nudges?:NudgeService,trashTalk?:TrashTalkService,friends?:FriendService){
+export function createMatchHandler(service:MatchService,authenticate:Authenticate,register?: (input:unknown)=>Promise<unknown>,invitations?:InvitationService,push?:PushService,nudges?:NudgeService,trashTalk?:TrashTalkService,friends?:FriendService,teams?:TeamDirectoryService,signIn?:(input:unknown)=>Promise<unknown>){
  const buckets=new Map<string,{start:number;count:number}>();
  function limit(key:string,max:number){const now=Date.now();let b=buckets.get(key);if(!b||now-b.start>=60000){if(buckets.size>=5000)for(const [k,v] of buckets)if(now-v.start>=60000)buckets.delete(k);if(buckets.size>=5000)throw new ApiError(429,'busy','Try again shortly.');b={start:now,count:0};buckets.set(key,b);}if(++b.count>max)throw new ApiError(429,'rate_limited','Too many requests. Try again shortly.');}
  return async(req:IncomingMessage,res:ServerResponse)=>{
@@ -29,6 +31,7 @@ export function createMatchHandler(service:MatchService,authenticate:Authenticat
    if(origin){let host;try{host=new URL(origin).host}catch{throw new ApiError(403,'origin','Invalid origin.');}if(host!==req.headers.host)throw new ApiError(403,'origin','This origin is not allowed.');}
    limit(`ip:${req.socket.remoteAddress}`,300);
    const pathname=new URL(req.url!,'http://localhost').pathname;
+   if(pathname==='/api/multiplayer/sign-in'&&req.method==='POST'){if(!signIn)throw new ApiError(503,'sign_in','Sign in is unavailable.');limit(`sign-in:${req.socket.remoteAddress}`,10);send(res,200,await signIn(await body(req)));return;}
    if(pathname==='/api/multiplayer/register'&&req.method==='POST'){if(!register)throw new ApiError(403,'registration_disabled','Registration is closed.');limit('registration:global',6);send(res,201,await register(await body(req)));return;}
    const challenge=pathname.match(/^\/api\/multiplayer\/challenges\/([A-Za-z0-9_-]{43})(\/(?:accept|cancel))?$/);
    if(friends&&challenge&&!challenge[2]&&req.method==='GET'){const i=await friends.get(challenge[1]);await friends.event(null,'invite_link_opened',i);send(res,200,friends.preview(i));return;}
@@ -53,6 +56,9 @@ export function createMatchHandler(service:MatchService,authenticate:Authenticat
    const ownChallenge=pathname.match(/^\/api\/multiplayer\/challenge-for-match\/([a-f0-9-]{36})$/);
    if(friends&&ownChallenge&&req.method==='GET'){send(res,200,await friends.own(actor,ownChallenge[1]));return;}
    if(friends&&pathname==='/api/multiplayer/claim-player'&&req.method==='POST'){limit(`upgrade:${actor}`,6);send(res,200,await friends.upgrade(actor,await body(req)));return;}
+   if(teams&&pathname==='/api/multiplayer/teams'&&req.method==='GET'){send(res,200,await teams.list(actor));return;}
+   const teamRecord=pathname.match(/^\/api\/multiplayer\/teams\/([^/]+)\/record$/);
+   if(teams&&teamRecord&&uuid(teamRecord[1])&&req.method==='GET'){const target=teamRecord[1].toLowerCase();send(res,200,await teams.record(actor,target,()=>service.list(target)));return;}
    if(pathname==='/api/multiplayer/config'&&req.method==='GET'){send(res,200,service.config(actor));return;}
    if(invitations&&pathname==='/api/invitations'){
     if(req.method==='GET'){send(res,200,await invitations.list(actor));return;}
@@ -106,5 +112,5 @@ export function configuredMatchHandler(env:NodeJS.ProcessEnv=process.env){
  const register=env.MULTIPLAYER_CREATE_ENABLED==='true'?async(input:unknown)=>{const result=await registerPlaytester(client,input);refreshed=0;return result;}:undefined;
  const push=configuredPush(client,env);
  const service=new MatchService(new SupabaseMatchRepository(client),testers,env.MULTIPLAYER_CREATE_ENABLED==='true',push?event=>push.notify(event):undefined);
- return createMatchHandler(service,authenticate,register,new InvitationService(new SupabaseInviteRepository(client),service,testers,team=>resolvePublicTeam(client,team)),push,new NudgeService(client,testers,push?event=>push.notifyNudge(event):undefined,env.NUDGE_TEST_UNLIMITED==='true'),new TrashTalkService(client),new FriendService(client,service));
+ return createMatchHandler(service,authenticate,register,new InvitationService(new SupabaseInviteRepository(client),service,testers,team=>resolvePublicTeam(client,team)),push,new NudgeService(client,testers,push?event=>push.notifyNudge(event):undefined,env.NUDGE_TEST_UNLIMITED==='true'),new TrashTalkService(client),new FriendService(client,service),new TeamDirectoryService(client,testers),input=>signInAccount(client,async credentials=>{const exchange=createClient(url,env.VITE_SUPABASE_PUBLISHABLE_KEY??key,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});const {data,error}=await exchange.auth.signInWithPassword(credentials);return error?null:data.session;},input));
 }

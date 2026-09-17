@@ -1,3 +1,5 @@
+import {openGameSurface} from './game-surface';
+import {appNavigation,type NavigationPage} from './app-navigation';
 import {teamDisplayName} from './team-name';
 import {ownedRosterPlayers,setOwnedPlayerAdded} from './roster-membership';
 import {ARCHETYPES} from './engine/player-profiles';
@@ -33,6 +35,7 @@ const skillHelp:Record<typeof SKILLS[number],string>={serve:'Start the point wit
 
 export class PlayerCreator {
  readonly dialog=document.createElement('dialog');
+ navigate:((page:NavigationPage,href:string)=>void)|null=null;
  private creatorName='You';private teamName='';
  saveTeamName:(name:string)=>Promise<string>=async()=>{throw new Error('Connect to your account to save a team name.')};
  setTeamName(name?:string){this.teamName=name?.trim()||'';this.updateTeamHeading();}
@@ -49,7 +52,7 @@ export class PlayerCreator {
   const active=this.library.players.find(p=>p.id===this.library.activeId);
   if(active)this.draft=structuredClone(active);this.baseline=JSON.stringify(this.draft);
   this.dialog.id='player-creator';this.dialog.setAttribute('aria-labelledby','creator-title');
-  this.dialog.innerHTML=`<section class="player-roster-page" aria-labelledby="roster-title"><div class="roster-top"><div class="roster-title-row"><h1 id="roster-title">Your Roster</h1><button type="button" class="roster-team-edit" data-edit-team aria-label="Edit team name" title="Edit team name"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 3 5 5M4 15 16 3a2.1 2.1 0 0 1 5 5L9 20l-6 1 1-6Z"/></svg></button></div><button type="button" class="creator-close" data-close aria-label="Return to main game" title="Return to main game"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div><form class="roster-team-form" data-team-form hidden><label for="roster-team-name">Team name</label><p>Leave blank to use your account player name.</p><input id="roster-team-name" type="text" maxlength="48" autocomplete="off"><div><button type="submit">Save team name</button><button type="button" data-cancel-team>Cancel</button></div><p data-team-status role="status"></p></form><div class="roster-actions"><button type="button" data-create-player>+ Create new player</button><button type="button" data-resume hidden>Continue editing</button></div><p data-roster-status role="status"></p><section data-saved-section><div data-saved-roster class="roster-grid"></div></section><div data-community-section></div></section><div class="creator-topline"><button type="button" data-back-roster>← Roster</button></div>
+  this.dialog.innerHTML=`<section class="player-roster-page" aria-labelledby="roster-title"><div class="roster-top"><div class="roster-title-row"><h1 id="roster-title">Your Roster</h1><button type="button" class="roster-team-edit" data-edit-team aria-label="Edit team name" title="Edit team name"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 3 5 5M4 15 16 3a2.1 2.1 0 0 1 5 5L9 20l-6 1 1-6Z"/></svg></button></div></div><form class="roster-team-form" data-team-form hidden><label for="roster-team-name">Team name</label><p>Leave blank to use your account player name.</p><input id="roster-team-name" type="text" maxlength="48" autocomplete="off"><div><button type="submit">Save team name</button><button type="button" data-cancel-team>Cancel</button></div><p data-team-status role="status"></p></form><div class="roster-actions"><button type="button" data-start-game>Start Game</button><button type="button" data-create-player>+ Create new player</button><button type="button" data-resume hidden>Continue editing</button></div><p data-roster-status role="status"></p><section data-saved-section><div data-saved-roster class="roster-grid"></div></section><div data-community-section></div></section><div class="creator-topline"><button type="button" data-back-roster>← Roster</button></div>
   <div class="creator-layout"><section class="creator-stage" aria-label="Avatar preview"><div class="creator-heading"><h2 id="creator-title">Create Your Player</h2></div>
 
   <div class="creator-identity"><label for="creator-name">PLAYER NAME<input id="creator-name" type="text" inputmode="text" enterkeyhint="done" autocapitalize="words" maxlength="24" autocomplete="off" placeholder="Name your player"></label><label class="creator-catchphrase-label" for="creator-catchphrase">CATCHPHRASE<input id="creator-catchphrase" type="text" inputmode="text" enterkeyhint="done" maxlength="30" autocomplete="off"></label>
@@ -84,8 +87,12 @@ export class PlayerCreator {
   </div></div>
   <div id="skills-panel" role="tabpanel" aria-labelledby="skills-tab" hidden><section class="skills-overview-card" aria-label="Player skill summary"><header><div><strong data-skills-name>Your player</strong><span>Skill profile</span></div><p class="skills-overview-rating" title="Game skill estimate, not an official DUPR rating"><span>DUPR</span><strong data-dupr></strong></p></header><div class="skills-overview-stats">${(['Power','Control','Speed','Hands'] as const).map(name=>`<div class="skills-overview-stat" data-stat="${name}"><span class="skills-overview-icon" aria-hidden="true">${summaryIcons[name]}</span><label for="summary-${name.toLowerCase()}">${name}</label><input id="summary-${name.toLowerCase()}" type="range" min="0" max="100" step="1" value="70" data-summary-control="${name}" title="Adjusts ${SUMMARY_SKILLS[name].map(title).join(', ')}"><output data-summary-value="${name}"></output></div>`).join('')}</div></section><details class="skills-details"><summary><span>Fine-tune skills</span></summary><div class="skills-details-body"><label for="creator-preset">Start from an archetype<select id="creator-preset"><option value="">Custom skills</option>${Object.entries(ARCHETYPES).map(([id,p])=>`<option value="${id}">${p.name}</option>`).join('')}</select></label><div class="creator-skills">${SKILLS.map(skill=>`<div class="creator-skill"><label for="skill-${skill}">${title(skill)}<output for="skill-${skill}" id="value-${skill}">70</output></label><input id="skill-${skill}" data-skill="${skill}" type="range" min="0" max="100" step="1" aria-describedby="help-${skill}"><small id="help-${skill}">${skillHelp[skill]}</small></div>`).join('')}</div></div></details></div>
   <div class="creator-delete-confirm" hidden><p data-delete-message></p><button type="button" data-cancel-delete>Keep player</button><button type="button" data-confirm-delete>Delete player permanently</button></div>
-  <div class="creator-confirm" hidden><p>Discard unsaved changes to switch players?</p><button type="button" data-keep>Keep editing</button><button type="button" data-discard>Discard and continue</button></div>
+  <div class="creator-confirm" hidden><p>Discard unsaved changes to continue?</p><button type="button" data-keep>Keep editing</button><button type="button" data-discard>Discard and continue</button></div>
   <div class="creator-footer"><button type="button" data-delete hidden>Delete player</button><p data-status role="status"></p><div><button type="button" data-save>Save Player &nbsp; →</button></div></div></section></div>`;
+  this.dialog.append(appNavigation('roster',(page,href)=>{
+   if(page==='roster'){this.showRoster();return;}
+   this.switchDraft(()=>{if(this.navigate)this.navigate(page,href);else location.assign(href)});
+  }));
   document.body.append(this.dialog);
   const teamForm=this.el('[data-team-form]') as HTMLFormElement,teamInput=this.input('#roster-team-name') as HTMLInputElement;
   const teamStatus=this.el('[data-team-status]');
@@ -97,11 +104,11 @@ export class PlayerCreator {
   this.updateTeamHeading();
   this.dialog.append(this.el('.creator-confirm'));
   this.setupAppearancePages();
-  this.dialog.querySelectorAll<HTMLButtonElement>('[data-close]').forEach(button=>button.addEventListener('click',()=>this.dialog.close()));
   this.el('[data-delete]').addEventListener('click',()=>{const player=this.library.players.find(p=>p.id===this.draft.id);if(!player||this.loadError)return;this.el('[data-delete-message]').textContent=`Delete “${player.name}”? This removes the saved player and any unsaved edits. This cannot be undone.`;this.el('.creator-confirm').hidden=true;this.pending=null;this.el('.creator-delete-confirm').hidden=false;this.el('[data-cancel-delete]').focus()});
   this.el('[data-cancel-delete]').addEventListener('click',()=>{this.el('.creator-delete-confirm').hidden=true;this.el('[data-delete]').focus()});
   this.el('[data-confirm-delete]').addEventListener('click',()=>this.removePlayer());
   this.el('[data-back-roster]').addEventListener('click',()=>this.showRoster());
+  this.el('[data-start-game]').addEventListener('click',()=>this.switchDraft(()=>openGameSurface()));
   this.el('[data-create-player]').addEventListener('click',()=>this.switchDraft(()=>{this.loadDraft(newPlayer());this.showEditor()}));
   this.el('[data-resume]').addEventListener('click',()=>this.showEditor());
   this.el('[data-keep]').addEventListener('click',()=>{this.pending=null;this.el('.creator-confirm').hidden=true});

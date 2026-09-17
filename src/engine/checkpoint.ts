@@ -5,7 +5,7 @@ import {parseShotIntent} from './shot-intent';
 import {PERSONALITIES,STRATEGIES,type Observation,type OpponentChoiceHistory,type OpponentStrategy,type Personality} from './opponent-brain';
 import type {ShotContext} from './shot-families';
 import {validatePlayer,type DesignedPlayer} from '../player-design';
-import {DEFAULT_RULES,LOCAL_TEST_RULES,type ScoringRules} from './scoring';
+import {isValidTargetScore,DEFAULT_RULES,LOCAL_TEST_RULES,type ScoringRules} from './scoring';
 
 export const CHECKPOINT_ENGINE='pickle-local-1';
 export const HUMAN_ENGINE='pickle-human-1';
@@ -85,8 +85,9 @@ export function parseCheckpoint(value:unknown):MatchCheckpoint {
   if(c.schemaVersion!==2||!['solo','local-human'].includes(c.mode)||c.engineVersion!==(c.mode==='solo'?CHECKPOINT_ENGINE:HUMAN_ENGINE))fail();integer(c.revision);
   if(typeof c.matchId!=='string'||!c.matchId.length||c.matchId.length>100)fail();
   object(c.rules);if(!['side-out-doubles','rally-doubles'].includes(c.rules.scoring))fail();integer(c.rules.target,1);integer(c.rules.winBy,1);
-  // Keep existing match rules on resume; allow the short local playtest format.
-  if(![DEFAULT_RULES,...(c.mode==='local-human'?[LOCAL_TEST_RULES]:[])].some(r=>r.target===c.rules.target&&r.winBy===c.rules.winBy))fail();
+  // Preserve legacy win-by rules while allowing chosen points limits.
+  if(c.mode==='solo'){if(!isValidTargetScore(c.rules.target)||c.rules.winBy!==DEFAULT_RULES.winBy)fail();}
+  else if(!isValidTargetScore(c.rules.target)||![DEFAULT_RULES.winBy,LOCAL_TEST_RULES.winBy].includes(c.rules.winBy))fail();
   integer(c.pointIndex);integer(c.customIndex);integer(c.seed);if(c.seed>0xffffffff)fail();team(c.openingTeam);
   object(c.scoring);const score=c.scoring;team(score.serving);slot(score.server);object(score.score);object(score.right);
   for(const t of ['home','away']){integer(score.score[t]);slot(score.right[t]);if((score.right[t]==='you'||score.right[t]==='partner')!==(t==='home'))fail();}

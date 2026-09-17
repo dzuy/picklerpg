@@ -1,18 +1,24 @@
+import {starterPlayer} from '../../src/starter-player';
 import type {SupabaseClient} from '@supabase/supabase-js';
 import {ApiError} from './errors';
 export function playerName(input:unknown){if(typeof input!=='string')throw new ApiError(400,'player_name','Enter a player name.');const name=input.trim().replace(/\s+/g,' ');if(name.length<1||name.length>32||/[\u0000-\u001f\u007f]/.test(name))throw new ApiError(400,'player_name','Use a player name of 1–32 characters.');return name;}
+export function username(input:unknown){if(typeof input!=='string')throw new ApiError(400,'username','Enter a username.');const value=input.trim().replace(/^@/,'').toLowerCase();if(!/^[a-z0-9_]{3,24}$/.test(value))throw new ApiError(400,'username','Use 3–24 letters, numbers, or underscores for your username.');return value;}
+export async function requireAvailableUsername(client:SupabaseClient,value:string,owner?:string){for(let page=1;;page++){const {data,error}=await client.auth.admin.listUsers({page,perPage:1000});if(error)throw new ApiError(503,'username','Could not check username availability. Try again.');if(data.users.some(user=>user.id!==owner&&user.user_metadata?.username?.toLowerCase()===value))throw new ApiError(409,'username','That username is taken. Choose another.');if(data.users.length<1000)return;}}
 export function registrationInput(input:unknown){
  if(!input||typeof input!=='object'||Array.isArray(input))throw new ApiError(400,'registration','Enter an email and password.');
  const value=input as Record<string,unknown>;
- if(Object.keys(value).some(k=>!['email','password','playerName'].includes(k))||typeof value.email!=='string'||typeof value.password!=='string')throw new ApiError(400,'registration','Enter an email and password.');
+ if(Object.keys(value).some(k=>!['email','password','playerName','username'].includes(k))||typeof value.email!=='string'||typeof value.password!=='string')throw new ApiError(400,'registration','Enter an email and password.');
  const email=value.email.trim().toLowerCase(),password=value.password;
  if(email.length>254||!/^\S+@[^\s@]+\.[^\s@]+$/.test(email)||password.length<6||password.length>128)throw new ApiError(400,'registration','Use a valid email and a password with 6–128 characters.');
- return {email,password,playerName:playerName(value.playerName)};
+ const handle=username(value.username);
+ const name=value.playerName===undefined||value.playerName===null||typeof value.playerName==='string'&&!value.playerName.trim()?handle:value.playerName;
+ return {email,password,username:handle,playerName:playerName(name)};
 }
 /** The playtest explicitly skips confirmation for NEW accounts. Existing identities are never modified. */
 export async function registerPlaytester(client:SupabaseClient,input:unknown){
- const {email,password,playerName:name}=registrationInput(input);
- const {data,error}=await client.auth.admin.createUser({email,password,email_confirm:true,user_metadata:{player_name:name},app_metadata:{multiplayer_playtest:true}});
+ const {email,password,playerName:name,username:handle}=registrationInput(input);
+ await requireAvailableUsername(client,handle);
+ const {data,error}=await client.auth.admin.createUser({email,password,email_confirm:true,user_metadata:{player_name:name,username:handle,starter_player:starterPlayer(name,'starter')},app_metadata:{multiplayer_playtest:true}});
  if(error||!data.user)throw new ApiError(400,'registration','Could not create this account. If you already registered, choose Sign in.');
  return {created:true};
 }

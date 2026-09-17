@@ -89,7 +89,7 @@ body[data-screen=setup]{overflow:auto;background:#03122f}
 .setup-mode button[aria-pressed="true"] {border-color:#558cfa;background:#558cfa;color:#102a51;}
 .setup-mode p {font:14px/1.4 sans-serif;margin:.65rem .8rem;}
 
-.setup-scoring{display:flex;justify-content:center;align-items:center;gap:12px;flex-wrap:wrap;margin:0 auto 18px;font-weight:700}.setup-scoring select{font:inherit;border-radius:12px;padding:10px;border:1px solid #a2a9b6;background:#eff4ff;color:#202f4e;max-width:100%}
+.setup-scoring{display:flex;justify-content:center;align-items:center;gap:12px;flex-wrap:wrap;margin:0 auto 18px;font-weight:700}.setup-scoring select,.setup-scoring input{font:inherit;border-radius:12px;padding:10px;border:1px solid #a2a9b6;background:#eff4ff;color:#202f4e;max-width:100%}
 .setup-court[data-court=venice] img{transform:none}
 .setup-court-check{display:none}.setup-court[aria-pressed=true] .setup-court-check{display:block}
 
@@ -98,3 +98,11 @@ body[data-screen=setup]{overflow:auto;background:#03122f}
 /* Match the shared roster/lobby page canvas at every breakpoint. */
 body[data-screen=setup], #match-setup { background: var(--page-blue-gradient); background-attachment: fixed; }
 #match-setup::before { box-shadow: none; }
+
+.setup-manager{text-align:center;color:#d2e7ff;font-size:13px;line-height:1.5;margin:4px 8px 16px}.setup-mode h2{margin:0 0 6px;color:white;font-size:26px}
+
+.setup-team-title,.setup-away .setup-team-title{margin-bottom:-8px}
+
+.setup-navigation{display:flex;align-items:center;color:#edf5ff}.setup-navigation button{display:flex;align-items:center;gap:8px;min-height:44px;padding:8px 0;border:0;background:transparent;font-size:14px}.setup-navigation button:hover{color:#a6ebf0!important}
+
+.setup-scoring input{width:80px;text-align:center}.setup-scoring span{font-size:14px;font-weight:500}

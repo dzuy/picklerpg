@@ -1,9 +1,13 @@
+import {closeGameSurface} from './game-surface';
+import {hudButtonIcon} from './hud-button';
+import {TrashTalkControl} from './multiplayer/trash-talk-control';
+import {LocalReactions} from './local-reactions';
 import {sounds,installSoundSetting} from './sound';
 import {RallySounds} from './game-sounds';
 const rallySounds=new RallySounds();
 import type {ScoringMode} from './engine/scoring';
 import {teamLabel} from './engine/controllers';
-import {LocalMatchStore} from './persistence/local-match-store';
+import {OpenPlayStore} from './persistence/open-play-store';
 import {fillPlayerCard,playerRecord} from './player-card';
 import {MatchSetup} from './match-setup';
 import {randomLineup} from './random-lineup';
@@ -34,15 +38,16 @@ import {browserStorage,browserStoragePersistent,STORAGE_UNAVAILABLE_MESSAGE} fro
 const app=document.querySelector<HTMLDivElement>('#app')!;
 const rosterRoute=new URLSearchParams(location.search);
 const directRoster=rosterRoute.get('roster')==='1';
+const directGame=rosterRoute.has('game')||rosterRoute.get('newgame')==='1';
 let onStartScreen=true;
 document.body.dataset.screen='start';
 const startScreen=document.createElement('main');startScreen.id='start-screen';startScreen.setAttribute('aria-labelledby','start-title');
-startScreen.innerHTML=`<h1 id="start-title" class="start-accessible-title">PickleBash</h1><div class="start-stage"><img class="start-background" src="/images/start/background.png" alt="" fetchpriority="high"><nav class="start-actions" aria-label="Main menu"><button id="start-new-game" aria-label="Single Player" disabled><img src="/images/start/single-player.png" alt="" draggable="false"></button><button id="start-multiplayer" aria-label="Multiplayer"><img src="/images/start/multiplayer.png" alt="" draggable="false"></button><button id="start-roster" aria-label="Roster" disabled><img src="/images/start/roster.png" alt="" draggable="false"></button></nav><p class="start-loading" role="status">Getting the court ready…</p></div>`;
-startScreen.hidden=directRoster;
+startScreen.innerHTML=`<h1 id="start-title" class="start-accessible-title">PickleBash</h1><div class="start-stage"><img class="start-background" src="/images/start/background.png" alt="" fetchpriority="high"><nav class="start-actions" aria-label="Main menu"><button id="start-multiplayer" class="start-text-action" aria-label="Open Play"><strong>Open Play</strong><small>Find your next game</small></button><button id="start-new-game" class="start-text-action practice-entry" aria-label="Practice"><strong>Practice</strong><small>Drills · Coming soon</small></button><button id="start-roster" aria-label="Roster" disabled><img src="/images/start/roster.png" alt="" draggable="false"></button></nav><p class="start-loading" role="status">Getting the court ready…</p></div>`;
+startScreen.hidden=directRoster||directGame;
 document.body.append(startScreen);
 const rosterLoading=document.createElement('div');
-rosterLoading.className='roster-route-loading';rosterLoading.hidden=!directRoster;
-rosterLoading.setAttribute('role','status');rosterLoading.textContent='Loading your roster…';
+rosterLoading.className='roster-route-loading';rosterLoading.hidden=!directRoster&&!directGame;
+rosterLoading.setAttribute('role','status');rosterLoading.textContent=directGame?'Getting your game ready…':'Loading your roster…';
 document.body.append(rosterLoading);
 
 
@@ -66,6 +71,7 @@ function applyCourtLocation(court:'forest'|'venice'|'arizona'){
 let savedCourt:'forest'|'venice'|'arizona'='forest';const savedLocation=browserStorage.getItem('picklebash-location-v1');if(savedLocation==='venice'||savedLocation==='arizona')savedCourt=savedLocation;
 applyCourtLocation(savedCourt);
 const byId=(id:string)=>document.getElementById(id)!;
+ const gamesLink=document.createElement('a');gamesLink.className='open-play-games-link';gamesLink.href='/?openplay=1';gamesLink.onclick=event=>{event.preventDefault();closeGameSurface();};gamesLink.setAttribute('aria-label','Close game');gamesLink.title='Close game';gamesLink.innerHTML=hudButtonIcon('close');document.querySelector('.court-wrap')!.append(gamesLink);
  const turnBanner=document.createElement('p');turnBanner.id='local-turn-banner';turnBanner.setAttribute('role','status');turnBanner.hidden=true;document.querySelector('.court-wrap')!.append(turnBanner);
 let speed=1;let guides=true,showPlayerNames=true,resultTimer=true,cameraDistance=50,lastUI='';
 const voicePanel=document.createElement('section');voicePanel.className='voice-controls';
@@ -140,7 +146,7 @@ function syncVoice(){
  const toggleParent=!focused&&composer?composer:voicePanel;
  if(voiceHandsFreeLabel.parentElement!==toggleParent)toggleParent.append(voiceHandsFreeLabel);
  const key=voiceToken();const changed=voiceContextKey!==key||voiceEngine!==match.engine;if(voiceEngine!==match.engine)voiceAttempt=null;voiceEngine=match.engine;
- const blocked=match.playerAutonomy||settingsDialog.open||creator.dialog.open||playerDrawer.open||match.replayIndex!==null||document.hidden;
+ const blocked=match.playerAutonomy||settingsDialog.open||creator.dialog.open||reactions.isOpen||playerDrawer.open||match.replayIndex!==null||document.hidden;
  if(blocked){if(voice.active){voice.stop();voiceStatus('')}voiceHandsFree=false;voiceHandsFreeInput.checked=false}
  else if(changed&&voice.active){voice.stop();voiceStatus('')}
  voiceMeter.hidden=voice.phase!=='listening'||!localFactory;
@@ -174,10 +180,10 @@ settingsActions.setAttribute('aria-label','Game actions');
 settingsActions.innerHTML='<button type="button" class="settings-restart" id="open-player-design" aria-haspopup="dialog">Player Designer</button>';
 byId('game-settings').querySelector('.settings-heading')!.after(settingsActions);
 settingsActions.append(byId('restart'),byId('back-to-lobby'));
-byId('back-to-lobby').className='settings-restart';byId('back-to-lobby').textContent='Back to Lobby';
+byId('back-to-lobby').className='settings-restart';byId('back-to-lobby').textContent='Your games';
 const courtHost=document.querySelector('.court-wrap')!;
 byId('open-settings').className='gameplay-settings';
-byId('open-settings').innerHTML='<img src="/assets/picklebash-gameplay-ui/hud/picklebash-settings-button.png" alt="" draggable="false">';
+byId('open-settings').innerHTML=hudButtonIcon('settings');
 courtHost.append(byId('open-settings'));
 for(const corner of ['top-left']){
  const decor=document.createElement('img');decor.className=`gameplay-corner gameplay-corner-${corner}`;
@@ -207,7 +213,7 @@ installSoundSetting(settingsDialog);
 const endedGames=new WeakSet<object>();
 const endGameButton=document.createElement('button');endGameButton.type='button';endGameButton.className='settings-restart';endGameButton.textContent='End game';endGameButton.id='end-current-game';settingsDialog.append(endGameButton);
 endGameButton.addEventListener('click',()=>{
- if(!match.scoring.winner){try{localStore?.discard()}catch(error){reportSaveError(error);return}endedGames.add(match.scoring);}
+ if(!match.scoring.winner){try{localStore?.end(match.matchId)}catch(error){reportSaveError(error);return}endedGames.add(match.scoring);}
  voice.stop();match.state.paused=true;match.stopReplay();
  if(settingsCloseTimer)window.clearTimeout(settingsCloseTimer);
  settingsDialog.close();settingsDialog.classList.remove('is-closing');syncGameEnd();
@@ -360,8 +366,8 @@ function updateMatchUI(){
  document.body.classList.toggle('local-human-mode',match.isLocalHuman);
  const team=match.decisionTeam;
  if(match.isLocalHuman&&team)scene.setViewTeam(team);else if(!match.isLocalHuman)scene.setViewTeam('home');
- const banner=byId('local-turn-banner');banner.hidden=!match.isLocalHuman;
- banner.textContent=match.isLocalHuman?(team?`${teamLabel(team)} · ${match.receptionDecision?'choose timing and shot':playerNames()[match.state.currentHitter!]+', choose your shot'}`:match.state.phase==='complete'?(match.scoring.winner?'Match complete':'Point over'):'Shot in play…'):'';
+ const banner=byId('local-turn-banner');banner.hidden=match.replayIndex!==null||match.state.phase==='complete';
+ banner.textContent=match.isLocalHuman?(team?`${teamLabel(team)} · ${match.receptionDecision?'choose timing and shot':playerNames()[match.state.currentHitter!]+', choose your shot'}`:match.state.phase==='complete'?(match.scoring.winner?'Match complete':'Point over'):'Shot in play…'):(match.manualReceptionDecision||match.humanContact?`${match.shot.intent.type==='serve'?'Your serve':'Your turn'} · Tap the court to aim`:'Shot in play…');
  for(const id of ['restart','open-player-design','partner-autonomy','player-autonomy','result-timer']){const el=byId(id) as HTMLInputElement|HTMLButtonElement;el.disabled=match.isLocalHuman;}
  const s=match.state,score=match.scoring,key=`match:${match.mode}:${match.point}:${s.phase}:${s.shotIndex}:${s.paused}:${match.receptionDecision}:${score.call}:${score.winner}:${match.brainStatus}:${match.thinking}:${match.practice}:${match.variation}:${match.customBusy}:${match.customStatus}:${match.replayIndex===null?'live':match.replayPlaying?'replaying':'scrubbing'}`;if(key===lastUI)return;lastUI=key;
  byId('score-home').textContent=String(score.score.home);byId('score-away').textContent=String(score.score.away);
@@ -395,7 +401,7 @@ gameEnd.innerHTML=`<div class="game-end-card"><div class="game-end-kicker">GARDE
 document.body.append(gameEnd);
 const matchSaveStatus=document.createElement('p');matchSaveStatus.id='match-save-status';matchSaveStatus.setAttribute('role','status');gameEnd.querySelector('.game-end-rule')!.after(matchSaveStatus);
 gameEnd.addEventListener('cancel',event=>event.preventDefault());
-byId('game-end-new').addEventListener('click',()=>{gameEnd.close();showStartScreen()});
+byId('game-end-new').addEventListener('click',()=>{gameEnd.close();closeGameSurface()});
 byId('game-end-replay').addEventListener('click',()=>{gameEnd.close();match.startGameReplay();showPanel('play');lastUI='';updateUI();replayOverlay.hidden=false;byId('replay-position').focus()});
 function syncGameEnd(){
  const early=endedGames.has(match.scoring),finished=early||!!match.scoring.winner;
@@ -430,6 +436,12 @@ function syncReplayUI(replay:ReturnType<Match['replayView']>){
 }
 
 const targetPicker=new TargetPicker(match,scene);
+const reactionOwner=()=>cloudPlayers.accountId??browserStorage.getItem('pickle-rpg-cloud-owner-v1')??'local';
+const localReactions=new LocalReactions(browserStorage,reactionOwner,()=>({id:match.matchId,point:match.point,time:match.state.simulationTime,player:match.state.currentHitter==='partner'?'partner':'you'}));
+const reactions=new TrashTalkControl(document.querySelector<HTMLElement>('.court-wrap')!,settingsDialog,async()=>({owner:reactionOwner(),token:''}),()=>targetPicker.clear(),localReactions.request);
+const courtReplay=document.createElement('button');courtReplay.type='button';courtReplay.className='open-play-replay';courtReplay.setAttribute('aria-label','Replay rally');courtReplay.title='Replay rally';courtReplay.innerHTML=hudButtonIcon('replay');document.querySelector('.court-wrap')!.append(courtReplay);
+courtReplay.onclick=()=>{targetPicker.clear();match.startRecentReplay();lastUI='';updateUI();syncReplayUI(match.replayView());if(match.replayIndex!==null)byId('replay-position').focus()};
+
 const RESULT_WINDOW_SECONDS=10;
 let resultEngine:Match['engine']|null=null,resultElapsed=0,resultExpired=false;
 function advancePoint(){
@@ -458,13 +470,24 @@ function syncPointResult(dt:number){
 }
 
 let setupReturnsToCourt=false;
-const matchup=new MatchSetup((players,mode,court)=>{
- applyCourtLocation(court);
- if(mode==='local-human'){match.startLocalHumanMatch(players);for(const slot of courtSlots)scene.substitutePlayer(slot,match.getPlayerDesign(slot));syncRosterNames();matchup.hide();enterCourt(false);return;}
- if(match.isLocalHuman)match.startSoloMatch();
- for(const slot of courtSlots){match.lineup[slot]=playerArchetype(players[slot]);match.substitutePlayer(slot,players[slot]);scene.substitutePlayer(slot,players[slot])}
- syncRosterNames();matchup.hide();enterCourt();
-},()=>setupReturnsToCourt?enterCourt(false):showStartScreen(),setScoringPreference);
+const matchup=new MatchSetup((players,mode,court,target)=>{
+ const save=match.onCheckpoint;match.onCheckpoint=null;
+ try{
+  applyCourtLocation(court);
+  if(mode==='local-human')match.startLocalHumanMatch(players);
+  else{
+   match.startSoloMatch(target);match.partnerAutonomy=false;
+   for(const slot of courtSlots){match.lineup[slot]=playerArchetype(players[slot]);match.substitutePlayer(slot,players[slot]);}
+   match.reset();
+  }
+ }finally{match.onCheckpoint=save;}
+ try{match.saveBoundary()}catch(error){reportSaveError(error);return;}
+ for(const slot of courtSlots)scene.substitutePlayer(slot,match.getPlayerDesign(slot));
+ syncRosterNames();
+ for(const [id,value] of [['partner-autonomy',match.partnerAutonomy],['player-autonomy',match.playerAutonomy]] as const){(byId(id) as HTMLInputElement).checked=value;byId(id+'-state').textContent=value?'On':'Off';}
+ matchup.hide();enterCourt(false);
+ history.replaceState(null,'',`/?game=${encodeURIComponent(match.matchId)}`);
+},()=>closeGameSurface(),setScoringPreference);
 function showMatchSetup(returnToCourt=false){
  setupReturnsToCourt=returnToCourt;
  voice.stop();voiceHandsFree=false;voiceHandsFreeInput.checked=false;match.stopReplay();
@@ -480,49 +503,44 @@ function enterCourt(fresh=true){
  if(fresh){match.practice=null;reset()}
  onStartScreen=false;document.body.dataset.screen='court';app.inert=false;startScreen.hidden=true;showPanel('play');lastUI='';updateUI();byId('open-settings').focus();
 }
-byId('start-new-game').addEventListener('click',()=>{if(match.isLocalHuman)match.startSoloMatch();showMatchSetup()});
-byId('start-multiplayer').addEventListener('click',()=>location.assign('/?multiplayer=1'));
+byId('start-new-game').addEventListener('click',()=>{
+ const dialog=document.createElement('dialog');dialog.className='practice-preview';
+ dialog.innerHTML='<p class="eyebrow">PRACTICE</p><h2>A little court time. A better game.</h2><p>Focused drills and repeatable situations are coming here. For a full match, head to Open Play.</p><button type="button">Back to home</button>';
+ dialog.querySelector('button')!.onclick=()=>dialog.close();dialog.addEventListener('close',()=>dialog.remove());document.body.append(dialog);dialog.showModal();
+});
+byId('start-multiplayer').addEventListener('click',()=>location.assign('/?openplay=1'));
 byId('start-roster').addEventListener('click',()=>creator.open());
-byId('back-to-lobby').addEventListener('click',()=>{if(settingsCloseTimer)window.clearTimeout(settingsCloseTimer);settingsDialog.close();settingsDialog.classList.remove('is-closing');showMatchSetup(true)});
+byId('back-to-lobby').addEventListener('click',()=>{if(settingsCloseTimer)window.clearTimeout(settingsCloseTimer);settingsDialog.close();settingsDialog.classList.remove('is-closing');closeGameSurface()});
 document.querySelector('.brand')!.addEventListener('click',event=>{event.preventDefault();showStartScreen()});
 const saveStatus=document.createElement('p');saveStatus.id='local-save-status';saveStatus.setAttribute('role','status');saveStatus.hidden=true;document.body.append(saveStatus);
 if(!browserStoragePersistent){const warning=document.createElement('p');warning.className='browser-storage-warning';warning.setAttribute('role','status');warning.textContent=STORAGE_UNAVAILABLE_MESSAGE;document.body.append(warning)}
-const discardSave=document.createElement('button');discardSave.textContent='Discard saved match';discardSave.hidden=true;saveStatus.after(discardSave);
-let localStore:LocalMatchStore|null=null;
+let localStore:OpenPlayStore|null=null;
 let resumeReady=false;
 function reportSaveError(error:unknown){saveStatus.hidden=false;saveStatus.textContent=error instanceof Error?error.message:'Could not save this match.';}
-discardSave.onclick=()=>{try{localStore?.discard();discardSave.hidden=true;saveStatus.hidden=true;match.onCheckpoint=c=>localStore!.save(c);showStartScreen()}catch(error){reportSaveError(error)}};
-// Explicit Home navigation restores the save without navigating away from Home.
-const stayOnHome=new URLSearchParams(location.search).get('home')==='1';
+const launchParams=new URLSearchParams(location.search);
+const requestedGame=launchParams.get('game');
 function initializeResume(owner:string){
  try{
-  localStore=new LocalMatchStore(browserStorage,owner);
-  const checkpoint=localStore.load();
-  match.onCheckpoint=c=>{if(endedGames.has(match.scoring))return;try{localStore!.save(c);saveStatus.hidden=true}catch(error){reportSaveError(error);throw error}};
-  if(checkpoint){
-   match.restoreCheckpoint(checkpoint);
+  localStore=new OpenPlayStore(browserStorage,owner);
+  const saved=localStore.load(requestedGame??undefined);
+  if(requestedGame&&!saved)throw new Error('This saved game is not available for this account on this browser.');
+  match.onCheckpoint=c=>{if(endedGames.has(match.scoring))return;try{localStore!.save(c,document.body.dataset.location as 'forest'|'venice'|'arizona');saveStatus.hidden=true;if(!onStartScreen)history.replaceState(null,'',`/?game=${encodeURIComponent(c.matchId)}`)}catch(error){reportSaveError(error);throw error}};
+  if(saved){
+   match.restoreCheckpoint(saved.checkpoint);applyCourtLocation(saved.court);
+   if(saved.ended)endedGames.add(match.scoring);
    for(const id of courtSlots)scene.substitutePlayer(id,match.getPlayerDesign(id));
    syncRosterNames();
    (byId('partner-autonomy') as HTMLInputElement).checked=match.partnerAutonomy;
    byId('partner-autonomy-state').textContent=match.partnerAutonomy?'On':'Off';
    (byId('player-autonomy') as HTMLInputElement).checked=match.playerAutonomy;
    byId('player-autonomy-state').textContent=match.playerAutonomy?'On':'Off';
-   if(!stayOnHome&&!directRoster)enterCourt(false);
+   if(requestedGame&&!directRoster)enterCourt(false);
   }
- }catch(error){reportSaveError(error);discardSave.hidden=false;match.onCheckpoint=()=>{throw new Error('Discard the unreadable saved match before replacing it.')}}
- finally{resumeReady=true;startScreen.querySelectorAll<HTMLButtonElement>('button').forEach(button=>button.disabled=false);}
+  if(launchParams.get('newgame')==='1')showMatchSetup();
+ }catch(error){showStartScreen();reportSaveError(error);match.onCheckpoint=()=>{throw new Error('Your saved games could not be read. Reload before starting another game.')}}
+ finally{if(!directRoster)rosterLoading.hidden=true;resumeReady=true;startScreen.querySelectorAll<HTMLButtonElement>('button').forEach(button=>button.disabled=false);}
 }
-// An existing local checkpoint can resume offline without waiting on cloud roster sync.
-let earlyResumeOwner:string|null=null;
-try{
- const cachedOwner=browserStorage.getItem('pickle-rpg-cloud-owner-v1')??'local';
- if(browserStorage.getItem(`pickle-rpg-match-v1:${cachedOwner}`)!==null){earlyResumeOwner=cachedOwner;initializeResume(cachedOwner)}
-}catch(error){reportSaveError(error)}
-void cloudReady.then(()=>{
- const owner=cloudPlayers.accountId??browserStorage.getItem('pickle-rpg-cloud-owner-v1')??'local';
- if(earlyResumeOwner!==null){if(owner!==earlyResumeOwner)location.reload();return;}
- initializeResume(owner);
-});
+void cloudReady.then(()=>initializeResume(cloudPlayers.accountId??browserStorage.getItem('pickle-rpg-cloud-owner-v1')??'local'));
 // Open roster directly, and return multiplayer visitors to their saved game on close.
 if(directRoster)void cloudReady.then(()=>{
  creator.open();rosterLoading.hidden=true;
@@ -539,7 +557,12 @@ updateUI();let previous:number|undefined;function frame(now:number){
  if(onStartScreen||!resumeReady){previous=now;requestAnimationFrame(frame);return}
  const realDt=previous===undefined?0:Math.max(0,Math.min((now-previous)/1000,.1)),dt=realDt*1.125*speed;if(!creator.dialog.open&&(!endedGames.has(match.scoring)||match.replayIndex!==null))try{match.update(match.replayPlaying?realDt:dt)}catch(error){reportSaveError(error)};previous=now;updateUI();if(!endedGames.has(match.scoring))syncPointResult(realDt*speed);syncGameEnd();syncVoice();
  rallySounds.update(match.state,cue=>sounds.play(cue),'home',match.scoring.winner==='home');
- const replay=match.replayView();syncReplayUI(replay);scene.setGuides(guides&&!replay);scene.render(replay?.state??match.state,now/1000,replay?.shot??match.shot,!match.practice&&!replay?match.scoring.call:null);targetPicker.sync(document.body.dataset.panel==='play'&&!settingsDialog.open&&!creator.dialog.open);requestAnimationFrame(frame)
+ const replay=match.replayView();syncReplayUI(replay);scene.setGuides(guides&&!replay);scene.render(replay?.state??match.state,now/1000,replay?.shot??match.shot,!match.practice&&!replay?match.scoring.call:null);
+ const courtVisible=!onStartScreen&&!settingsDialog.open&&!creator.dialog.open&&!playerDrawer.open&&!gameEnd.open;
+ courtReplay.hidden=!courtVisible||!!replay;courtReplay.disabled=!match.canReplay;courtReplay.title=match.canReplay?'Replay rally':'Replay available after a shot';
+ reactions.update({id:match.matchId,version:match.point},reactionOwner());
+ reactions.frame(scene,replay?.state??match.state,replay?replay.state.simulationTime:null,courtVisible,replay?(match.replayScope==='game'?[]:localReactions.replay(match.matchId,match.replayPointIndex,replay.state.simulationTime)):undefined);
+ targetPicker.sync(document.body.dataset.panel==='play'&&!settingsDialog.open&&!creator.dialog.open&&!reactions.isOpen);requestAnimationFrame(frame)
 }requestAnimationFrame(frame);
 // Optional browser-native tools use the exact same validated simulation entry point.
 const context=(document as Document & {modelContext?:{registerTool:(tool:unknown)=>Promise<void>|void}}).modelContext;

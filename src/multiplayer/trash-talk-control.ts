@@ -1,6 +1,7 @@
+import {hudButtonIcon} from '../hud-button';
 import type {CourtScene} from '../scene';
 import type {GameState,PlayerId} from '../engine/model';
-import type {PublicMatch} from './protocol';
+export interface ReactionMatch {id:string;version:number}
 import type {Credentials,Transport} from './match-session';
 import {remoteRequest} from './api';
 import {browserStorage} from '../browser-storage';
@@ -10,14 +11,14 @@ import './trash-talk.css';
 export class TrashTalkControl {
  private host=document.createElement('div');
  private toggle:HTMLButtonElement;private panel:HTMLFormElement;private input:HTMLInputElement;private hint:HTMLElement;private count:HTMLElement;private recentHost:HTMLElement;
- private match:PublicMatch|null=null;private owner='';private generation=0;private fetching=false;private sending=false;private checkedAt=0;private cooldown=0;
+ private match:ReactionMatch|null=null;private owner='';private generation=0;private fetching=false;private sending=false;private checkedAt=0;private cooldown=0;
  private messages:TrashTalk[]=[];private live=new Map<PlayerId,{message:TrashTalk;until:number}>();private seen=new Set<string>();private sounded=new Set<string>();private bubbles=new Map<PlayerId,HTMLElement>();
  private muted=browserStorage.getItem('pickle-trash-talk-muted')==='true';
  private recent:string[]=[];
  private pending:{id:string;text:string}|null=null;
  get isOpen(){return this.host.classList.contains('is-open')}
  constructor(court:HTMLElement,settings:HTMLElement,private credentials:()=>Promise<Credentials>,private clearTarget:()=>void,private request:Transport=remoteRequest){
-  this.host.className='trash-talk';this.host.dataset.sound='none';this.host.innerHTML=`<button type="button" class="trash-toggle" aria-label="Reactions" title="Reactions" aria-expanded="false" aria-controls="trash-panel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-8l-6 4v-4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/><path d="M7 9h10M7 13h6"/></svg></button><form id="trash-panel" class="trash-panel" inert aria-label="Reactions"><div class="trash-options"></div><div class="trash-recents" aria-label="Recent messages" hidden></div><div class="trash-entry"><input aria-label="Short message" placeholder="Talk your game…" autocomplete="off" maxlength="${CHAT_LIMIT*2}"><button type="submit" aria-label="Send message" title="Send message"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 12 16-8-5 16-3-6-8-2Z"/><path d="m12 14 8-10"/></svg></button></div><div class="trash-footer"><span role="status" aria-live="polite"></span><small>0 / ${CHAT_LIMIT}</small></div></form>`;
+  this.host.className='trash-talk';this.host.dataset.sound='none';this.host.innerHTML=`<button type="button" class="trash-toggle" aria-label="Reactions" title="Reactions" aria-expanded="false" aria-controls="trash-panel">${hudButtonIcon('reactions')}</button><form id="trash-panel" class="trash-panel" inert aria-label="Reactions"><div class="trash-options"></div><div class="trash-recents" aria-label="Recent messages" hidden></div><div class="trash-entry"><input aria-label="Short message" placeholder="Talk your game…" autocomplete="off" maxlength="${CHAT_LIMIT*2}"><button type="submit" aria-label="Send message" title="Send message"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 12 16-8-5 16-3-6-8-2Z"/><path d="m12 14 8-10"/></svg></button></div><div class="trash-footer"><span role="status" aria-live="polite"></span><small>0 / ${CHAT_LIMIT}</small></div></form>`;
   court.append(this.host);this.toggle=this.host.querySelector('.trash-toggle')!;this.panel=this.host.querySelector('form')!;this.input=this.host.querySelector('input')!;this.hint=this.host.querySelector('[role="status"]')!;this.count=this.host.querySelector('small')!;this.recentHost=this.host.querySelector('.trash-recents')!;
   for(const phrase of TRASH_TALK_OPTIONS){const b=document.createElement('button');b.type='button';b.textContent=phrase;b.onclick=()=>void this.send(phrase);this.host.querySelector('.trash-options')!.append(b);}
   this.toggle.onclick=()=>this.open(!this.isOpen);
@@ -44,7 +45,7 @@ export class TrashTalkControl {
   this.recent=[text,...this.recent.filter(item=>item!==text)].slice(0,3);browserStorage.setItem(this.recentKey(),JSON.stringify(this.recent));this.renderRecent();
  }
  reset(){this.generation++;this.match=null;this.owner='';this.messages=[];this.seen.clear();this.sounded.clear();this.live.clear();this.pending=null;this.fetching=false;this.sending=false;this.cooldown=0;this.checkedAt=0;this.input.value='';this.count.textContent=`0 / ${CHAT_LIMIT}`;this.hint.textContent='';this.host.classList.remove('is-open');this.panel.inert=true;this.toggle.setAttribute('aria-expanded','false');this.host.hidden=true;for(const b of this.bubbles.values())b.hidden=true;}
- update(match:PublicMatch|null,owner:string){const ownerChanged=owner!==this.owner;if(match?.id!==this.match?.id||ownerChanged)this.reset();if(match?.version!==this.match?.version)this.checkedAt=0;this.match=match;this.owner=owner;if(ownerChanged)this.loadRecent();this.host.hidden=!match;}
+ update(match:ReactionMatch|null,owner:string){const ownerChanged=owner!==this.owner;if(match?.id!==this.match?.id||ownerChanged)this.reset();if(match?.version!==this.match?.version)this.checkedAt=0;this.match=match;this.owner=owner;if(ownerChanged)this.loadRecent();this.host.hidden=!match;}
  private accept(feed:TrashTalkFeed){
   this.messages=feed.messages;
   const now=performance.now(),serverNow=Date.parse(feed.serverTime);
@@ -61,10 +62,10 @@ export class TrashTalkControl {
   try{const c=await this.credentials();if(c.owner!==owner)throw Error('Account changed. Reopen the match.');const feed=await this.request<TrashTalkFeed>(c.token,`/api/matches/${match.id}/trash-talk`,message);if(generation!==this.generation)return;this.accept(feed);const delivered=feed.messages.find(item=>item.id===message.id)?.text??message.text.trim();if(remember)this.remember(delivered);this.cooldown=performance.now()+CHAT_COOLDOWN;this.pending=null;this.input.value='';this.count.textContent=`0 / ${CHAT_LIMIT}`;this.hint.textContent='';this.open(false);}
   catch(e){if(generation===this.generation)this.hint.textContent=(e as Error).message;}finally{if(generation===this.generation)this.sending=false;}
  }
- frame(scene:CourtScene,state:GameState,replayTime:number|null,visible:boolean){
+ frame(scene:CourtScene,state:GameState,replayTime:number|null,visible:boolean,replayMessages?:TrashTalk[]){
   if(visible&&!document.hidden&&performance.now()-this.checkedAt>1500)void this.refresh();
   this.host.hidden=!visible||replayTime!==null;
-  const messages=replayTime===null?[...this.live.values()].filter(v=>v.until>performance.now()).map(v=>v.message):replayTrashTalk(this.messages,this.match?.version??0,replayTime);
+  const messages=replayTime===null?[...this.live.values()].filter(v=>v.until>performance.now()).map(v=>v.message):replayMessages??replayTrashTalk(this.messages,this.match?.version??0,replayTime);
   for(const b of this.bubbles.values())b.hidden=true;
   if(this.muted||!visible)return;
   for(const message of messages){const player=state.players.find(p=>p.id===message.player);if(!player)continue;const p=scene.projectSpeech(player.position);if(!p.visible)continue;
