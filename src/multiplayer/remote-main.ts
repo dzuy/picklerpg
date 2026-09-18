@@ -84,7 +84,7 @@ leaveGame.onclick=()=>{
  const id=session?.state?.id;if(!id)return;
  if(!window.confirm('Leave this game? This ends the game for both players and moves it to your archive.'))return;
  leaveGame.disabled=true;
- void(async()=>{const c=await matchCredentials();await remoteRequest(c.token,`/api/matches/${id}/leave`,{});settings.close();await lobby();teamLobby?.selectTab('games');status('Game ended and archived.');})().catch(e=>status(e.message)).finally(()=>{leaveGame.disabled=false;});
+ void(async()=>{const c=await matchCredentials();await remoteRequest(c.token,`/api/matches/${id}/leave`,{});settings.close();await lobby();teamLobby?.selectTab('games');status('');})().catch(e=>status(e.message)).finally(()=>{leaveGame.disabled=false;});
 };
 const GAME_END_PAUSE_MS=2500;
 let gameEndReadyAt:number|null=null;
@@ -282,14 +282,29 @@ async function lobby(){el('remote-start-setup').onclick=()=>challengeTeam();exis
  status(config.creationEnabled?'':'Private invitations are unavailable for this account. You can still start an Open Play game.');
 }
 mountTurnPrompt(el('remote-lobby'));
-async function refreshLobbyCards(){renderGames();if(!account||!config)return;const c=await matchCredentials();[games,invitations]=await Promise.all([remoteRequest<PublicMatch[]>(c.token,'/api/matches'),remoteRequest<Invitation[]>(c.token,'/api/invitations')]);renderGames();renderInvitations();setTurnPromptEligible(games.length>0);}
+async function refreshLobbyCards(){if(accepting)return;renderGames();if(!account||!config)return;const c=await matchCredentials();[games,invitations]=await Promise.all([remoteRequest<PublicMatch[]>(c.token,'/api/matches'),remoteRequest<Invitation[]>(c.token,'/api/invitations')]);renderGames();renderInvitations();setTurnPromptEligible(games.length>0);}
 function renderInvitations(){const host=el('remote-invitations'),waiting=el('remote-waiting-invitations');host.replaceChildren();waiting.replaceChildren();if(gameFilter==='completed'||gameFilter==='archived')return;for(const invite of invitations){const incoming=invite.recipientId===account;if(gameFilter==='turn'&&(!incoming||invite.status!=='pending'))continue;const card=invitationCard(invite,incoming,(invite.recipientId===teamDirectory?.self.id?teamDirectory.self:teamDirectory?.teams.find(team=>team.id===invite.recipientId))?.avatar);card.onclick=()=>void showInvitation(invite.id).catch(e=>status(e.message));if(invite.status==='declined'&&!incoming){
  const entry=document.createElement('div');entry.className='remote-declined-entry';
  const trash=document.createElement('button');trash.type='button';trash.className='remote-invite-trash';trash.title='Remove declined invitation';trash.setAttribute('aria-label',`Remove declined invitation to ${invite.recipientName}`);
  trash.innerHTML='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg>';
  trash.onclick=()=>{if(accepting)return;accepting=true;trash.disabled=true;void(async()=>{const c=await matchCredentials();if(c.owner!==account)throw Error('Account changed. Reload and try again.');await remoteRequest(c.token,`/api/invitations/${invite.id}/delete`,{});invitations=invitations.filter(i=>i.id!==invite.id);renderInvitations();status('Declined invitation removed.');})().catch(e=>status(e.message)).finally(()=>{accepting=false;trash.disabled=false;});};
  entry.append(card,trash);host.append(entry);
- }else (invite.status==='pending'&&!incoming?waiting:host).append(invite.status==='pending'?pendingInviteCard(card,async()=>new URL(`/?openplay=1&invite=${encodeURIComponent(invite.id)}`,location.origin).href,invite.recipientName,incoming):card);}}
+ }else (invite.status==='pending'&&!incoming?waiting:host).append(invite.status==='pending'?pendingInviteCard(card,async()=>new URL(`/?openplay=1&invite=${encodeURIComponent(invite.id)}`,location.origin).href,invite.recipientName,incoming?{accept:()=>respondToInvite(invite.id,'accept'),decline:()=>respondToInvite(invite.id,'decline')}:undefined):card);}}
+async function respondToInvite(id:string,action:'accept'|'decline'){
+ if(accepting)return;accepting=true;
+ try{
+  const c=await matchCredentials();if(c.owner!==account)throw Error('Account changed. Reload and try again.');
+  if(action==='decline'){
+   await remoteRequest(c.token,`/api/invitations/${id}/decline`,{});
+   invitations=invitations.filter(i=>i.id!==id);renderInvitations();return;
+  }
+  const key=`pickle-remote:${account}:${id}:accept`,saved=browserStorage.getItem(key);
+  const request=saved?JSON.parse(saved):{team:await new TeamPicker(document.createElement('div'),undefined,teamDirectory?.self.players).freshTeam()};
+  browserStorage.setItem(key,JSON.stringify(request));
+  const game=await remoteRequest<PublicMatch>(c.token,`/api/invitations/${id}/accept`,request);
+  browserStorage.removeItem(key);invitations=invitations.filter(i=>i.id!==id);await open(game.id);
+ }finally{accepting=false;}
+}
 async function showInvitation(id:string){const c=await matchCredentials();const invite=await remoteRequest<Invitation>(c.token,`/api/invitations/${id}`);if(invite.status==='accepted'&&invite.matchId){await open(invite.matchId);return;}selectedInvite=invite;el('remote-lobby').hidden=true;el('remote-setup').hidden=true;el('remote-invite').hidden=false;const url=new URL(location.href);url.searchParams.set('invite',id);url.searchParams.delete('match');history.replaceState(null,'',url);const incoming=invite.recipientId===account;
  el('remote-invite-title').textContent=incoming?`Play against ${invite.creatorName}`:`Waiting for ${invite.recipientName}`;
  el('remote-invite-copy').textContent=`${invite.creatorName} chose ${invite.team.map(p=>p.name).join(' & ')}. ${invite.court==='arizona'?'Arizona Desert':invite.court==='venice'?'The Beach':'The Forest'} · ${invite.scoring==='rally-doubles'?'Rally':'Side-out'} scoring · First to ${invite.target??3}. ${incoming?'Choose your player and partner. Your team serves first.':'Your opponent will choose their team before the game starts.'}`;

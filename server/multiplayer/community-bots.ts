@@ -1,4 +1,5 @@
 import {createHash} from 'node:crypto';
+import {TrashTalkService} from './trash-talk';
 import type {SupabaseClient} from '@supabase/supabase-js';
 import {defaultTeam} from '../../src/multiplayer/team-directory';
 import type {TeamSelection} from '../../src/multiplayer/invitation-protocol';
@@ -15,6 +16,15 @@ export function botAction(game:PublicMatch){
  const choice=game.choices[number(key)%game.choices.length];
  return {actionId:`${hex.slice(0,8)}-${hex.slice(8,12)}-4${hex.slice(13,16)}-a${hex.slice(17,20)}-${hex.slice(20,32)}`,expectedVersion:game.version,decisionId:game.decisionId,action:{kind:'play_shot' as const,...choice}};
 }
+/** Occasional, friendly reactions; stable IDs make retries safe. */
+export function botReaction(game:PublicMatch,lastSentAt:number|null,now=Date.now()){
+ if(game.status!=='active'||game.currentTeam!==game.viewerTeam||game.friendState==='pending'||game.friendState==='cancelled'||game.version<2)return null;
+ const key=`bot-reaction:${game.id}:${game.viewerTeam}:${game.version}`;
+ if(number(key)%100>=18||(lastSentAt!==null&&now-lastSentAt<45000))return null;
+ const options=['👏','😎','👀','🔥','🙌','🤝','Let’s go!','Good rally!'];
+ const hex=createHash('sha256').update(key).digest('hex');
+ return {id:`${hex.slice(0,8)}-${hex.slice(8,12)}-4${hex.slice(13,16)}-a${hex.slice(17,20)}-${hex.slice(20,32)}`,text:options[number(`${key}:text`)%options.length]};
+}
 /** Stable schedule and sender for one recipient, including across server restarts. */
 export function surpriseInvitePlan(recipient:string,anchor:string,botIds:string[],first:boolean){
  const key=`surprise:${recipient}:${anchor}`,ids=[...botIds].sort();
@@ -24,6 +34,7 @@ export function surpriseInvitePlan(recipient:string,anchor:string,botIds:string[
 }
 /** Only server-owned app_metadata can grant control to the bot worker. */
 export function startCommunityBots(client:SupabaseClient,matches:MatchService,invitations:InvitationService,refreshAccounts:()=>Promise<void>){
+ const reactions=new TrashTalkService(client);
  let busy=false,refreshed=0,inviteChecked=0;const recipients=new Map<string,string>();const bots=new Map<string,TeamSelection>();
  async function tick(){
   if(busy)return;busy=true;
@@ -55,7 +66,15 @@ export function startCommunityBots(client:SupabaseClient,matches:MatchService,in
    const pending=await client.from('async_invitations').select('id,recipient_id,created_at').eq('status','pending').in('recipient_id',ids);if(pending.error)throw pending.error;
    for(const invite of pending.data){if(Date.now()-Date.parse(invite.created_at)<botDelay(invite.id,true))continue;try{await invitations.accept(invite.id,invite.recipient_id,{team:bots.get(invite.recipient_id)!});}catch(error){report(error);}}
    const turns=await client.from('async_matches').select('id,current_action_user_id,version,updated_at').eq('status','active').in('current_action_user_id',ids);if(turns.error)throw turns.error;
-   for(const row of turns.data){if(Date.now()-Date.parse(row.updated_at)<botDelay(`${row.id}:${row.version}`))continue;try{const game=await matches.get(row.id,row.current_action_user_id);if(game.version!==row.version)continue;const action=botAction(game);if(action)await matches.act(row.id,row.current_action_user_id,action);}catch(error){report(error);}}
+   for(const row of turns.data){if(Date.now()-Date.parse(row.updated_at)<botDelay(`${row.id}:${row.version}`))continue;try{const game=await matches.get(row.id,row.current_action_user_id);if(game.version!==row.version)continue;if(botReaction(game,null)){
+     try{
+      const latest=await client.from('match_trash_talk').select('created_at').eq('match_id',row.id).eq('sender_id',row.current_action_user_id).order('created_at',{ascending:false}).limit(1);
+      if(latest.error)throw latest.error;
+      const reaction=botReaction(game,latest.data[0]?Date.parse(latest.data[0].created_at):null);
+      if(reaction)await reactions.send(row.id,row.current_action_user_id,reaction);
+     }catch(error){report(error);}
+    }
+    const action=botAction(game);if(action)await matches.act(row.id,row.current_action_user_id,action);}catch(error){report(error);}}
   }catch(error){report(error);}finally{busy=false;}
  }
  function report(error:unknown){const status=(error as {status?:number})?.status;if(status===409||status===404)return;console.warn('Community bot worker could not complete a check:',(error as {code?:string})?.code??'unavailable');}

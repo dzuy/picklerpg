@@ -165,3 +165,20 @@ body[data-screen=remote]:has(#remote-lobby:not([hidden])){background:radial-grad
 #remote-lobby .lobby-person-identity .activity-title-icon{font-size:15px;width:17px}
 #remote-lobby .lobby-person-actions .team-lobby-primary,#remote-lobby .lobby-person-actions .team-lobby-add-friend{min-height:32px;margin:0;padding:7px 10px;font-size:12px;line-height:1.2;border-radius:8px}
 @media(max-width:480px){#remote-lobby .lobby-person-row{grid-template-columns:48px minmax(0,1fr) auto;gap:8px}#remote-lobby .lobby-person-avatar{width:48px;height:60px}#remote-lobby .lobby-person-identity h2{font-size:16px}#remote-lobby .lobby-person-actions .team-lobby-primary,#remote-lobby .lobby-person-actions .team-lobby-add-friend{padding:7px 8px;font-size:11px}}
+
+#remote-lobby .pending-invite-controls .pending-invite-accept { background: #c4ff4d; color: #18302c; border-color: #c4ff4d; }
+
+#remote-lobby .pending-invite-controls.pending-invite-response { width: 130px; grid-template-columns: 1fr 1fr; top: 50%; transform: translateY(-50%); }
+#remote-lobby .remote-pending-entry:has(.pending-invite-response) .remote-game-card { padding-right: 154px; }
+
+#remote-lobby .team-lobby[data-tab="games"] .team-lobby-heading { display:flex; align-items:center; justify-content:space-between; gap:20px; }
+#remote-lobby .team-lobby-heading-copy { min-width:0; }
+#remote-lobby .team-lobby-heading-copy p { margin:0; color:#b6d4f5; font-size:14px; line-height:1.4; }
+#remote-lobby .team-lobby-header-actions { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+#remote-lobby .team-lobby-header-actions .team-lobby-create { width:auto; margin:0; padding:9px 12px; min-height:36px; border-radius:9px; font-size:13px; white-space:nowrap; }
+#remote-lobby .team-lobby[data-tab="games"] .team-lobby-grid { grid-template-columns:minmax(0,1fr); }
+@media(max-width:540px){
+ #remote-lobby .team-lobby[data-tab="games"] .team-lobby-heading { gap:12px; }
+ #remote-lobby .team-lobby-header-actions { flex-direction:column; align-items:stretch; gap:6px; }
+ #remote-lobby .team-lobby-header-actions .team-lobby-create { padding:8px 10px; font-size:12px; }
+}

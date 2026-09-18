@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {botAction,botDelay,surpriseInvitePlan} from '../server/multiplayer/community-bots';
+import {botAction,botDelay,botReaction,surpriseInvitePlan} from '../server/multiplayer/community-bots';
 import {MatchService} from '../server/multiplayer/service';
 import {MemoryRepository,A,B,testers,creation} from './helpers/remote';
 test('bot delay is bounded, varied, and stable across retries',()=>{
@@ -46,4 +46,20 @@ test('surprise invitations have persistent cooldowns and stable senders',()=>{
   assert.deepEqual(first,surpriseInvitePlan(`user-${i}`,anchor,[B,A],true));senders.add(first.botId);
   assert.notEqual(first.requestId,surpriseInvitePlan(`user-${i}`,'2026-09-18T12:00:00Z',[A,B],false).requestId);
  }assert.equal(senders.size,2);
+});
+
+test('bot reactions are occasional, varied, stable, and respect cooldowns and inactive games',async()=>{
+ const service=new MatchService(new MemoryRepository(),testers),game=await service.create(A,creation());
+ let count=0;const texts=new Set<string>();
+ for(let version=2;version<502;version++){
+  const state={...game,version},reaction=botReaction(state,null,100000);
+  if(!reaction)continue;
+  count++;texts.add(reaction.text);assert.deepEqual(reaction,botReaction(state,null,100000));
+  assert.equal(botReaction(state,60000,100000),null);
+  assert.deepEqual(botReaction(state,55000,100000),reaction);
+  assert.equal(botReaction({...state,status:'completed'},null),null);
+  assert.equal(botReaction({...state,currentTeam:'away'},null),null);
+  assert.equal(botReaction({...state,friendState:'pending'},null),null);
+ }
+ assert.ok(count>40&&count<140);assert.ok(texts.size>4);
 });

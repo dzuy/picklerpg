@@ -35,7 +35,7 @@ export class TeamLobby {
   this.element.replaceChildren();this.element.dataset.tab=this.tab;
   const heading=node('div','team-lobby-heading');
   if(this.tab==='profile'||this.tab==='friends'||this.tab==='community')heading.append(node('h1','',this.tab==='profile'?'Profile':'Friends'));
-  else heading.append(node('p','remote-eyebrow','MEET ON COURT'),node('h1','','Open Play'),node('p','','Challenge friends or meet new players.'));
+  else {const copy=node('div','team-lobby-heading-copy');copy.append(node('h1','','Open Play'),node('p','','Challenge friends or meet new players.'));heading.append(copy);}
   const nav=appNavigation(this.tab==='community'?'friends':this.tab,(key,href)=>{
    if(key==='home'){location.assign(href);return;}
    this.selectTab(key);
@@ -68,11 +68,11 @@ export class TeamLobby {
    directory.append(list);
   }
   if(this.tab==='profile')directory.append(profilePanel(this.portraits,this.actions.authenticate,this.actions.signOut));
-  const aside=node('div','team-lobby-sidebar');
+  const aside=node('div','team-lobby-header-actions');
   const solo=this.button('Play Solo',()=>openGameSurface(),'team-lobby-primary team-lobby-create');
-  const create=this.button('Create a Game →',this.actions.create,'team-lobby-primary team-lobby-create');
+  const create=this.button('Create a Game',this.actions.create,'team-lobby-primary team-lobby-create');
   aside.append(solo,create);
-  grid.append(directory);if(this.tab==='games')grid.append(aside);this.element.append(heading,grid,nav);
+  grid.append(directory);if(this.tab==='games')heading.append(aside);this.element.append(heading,grid,nav);
   const status=node('p','team-lobby-status',this.message);status.setAttribute('role','status');this.element.append(status);
  }
  private openFriendProfile(person:LobbyTeam){
