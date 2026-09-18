@@ -119,9 +119,14 @@ export function installMenuSounds(){
   sounds.unlock('select');
  },true);
  document.addEventListener('change',event=>{const item=control(event.target);if(enabled(item)&&!item!.hasAttribute('data-sound-toggle'))sounds.play('toggle');},true);
- document.addEventListener('pointerover',event=>{
+ // Replacing a card under a stationary pointer fires pointerover, so use motion.
+ let hovered:HTMLElement|null=null,lastPointer:{x:number;y:number}|null=null;
+ document.addEventListener('pointermove',event=>{
   if(event.pointerType!=='mouse')return;
-  const item=control(event.target);if(enabled(item)&&!(event.relatedTarget instanceof Node&&item!.contains(event.relatedTarget)))sounds.play('hover');
+  const item=control(event.target),moved=!lastPointer||event.clientX!==lastPointer.x||event.clientY!==lastPointer.y;
+  lastPointer={x:event.clientX,y:event.clientY};
+  if(moved&&item!==hovered&&enabled(item))sounds.play('hover');
+  hovered=item;
  });
  document.addEventListener('focusin',event=>{const item=control(event.target);if(enabled(item)&&item!.matches(':focus-visible'))sounds.play('hover');});
  document.addEventListener('visibilitychange',()=>{

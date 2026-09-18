@@ -79,6 +79,13 @@ const challengeNext=document.createElement('button');challengeNext.textContent='
 const rematchStatus=document.createElement('p');rematchStatus.setAttribute('role','status');el('remote-end-back').before(rematchStatus);
 const rematch=document.createElement('button');rematch.textContent='Rematch';rematch.onclick=()=>{const current=session?.state;if(!current||rematch.disabled)return;rematchStatus.textContent='';rematch.disabled=true;rematch.textContent='Opening rematch…';void(async()=>{const c=await matchCredentials();const next=await remoteRequest<{invitationId:string;matchId:string|null}>(c.token,`/api/matches/${current.id}/rematch`,{});if(next.matchId){gameEnd.close();await open(next.matchId);}else{await lobby();await showInvitation(next.invitationId);}})().catch(e=>{rematchStatus.textContent=e.message;}).finally(()=>{rematch.disabled=false;rematch.textContent='Rematch';});};el('remote-end-back').before(rematch);
 gameEnd.addEventListener('cancel',e=>e.preventDefault());el('remote-end-back').onclick=()=>void lobby().catch(e=>status(e.message));
+const leaveGame=document.createElement('button');leaveGame.type='button';leaveGame.className='remote-quiet';leaveGame.textContent='Leave game';settings.append(leaveGame);
+leaveGame.onclick=()=>{
+ const id=session?.state?.id;if(!id)return;
+ if(!window.confirm('Leave this game? This ends the game for both players and moves it to your archive.'))return;
+ leaveGame.disabled=true;
+ void(async()=>{const c=await matchCredentials();await remoteRequest(c.token,`/api/matches/${id}/leave`,{});settings.close();await lobby();teamLobby?.selectTab('games');status('Game ended and archived.');})().catch(e=>status(e.message)).finally(()=>{leaveGame.disabled=false;});
+};
 const GAME_END_PAUSE_MS=2500;
 let gameEndReadyAt:number|null=null;
 function syncGameEnd(){const s=session?.state;if(gameEnd.open)return;
@@ -87,7 +94,8 @@ function syncGameEnd(){const s=session?.state;if(gameEnd.open)return;
  gameEndReadyAt??=performance.now()+GAME_END_PAUSE_MS;
  if(performance.now()<gameEndReadyAt)return;
  const home=['you','partner'] as const,away=['opponent-left','opponent-right'] as const,names=(ids:readonly (keyof PublicMatch['roster'])[])=>ids.map(id=>s.roster[id].name).join(' & ');
- el('game-end-title').textContent=`${names(s.score.home>s.score.away?home:away)} win!`;
+ gameEnd.querySelector('.game-end-label')!.textContent=s.endedEarly?'LEFT EARLY':'THE WINNERS';gameEnd.querySelector('.game-end-subtitle')!.textContent=s.endedEarly?'A player left this game.':'A game worth playing. A win worth celebrating.';
+ el('game-end-title').textContent=s.endedEarly?'Game ended':`${names(s.score.home>s.score.away?home:away)} win!`;
  el('game-end-home-score').textContent=String(s.score.home);el('game-end-away-score').textContent=String(s.score.away);el('game-end-home-names').textContent=names(home);el('game-end-away-names').textContent=names(away);el('remote-end-rule').textContent=`FINAL SCORE · FIRST TO ${s.rules.target}`;
  if(!gameEnd.open){clearTarget();settings.close();gameEnd.showModal();}
 }
@@ -96,7 +104,10 @@ function animationShot(segment:TurnAnimation,state:GameState):RallyShot{return {
 let playbackSpeed=1,flightGuides=false,playerNames=true,playbackElapsed=0,lastFrame=0;
 try{const saved=JSON.parse(browserStorage.getItem('pickle-remote-view')??'null');if(saved){if([1,2,3].includes(saved.speed))playbackSpeed=saved.speed;flightGuides=saved.guides===true;playerNames=saved.names!==false}}catch{}
 function saveView(){browserStorage.setItem('pickle-remote-view',JSON.stringify({speed:playbackSpeed,guides:flightGuides,names:playerNames}))}
-function leaveCourt(){trashTalk.reset();endReplay();pointPauseRemaining=0;gameEndReadyAt=null;document.body.classList.remove('remote-playing');settings.close();gameEnd.close();scene?.setRetainedTrajectory(null);}
+function saveCameraView(){if(scene&&session?.state&&!el('remote-game').hidden)browserStorage.setItem(`pickle-camera:${session.owner}:${session.matchId}`,JSON.stringify(scene.cameraView()));}
+window.addEventListener('pagehide',saveCameraView);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)saveCameraView();});
+function leaveCourt(){saveCameraView();trashTalk.reset();endReplay();pointPauseRemaining=0;gameEndReadyAt=null;document.body.classList.remove('remote-playing');settings.close();gameEnd.close();scene?.setRetainedTrajectory(null);}
 (el('remote-speed') as HTMLSelectElement).value=String(playbackSpeed);
 (el('remote-guides') as HTMLInputElement).checked=flightGuides;
 (el('remote-names') as HTMLInputElement).checked=playerNames;
@@ -200,7 +211,7 @@ function render(){
  el('remote-rules').textContent=`${s.rules.scoring==='rally-doubles'?'Rally scoring':'Side-out scoring'} · First to ${s.rules.target}`;
  if(shownVersion!==s.version){
   const initial=shownVersion<0;endReplay();clearTarget();shownVersion=s.version;display=structuredClone(s.display);shot=presentation(display);
-  if(initial&&scene){scene.setViewTeam(s.viewerTeam);scene.setLocation(s.court??'forest');}
+  if(initial&&scene){scene.setViewTeam(s.viewerTeam);scene.setLocation(s.court??'forest');scene.resetCamera();try{const saved=browserStorage.getItem(`pickle-camera:${session.owner}:${s.id}`);if(saved)scene.restoreCameraView(JSON.parse(saved));}catch{/* Ignore obsolete camera data. */}}
   pointPauseRemaining=0;animation=structuredClone(s.animation);animationStart=performance.now();playbackElapsed=0;lastFrame=animationStart;
  }
  if(!replayActive()&&!animation.length&&display&&!pointPauseRemaining)shot=presentation(display);
@@ -208,7 +219,7 @@ function render(){
  targetPicker?.sync(!settings.open&&!trashTalk.isOpen&&!pointCelebrating()&&!replayActive());
 }
 function skip(){endReplay();pointPauseRemaining=0;animation=[];if(session?.state){display=structuredClone(session.state.display);shot=presentation(display);}syncGameEnd();}
-async function open(id:string){trashTalk.reset();nudgeControl.update(null);selectedInvite=null;el('remote-invite').hidden=true;
+async function open(id:string){saveCameraView();trashTalk.reset();nudgeControl.update(null);selectedInvite=null;el('remote-invite').hidden=true;
  (el('remote-solo') as HTMLAnchorElement).href=`/?home=1&returnMatch=${encodeURIComponent(id)}`;
  clearTarget();session?.dispose();shownVersion=-1;shownRoster='';session=null;animation=[];display=null;shot=null;
  const credentials=await matchCredentials();if(account&&credentials.owner!==account)throw new Error('Account changed. Reload remote play.');account=credentials.owner;guestPlayer=!!(await authClient()?.auth.getSession())?.data.session?.user.is_anonymous;config=await remoteRequest<RemoteConfig>(credentials.token,'/api/multiplayer/config');el('remote-account').textContent=`Signed in as ${accountLabel()}`;el('remote-login').hidden=true;el('remote-sign-out').hidden=false;
@@ -299,8 +310,8 @@ function renderGames(){
  const visible=games.filter(g=>gameFilter==='archived'?g.archived:!g.archived&&(gameFilter==='completed'?g.status==='completed':g.status==='active'&&(gameFilter!=='turn'||g.currentTeam===g.viewerTeam))).sort((a,b)=>Number(b.currentTeam===b.viewerTeam)-Number(a.currentTeam===a.viewerTeam));
  if(!visible.length&&!localCount&&gameFilter!=='active'&&!(gameFilter==='turn'&&invitations.some(i=>i.recipientId===account&&i.status==='pending'))){const empty=document.createElement('div');empty.className='remote-empty';const title=document.createElement('h3');title.textContent=gameFilter==='archived'?'No archived games.':gameFilter==='turn'?'You’re all caught up.':gameFilter==='completed'?'The first finish is ahead.':'No games here yet.';const copy=document.createElement('p');copy.textContent=gameFilter==='archived'?'Games you archive will appear here. You can restore them anytime.':gameFilter==='turn'?'Your opponents are up. Check back for your next shot.':gameFilter==='completed'?'Completed games will be waiting here.':'Choose a player and start your first game.';empty.append(title,copy);container.append(empty);}
  for(const game of visible){
-  const card=document.createElement('button');card.className='remote-game-card has-player-faces';const yours=game.currentTeam===game.viewerTeam,done=game.status==='completed';card.dataset.state=done?'finished':yours?'ready':'waiting';
-  const badge=document.createElement('span');badge.className='remote-badge '+(done?'finished':yours?'ready':'waiting');badge.textContent=game.friendState==='pending'?`Waiting for ${game.invitedName}`:game.friendState==='cancelled'?'Challenge cancelled':done?'Finished':yours?'Your turn':opponentName(game)?`${opponentName(game)}'s Turn`:'Their turn';
+  const card=document.createElement('button');card.className='remote-game-card has-player-faces';const yours=game.currentTeam===game.viewerTeam,done=game.status==='completed';card.dataset.state=done?'finished':yours?'ready':'waiting';card.classList.toggle('is-your-turn',!done&&yours&&!game.archived&&game.friendState!=='pending'&&game.friendState!=='cancelled');
+  const badge=document.createElement('span');badge.className='remote-badge '+(done?'finished':yours?'ready':'waiting');badge.textContent=game.friendState==='pending'?`Waiting for ${game.invitedName}`:game.friendState==='cancelled'?'Challenge cancelled':done?(game.endedEarly?'Ended':'Finished'):yours?'Your turn':opponentName(game)?`${opponentName(game)}'s Turn`:'Their turn';
   const own=game.viewerTeam==='home'?['you','partner'] as const:['opponent-left','opponent-right'] as const;
   const away=game.viewerTeam==='home'?['opponent-left','opponent-right'] as const:['you','partner'] as const;
   const lineup=gameCardLineup(own.map(id=>game.roster[id]),away.map(id=>game.roster[id]));
@@ -343,7 +354,7 @@ el('remote-back').onclick=()=>void lobby().catch(e=>status(e.message));
 el('remote-retry').onclick=()=>void session?.retry();
 let renderFailed=false;
 function frame(now:number){
- try{if(!renderFailed&&scene&&display&&shot&&!document.hidden){
+ try{if(!renderFailed&&scene&&display&&shot&&!document.hidden&&!el('remote-game').hidden){
   if(pointPauseRemaining>0){pointPauseRemaining=Math.max(0,pointPauseRemaining-Math.max(0,Math.min(now-lastFrame,100)));if(!pointPauseRemaining){skip();render();}}
   if(replayActive()){if(replayPlaying){replayTime=Math.min(replayDuration(),replayTime+Math.max(0,Math.min(now-lastFrame,100))/1000*playbackSpeed);if(replayTime>=replayDuration())replayPlaying=false;}drawReplay();}
   else if(animation.length){playbackElapsed+=Math.max(0,Math.min(now-lastFrame,100))*playbackSpeed;const segment=animation[0],sample=samplePlayback(segment,playbackElapsed),progress=sample.progress;

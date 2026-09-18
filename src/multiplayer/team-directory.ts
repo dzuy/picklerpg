@@ -14,6 +14,8 @@ export function profileAvatar(id:string,value:unknown):Appearance{
  return {...LOOKS[hash%LOOKS.length].appearance};
 }
 export function lobbyTeam(id:string,manager:string,metadata:Record<string,unknown>):LobbyTeam{
+ const handle=typeof metadata.username==='string'?metadata.username.trim().toLowerCase():'';
+ if(/^[a-z0-9_]{3,24}$/.test(handle))manager=handle;
  const selected=defaultTeam(metadata.open_play_team);
  const players=selected??LOOKS.slice(0,2).map((look,i)=>({...newPlayer(`preset-${i}`),name:look.name,appearance:{...look.appearance},skills:{...look.skills}})) as TeamSelection;
  return {id,manager,avatar:profileAvatar(id,metadata.profile_avatar),name:teamDisplayName(manager,typeof metadata.team_name==='string'?metadata.team_name.slice(0,48):undefined),players,starter:!selected};

@@ -3,10 +3,11 @@ import type {MatchCheckpoint} from '../../src/engine/checkpoint';
 import type {PointResult} from '../../src/engine/model';
 import type {TurnAnimation} from '../../src/multiplayer/protocol';
 import {ApiError,conflict,missing} from './errors';
-export interface StoredMatch {friend_state?:'pending'|'accepted'|'cancelled';invited_name?:string;archived_home?:boolean;archived_away?:boolean;id:string;home_user_id:string;away_user_id:string|null;version:number;status:'active'|'completed';current_action_user_id:string|null;checkpoint:MatchCheckpoint&{court?:'forest'|'venice'|'arizona'};last_result:PointResult|null;animation:TurnAnimation[];creation_request_id:string;creation_hash:string;resolution_secret:string;seed_version:number;engine_version:string;created_at?:string;updated_at?:string;completed_at?:string|null}
+export interface StoredMatch {ended_by?:string|null;friend_state?:'pending'|'accepted'|'cancelled';invited_name?:string;archived_home?:boolean;archived_away?:boolean;id:string;home_user_id:string;away_user_id:string|null;version:number;status:'active'|'completed';current_action_user_id:string|null;checkpoint:MatchCheckpoint&{court?:'forest'|'venice'|'arizona'};last_result:PointResult|null;animation:TurnAnimation[];creation_request_id:string;creation_hash:string;resolution_secret:string;seed_version:number;engine_version:string;created_at?:string;updated_at?:string;completed_at?:string|null}
 export interface StoredReceipt {match_id:string;action_id:string;actor_id:string;request_hash:string;from_version:number;to_version:number;checkpoint:MatchCheckpoint&{court?:'forest'|'venice'|'arizona'};result:Pick<StoredMatch,'status'|'current_action_user_id'|'animation'|'last_result'>}
 export interface CommitInput {match:StoredMatch;actor:string;hash:string;actionId:string;expectedVersion:number;action:unknown}
 export interface MatchRepository {
+ leave?(id:string,actor:string):Promise<void>;
  setArchived(id:string,actor:string,archived:boolean):Promise<void>;
  get(id:string,actor:string):Promise<StoredMatch|null>;
  list(actor:string):Promise<StoredMatch[]>;
@@ -17,6 +18,7 @@ export interface MatchRepository {
 function databaseError(error:any):never{if(['PT409','40001','23505'].includes(error?.code))throw conflict();if(error?.code==='P0002')throw missing();if(error?.code==='42501')throw new ApiError(403,'forbidden','That turn belongs to another player.');console.error('Match storage error code:',error?.code);throw new ApiError(503,'unavailable','Match storage is unavailable. Retry the same action.');}
 export class SupabaseMatchRepository implements MatchRepository {
  constructor(private client:SupabaseClient){}
+ async leave(id:string,actor:string){const {error}=await this.client.rpc('leave_async_match',{p_id:id,p_actor:actor});if(error)databaseError(error);}
  async setArchived(id:string,actor:string,archived:boolean){const {error}=await this.client.rpc('set_async_match_archived',{p_id:id,p_actor:actor,p_archived:archived});if(error)databaseError(error);}
  async get(id:string,actor:string){const {data,error}=await this.client.from('async_matches').select('*').eq('id',id).or(`home_user_id.eq.${actor},away_user_id.eq.${actor}`).maybeSingle();if(error)databaseError(error);return data as StoredMatch|null;}
  async list(actor:string){

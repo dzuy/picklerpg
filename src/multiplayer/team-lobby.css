@@ -27,11 +27,11 @@ body[data-screen=remote]:has(#remote-lobby:not([hidden])){background:radial-grad
 #remote-lobby .lobby-person-row{display:grid;grid-template-columns:86px minmax(0,1fr) auto;gap:16px;align-items:center;border:1px solid #147eaf;border-radius:12px;padding:12px;margin-bottom:10px;background:linear-gradient(120deg,#0b2254,#04203b)}
 #remote-lobby .lobby-person-avatar{width:86px;height:86px;object-fit:contain;background:#143968;border-radius:12px}
 #remote-lobby .lobby-person-identity h2{font-size:23px;margin:0;overflow-wrap:anywhere}
-#remote-lobby .lobby-person-actions{display:flex;gap:8px;align-items:center}
+#remote-lobby .lobby-person-actions{display:flex;flex-direction:row;gap:6px;align-items:center}
 #remote-lobby .team-lobby-add-friend{border:1px solid #76caff;background:linear-gradient(115deg,#2186e8,#145fc5);color:#fff;border-radius:11px;padding:14px 18px;font-weight:850;cursor:pointer;box-shadow:0 0 20px #2089ef30;white-space:nowrap}
 #remote-lobby .team-lobby-add-friend:hover{background:#268ded;border-color:#b7e6ff;box-shadow:0 0 24px #2089ef55}
 @media(max-width:800px){#remote-lobby .team-lobby-add-friend{padding:12px 10px;font-size:13px}}
-@media(max-width:480px){#remote-lobby .lobby-person-actions.has-add-friend{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr}}
+
 #remote-lobby .lobby-person-actions .team-lobby-quiet{min-height:30px;padding:4px;font-size:11px;border:0}
 .lobby-avatar-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:10px}.lobby-avatar-options img{width:100%;height:90px;object-fit:contain}.lobby-avatar-options button{padding:0;background:#143968;border:1px solid #148ded;border-radius:12px}
 @media(max-width:800px){#remote-lobby .team-lobby-grid{gap:18px}#remote-lobby .team-lobby>.team-directory-tabs{margin-bottom:16px}#remote-lobby .team-directory-tab{font-size:15px;padding:14px 8px}#remote-lobby .team-directory>.remote-match-list{padding:12px}#remote-lobby .lobby-person-row{grid-template-columns:60px minmax(0,1fr) auto;gap:10px;padding:10px}#remote-lobby .lobby-person-avatar{width:60px;height:68px}#remote-lobby .lobby-person-identity h2{font-size:18px}#remote-lobby .lobby-person-actions .team-lobby-primary{padding:12px 10px;font-size:13px}#remote-lobby .lobby-own-team{padding:16px}#remote-lobby .lobby-own-team h3{font-size:23px;margin:12px 0}#remote-lobby .lobby-own-team .lobby-athletes{margin-top:10px}}
@@ -144,3 +144,24 @@ body[data-screen=remote]:has(#remote-lobby:not([hidden])){background:radial-grad
 #remote-lobby .pending-invite-controls button:focus-visible { outline: 2px solid #8ce6ed; outline-offset: 2px; }
 #remote-lobby .pending-invite-notice { display: block; color: #bed0e1; font-size: 12px; padding: 6px 12px; }
 #remote-lobby .pending-invite-notice:empty { display: none; }
+
+#remote-lobby .lobby-person-record{font-size:.75em;font-weight:500;color:#b6cde8;white-space:nowrap;font-variant-numeric:tabular-nums}
+
+.activity-title{display:inline-flex;align-items:center;gap:6px;margin-top:5px;padding:4px 9px;border:1px solid #a7bc6655;border-radius:999px;background:#cfeb7810;color:#d7ec9d;font-size:12px;font-weight:700;line-height:1.4}
+.activity-rewards{width:100%;margin:24px 0;text-align:left}.activity-rewards h3{font-size:22px;margin:0 0 12px}.activity-rewards .activity-streaks{font-size:14px;color:#dbedab;font-weight:700}.activity-rewards .activity-note{font-size:12px;color:#a9c1dc;line-height:1.5}.activity-rewards label{display:grid;gap:8px;font-size:13px;margin:16px 0}.activity-rewards select{background:#102951;color:#eef5ff;padding:10px;border:1px solid #567da1;border-radius:8px;max-width:100%}.activity-badges{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:18px}.activity-badge{display:grid;gap:7px;border:1px solid #53789855;border-radius:12px;padding:14px;background:#102749}.activity-badge.earned{border-color:#b8d87580;background:linear-gradient(135deg,#243e40,#102749)}.activity-badge.locked{color:#9bb2cd}.activity-badge-icon{font-size:26px;color:#cce58c}.activity-badge.locked .activity-badge-icon{color:#8296ad}.activity-badge strong{font-size:13px}.activity-badge small{font-size:11px;line-height:1.45}.activity-badge-progress{font-size:11px;font-weight:700;color:#cde298}.activity-rewards [role=status]:empty{display:none}
+
+.activity-title{gap:7px;padding:4px 10px;margin-top:4px}
+.activity-title-icon{display:inline-flex;align-items:center;justify-content:center;font-size:21px;line-height:1;width:23px;flex-shrink:0}
+.activity-title[data-color=mint]{color:#b8efd1;border-color:#79cba659;background:#296b5133}
+.activity-title[data-color=gold]{color:#f1dda0;border-color:#d0af6259;background:#79612233}
+.activity-title[data-color=sky]{color:#b3e2ff;border-color:#75b7e259;background:#28698b33}
+.activity-title[data-color=violet]{color:#dcc4ff;border-color:#aa83e359;background:#60418b33}
+.activity-title[data-color=rose]{color:#fac5d9;border-color:#dd8fb259;background:#843e5b33}
+
+#remote-lobby .lobby-person-identity{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+#remote-lobby .lobby-person-identity h2{display:flex;align-items:baseline;flex-wrap:wrap;column-gap:5px;line-height:1.2}
+#remote-lobby .lobby-person-name{min-height:0;margin:0;padding:0;line-height:1.2}
+#remote-lobby .lobby-person-identity .activity-title{font-size:10px;line-height:1.2;padding:3px 7px;gap:4px;margin-top:0;max-width:100%}
+#remote-lobby .lobby-person-identity .activity-title-icon{font-size:15px;width:17px}
+#remote-lobby .lobby-person-actions .team-lobby-primary,#remote-lobby .lobby-person-actions .team-lobby-add-friend{min-height:32px;margin:0;padding:7px 10px;font-size:12px;line-height:1.2;border-radius:8px}
+@media(max-width:480px){#remote-lobby .lobby-person-row{grid-template-columns:48px minmax(0,1fr) auto;gap:8px}#remote-lobby .lobby-person-avatar{width:48px;height:60px}#remote-lobby .lobby-person-identity h2{font-size:16px}#remote-lobby .lobby-person-actions .team-lobby-primary,#remote-lobby .lobby-person-actions .team-lobby-add-friend{padding:7px 8px;font-size:11px}}

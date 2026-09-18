@@ -1,0 +1,7 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {botPlayer,botRecord,addBotRecord,BOT_PERSONAS} from '../server/multiplayer/bot-persona';
+import {validatePlayer} from '../src/player-design';
+test('generated bot avatars are valid and varied',()=>{const avatars=new Set();for(let i=0;i<100;i++){const p=botPlayer('Test','starter');assert.deepEqual(validatePlayer(p),p);avatars.add(JSON.stringify(p.appearance));}assert.ok(avatars.size>95);});
+test('seed records stay consistent and only server-marked bots get synthetic totals',()=>{for(let i=0;i<100;i++){const seed=botRecord();assert.equal(seed.games,seed.wins+seed.losses);assert.ok(seed.games>=70&&seed.games<=99);const actual={games:3,wins:2,losses:1};assert.deepEqual(addBotRecord(actual,{bot_seed_record:seed}),actual);assert.deepEqual(addBotRecord(actual,{community_bot:true,bot_seed_record:seed}),{games:seed.games+3,wins:seed.wins+2,losses:seed.losses+1});}assert.deepEqual(addBotRecord({games:0,wins:0,losses:0},{community_bot:true,bot_seed_record:{games:3,wins:9,losses:0}}),{games:0,wins:0,losses:0});});
+test('initial handles are unique and mix naming styles',()=>{const handles=BOT_PERSONAS.map(p=>p[0]);assert.equal(new Set(handles).size,10);assert.ok(handles.every(h=>/^[a-z0-9_]{3,24}$/.test(h)));assert.ok(handles.some(h=>h.includes('_')));assert.ok(handles.some(h=>/\d/.test(h)));assert.ok(handles.some(h=>/^[a-z]+$/.test(h)));});

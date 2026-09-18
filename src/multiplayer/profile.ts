@@ -1,3 +1,5 @@
+import {activityEvents,activityRewards} from '../activity-rewards';
+import {activityPanel,activityTitle} from './activity-badges';
 import {playerFromRow} from '../cloud-players';
 import {starterPlayer} from '../starter-player';
 import {authClient} from '../auth-session';
@@ -55,6 +57,9 @@ export function profilePanel(portraits:AvatarThumbnails|undefined,authenticate:(
    const [saved,remote]=await Promise.all([history(),remoteRequest<PublicMatch[]>(session!.data.session!.access_token,'/api/matches')]);
    const record=profileRecord(saved,new OpenPlayStore(browserStorage,user.id).list(),remote);
    [record.games,record.wins,record.losses].forEach((value,i)=>values[i].textContent=String(value));
+   const activity=activityRewards(activityEvents(saved,remote),user.user_metadata.activity_title);
+   const badge=activityTitle(activity);if(badge)stats.before(badge);
+   footer.before(activityPanel(activity,async id=>{const {error}=await client!.auth.updateUser({data:{activity_title:id}});if(error)throw error;activity.title=id;const next=activityTitle(activity);const previous=panel.querySelector('.activity-title');if(previous&&next)previous.replaceWith(next);else if(next)stats.before(next);}));
    note.remove();
   }catch{note.textContent='Your game record is unavailable right now.';}
  })().catch(()=>{panel.replaceChildren(node('p','Your profile could not be loaded. Please refresh to try again.'));}).finally(()=>panel.setAttribute('aria-busy','false'));

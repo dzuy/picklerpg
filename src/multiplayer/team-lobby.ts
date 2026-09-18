@@ -1,3 +1,5 @@
+import {activityTitle,activityPanel} from './activity-badges';
+import type {ActivityRewards} from '../activity-rewards';
 import {openGameSurface} from '../game-surface';
 import {appNavigation,initialLobbyPage,type LobbyPage} from '../app-navigation';
 import {profilePanel} from './profile';
@@ -12,6 +14,14 @@ function node<K extends keyof HTMLElementTagNameMap>(tag:K,cls:string,text=''){c
 export class TeamLobby {
  readonly element=node('section','team-lobby');
  private static activeTab:'games'|'friends'|'community'|'roster'|'profile'=initialLobbyPage()==='friends'&&new URLSearchParams(location.search).get('view')==='community'?'community':initialLobbyPage();private get tab(){return TeamLobby.activeTab}private set tab(value:'games'|'friends'|'community'|'roster'|'profile'){TeamLobby.activeTab=value}private static portraits:AvatarThumbnails|undefined;private get portraits(){return TeamLobby.portraits;}
+ private static records=new Map<string,{expires:number;value:Promise<(ReturnType<typeof profileRecord>&{activity?:ActivityRewards})>}>();
+ private record(person:LobbyTeam){
+  const key=`${this.data.self.id}:${person.id}`,cached=TeamLobby.records.get(key);
+  if(cached&&cached.expires>Date.now())return cached.value;
+  const value=matchCredentials().then(credentials=>remoteRequest<(ReturnType<typeof profileRecord>&{activity?:ActivityRewards})>(credentials.token,`/api/multiplayer/teams/${person.id}/record`));
+  const entry={expires:Date.now()+30000,value};TeamLobby.records.set(key,entry);
+  void value.catch(()=>{if(TeamLobby.records.get(key)===entry)TeamLobby.records.delete(key);});return value;
+ }
  private data:TeamDirectory;private message='';
  constructor(data:TeamDirectory,private actions:{signOut:()=>Promise<void>;authenticate:(signup:boolean,guest:boolean)=>void;roster:()=>void;create:()=>void;challenge:(team:LobbyTeam)=>void;changed:(data:TeamDirectory)=>void;enabled:boolean;games:HTMLElement}){this.data=data;this.draw();void preloadAthletes().then(()=>{TeamLobby.portraits??=new AvatarThumbnails(256);if(this.element.isConnected)this.draw()}).catch(()=>{});}
  selectTab(tab:LobbyPage){
@@ -49,7 +59,9 @@ export class TeamLobby {
     const card=node('article','lobby-person-row'),identity=node('div','lobby-person-identity');
     if(this.portraits){const img=node('img','lobby-person-avatar');img.src=this.portraits.get(person.avatar,'face');img.alt=`${person.manager}'s avatar`;card.append(img);}
     const title=node('h2','');const profile=this.button(person.manager,()=>this.openFriendProfile(person),'lobby-person-name');profile.dataset.personId=person.id;profile.setAttribute('aria-label',`View ${person.manager}’s profile`);title.append(profile);identity.append(title);
-    const controls=node('div','lobby-person-actions'),challenge=this.button('Start Game →',()=>this.actions.challenge(person),'team-lobby-primary');challenge.disabled=!this.actions.enabled;
+    const recordLabel=node('span','lobby-person-record','');title.append(recordLabel);
+    void this.record(person).then(record=>{if(record.activity){const badge=activityTitle(record.activity);if(badge)identity.append(badge);}recordLabel.textContent=` (${record.wins.toLocaleString()}-${record.losses.toLocaleString()})`;recordLabel.setAttribute('aria-label',`${record.wins} wins, ${record.losses} losses`);}).catch(()=>{recordLabel.textContent=' (—)';recordLabel.setAttribute('aria-label','Record unavailable');});
+    const controls=node('div','lobby-person-actions'),challenge=this.button('Start Game',()=>this.actions.challenge(person),'team-lobby-primary');challenge.disabled=!this.actions.enabled;
     if(!this.data.friends.includes(person.id)){controls.classList.add('has-add-friend');controls.append(this.button('Add Friend',()=>void this.friend(person.id),'team-lobby-add-friend'));}controls.append(challenge);
     card.append(identity,controls);list.append(card);
    }
@@ -75,11 +87,10 @@ export class TeamLobby {
   const values=['Games played','Wins','Losses'].map(label=>{const stat=node('div',''),value=node('dd','','—');stat.append(node('dt','',label),value);stats.append(stat);return value;});
   const recordStatus=node('p','lobby-profile-note','Loading game record…');recordStatus.setAttribute('role','status');
   void (async()=>{
-   const credentials=await matchCredentials();
-   const record=await remoteRequest<ReturnType<typeof profileRecord>>(credentials.token,`/api/multiplayer/teams/${person.id}/record`);
-   [record.games,record.wins,record.losses].forEach((value,i)=>values[i].textContent=String(value));recordStatus.remove();
+   const record=await this.record(person);
+   [record.games,record.wins,record.losses].forEach((value,i)=>values[i].textContent=String(value));if(record.activity){const badge=activityTitle(record.activity);if(badge)relationship.after(badge);panel.append(activityPanel(record.activity));}recordStatus.remove();
   })().catch(()=>{recordStatus.textContent='Game record is unavailable right now.';}).finally(()=>stats.setAttribute('aria-busy','false'));
-  const play=this.button('Start Game →',()=>{dialog.close();this.actions.challenge(person)},'team-lobby-primary');play.disabled=!this.actions.enabled;
+  const play=this.button('Start Game',()=>{dialog.close();this.actions.challenge(person)},'team-lobby-primary');play.disabled=!this.actions.enabled;
   const friend=this.button('',()=>{},'team-lobby-quiet');
   const sync=()=>{const connected=this.data.friends.includes(person.id);relationship.textContent=connected?'Your friend':'Community player';friend.textContent=connected?'Remove Friend':'Add Friend';};sync();
   friend.onclick=()=>{friend.disabled=true;status.textContent='';void this.friend(person.id).then(saved=>{if(saved)sync();else status.textContent=this.message;}).finally(()=>{friend.disabled=false;});};

@@ -33,3 +33,16 @@ test('fresh guest registration uses the username when no display name exists',()
  for(const playerName of [undefined,null,'','   '])assert.equal(registrationInput({...input,playerName}).playerName,'dzuy');
  assert.equal(registrationInput({...input,playerName:'Dzuy Linh'}).playerName,'Dzuy Linh');
 });
+
+test('new accounts start with the registered dzuy account as their welcome friend',async()=>{
+ let request:any;
+ const client:any={auth:{admin:{listUsers:async()=>({data:{users:[{id:'11111111-1111-4111-8111-111111111111',is_anonymous:false,user_metadata:{username:'dzuy'},app_metadata:{multiplayer_playtest:true}}]},error:null}),createUser:async(input:any)=>{request=input;return {data:{user:{id:'new'}}};}}}};
+ await registerPlaytester(client,{email:'new@example.com',password:'abcdef',username:'newplayer'});
+ assert.deepEqual(request.user_metadata.open_play_friends,['11111111-1111-4111-8111-111111111111']);
+});
+test('creating dzuy before a welcome account exists does not add a self friend',async()=>{
+ let request:any;
+ const client:any={auth:{admin:{listUsers:async()=>({data:{users:[]},error:null}),createUser:async(input:any)=>{request=input;return {data:{user:{id:'11111111-1111-4111-8111-111111111111'}}};}}}};
+ await registerPlaytester(client,{email:'new@example.com',password:'abcdef',username:'dzuy'});
+ assert.deepEqual(request.user_metadata.open_play_friends,[]);
+});

@@ -1,3 +1,4 @@
+import {startCommunityBots} from './community-bots';
 import {signInAccount} from './sign-in';
 import {TeamDirectoryService} from './team-directory';
 import {FriendService} from './friends';
@@ -87,6 +88,8 @@ export function createMatchHandler(service:MatchService,authenticate:Authenticat
     if(req.method==='GET'){send(res,200,await trashTalk.feed(chat[1],actor));return;}
     if(req.method==='POST'){limit(`chat:${actor}`,30);send(res,200,await trashTalk.send(chat[1],actor,await body(req)));return;}
    }
+   const leave=pathname.match(/^\/api\/matches\/([^/]+)\/leave$/);
+   if(leave&&uuid(leave[1])&&req.method==='POST'){send(res,200,await service.leave(leave[1],actor));return;}
    const archive=pathname.match(/^\/api\/matches\/([^/]+)\/archive$/);
    if(archive&&uuid(archive[1])&&req.method==='POST'){send(res,200,await service.archive(archive[1],actor,await body(req)));return;}
    const match=pathname.match(/^\/api\/matches\/([^/]+)(\/actions)?$/);
@@ -108,9 +111,11 @@ export function configuredMatchHandler(env:NodeJS.ProcessEnv=process.env){
  const testers=new Map<string,string>();
  let refreshed=0,refreshing:Promise<void>|null=null;
  async function refreshTesters(){if(Date.now()-refreshed<5000)return;if(!refreshing)refreshing=(async()=>{const enrolled=await loadPlaytesters(client);testers.clear();for(const [id,email] of enrolled)testers.set(id,email);refreshed=Date.now();})().finally(()=>{refreshing=null;});await refreshing;}
- const authenticate:Authenticate=async token=>{const {data,error}=await client.auth.getUser(token);if(error||!data.user)throw new ApiError(401,'authentication','Your session expired. Sign in again, then retry.');await refreshTesters();if(testers.has(data.user.id)||data.user.is_anonymous||data.user.app_metadata?.multiplayer_playtest===true){try{testers.set(data.user.id,playerName(data.user.user_metadata?.player_name));}catch{}}return data.user.id;};
+ const authenticate:Authenticate=async token=>{const {data,error}=await client.auth.getUser(token);if(error||!data.user)throw new ApiError(401,'authentication','Your session expired. Sign in again, then retry.');await refreshTesters();if(testers.has(data.user.id)||data.user.is_anonymous||data.user.app_metadata?.multiplayer_playtest===true){try{testers.set(data.user.id,playerName(data.user.user_metadata?.username??data.user.user_metadata?.player_name));}catch{}}return data.user.id;};
  const register=env.MULTIPLAYER_CREATE_ENABLED==='true'?async(input:unknown)=>{const result=await registerPlaytester(client,input);refreshed=0;return result;}:undefined;
  const push=configuredPush(client,env);
  const service=new MatchService(new SupabaseMatchRepository(client),testers,env.MULTIPLAYER_CREATE_ENABLED==='true',push?event=>push.notify(event):undefined);
- return createMatchHandler(service,authenticate,register,new InvitationService(new SupabaseInviteRepository(client),service,testers,team=>resolvePublicTeam(client,team)),push,new NudgeService(client,testers,push?event=>push.notifyNudge(event):undefined,env.NUDGE_TEST_UNLIMITED==='true'),new TrashTalkService(client),new FriendService(client,service),new TeamDirectoryService(client,testers),input=>signInAccount(client,async credentials=>{const exchange=createClient(url,env.VITE_SUPABASE_PUBLISHABLE_KEY??key,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});const {data,error}=await exchange.auth.signInWithPassword(credentials);return error?null:data.session;},input));
+ const invitations=new InvitationService(new SupabaseInviteRepository(client),service,testers,team=>resolvePublicTeam(client,team));
+ if(env.MULTIPLAYER_CREATE_ENABLED==='true'&&env.COMMUNITY_BOTS_ENABLED!=='false')startCommunityBots(client,service,invitations,refreshTesters);
+ return createMatchHandler(service,authenticate,register,invitations,push,new NudgeService(client,testers,push?event=>push.notifyNudge(event):undefined,env.NUDGE_TEST_UNLIMITED==='true'),new TrashTalkService(client),new FriendService(client,service),new TeamDirectoryService(client,testers),input=>signInAccount(client,async credentials=>{const exchange=createClient(url,env.VITE_SUPABASE_PUBLISHABLE_KEY??key,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});const {data,error}=await exchange.auth.signInWithPassword(credentials);return error?null:data.session;},input));
 }

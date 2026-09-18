@@ -26,7 +26,7 @@ test('friend records aggregate recorded solo and online results without exposing
  const service=new TeamDirectoryService(client,new Map());
  service.list=async()=>({self:lobbyTeam('self','Me',{}),teams:[lobbyTeam('friend','Friend',{})],friends:['friend']});
  const remote=async()=>[{id:'online-win',status:'completed',viewerTeam:'away',score:{home:3,away:11}},{id:'pending',status:'active',viewerTeam:'home',score:{home:1,away:2}}] as import('../src/multiplayer/protocol').PublicMatch[];
- assert.deepEqual(await service.record('self','friend',remote),{games:3,wins:2,losses:1});assert.equal(owner,'friend');
+ const {activity,...record}=await service.record('self','friend',remote);assert.deepEqual(record,{games:3,wins:2,losses:1});assert.ok(activity);assert.equal(owner,'friend');
 });
 
 test('friend records reject profiles outside the directory before reading results',async()=>{
@@ -40,4 +40,10 @@ test('friend record query failures do not appear as zero games',async()=>{
  const service=new TeamDirectoryService({from:()=>query} as unknown as SupabaseClient,new Map());
  service.list=async()=>({self:lobbyTeam('self','Me',{}),teams:[lobbyTeam('friend','Friend',{})],friends:[]});
  await assert.rejects(service.record('self','friend',async()=>[]),/record is unavailable/);
+});
+
+test('community identity uses unique usernames instead of duplicate display names',()=>{
+ const first=lobbyTeam('human','Luna',{username:'luna',player_name:'Luna'});
+ const bot=lobbyTeam('bot','Luna',{username:'luna_lobs',player_name:'Luna'});
+ assert.equal(first.manager,'luna');assert.equal(bot.manager,'luna_lobs');assert.notEqual(first.name,bot.name);
 });

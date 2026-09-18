@@ -26,7 +26,7 @@ export function publicMatch(row:StoredMatch,actor:string,names:ReadonlyMap<strin
  const currentTeam=row.status==='active'&&(!row.friend_state||row.friend_state==='accepted')?match.decisionTeam:null;
  const menu=match.targetingMenu;
  const nextHitter=currentTeam?menu[0]?.intent.actor??null:null;
- return {friendState:row.friend_state,invitedName:row.invited_name,archived:!!(viewerTeam==='home'?row.archived_home:row.archived_away),court:row.checkpoint.court??'forest',nextHitter,id:row.id,createdAt:row.created_at,version:row.version,status:row.status,accountIds:{home:row.home_user_id,away:row.away_user_id},viewerTeam,currentTeam,decisionId:decisionId(row),rules:{...row.checkpoint.rules},score:{...match.scoring.score},serveCall:match.scoring.call,serving:row.status==='active'&&match.targetingMenu.some(c=>c.intent.type==='serve'),server:match.scoring.server,pointIndex:match.point,
+ return {endedEarly:!!row.ended_by,friendState:row.friend_state,invitedName:row.invited_name,archived:!!(viewerTeam==='home'?row.archived_home:row.archived_away),court:row.checkpoint.court??'forest',nextHitter,id:row.id,createdAt:row.created_at,completedAt:row.completed_at??undefined,version:row.version,status:row.status,accountIds:{home:row.home_user_id,away:row.away_user_id},viewerTeam,currentTeam,decisionId:decisionId(row),rules:{...row.checkpoint.rules},score:{...match.scoring.score},serveCall:match.scoring.call,serving:row.status==='active'&&match.targetingMenu.some(c=>c.intent.type==='serve'),server:match.scoring.server,pointIndex:match.point,
   display:{schemaVersion:2,phase:s.phase,stage:s.stage,shotIndex:s.shotIndex,legIndex:0,elapsed:0,simulationTime:0,paused:true,ball:structuredClone(s.ball),players:structuredClone(s.players),shotHistory:[],rallyHistory:[],bounces:s.bounces,score:{...s.score},currentHitter:s.currentHitter,possession:s.possession,result:s.result?{...s.result}:null},
   roster:Object.fromEntries(SLOTS.map(id=>{const f=row.checkpoint.roster[id];return [id,{...f.design!,skills:{...f.skills},handedness:f.handedness}]})) as PublicMatch['roster'],
   choices:currentTeam===viewerTeam&&(!row.friend_state||row.friend_state==='accepted')?structuredClone(menu):[],result:row.last_result,animation:structuredClone(row.animation)};
@@ -50,6 +50,7 @@ function animations(match:Match):TurnAnimation[]{
 export class MatchService {
  constructor(private repository:MatchRepository,private testers:ReadonlyMap<string,string>,private creationEnabled=true,private notifyTurn?:TurnNotifier){}
  config(actor:string){return {selfId:actor,selfName:this.testers.get(actor)??'Previous playtest account',creationEnabled:this.creationEnabled&&this.testers.has(actor),testers:[...this.testers].filter(([id])=>id!==actor&&this.testers.has(actor)).map(([id,name])=>({id,name}))};}
+ async leave(id:string,actor:string){if(!this.repository.leave)throw new ApiError(503,'unavailable','Leaving games is unavailable.');await this.repository.leave(id,actor);return {archived:true};}
  async archive(id:string,actor:string,input:unknown){
   if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).length!==1||typeof (input as {archived?:unknown}).archived!=='boolean')throw new ApiError(400,'archive','Choose archive or restore.');
   const row=await this.repository.get(id,actor);if(!row)throw missing();teamFor(row,actor);

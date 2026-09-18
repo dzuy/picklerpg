@@ -149,6 +149,18 @@ export class CourtScene {
   const label=this.labels.get(id)!;label.dataset.name=player?.name??names[id];
   label.classList.remove('is-thinking');label.setAttribute('aria-label',`View ${label.dataset.name} skills`);label.textContent=label.dataset.name;
  }
+ /** Save the actual orbit position and target, including pan and zoom distance. */
+ cameraView(){return {position:this.camera.position.toArray(),target:this.controls.target.toArray(),distance:this.cameraDistance};}
+ restoreCameraView(value:unknown){
+  const view=value as ReturnType<CourtScene['cameraView']>|null;
+  if(!view||![view.position,view.target].every(v=>Array.isArray(v)&&v.length===3&&v.every(n=>typeof n==='number'&&Number.isFinite(n)&&Math.abs(n)<1000))||!Number.isFinite(view.distance))return false;
+  const position=new THREE.Vector3().fromArray(view.position),target=new THREE.Vector3().fromArray(view.target);
+  if(position.distanceTo(target)<this.controls.minDistance||position.distanceTo(target)>this.controls.maxDistance)return false;
+  // Drain residual damping before restoring; otherwise the old orbit nudges the saved pose.
+  const damping=this.controls.enableDamping;this.controls.enableDamping=false;this.controls.update();
+  this.camera.position.copy(position);this.controls.target.copy(target);this.cameraDistance=Math.max(0,Math.min(100,view.distance));this.customizedView=true;
+  this.controls.update();this.controls.enableDamping=damping;this.updateOverlayFraming();this.camera.updateProjectionMatrix();return true;
+ }
  setCamera(distance:number){this.cameraDistance=Math.max(0,Math.min(100,distance));if(this.customizedView){const pose=this.cameraPose();const radius=pose.position.distanceTo(pose.look);const direction=this.camera.position.clone().sub(this.controls.target).normalize();this.camera.position.copy(this.controls.target).addScaledVector(direction,radius);this.controls.update()}else this.updateCamera()}
  resetCamera(distance=50){this.cameraDistance=Math.max(0,Math.min(100,distance));this.customizedView=false;this.updateCamera()}
  private bottomOverlay=0;

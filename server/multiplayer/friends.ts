@@ -1,3 +1,4 @@
+import {friendIds} from '../../src/multiplayer/team-directory';
 import {starterPlayer} from '../../src/starter-player';
 import {isValidTargetScore} from '../../src/engine/scoring';
 import {challengeIdentity} from '../../src/multiplayer/challenge-identity';
@@ -45,8 +46,9 @@ export class FriendService {
   const {email,password,playerName:name,username:handle}=registrationInput(input);
   const {data:{user},error}=await this.client.auth.admin.getUserById(actor);if(error||!user)throw new ApiError(401,'authentication','Please reopen your game.');
   if(!user.is_anonymous){if(user.email===email)return {created:true};throw new ApiError(409,'registration','This player already has an account.');}
-  await requireAvailableUsername(this.client,handle,actor);
-  const {error:saveError}=await this.client.auth.admin.updateUserById(actor,{email,password,email_confirm:true,user_metadata:{...user.user_metadata,player_name:name,username:handle,starter_player:starterPlayer(name,'starter')},app_metadata:{...user.app_metadata,multiplayer_playtest:true}});
+  const welcomeFriend=await requireAvailableUsername(this.client,handle,actor);
+  const friends=friendIds(user.user_metadata.open_play_friends);if(welcomeFriend&&!friends.includes(welcomeFriend))friends.push(welcomeFriend);
+  const {error:saveError}=await this.client.auth.admin.updateUserById(actor,{email,password,email_confirm:true,user_metadata:{...user.user_metadata,open_play_friends:friends,player_name:name,username:handle,starter_player:starterPlayer(name,'starter')},app_metadata:{...user.app_metadata,multiplayer_playtest:true}});
   if(saveError)throw new ApiError(400,'registration','Could not save your player. That email may already have an account. Your game is still here.');
   await this.event(actor,'guest_registration_completed');
   return {created:true};
