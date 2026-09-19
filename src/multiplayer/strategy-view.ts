@@ -1,3 +1,4 @@
+import {parseStrategyStory,strategyStoryCopy} from './strategy-story';
 import {SHOT_TYPES} from '../engine/model';
 import {publicStrategy,type MatchStrategy} from './strategy';
 /** Secondary detail keeps Rematch the primary completion action. */
@@ -15,4 +16,13 @@ export function strategyDetails(value:MatchStrategy|undefined):HTMLElement{
  text('When offered = selections of that shot / decisions where it appeared in your menu. Each family counts once per decision. A selection may fail before contact.');
  if(s.rallies.sample)text(`${s.rallies.sample} complete rallies · ${s.rallies.averageContacts!.toFixed(1)} contacts on average · ${s.rallies.longestContacts} longest. Both teams’ contacts are included.`);
  return details;
+}
+
+export function strategyStoryDetails(value:unknown,opponent:string):HTMLElement|null {
+ let s;try{s=parseStrategyStory(value);}catch{return null;}
+ const section=document.createElement('section');section.className='strategy-story';section.setAttribute('aria-label','Your rivalry pattern');
+ const headline=document.createElement('p');headline.textContent=strategyStoryCopy(s,opponent);section.append(headline);
+ const evidence=document.createElement('details'),label=document.createElement('summary');label.textContent='See the evidence';evidence.append(label);
+ for(const [name,w] of [['Latest four',s.recent],['Previous four',s.previous]] as const){const p=document.createElement('p');p.textContent=`${name}: ${w.selected} selections / ${w.eligible} eligible third-shot choices.`;evidence.append(p);const list=document.createElement('ul');for(const m of w.matches){const li=document.createElement('li'),a=document.createElement('a');a.href=`/?openplay=1&match=${encodeURIComponent(m.id)}`;a.textContent=`Game completed ${new Date(m.completedAt).toLocaleString()}`;li.append(a);list.append(li);}evidence.append(list);}
+ const note=document.createElement('p');note.textContent='Your choices in games with this friend, with complete opportunity data and matching rules, engine version and your athlete IDs. This describes a selection pattern; it does not explain wins or losses.';evidence.append(note);section.append(evidence);return section;
 }

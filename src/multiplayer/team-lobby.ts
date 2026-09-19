@@ -1,7 +1,6 @@
 import {rivalryProfile} from './rivalry-view';
 import type {MatchRivalry} from './rivalry';
 import './rivalry.css';
-import {activityTitle,activityPanel} from './activity-badges';
 import type {ActivityRewards} from '../activity-rewards';
 import {openGameSurface} from '../game-surface';
 import {appNavigation,initialLobbyPage,type LobbyPage} from '../app-navigation';
@@ -63,7 +62,7 @@ export class TeamLobby {
     if(this.portraits){const img=node('img','lobby-person-avatar');img.src=this.portraits.get(person.avatar,'face');img.alt=`${person.manager}'s avatar`;card.append(img);}
     const title=node('h2','');const profile=this.button(person.manager,()=>this.openFriendProfile(person),'lobby-person-name');profile.dataset.personId=person.id;profile.setAttribute('aria-label',`View ${person.manager}’s profile`);title.append(profile);identity.append(title);
     const recordLabel=node('span','lobby-person-record','');title.append(recordLabel);
-    void this.record(person).then(record=>{if(record.activity){const badge=activityTitle(record.activity);if(badge)identity.append(badge);}recordLabel.textContent=` (${record.wins.toLocaleString()}-${record.losses.toLocaleString()})`;recordLabel.setAttribute('aria-label',`${record.wins} wins, ${record.losses} losses`);}).catch(()=>{recordLabel.textContent=' (—)';recordLabel.setAttribute('aria-label','Record unavailable');});
+    void this.record(person).then(record=>{recordLabel.textContent=` (${record.wins.toLocaleString()}-${record.losses.toLocaleString()})`;recordLabel.setAttribute('aria-label',`${record.wins} wins, ${record.losses} losses`);}).catch(()=>{recordLabel.textContent=' (—)';recordLabel.setAttribute('aria-label','Record unavailable');});
     const controls=node('div','lobby-person-actions'),challenge=this.button('Start Game',()=>this.actions.challenge(person),'team-lobby-primary');challenge.disabled=!this.actions.enabled;
     if(!this.data.friends.includes(person.id)){controls.classList.add('has-add-friend');controls.append(this.button('Add Friend',()=>void this.friend(person.id),'team-lobby-add-friend'));}controls.append(challenge);
     card.append(identity,controls);list.append(card);
@@ -91,7 +90,7 @@ export class TeamLobby {
   const recordStatus=node('p','lobby-profile-note','Loading game record…');recordStatus.setAttribute('role','status');
   void (async()=>{
    const record=await this.record(person);
-   [record.games,record.wins,record.losses].forEach((value,i)=>values[i].textContent=String(value));if(record.activity){const badge=activityTitle(record.activity);if(badge)relationship.after(badge);panel.append(activityPanel(record.activity));}recordStatus.remove();
+   [record.games,record.wins,record.losses].forEach((value,i)=>values[i].textContent=String(value));recordStatus.remove();
   })().catch(()=>{recordStatus.textContent='Game record is unavailable right now.';}).finally(()=>stats.setAttribute('aria-busy','false'));
   const play=this.button('Start Game',()=>{dialog.close();this.actions.challenge(person)},'team-lobby-primary');play.disabled=!this.actions.enabled;
   const friend=this.button('',()=>{},'team-lobby-quiet');

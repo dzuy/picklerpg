@@ -1,4 +1,5 @@
-import {strategyDetails} from './strategy-view';
+import {openRivalryShare} from './rivalry-share-view';
+import {strategyDetails,strategyStoryDetails} from './strategy-view';
 import {rivalryData,rivalryHeadline,rivalryStats,seriesLine} from './rivalry-view';
 import {RematchFlow} from './rematch-flow';
 import './rivalry.css';
@@ -84,6 +85,7 @@ const rivalryCompletion=document.createElement('section');rivalryCompletion.clas
 const rematchStatus=document.createElement('p');rematchStatus.className='rematch-status';rematchStatus.setAttribute('role','status');rivalryCompletion.after(rematchStatus);
 const rematch=document.createElement('button');rematch.id='remote-rematch';rematch.className='rematch-primary';el('remote-end-back').before(rematch);
 const challengeNext=document.createElement('button');challengeNext.className='rematch-other';challengeNext.textContent='Challenge a friend';challengeNext.onclick=()=>{void lobby().then(()=>inviteFriend(open)).catch(e=>status(e.message));};el('remote-end-back').after(challengeNext);
+const shareRivalry=document.createElement('button');shareRivalry.textContent='Share rivalry';shareRivalry.className='rematch-other';shareRivalry.onclick=()=>{if(session?.state)try{openRivalryShare(session.state,opponentLabel(session.state));}catch(e){rematchStatus.textContent=(e as Error).message;}};challengeNext.after(shareRivalry);
 const rematchFlow=new RematchFlow(matchCredentials,remoteRequest,()=>{
  rematch.textContent=rematchFlow.busy?'Opening rematch…':rematchFlow.waiting?'Rematch requested':rematchFlow.closed?'Rematch closed':rematchFlow.status.status==='accepted'?'Open rematch':rematchFlow.status.status==='pending'?'Accept rematch':'Rematch';
  rematch.disabled=rematchFlow.busy||rematchFlow.waiting||rematchFlow.closed||!config?.creationEnabled||!session?.state?.accountIds?.[session.state.viewerTeam==='home'?'away':'home'];
@@ -93,7 +95,7 @@ const rematchFlow=new RematchFlow(matchCredentials,remoteRequest,()=>{
 rematch.onclick=()=>void rematchFlow.submit();
 let completionKey='';
 function renderCompletion(s:PublicMatch){
- const opponent=opponentLabel(s),key=JSON.stringify([s.id,s.version,s.rivalry,s.strategy,opponent,s.endedEarly]);if(key===completionKey)return;completionKey=key;
+ const opponent=opponentLabel(s),key=JSON.stringify([s.id,s.version,s.rivalry,s.strategy,s.strategyStory,opponent,s.endedEarly]);if(key===completionKey)return;completionKey=key;
  const own=s.score[s.viewerTeam],other=s.score[s.viewerTeam==='home'?'away':'home'];
  gameEnd.querySelector('.game-end-kicker')!.textContent=`YOU VS ${opponent}`;
  gameEnd.querySelector('.game-end-label')!.textContent=s.endedEarly?'LEFT EARLY':'GAME COMPLETE';
@@ -102,6 +104,7 @@ function renderCompletion(s:PublicMatch){
  el('game-end-home-score').textContent=String(own);el('game-end-away-score').textContent=String(other);
  el('game-end-home-names').textContent='You';el('game-end-away-names').textContent=opponent;
  el('remote-end-rule').textContent=`FINAL SCORE · FIRST TO ${s.rules.target}`;
+ shareRivalry.hidden=!!s.endedEarly||!rivalryData(s.rivalry)?.atCompletion;
  rivalryCompletion.replaceChildren();const data=rivalryData(s.rivalry),summary=s.endedEarly?data?.current:data?.atCompletion;
  const headline=document.createElement('h2');headline.id='rivalry-headline';
  if(s.endedEarly)headline.textContent='Your rivalry record stays the same.';
@@ -110,7 +113,7 @@ function renderCompletion(s:PublicMatch){
  rivalryCompletion.append(headline);
  if(summary){rivalryCompletion.append(rivalryStats(summary));if(!s.endedEarly&&data?.current&&data.current.games>summary.games){const note=document.createElement('p');note.className='rivalry-note';note.textContent='Record at the end of this game.';rivalryCompletion.append(note);}}
  else{const note=document.createElement('p');note.className='rivalry-note';note.textContent=s.endedEarly?'Early exits do not count toward wins or streaks.':'Your rivalry record is unavailable right now.';rivalryCompletion.append(note);}
- if(!s.endedEarly)rivalryCompletion.append(strategyDetails(s.strategy));
+ if(!s.endedEarly){const story=strategyStoryDetails(s.strategyStory,opponent);if(story)rivalryCompletion.append(story);rivalryCompletion.append(strategyDetails(s.strategy));}
 }
 gameEnd.addEventListener('cancel',e=>e.preventDefault());el('remote-end-back').onclick=()=>void lobby().catch(e=>status(e.message));
 const leaveGame=document.createElement('button');leaveGame.type='button';leaveGame.className='remote-quiet';leaveGame.textContent='Leave game';settings.append(leaveGame);

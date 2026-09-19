@@ -35,7 +35,7 @@ The numbered phases below remain work-package identifiers. Implement them in thi
 6. Phase 8 can begin with rivalry-only text sharing after Phase 4; strategy sharing follows Phase 6. Phase 7 sequences are a later expansion.
 7. Phase 9 pacing improvements follow observed social-loop friction; they are not blocked by analytics. Phase 10 instrumentation and evaluation run throughout, with release decisions after sufficient observation.
 
-The first implementation slice is documented in [Authoritative shot-selection data](SHOT-SELECTION-DATA.md). It includes private transactional capture, a bounded historical backfill, reception/contact attribution, and historical-receipt completion metadata fixes. Production rollout and two-device acceptance remain outstanding; the phase exit gate is not yet checked. Aggregate endpoints and their strict public response parser belong to the subsequent metrics slice, before any aggregates are exposed.
+The first implementation slice is documented in [Authoritative shot-selection data](SHOT-SELECTION-DATA.md). It includes private transactional capture, a bounded historical backfill, reception/contact attribution, and historical-receipt completion metadata fixes. Production migrations and backfills are deployed. A completed live test game has verified complete event capture and both summaries; broader two-device acceptance remains open (see [story verification](RIVALRY-STORIES.md)). Aggregate endpoints and their strict public response parser belong to the subsequent metrics slice, before any aggregates are exposed.
 
 ## Definitions
 
@@ -159,7 +159,7 @@ A player can accurately answer “What shots do I choose?” and “What do I ch
 
 ## Phase 3 — Persistent rivalry projection
 
-Backend implementation and automated coverage are documented in [Persistent rivalry records](RIVALRY-DATA.md). Hosted migration/backfill and two-device acceptance remain pending. The visible completion/lobby experience follows in Phase 4.
+Backend implementation and automated coverage are documented in [Persistent rivalry records](RIVALRY-DATA.md). Hosted migration/backfill are complete and a three-game live rivalry has been verified; the full two-device acceptance matrix remains pending. The visible completion/lobby experience follows in Phase 4.
 
 ### Goal
 
@@ -281,6 +281,8 @@ Every completed online match has a compact, trustworthy strategic fingerprint.
 
 ## Phase 6 — Evidence-qualified rivalry strategy stories
 
+The first owner-only third-shot drop/drive slice is implemented locally; see [definitions, limits, and verification](RIVALRY-STORIES.md). Production rollout, measurement, and broader story families remain open.
+
 ### Goal
 
 Connect strategic change to rivalry history without overstating causation.
@@ -384,6 +386,8 @@ Move from frequency observations to sequences that better resemble strategic pic
 The game can describe recognizable tactical patterns while remaining honest about what its simulation demonstrates.
 
 ## Phase 8 — Shareable rivalry moments
+
+The first rivalry-only text share/copy flow is implemented locally; see [sharing behavior and release checks](RIVALRY-SHARING.md). Native-device acceptance and funnel measurement remain open.
 
 ### Goal
 
@@ -530,12 +534,12 @@ Use deterministic fixtures that describe the intended history in readable terms.
 ## Ordered build checklist
 
 - [ ] Foundation — event/metric/privacy contracts and multiplayer regression baseline
-- [ ] Phase 1 — Authoritative shot-selection events (implementation started; production acceptance pending)
-- [ ] Phase 3 — Persistent rivalry projection (backend implemented; hosted acceptance pending)
+- [ ] Phase 1 — Authoritative shot-selection events (deployed; live complete-event capture verified, broader acceptance pending)
+- [ ] Phase 3 — Persistent rivalry projection (deployed; live three-game rivalry verified, broader acceptance pending)
 - [ ] Phase 4 — Rivalry-first completion and lobby experience (implemented; [local playtest](RIVALRY-PLAYTEST.md) ready, hosted/mobile acceptance pending)
 - [ ] Phase 5 — Match strategy summaries (implemented; [definitions and playtest](MATCH-STRATEGY-DATA.md), hosted acceptance pending)
 - [ ] Phase 2 — Shot aggregates and personal shot mix (core dashboard implemented; [definitions and playtest](SHOT-MIX.md); richer tactical contexts and hosted/mobile acceptance pending)
-- [ ] Phase 6 — Evidence-qualified rivalry strategy stories
+- [ ] Phase 6 — Evidence-qualified rivalry strategy stories (first two personal story families implemented locally; production acceptance and measurement pending)
 - [ ] Phase 8 — Shareable rivalry moments (rivalry-only text may start after Phase 4)
 - [ ] Phase 7 — Rally sequences and richer tactical observations
 - [ ] Phase 9 — Faster co-presence and return-to-turn polish (prioritize from early playtests)

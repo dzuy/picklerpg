@@ -1,0 +1,13 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Rivalry story preview</title><style>body{margin:0;background:#dbe4f4;font:16px system-ui;color:#213152}main{max-width:440px;margin:24px auto;padding:20px}button{padding:16px;width:100%;background:#213152;color:white;border:0;border-radius:10px;font:700 18px system-ui}</style></head><body><main><p>SIMULATED EVIDENCE · LOCAL PREVIEW</p><h1>Your rivalry pattern</h1><div id="story"></div><p>Layout preview only. These example games cannot be opened or rematched.</p><a href="/preview">Open playable test games →</a><p id="checks"></p></main><script type="module">
+import {strategyStoryDetails} from '/src/multiplayer/strategy-view.ts';
+import '/src/multiplayer/rivalry.css';
+const matches=Array.from({length:8},(_,i)=>({id:`00000000-0000-4000-8000-${String(100-i).padStart(12,'0')}`,completedAt:new Date(Date.UTC(2026,8,20-i)).toISOString()}));
+const recent={matches:matches.slice(0,4),selected:36,eligible:40},previous={matches:matches.slice(4),selected:4,eligible:40};
+const delta=100*(36/40-4/40);
+const story={definitionVersion:'rivalry-story-1',key:'third-drop',direction:'more',recent,previous,percentagePointChange:delta,relativeChange:delta/(100*4/40),language:'observation',coverage:'complete'};
+const panel=strategyStoryDetails(story,'Ryan');
+// Illustrative IDs must never become navigable match links in this fixture.
+for(const link of panel.querySelectorAll('a')){const label=document.createElement('span');label.textContent=link.textContent;link.replaceWith(label);}
+document.querySelector('#story').append(panel);
+document.querySelector('#checks').textContent=strategyStoryDetails({...story,seed:'private'},'Ryan')===null?'Invalid evidence correctly hidden.':'FAILED';
+</script></body></html>

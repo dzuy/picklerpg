@@ -1,0 +1,14 @@
+/** Owner-only observations. This evidence does not establish causation. */
+export interface StoryWindow {matches:{id:string;completedAt:string}[];selected:number;eligible:number}
+export interface StrategyStory {definitionVersion:'rivalry-story-1';key:'third-drop'|'third-drive';direction:'more'|'less';recent:StoryWindow;previous:StoryWindow;percentagePointChange:number;relativeChange:number|null;language:'observation';coverage:'complete'}
+export function parseStrategyStory(value:unknown):StrategyStory {
+ const obj=(x:unknown,keys:string[])=>{if(!x||typeof x!=='object'||Array.isArray(x)||Object.keys(x).sort().join()!==keys.sort().join())throw Error('Invalid story');return x as Record<string,any>;};
+ const v=obj(value,['definitionVersion','key','direction','recent','previous','percentagePointChange','relativeChange','language','coverage']);
+ const window=(x:unknown):StoryWindow=>{const w=obj(x,['matches','selected','eligible']);if(!Number.isSafeInteger(w.selected)||!Number.isSafeInteger(w.eligible)||w.selected<0||w.eligible<10||w.selected>w.eligible||!Array.isArray(w.matches)||w.matches.length!==4)throw Error('Invalid story window');return {selected:w.selected,eligible:w.eligible,matches:w.matches.map((x:unknown)=>{const m=obj(x,['id','completedAt']);if(typeof m.id!=='string'||! /^[a-f0-9-]{36}$/i.test(m.id)||typeof m.completedAt!=='string'||!Number.isFinite(Date.parse(m.completedAt)))throw Error('Invalid story match');return {id:m.id,completedAt:m.completedAt};})};};
+ const recent=window(v.recent),previous=window(v.previous),all=[...recent.matches,...previous.matches];
+ if(new Set(all.map(m=>m.id)).size!==8||all.some((m,i)=>i>0&&(Date.parse(m.completedAt)>Date.parse(all[i-1].completedAt)||m.completedAt===all[i-1].completedAt&&m.id>=all[i-1].id)))throw Error('Invalid story order');
+ const delta=100*(recent.selected/recent.eligible-previous.selected/previous.eligible),relative=previous.selected?delta/(100*previous.selected/previous.eligible):null;
+ if(v.definitionVersion!=='rivalry-story-1'||!['third-drop','third-drive'].includes(v.key)||v.direction!==(delta>0?'more':'less')||Math.abs(delta)<15||v.percentagePointChange!==delta||v.relativeChange!==relative||v.language!=='observation'||v.coverage!=='complete')throw Error('Invalid story evidence');
+ return {definitionVersion:v.definitionVersion,key:v.key,direction:v.direction,recent,previous,percentagePointChange:delta,relativeChange:relative,language:v.language,coverage:v.coverage};
+}
+export function strategyStoryCopy(s:StrategyStory,opponent:string){return `You chose third-shot ${s.key==='third-drop'?'drops':'drives'} ${s.direction} often against ${opponent}: ${Math.round(100*s.recent.selected/s.recent.eligible)}% when offered in your latest four games, compared with ${Math.round(100*s.previous.selected/s.previous.eligible)}% in the previous four.`;}
