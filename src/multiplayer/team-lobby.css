@@ -171,3 +171,34 @@ body[data-screen=remote]:has(#remote-lobby:not([hidden])){background:radial-grad
  #remote-lobby .team-lobby-header-actions { flex-direction:column; align-items:stretch; gap:6px; }
  #remote-lobby .team-lobby-header-actions .team-lobby-create { padding:8px 10px; font-size:12px; }
 }
+/* With no games or invitations, the two ways to play become the main content. */
+#remote-lobby .play-start{display:none}
+#remote-lobby .team-lobby[data-tab=games]:not(:has(.remote-game-card)) .team-lobby-header-actions{display:none}
+#remote-lobby .team-lobby[data-tab=games]:not(:has(.remote-game-card)) .play-start{display:block;max-width:1000px;margin:clamp(24px,7vh,80px) auto 40px;padding:0 12px}
+#remote-lobby .play-start-intro{margin-bottom:30px;text-align:center}
+#remote-lobby .play-start-eyebrow{font-size:11px;letter-spacing:2px;font-weight:800;color:#cbff79;margin:0 0 14px}
+#remote-lobby .play-start-intro h2{font-size:clamp(28px,4vw,44px);line-height:1.12;letter-spacing:-1px;margin:0 0 12px;color:#fff}
+#remote-lobby .play-start-intro>p:last-child{font-size:15px;line-height:1.5;color:#c3d7f2;margin:0}
+#remote-lobby .play-start-choices{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+#remote-lobby .play-start-choice{display:flex;position:relative;flex-direction:column;align-items:flex-start;text-align:left;gap:22px;min-height:290px;padding:28px;border:1px solid #9fbde76b;border-radius:24px;background:linear-gradient(140deg,#203d7c,#112855);color:#f2f7ff;cursor:pointer;box-shadow:0 16px 36px #071b4525;transition:transform .15s,border-color .15s}
+#remote-lobby .play-start-choice:hover{transform:translateY(-3px);border-color:#e5f3ff}
+#remote-lobby .play-start-choice:focus-visible{outline:3px solid #fff;outline-offset:5px}
+#remote-lobby .play-start-social{background:linear-gradient(125deg,#d5ff8c,#adf253);border-color:#ddffa3;color:#183713}
+#remote-lobby .play-start-art{display:block;width:84px;height:70px}.play-start-art svg{width:100%;height:100%}
+#remote-lobby .play-start-text{display:flex;flex-direction:column;gap:10px;padding-right:12px}
+#remote-lobby .play-start-tag{font-size:10px;font-weight:800;letter-spacing:1.5px;opacity:.8}
+#remote-lobby .play-start-text strong{font-size:30px;line-height:1.1;letter-spacing:-.6px}
+#remote-lobby .play-start-description{font-size:14px;line-height:1.5;font-weight:400;max-width:270px}
+#remote-lobby .play-start-arrow{position:absolute;right:24px;top:24px;font-size:27px;font-weight:400}
+@media(max-width:600px){
+ #remote-lobby .team-lobby[data-tab=games]:not(:has(.remote-game-card)) .play-start{margin:20px auto 28px;padding:0}
+ #remote-lobby .play-start-intro{margin-bottom:22px;text-align:left}
+ #remote-lobby .play-start-choices{grid-template-columns:1fr;gap:14px}
+ #remote-lobby .play-start-choice{min-height:174px;padding:24px 20px;gap:18px;flex-direction:row;align-items:center;border-radius:20px}
+ #remote-lobby .play-start-art{flex:0 0 64px;width:64px;height:60px}
+ #remote-lobby .play-start-text{padding-right:12px;gap:8px}
+ #remote-lobby .play-start-text strong{font-size:25px}
+ #remote-lobby .play-start-tag{font-size:9px;letter-spacing:1px}
+ #remote-lobby .play-start-arrow{right:14px;top:12px;font-size:20px}
+}
+@media(prefers-reduced-motion:reduce){#remote-lobby .play-start-choice{transition:none}#remote-lobby .play-start-choice:hover{transform:none}}

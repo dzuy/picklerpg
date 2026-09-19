@@ -1,6 +1,6 @@
 import {authClient,matchCredentials} from './auth-session';
 import {remoteRequest} from './multiplayer/api';
-import {browserStorage} from './browser-storage';
+import {browserStorage,browserSessionStorage} from './browser-storage';
 import './pwa.css';
 interface InstallPrompt extends Event {prompt():Promise<void>;userChoice:Promise<{outcome:'accepted'|'dismissed'}>}
 let installPrompt:InstallPrompt|null=null;
@@ -18,12 +18,13 @@ let eligible=false,enabled=false,busy=false,message='',publicKey:string|null=nul
 let owner:string|null=null;
 let restoringNotifications=true;
 const supported=()=> 'Notification' in window&&'PushManager' in window&&'serviceWorker' in navigator;
+const notificationDismissed=()=>!!owner&&browserSessionStorage.getItem(`pickle-notifications-dismissed:${owner}`)==='1';
 const dismissed=()=>browserStorage.getItem('pickle-install-dismissed')==='1';
 export function setTurnPromptEligible(value:boolean){eligible=value;render();}
 export function mountTurnPrompt(host:HTMLElement){
  const card=document.createElement('section');card.className='turn-prompt';host.prepend(card);
  render=()=>{
-  card.replaceChildren();card.hidden=!eligible||!owner||enabled||restoringNotifications;if(card.hidden)return;
+  card.replaceChildren();card.hidden=!eligible||!owner||enabled||restoringNotifications||notificationDismissed();if(card.hidden)return;
   const installed=standalone();
   const needsInstall=ios&&!installed;
   if(!needsInstall&&(!supported()||Notification.permission==='denied')){card.hidden=true;return;}
@@ -35,13 +36,14 @@ export function mountTurnPrompt(host:HTMLElement){
    button.textContent='Add PickleBash';button.onclick=()=>void install();
    if(installedThisSession){copy.textContent='Open PickleBash from your Home Screen to enable notifications.';button.hidden=true;}
    else if(!ios&&!installPrompt){copy.textContent+=' Use your browser’s menu to install PickleBash.';button.hidden=true;}
-   const close=document.createElement('button');close.className='turn-later';close.textContent='Not now';close.onclick=()=>{browserStorage.setItem('pickle-install-dismissed','1');render();};card.append(close);
+   const close=document.createElement('button');close.className='turn-later';close.textContent='Not right now';close.onclick=()=>{browserStorage.setItem('pickle-install-dismissed','1');render();};card.append(close);
   }else{
    button.textContent=enabled?'Notifications enabled':'Enable Notifications';button.disabled=busy||enabled;
    if(!supported()){copy.textContent='Notifications aren’t supported in this browser. Try an updated browser.';button.hidden=true;}
    else if(Notification.permission==='denied'){copy.textContent='Notifications are blocked. You can change this in your device or browser settings.';button.hidden=true;}
    else if(!publicKey){copy.textContent='Notifications are not available yet.';button.hidden=true;}
    button.onclick=()=>void enable();
+   const later=document.createElement('button');later.type='button';later.className='turn-later';later.textContent='Not right now';later.onclick=()=>{if(owner)browserSessionStorage.setItem(`pickle-notifications-dismissed:${owner}`,'1');render();};card.append(later);
   }
   const status=document.createElement('p');status.setAttribute('role','status');status.textContent=message;
   card.append(title,copy,button,status);

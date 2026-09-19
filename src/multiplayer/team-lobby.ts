@@ -74,6 +74,19 @@ export class TeamLobby {
   const solo=this.button('Play Solo',()=>openGameSurface(),'team-lobby-primary team-lobby-create');
   const create=this.button('Create a Game',this.actions.create,'team-lobby-primary team-lobby-create');
   aside.append(solo,create);
+  if(this.tab==='games'){
+   const start=node('section','play-start');start.setAttribute('aria-label','Start playing');
+   const intro=node('div','play-start-intro');intro.append(node('p','play-start-eyebrow','THE COURT IS YOURS'),node('h2','','How do you want to play?'),node('p','','Get a quick game in, or start something with a friend.'));
+   const choices=node('div','play-start-choices');
+   const choice=(title:string,description:string,tag:string,icon:string,action:()=>void,kind:string)=>{
+    const card=this.button('',action,`play-start-choice ${kind}`);
+    const art=node('span','play-start-art');art.setAttribute('aria-hidden','true');art.innerHTML=`<svg viewBox="0 0 80 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>`;
+    const text=node('span','play-start-text');text.append(node('span','play-start-tag',tag),node('strong','',title),node('span','play-start-description',description));
+    const arrow=node('span','play-start-arrow','↗');arrow.setAttribute('aria-hidden','true');card.append(art,text,arrow);return card;
+   };
+   choices.append(choice('Play with Friends','Invite a friend. Take turns strategizing your shots. Build your rivalry.','BETTER WITH FRIENDS','<rect x="9" y="8" width="21" height="29" rx="6" transform="rotate(-20 20 22)"/><path d="m25 37 6 17"/><rect x="49" y="8" width="21" height="29" rx="6" transform="rotate(20 60 22)"/><path d="m55 37-6 17"/><circle cx="40" cy="13" r="4"/>',this.actions.create,'play-start-social'),choice('Play Solo','Take down the bots. Learn patterns and shot types at your own pace.','READY WHEN YOU ARE','<rect x="24" y="6" width="25" height="32" rx="7" transform="rotate(20 36 22)"/><path d="m31 38-6 17"/><circle cx="59" cy="43" r="6"/>',()=>openGameSurface(),'play-start-solo'));
+   start.append(intro,choices);directory.append(start);
+  }
   grid.append(directory);if(this.tab==='games')heading.append(aside);this.element.append(heading,grid,nav);
   const status=node('p','team-lobby-status',this.message);status.setAttribute('role','status');this.element.append(status);
  }
