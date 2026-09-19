@@ -1,3 +1,4 @@
+import {shotMixPanel} from './shot-mix-view';
 import {activityEvents,activityRewards} from '../activity-rewards';
 import {activityPanel,activityTitle} from './activity-badges';
 import {playerFromRow} from '../cloud-players';
@@ -43,7 +44,7 @@ export function profilePanel(portraits:AvatarThumbnails|undefined,authenticate:(
   if(player){const edit=node('a','Edit Player','team-lobby-quiet');edit.href=`/?openplay=1&tab=roster&editPlayer=${encodeURIComponent(player.id)}`;panel.append(edit);}
   const stats=node('dl','','lobby-profile-stats');
   const values=['Games played','Wins','Losses'].map(label=>{const stat=node('div'),value=node('dd','—');stat.append(node('dt',label),value);stats.append(stat);return value;});
-  const note=node('p','Loading your game record…','lobby-profile-note');note.setAttribute('role','status');panel.append(stats,note);
+  const note=node('p','Loading your game record…','lobby-profile-note');note.setAttribute('role','status');panel.append(stats,note,shotMixPanel());
   const footer=node('footer','','lobby-profile-account'),signOutButton=node('button','Sign out','team-lobby-quiet'),accountStatus=node('p');
   signOutButton.type='button';accountStatus.setAttribute('role','status');
   let currentEmail=user.email??'';

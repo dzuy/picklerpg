@@ -9,6 +9,7 @@
     "build": "tsc --noEmit && tsc -p tsconfig.server.json && vite build && node scripts/build-server.mjs",
     "test": "node --import tsx --test tests/*.test.ts",
     "preview": "vite preview --host 127.0.0.1",
+    "preview:rivalry": "node --import tsx tests/browser/rivalry-preview.ts",
     "opponent-server": "node --env-file-if-exists=.env.local server/opponent.mjs",
     "start": "node server/production.mjs",
     "evaluate:games": "node --import tsx scripts/evaluate-games.ts",
@@ -16,6 +17,9 @@
     "evaluate:net-skills": "node --import tsx scripts/evaluate-net-skills.ts",
     "evaluate:soft-skills": "node --import tsx scripts/evaluate-soft-skills.ts",
     "evaluate:finishing": "node --import tsx scripts/evaluate-finishing.ts",
+    "rebuild:strategies": "node --env-file-if-exists=.env.local --import tsx scripts/rebuild-strategies.ts",
+    "rebuild:rivalries": "node --env-file-if-exists=.env.local --import tsx scripts/rebuild-rivalries.ts",
+    "backfill:shot-selections": "node --env-file-if-exists=.env.local --import tsx scripts/backfill-shot-selections.ts",
     "multiplayer-server": "node --env-file-if-exists=.env.local --import tsx server/multiplayer/entry.ts"
   },
   "dependencies": {

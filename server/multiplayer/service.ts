@@ -1,3 +1,7 @@
+import {personalShotMix,shotMixFilter} from './shot-mix';
+import {publicStrategy} from '../../src/multiplayer/strategy';
+import {publicRivalry} from './rivalries';
+import {selectionOpportunity,selectionCapture} from './selection-events';
 import {createHmac,randomBytes,randomUUID} from 'node:crypto';
 import {Match} from '../../src/match';
 import {LOOKS} from '../../src/player-looks';
@@ -50,6 +54,7 @@ function animations(match:Match):TurnAnimation[]{
 export class MatchService {
  constructor(private repository:MatchRepository,private testers:ReadonlyMap<string,string>,private creationEnabled=true,private notifyTurn?:TurnNotifier){}
  config(actor:string){return {selfId:actor,selfName:this.testers.get(actor)??'Previous playtest account',creationEnabled:this.creationEnabled&&this.testers.has(actor),testers:[...this.testers].filter(([id])=>id!==actor&&this.testers.has(actor)).map(([id,name])=>({id,name}))};}
+ async shotMix(actor:string,params:URLSearchParams){return personalShotMix(this.repository,actor,shotMixFilter(params),this.testers);}
  async leave(id:string,actor:string){if(!this.repository.leave)throw new ApiError(503,'unavailable','Leaving games is unavailable.');await this.repository.leave(id,actor);return {archived:true};}
  async archive(id:string,actor:string,input:unknown){
   if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).length!==1||typeof (input as {archived?:unknown}).archived!=='boolean')throw new ApiError(400,'archive','Choose archive or restore.');
@@ -57,8 +62,19 @@ export class MatchService {
   await this.repository.setArchived(id,actor,(input as {archived:boolean}).archived);
   return {archived:(input as {archived:boolean}).archived};
  }
- async get(id:string,actor:string){const row=await this.repository.get(id,actor);if(!row)throw missing();return publicMatch(row,actor,this.testers);}
- async list(actor:string){return (await this.repository.list(actor)).map(row=>publicMatch(row,actor,this.testers));}
+ async get(id:string,actor:string){const row=await this.repository.get(id,actor);if(!row)throw missing();const match=(await this.withRivalries([publicMatch(row,actor,this.testers)],actor))[0];if(match.status==='completed'&&!match.endedEarly&&this.repository.strategy){try{const summary=await this.repository.strategy(id,actor);if(summary)match.strategy=publicStrategy(summary);}catch{console.warn('Match strategy unavailable');}}return match;}
+ async list(actor:string){return this.withRivalries((await this.repository.list(actor)).map(row=>publicMatch(row,actor,this.testers)),actor);}
+ private async withRivalries(matches:PublicMatch[],actor:string){
+  if(!this.repository.rivalries||!matches.length)return matches;
+  try{
+   const summaries=await this.repository.rivalries(actor,matches.map(m=>m.id));
+   for(const match of matches){
+    if(!Object.hasOwn(summaries,match.id))continue;
+    try{const rivalry=publicRivalry(summaries[match.id]);if(rivalry.atCompletion&&rivalry.atCompletion.recent[0].matchId!==match.id)throw new Error('Mismatched rivalry snapshot');match.rivalry=rivalry;}catch{console.warn('Invalid rivalry summary');}
+   }
+  }catch{console.warn('Rivalry history unavailable');}
+  return matches;
+ }
  async friendOpening(id:string,inviter:string,team?:TeamSelection){
   const row=await this.repository.get(id,inviter);if(!row)throw missing();
   if(row.friend_state!=='pending')return null;
@@ -90,7 +106,7 @@ export class MatchService {
   const old=await this.repository.receipt(id,request.actionId);
   const receipt=(r:StoredReceipt):ActionReceipt=>{
    if(r.actor_id!==actor||r.request_hash!==hash)throw conflict();
-   return {actionId:r.action_id,fromVersion:r.from_version,toVersion:r.to_version,state:publicMatch({...row,...r.result,checkpoint:r.checkpoint,version:r.to_version},actor,this.testers)};
+   return {actionId:r.action_id,fromVersion:r.from_version,toVersion:r.to_version,state:publicMatch({...row,...r.result,checkpoint:r.checkpoint,version:r.to_version,completed_at:r.result.completed_at??(r.result.status==='completed'?r.created_at??null:null),ended_by:null,archived_home:r.result.archived_home??false,archived_away:r.result.archived_away??false},actor,this.testers)};
   };
   if(old)return receipt(old);compatible(row);
   if(row.version!==request.expectedVersion||request.decisionId!==decisionId(row)||row.status!=='active')throw conflict();
@@ -98,9 +114,11 @@ export class MatchService {
   const c=structuredClone(row.checkpoint);c.seed=seed(row);
   const match=Match.fromCheckpoint(c);const team=teamFor(row,actor);
   if(match.decisionTeam!==team)throw new ApiError(503,'invalid_state','Match ownership is inconsistent.');
+  const opportunity=selectionOpportunity(match);
   try{match.submitTurn({decisionId:match.decisionId,playerId:playerForTeam(team),intent:request.action.intent,...(request.action.timing?{timing:request.action.timing}:{})});}
   catch{throw new ApiError(400,'illegal_action','That shot or reception timing is not legal for this decision.');}
   const animation=animations(match);match.settleCommittedPlayback();
+  const selection=selectionCapture(opportunity,match,request.action);
   const result=match.state.result?structuredClone(match.state.result):null;
   if(match.state.phase==='complete'&&!match.scoring.winner)match.nextPoint();
   // Network versions count accepted actions, including point advancement in the same transaction.
@@ -111,8 +129,12 @@ export class MatchService {
   const current=match.decisionTeam;
   if(status==='active'&&!current)throw new ApiError(503,'invalid_state','Resolution did not reach a decision.');
   const next:StoredMatch={...row,checkpoint,status,animation,last_result:result,current_action_user_id:current?(current==='home'?row.home_user_id:row.away_user_id):null};
-  const committed=await this.repository.commit({match:next,actor,hash,actionId:request.actionId,expectedVersion:row.version,action:request.action});
+  const committed=await this.repository.commit({match:next,actor,hash,actionId:request.actionId,expectedVersion:row.version,action:request.action,selection});
   const response=receipt(committed);
+  if(committed.result.status==='completed'&&this.repository.strategy){
+   // Derived work is repairable on read and must not invalidate an accepted turn.
+   await Promise.all([row.home_user_id,row.away_user_id].filter((owner):owner is string=>!!owner).map(owner=>this.repository.strategy!(id,owner).catch(()=>console.warn('Match strategy build deferred'))));
+  }
   const recipient=committed.result.current_action_user_id;
   if(this.notifyTurn&&committed.result.status==='active'&&recipient&&recipient!==actor){
    // Detached side effect: provider/storage failure cannot roll back or delay a turn.

@@ -60,6 +60,7 @@ export function createMatchHandler(service:MatchService,authenticate:Authenticat
    if(teams&&pathname==='/api/multiplayer/teams'&&req.method==='GET'){send(res,200,await teams.list(actor));return;}
    const teamRecord=pathname.match(/^\/api\/multiplayer\/teams\/([^/]+)\/record$/);
    if(teams&&teamRecord&&uuid(teamRecord[1])&&req.method==='GET'){const target=teamRecord[1].toLowerCase();send(res,200,await teams.record(actor,target,()=>service.list(target)));return;}
+   if(pathname==='/api/multiplayer/shot-mix'&&req.method==='GET'){limit(`shot-mix:${actor}`,20);send(res,200,await service.shotMix(actor,new URL(req.url!,'http://localhost').searchParams));return;}
    if(pathname==='/api/multiplayer/config'&&req.method==='GET'){send(res,200,service.config(actor));return;}
    if(invitations&&pathname==='/api/invitations'){
     if(req.method==='GET'){send(res,200,await invitations.list(actor));return;}
@@ -76,6 +77,7 @@ export function createMatchHandler(service:MatchService,authenticate:Authenticat
     if(req.method==='POST'){if(invitations)throw new ApiError(400,'invitation_required','Send an invitation to start a new game.');limit(`create:${actor}`,6);send(res,201,await service.create(actor,await body(req)));return;}
    }
    const rematch=pathname.match(/^\/api\/matches\/([^/]+)\/rematch$/);
+   if(invitations&&rematch&&uuid(rematch[1])&&req.method==='GET'){send(res,200,await invitations.rematchStatus(rematch[1].toLowerCase(),actor));return;}
    if(invitations&&rematch&&uuid(rematch[1])&&req.method==='POST'){limit(`rematch:${actor}`,12);send(res,200,await invitations.rematch(rematch[1].toLowerCase(),actor));return;}
    const nudge=pathname.match(/^\/api\/matches\/([^/]+)\/nudge$/);
    if(nudge&&uuid(nudge[1])&&nudges){

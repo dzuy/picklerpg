@@ -13,11 +13,11 @@ for(const first of [A,B,null])test(`shared rematch: ${first===null?'both players
  let source=await matches.create(A,creation());await assert.rejects(invites.rematch(source.id,A),/Finish this game/);
  for(let n=0;n<600&&source.status!=='completed';n++){const actor=source.currentTeam==='home'?A:B;source=await matches.get(source.id,actor);source=(await matches.act(source.id,actor,action(source,n))).state;}
  assert.equal(source.status,'completed');const before=await repo.get(source.id,A);
- await assert.rejects(invites.rematch(source.id,C));
- const pending=first?await invites.rematch(source.id,first):(await Promise.all([invites.rematch(source.id,A),invites.rematch(source.id,B)]))[0];if(first){assert.equal(pending.matchId,null);assert.deepEqual(await invites.rematch(source.id,first),pending);assert.equal((await matches.list(A)).length,1);}
+ await assert.rejects(invites.rematch(source.id,C));await assert.rejects(invites.rematchStatus(source.id,C));assert.equal((await invites.rematchStatus(source.id,A)).status,'none');
+ const pending=first?await invites.rematch(source.id,first):(await Promise.all([invites.rematch(source.id,A),invites.rematch(source.id,B)]))[0];if(first){assert.equal(pending.matchId,null);for(const viewer of [A,B])assert.deepEqual(await invites.rematchStatus(source.id,viewer),{invitationId:pending.invitationId,matchId:null,requesterId:first,status:'pending'});assert.deepEqual(await invites.rematch(source.id,first),pending);assert.equal((await matches.list(A)).length,1);}
  const results=await Promise.all(Array.from({length:12},(_,index)=>invites.rematch(source.id,index%2?A:B)));
  assert.ok(results.every(r=>r.invitationId===pending.invitationId));const completed=await invites.rematch(source.id,A);assert.equal(completed.matchId,pending.invitationId);assert.deepEqual(await invites.rematch(source.id,B),completed);
- assert.equal((await matches.list(A)).length,2);assert.equal((await matches.list(B)).length,2);
+ assert.equal((await invites.rematchStatus(source.id,B)).matchId,completed.matchId);assert.equal((await invites.rematchStatus(source.id,A)).status,'accepted');assert.equal((await matches.list(A)).length,2);assert.equal((await matches.list(B)).length,2);
  assert.equal((await db.pool.query('select count(*) from public.async_invitations where rematch_of=$1',[source.id])).rows[0].count,1);
  const next=await matches.get(completed.matchId!,A);assert.deepEqual(next.score,{home:0,away:0});assert.equal(next.rules.scoring,source.rules.scoring);assert.deepEqual(await repo.get(source.id,A),before);
  await db.restart();repo=new PgRepository(db.pool);matches=new MatchService(repo,testers);invites=new InvitationService(pgInvitations(repo),matches,testers);assert.deepEqual(await invites.rematch(source.id,B),completed);

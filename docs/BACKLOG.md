@@ -8,6 +8,8 @@ Check an item only after it has been implemented and verified at the level impli
 
 **Social-first asynchronous pickleball with friends.** The core loop is invite → play a short strategic match → return when it is your turn → finish → play again. Prioritize making that loop easy, enjoyable, and worth returning to.
 
+The ordered implementation and acceptance plan for persistent rivalries, authoritative shot-selection analytics, evidence-qualified strategy stories, sharing, and co-presence is [Rivalry and strategy stories](RIVALRY-STRATEGY-PLAN.md). Follow its reviewed implementation sequence (the phase numbers identify work packages); this launch checklist remains the source of truth for overall V1 readiness.
+
 ## Core social loop
 
 - [ ] Invite a friend in a few taps.
@@ -61,6 +63,8 @@ Test explicitly:
 - [ ] Does it feel fast when both players happen to be online?
 
 ## Match completion
+
+Implementation available in the [local rivalry playtest](RIVALRY-PLAYTEST.md). These acceptance checks remain open until player testing and hosted rollout.
 
 - [ ] Winner/result is unmistakable.
 - [ ] Final score is prominent.

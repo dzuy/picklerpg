@@ -202,6 +202,14 @@ export class Match {
   for(const timing of ['air','bounce'] as const){const setup=this.receptionSetup(timing);if(!setup)continue;for(const choice of buildDecisionMenu(setup.actor,setup.context,setup.players)){const intent={...choice.intent,source:'menu' as const};if(!options.some(option=>option.timing===timing&&sameShotIntent(option.intent,intent)))options.push({intent,timing})}}
   return options;
  }
+ /** Private analytics context: offered branches, never seeds or resolved outcomes. */
+ get selectionContexts(){
+  if(this.receptionDecision)return (['air','bounce'] as const).flatMap(timing=>{
+   const setup=this.receptionSetup(timing);
+   return setup?[{timing,actor:setup.actor,context:structuredClone(setup.context)}]:[];
+  });
+  return this.currentContext&&this.state.currentHitter?[{timing:null,actor:this.state.currentHitter,context:structuredClone(this.currentContext)}]:[];
+ }
  get displayedReceptionOptions(){return this.receptionOptions}
  /** The same menu choices shown in the shot dock, retaining their actual flight and timing. */
  get targetingMenu(){

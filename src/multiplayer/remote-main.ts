@@ -1,3 +1,7 @@
+import {strategyDetails} from './strategy-view';
+import {rivalryData,rivalryHeadline,rivalryStats,seriesLine} from './rivalry-view';
+import {RematchFlow} from './rematch-flow';
+import './rivalry.css';
 import {signInDialog} from './sign-in-dialog';
 import {pendingInviteCard} from './pending-invite-card';
 import {gameCardLineup} from '../game-card-lineup';
@@ -75,9 +79,39 @@ settings.addEventListener('close',()=>{clearTimeout(settingsCloseTimer);settings
 settings.addEventListener('cancel',event=>{event.preventDefault();closeSettings()});
 
 const gameEnd=document.createElement('dialog');gameEnd.id='game-end';gameEnd.setAttribute('aria-labelledby','game-end-title');gameEnd.innerHTML=`<div class="game-end-card"><div class="game-end-kicker">GAME COMPLETE</div><div class="game-end-emblem" aria-hidden="true">✦</div><p class="game-end-label">THE WINNERS</p><h1 id="game-end-title"></h1><p class="game-end-subtitle">A game worth playing. A win worth celebrating.</p><div class="game-end-score" aria-label="Final score"><div><strong id="game-end-home-score"></strong><span id="game-end-home-names"></span></div><span class="game-end-dash">–</span><div><strong id="game-end-away-score"></strong><span id="game-end-away-names"></span></div></div><p class="game-end-rule" id="remote-end-rule"></p><div class="game-end-actions"><button id="remote-end-back">← Your games</button></div></div>`;document.body.append(gameEnd);
-const challengeNext=document.createElement('button');challengeNext.textContent='Challenge a Friend';challengeNext.onclick=()=>{gameEnd.close();inviteFriend(open);};el('remote-end-back').before(challengeNext);
-const rematchStatus=document.createElement('p');rematchStatus.setAttribute('role','status');el('remote-end-back').before(rematchStatus);
-const rematch=document.createElement('button');rematch.textContent='Rematch';rematch.onclick=()=>{const current=session?.state;if(!current||rematch.disabled)return;rematchStatus.textContent='';rematch.disabled=true;rematch.textContent='Opening rematch…';void(async()=>{const c=await matchCredentials();const next=await remoteRequest<{invitationId:string;matchId:string|null}>(c.token,`/api/matches/${current.id}/rematch`,{});if(next.matchId){gameEnd.close();await open(next.matchId);}else{await lobby();await showInvitation(next.invitationId);}})().catch(e=>{rematchStatus.textContent=e.message;}).finally(()=>{rematch.disabled=false;rematch.textContent='Rematch';});};el('remote-end-back').before(rematch);
+gameEnd.classList.add('rivalry-game-end');
+const rivalryCompletion=document.createElement('section');rivalryCompletion.className='rivalry-completion';el('remote-end-rule').after(rivalryCompletion);
+const rematchStatus=document.createElement('p');rematchStatus.className='rematch-status';rematchStatus.setAttribute('role','status');rivalryCompletion.after(rematchStatus);
+const rematch=document.createElement('button');rematch.id='remote-rematch';rematch.className='rematch-primary';el('remote-end-back').before(rematch);
+const challengeNext=document.createElement('button');challengeNext.className='rematch-other';challengeNext.textContent='Challenge a friend';challengeNext.onclick=()=>{void lobby().then(()=>inviteFriend(open)).catch(e=>status(e.message));};el('remote-end-back').after(challengeNext);
+const rematchFlow=new RematchFlow(matchCredentials,remoteRequest,()=>{
+ rematch.textContent=rematchFlow.busy?'Opening rematch…':rematchFlow.waiting?'Rematch requested':rematchFlow.closed?'Rematch closed':rematchFlow.status.status==='accepted'?'Open rematch':rematchFlow.status.status==='pending'?'Accept rematch':'Rematch';
+ rematch.disabled=rematchFlow.busy||rematchFlow.waiting||rematchFlow.closed||!config?.creationEnabled||!session?.state?.accountIds?.[session.state.viewerTeam==='home'?'away':'home'];
+ rematch.setAttribute('aria-busy',String(rematchFlow.busy));
+ rematchStatus.textContent=rematchFlow.message||(rematchFlow.waiting?`Waiting for ${session?.state?opponentLabel(session.state):'your opponent'}. You’ll join when they accept.`:rematchFlow.status.status==='pending'?`${session?.state?opponentLabel(session.state):'Your opponent'} is ready for another game.`:'');
+},async id=>{gameEnd.close();await open(id);});
+rematch.onclick=()=>void rematchFlow.submit();
+let completionKey='';
+function renderCompletion(s:PublicMatch){
+ const opponent=opponentLabel(s),key=JSON.stringify([s.id,s.version,s.rivalry,s.strategy,opponent,s.endedEarly]);if(key===completionKey)return;completionKey=key;
+ const own=s.score[s.viewerTeam],other=s.score[s.viewerTeam==='home'?'away':'home'];
+ gameEnd.querySelector('.game-end-kicker')!.textContent=`YOU VS ${opponent}`;
+ gameEnd.querySelector('.game-end-label')!.textContent=s.endedEarly?'LEFT EARLY':'GAME COMPLETE';
+ gameEnd.querySelector('.game-end-subtitle')!.textContent=s.endedEarly?'A player left this game.':'Ready for the next one?';
+ el('game-end-title').textContent=s.endedEarly?'Game ended':own>other?'You won!':`${opponent} won!`;
+ el('game-end-home-score').textContent=String(own);el('game-end-away-score').textContent=String(other);
+ el('game-end-home-names').textContent='You';el('game-end-away-names').textContent=opponent;
+ el('remote-end-rule').textContent=`FINAL SCORE · FIRST TO ${s.rules.target}`;
+ rivalryCompletion.replaceChildren();const data=rivalryData(s.rivalry),summary=s.endedEarly?data?.current:data?.atCompletion;
+ const headline=document.createElement('h2');headline.id='rivalry-headline';
+ if(s.endedEarly)headline.textContent='Your rivalry record stays the same.';
+ else if(summary){const selected=rivalryHeadline(summary,opponent);headline.textContent=selected.text;headline.dataset.storyKey=selected.key;}
+ else headline.textContent='Another game, another chance.';
+ rivalryCompletion.append(headline);
+ if(summary){rivalryCompletion.append(rivalryStats(summary));if(!s.endedEarly&&data?.current&&data.current.games>summary.games){const note=document.createElement('p');note.className='rivalry-note';note.textContent='Record at the end of this game.';rivalryCompletion.append(note);}}
+ else{const note=document.createElement('p');note.className='rivalry-note';note.textContent=s.endedEarly?'Early exits do not count toward wins or streaks.':'Your rivalry record is unavailable right now.';rivalryCompletion.append(note);}
+ if(!s.endedEarly)rivalryCompletion.append(strategyDetails(s.strategy));
+}
 gameEnd.addEventListener('cancel',e=>e.preventDefault());el('remote-end-back').onclick=()=>void lobby().catch(e=>status(e.message));
 const leaveGame=document.createElement('button');leaveGame.type='button';leaveGame.className='remote-quiet';leaveGame.textContent='Leave game';settings.append(leaveGame);
 leaveGame.onclick=()=>{
@@ -88,16 +122,14 @@ leaveGame.onclick=()=>{
 };
 const GAME_END_PAUSE_MS=2500;
 let gameEndReadyAt:number|null=null;
-function syncGameEnd(){const s=session?.state;if(gameEnd.open)return;
- // Give the final landing and result banner time on screen, including after replay.
- if(replayActive()||!s||s.status!=='completed'||animation.length||el('remote-game').hidden||document.hidden||settings.open){gameEndReadyAt=null;return;}
+function syncGameEnd(){const s=session?.state;
+ if(gameEnd.open){if(s)renderCompletion(s);return;}
+ // Preserve replay-first return: the final landing and pause finish before the result.
+ if(replayActive()||!s||s.status!=='completed'||animation.length||session?.busy||session?.pending||el('remote-game').hidden||document.hidden||settings.open){gameEndReadyAt=null;return;}
  gameEndReadyAt??=performance.now()+GAME_END_PAUSE_MS;
  if(performance.now()<gameEndReadyAt)return;
- const home=['you','partner'] as const,away=['opponent-left','opponent-right'] as const,names=(ids:readonly (keyof PublicMatch['roster'])[])=>ids.map(id=>s.roster[id].name).join(' & ');
- gameEnd.querySelector('.game-end-label')!.textContent=s.endedEarly?'LEFT EARLY':'THE WINNERS';gameEnd.querySelector('.game-end-subtitle')!.textContent=s.endedEarly?'A player left this game.':'A game worth playing. A win worth celebrating.';
- el('game-end-title').textContent=s.endedEarly?'Game ended':`${names(s.score.home>s.score.away?home:away)} win!`;
- el('game-end-home-score').textContent=String(s.score.home);el('game-end-away-score').textContent=String(s.score.away);el('game-end-home-names').textContent=names(home);el('game-end-away-names').textContent=names(away);el('remote-end-rule').textContent=`FINAL SCORE · FIRST TO ${s.rules.target}`;
- if(!gameEnd.open){clearTarget();settings.close();gameEnd.showModal();}
+ renderCompletion(s);clearTarget();settings.close();gameEnd.showModal();
+ rematchFlow.reset(s.id,session!.owner);void rematchFlow.refresh();rematch.focus();
 }
 function animationShot(segment:TurnAnimation,state:GameState):RallyShot{return {...presentation(state,segment.intent),contact:{...segment.path[0]},aimPoint:{...segment.path.at(-1)!},legs:segment.path.slice(1).map((to,i)=>({from:{...segment.path[i]},to:{...to},duration:segment.pathTimes?segment.pathTimes[i+1]-segment.pathTimes[i]:segment.duration/(segment.path.length-1),arc:0}))}}
 
@@ -107,7 +139,7 @@ function saveView(){browserStorage.setItem('pickle-remote-view',JSON.stringify({
 function saveCameraView(){if(scene&&session?.state&&!el('remote-game').hidden)browserStorage.setItem(`pickle-camera:${session.owner}:${session.matchId}`,JSON.stringify(scene.cameraView()));}
 window.addEventListener('pagehide',saveCameraView);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)saveCameraView();});
-function leaveCourt(){saveCameraView();trashTalk.reset();endReplay();pointPauseRemaining=0;gameEndReadyAt=null;document.body.classList.remove('remote-playing');settings.close();gameEnd.close();scene?.setRetainedTrajectory(null);}
+function leaveCourt(){rematchFlow.reset();completionKey='';saveCameraView();trashTalk.reset();endReplay();pointPauseRemaining=0;gameEndReadyAt=null;document.body.classList.remove('remote-playing');settings.close();gameEnd.close();scene?.setRetainedTrajectory(null);}
 (el('remote-speed') as HTMLSelectElement).value=String(playbackSpeed);
 (el('remote-guides') as HTMLInputElement).checked=flightGuides;
 (el('remote-names') as HTMLInputElement).checked=playerNames;
@@ -219,7 +251,7 @@ function render(){
  targetPicker?.sync(!settings.open&&!trashTalk.isOpen&&!pointCelebrating()&&!replayActive());
 }
 function skip(){endReplay();pointPauseRemaining=0;animation=[];if(session?.state){display=structuredClone(session.state.display);shot=presentation(display);}syncGameEnd();}
-async function open(id:string){saveCameraView();trashTalk.reset();nudgeControl.update(null);selectedInvite=null;el('remote-invite').hidden=true;
+async function open(id:string){rematchFlow.reset();completionKey='';gameEnd.close();gameEndReadyAt=null;saveCameraView();trashTalk.reset();nudgeControl.update(null);selectedInvite=null;el('remote-invite').hidden=true;
  (el('remote-solo') as HTMLAnchorElement).href=`/?home=1&returnMatch=${encodeURIComponent(id)}`;
  clearTarget();session?.dispose();shownVersion=-1;shownRoster='';session=null;animation=[];display=null;shot=null;
  const credentials=await matchCredentials();if(account&&credentials.owner!==account)throw new Error('Account changed. Reload remote play.');account=credentials.owner;guestPlayer=!!(await authClient()?.auth.getSession())?.data.session?.user.is_anonymous;config=await remoteRequest<RemoteConfig>(credentials.token,'/api/multiplayer/config');el('remote-account').textContent=`Signed in as ${accountLabel()}`;el('remote-login').hidden=true;el('remote-sign-out').hidden=false;
@@ -253,7 +285,7 @@ function renderTeamLobby(){
  const gamesPanel=el('remote-lobby').querySelector<HTMLElement>('.remote-match-list')!;
  el('remote-lobby').querySelector('.team-lobby')?.remove();
  const data=teamDirectory??{self:lobbyTeam('', 'You', {}),teams:[],friends:[]};
- const view=new TeamLobby(data,{signOut:signOutAccount,authenticate:(createAccount)=>{if(!createAccount){signInDialog(async()=>{await enter();teamLobby?.selectTab('profile');status('');});return;}if(createAccount){void createYourPlayer(async()=>{await enter();teamLobby?.selectTab('profile');}).catch(e=>status(e.message));return;}},roster:openRoster,create:()=>el('remote-start-setup').click(),challenge:challengeTeam,changed:value=>{teamDirectory=value},enabled:!!config?.creationEnabled,games:gamesPanel});
+ const view=new TeamLobby(data,{signOut:signOutAccount,authenticate:(createAccount)=>{if(!createAccount){signInDialog(async()=>{await enter();teamLobby?.selectTab('profile');status('');});return;}if(createAccount){void createYourPlayer(async()=>{await enter();teamLobby?.selectTab('profile');}).catch(e=>status(e.message));return;}},roster:openRoster,create:()=>el('remote-start-setup').click(),challenge:challengeTeam,changed:value=>{teamDirectory=value},enabled:!!config?.creationEnabled,games:gamesPanel,rivalryFor:(opponent)=>{const records=games.filter(g=>g.accountIds?.[g.viewerTeam==='home'?'away':'home']===opponent).map(g=>rivalryData(g.rivalry)).filter((r):r is NonNullable<typeof r>=>!!r);return records.sort((a,b)=>(b.current?.games??0)-(a.current?.games??0))[0];}});
  teamLobby=view;el('remote-lobby').prepend(view.element);
  if(initialLobbyPage()==='roster'&&!roster?.dialog.open)openRoster();
 }
@@ -335,7 +367,7 @@ function renderGames(){
   const ref=document.createElement('span');ref.className='remote-card-ref';ref.textContent=`${game.court==='venice'?'The Beach':game.court==='arizona'?'Arizona Desert':'The Forest'} · ${game.rules.scoring==='rally-doubles'?'Rally':'Side-out'} · First to ${game.rules.target}`;
   const created=document.createElement('time');created.className='remote-card-created';
   if(game.createdAt&&Number.isFinite(Date.parse(game.createdAt))){created.dateTime=game.createdAt;created.textContent=`Created ${new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(new Date(game.createdAt))}`;created.title=new Intl.DateTimeFormat(undefined,{dateStyle:'full',timeStyle:'long'}).format(new Date(game.createdAt));}
-  card.append(badge,lineup,score);if(created.textContent)card.append(created);card.append(ref,action);card.onclick=()=>void (game.friendState==='pending'?shareMatch(game.id):open(game.id)).catch(e=>status(e.message));const entry=document.createElement('div');entry.className='remote-game-entry';
+  card.append(badge,lineup,score);if(created.textContent)card.append(created);const rivalry=rivalryData(game.rivalry);if(rivalry?.current){const line=document.createElement('span');line.className='remote-card-rivalry';line.textContent=seriesLine(rivalry.current)+` · ${rivalry.current.games} games together`;card.append(line);}card.append(ref,action);card.onclick=()=>void (game.friendState==='pending'?shareMatch(game.id):open(game.id)).catch(e=>status(e.message));const entry=document.createElement('div');entry.className='remote-game-entry';
   const archive=document.createElement('button');archive.className='remote-quiet remote-archive-action';archive.textContent=game.archived?'Restore game':'Archive game';archive.setAttribute('aria-label',`${game.archived?'Restore':'Archive'} game vs ${opponentLabel(game)}`);archive.title='Only changes your game list';archive.onclick=()=>{archive.disabled=true;void archiveGame(game.id,!game.archived).catch(e=>{status(e.message);archive.disabled=false})};entry.append(game.friendState==='pending'?pendingInviteCard(card,async()=>{const c=await matchCredentials();const challenge=await remoteRequest<{token:string}>(c.token,`/api/multiplayer/challenge-for-match/${game.id}`);return new URL(`/challenge/${challenge.token}`,location.origin).href;},game.invitedName??'your friend'):card,archive);(game.friendState==='pending'?waiting:container).append(entry);
  }
 }
@@ -383,7 +415,7 @@ function frame(now:number){
  }catch(error){renderFailed=true;console.error('Remote court render failed',error);status('Court rendering failed. Reload to restore the saved match.');}
  syncGuestGuide();syncGameEnd();lastFrame=now;requestAnimationFrame(frame);
 }requestAnimationFrame(frame);
-setInterval(()=>{if(document.hidden)return;if(session&&!session.busy)void session.refresh();else if(!el('remote-lobby').hidden)void refreshLobbyCards().catch(e=>status(e.message));else if(selectedInvite&&!accepting){const id=selectedInvite.id;void matchCredentials().then(c=>remoteRequest<Invitation>(c.token,`/api/invitations/${id}`)).then(i=>{if(selectedInvite?.id===id){if(i.status==='accepted'&&i.matchId)return open(i.matchId);if(i.status!==selectedInvite.status)return showInvitation(id);}}).catch(e=>status(e.message));}},5000);
+setInterval(()=>{if(document.hidden)return;if(gameEnd.open)void rematchFlow.refresh();if(session&&!session.busy)void session.refresh();else if(!el('remote-lobby').hidden)void refreshLobbyCards().catch(e=>status(e.message));else if(selectedInvite&&!accepting){const id=selectedInvite.id;void matchCredentials().then(c=>remoteRequest<Invitation>(c.token,`/api/invitations/${id}`)).then(i=>{if(selectedInvite?.id===id){if(i.status==='accepted'&&i.matchId)return open(i.matchId);if(i.status!==selectedInvite.status)return showInvitation(id);}}).catch(e=>status(e.message));}},5000);
 window.addEventListener('focus',()=>{if(session)void session.refresh();});window.addEventListener('online',()=>{if(session)void session.refresh();});
 authClient()?.auth.onAuthStateChange((_event,s)=>{claimPlayer.hidden=!s?.user.is_anonymous;if(account&&s?.user.id!==account){showOpenLobby();status('');}});
 function showOpenLobby(owner=''){

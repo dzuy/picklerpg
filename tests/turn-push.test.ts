@@ -47,7 +47,7 @@ test('only committed actionable ownership changes notify; failed side effects an
  const db=new MemoryRepository();const events:any[]=[];
  const service=new MatchService(db,testers,true,async event=>{events.push(event);throw Error('provider offline')});
  let state=await service.create(A,creation());
- for(let i=0;i<20;i++){
+ for(let i=0;i<20&&state.status==='active';i++){
   const actor=state.currentTeam==='home'?A:B;state=await service.get(state.id,actor);const request=action(state,i);const before=events.length;
   const committed=await service.act(state.id,actor,request);await new Promise(resolve=>setImmediate(resolve));state=committed.state;
   const next=db.rows.get(state.id)!.current_action_user_id;

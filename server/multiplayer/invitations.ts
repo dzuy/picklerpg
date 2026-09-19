@@ -1,3 +1,4 @@
+import type {RematchStatus} from '../../src/multiplayer/rematch-protocol';
 import {isValidTargetScore} from '../../src/engine/scoring';
 import {randomUUID} from 'node:crypto';
 import type {SupabaseClient} from '@supabase/supabase-js';
@@ -13,10 +14,11 @@ export function parseTeam(value:unknown):TeamSelection {
 }
 export interface InviteRow {id:string;creator_id:string;recipient_id:string;team:TeamSelection;court:'forest'|'venice'|'arizona';points_limit?:number;scoring:InviteRequest['scoring'];status:Invitation['status'];created_at:string;match_id:string|null;request_id:string;request_hash:string;accept_hash?:string}
 export type CloseInvitationAction='decline'|'cancel'|'delete';
-export interface InviteRepository {rematch(source:string,actor:string,row:InviteRow):Promise<InviteRow>;close(id:string,actor:string,action:CloseInvitationAction):Promise<InviteRow>;list(actor:string):Promise<InviteRow[]>;get(id:string,actor:string):Promise<InviteRow|null>;create(row:InviteRow):Promise<InviteRow>;accept(id:string,actor:string,hash:string,match:StoredMatch):Promise<StoredMatch>}
+export interface InviteRepository {rematchFor?(source:string,actor:string):Promise<InviteRow|null>;rematch(source:string,actor:string,row:InviteRow):Promise<InviteRow>;close(id:string,actor:string,action:CloseInvitationAction):Promise<InviteRow>;list(actor:string):Promise<InviteRow[]>;get(id:string,actor:string):Promise<InviteRow|null>;create(row:InviteRow):Promise<InviteRow>;accept(id:string,actor:string,hash:string,match:StoredMatch):Promise<StoredMatch>}
 export class SupabaseInviteRepository implements InviteRepository {
  constructor(private client:SupabaseClient){}
  private check(error:any){if(error)throw new ApiError(error.code==='PT409'?409:503,'invitation',error.code==='PT409'?'This invitation has changed. Refresh to see its current status.':'Invitations are temporarily unavailable. Try again.');}
+ async rematchFor(source:string,actor:string){const {data,error}=await this.client.from('async_invitations').select('*').eq('rematch_of',source).or(`creator_id.eq.${actor},recipient_id.eq.${actor}`).maybeSingle();this.check(error);return data as InviteRow|null;}
  async rematch(source:string,actor:string,row:InviteRow){const {data,error}=await this.client.rpc('create_async_rematch',{p_source:source,p_actor:actor,p_invite:row});this.check(error);return data as InviteRow}
  async close(id:string,actor:string,action:CloseInvitationAction){const {data,error}=await this.client.rpc('close_async_invitation',{p_id:id,p_actor:actor,p_action:action});this.check(error);return data as InviteRow}
  async list(actor:string){const {data,error}=await this.client.from('async_invitations').select('*').or(`creator_id.eq.${actor},recipient_id.eq.${actor}`).in('status',['pending','declined']).order('created_at',{ascending:false});this.check(error);return (data as InviteRow[]).filter(i=>i.status==='pending'||i.creator_id===actor)}
@@ -35,6 +37,12 @@ export class InvitationService {
   if(input.target!==undefined&&!isValidTargetScore(input.target))throw new ApiError(400,'invitation','Choose a points limit from 1 to 99.');
   if(!this.matches.config(actor).creationEnabled||!this.names.has(input.opponentId))throw new ApiError(403,'invitation','This player cannot be invited.');
   const parsed=parseTeam(input.team),normalized={...input,team:parsed},team=await this.resolveTeam(parsed);return this.view(await this.repo.create({id:randomUUID(),creator_id:actor,recipient_id:input.opponentId,team,court:input.court,scoring:input.scoring,points_limit:input.target??3,status:'pending',created_at:new Date().toISOString(),match_id:null,request_id:input.requestId,request_hash:requestHash(normalized)}));
+ }
+ async rematchStatus(source:string,actor:string):Promise<RematchStatus>{
+  await this.matches.get(source,actor);
+  if(!this.repo.rematchFor)throw new ApiError(503,'rematch','Rematch status is unavailable.');
+  const row=await this.repo.rematchFor(source,actor);
+  return row?{invitationId:row.id,matchId:row.match_id,requesterId:row.creator_id,status:row.status}:{invitationId:null,matchId:null,requesterId:null,status:'none'};
  }
  async rematch(source:string,actor:string){
   const game=await this.matches.get(source,actor);

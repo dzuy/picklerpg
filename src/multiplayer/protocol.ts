@@ -1,3 +1,5 @@
+import type {MatchStrategy} from './strategy';
+import type {MatchRivalry} from './rivalry';
 import type {DesignedPlayer} from '../player-design';
 import type {GameState,PlayerId,PointResult,ShotIntent,Team,Vec3} from '../engine/model';
 import type {ScoringRules} from '../engine/scoring';
@@ -8,6 +10,9 @@ export interface RemoteAction {
 export interface CreateRemoteMatch {creationId:string;opponentId:string;roster:Record<PlayerId,DesignedPlayer>;scoring:'rally-doubles'|'side-out-doubles'}
 /** Explicit public projection. Never substitute a MatchCheckpoint or RallyShot here. */
 export interface PublicMatch {
+ /** Omitted when history is unavailable; null summaries mean no qualifying history. */
+ rivalry?:MatchRivalry;
+ strategy?:MatchStrategy;
  friendState?:'pending'|'accepted'|'cancelled';invitedName?:string;
  archived?:boolean;endedEarly?:boolean;
  court?:'forest'|'venice'|'arizona';
