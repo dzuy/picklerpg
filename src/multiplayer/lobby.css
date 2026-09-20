@@ -96,7 +96,7 @@ body[data-screen="remote"]:has(#remote-lobby:not([hidden]), #remote-setup:not([h
 #remote-setup .remote-setup-heading > p:last-child { color: #a7bbcf; margin: 0; line-height: 1.6; font-size: 14px; }
 #remote-setup .remote-setup-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; padding: 26px 0; }
 #remote-setup .remote-setup-fields label { color: #c5d6e6; font-size: 13px; font-weight: 700; margin: 0; }
-#remote-setup select, #remote-setup input { width: 100%; min-height: 50px; margin-top: 10px; background: var(--surface-blue-inset); color: #edf5ff; border: 1px solid #4264a4; border-radius: 10px; padding: 12px; font: inherit; color-scheme: dark; }
+#remote-setup select, #remote-setup input { width: 100%; min-height: 50px; margin-top: 10px; background: var(--surface-blue-inset); color: #edf5ff; border: 1px solid #4264a4; border-radius: 10px; padding: 12px; font: inherit; font-size: 16px; color-scheme: dark; }
 #remote-setup .remote-setup-section { border-top: 1px solid #36558b; padding: 26px 0; }
 #remote-setup .remote-setup-section h2 { display: flex; align-items: center; gap: 12px; font-size: 21px; letter-spacing: -.5px; margin: 0 0 12px; color: #edf5ff; }
 #remote-setup .remote-setup-section h2 > span { display: inline-grid; place-items: center; width: 32px; height: 32px; border: 1px solid #3c7284; border-radius: 9px; color: #7de4e9; font-size: 11px; letter-spacing: 0; }

@@ -27,7 +27,7 @@ export class SupabaseInviteRepository implements InviteRepository {
  async accept(id:string,actor:string,hash:string,match:StoredMatch){const {data,error}=await this.client.rpc('accept_async_invitation',{p_id:id,p_actor:actor,p_hash:hash,p_match:match});this.check(error);return data as StoredMatch}
 }
 export class InvitationService {
- constructor(private repo:InviteRepository,private matches:MatchService,private names:ReadonlyMap<string,string>,private resolveTeam:(team:TeamSelection)=>Promise<TeamSelection>=async team=>team){}
+ constructor(private repo:InviteRepository,private matches:MatchService,private names:ReadonlyMap<string,string>,private resolveTeam:(team:TeamSelection)=>Promise<TeamSelection>=async team=>team,private onCreated?:(invite:Invitation)=>Promise<void>){}
  private view(r:InviteRow):Invitation{return {id:r.id,creatorId:r.creator_id,recipientId:r.recipient_id,creatorName:this.names.get(r.creator_id)??'Player',recipientName:this.names.get(r.recipient_id)??'Player',team:r.team,court:r.court,scoring:r.scoring,target:r.points_limit??3,status:r.status,createdAt:r.created_at,matchId:r.match_id}}
  async list(actor:string){return (await this.repo.list(actor)).map(r=>this.view(r))}
  async get(id:string,actor:string){const r=await this.repo.get(id,actor);if(!r)throw missing();return this.view(r)}
@@ -36,7 +36,15 @@ export class InvitationService {
   if(!input||Object.keys(input).some(k=>!['requestId','opponentId','team','court','scoring','target'].includes(k))||!uuid(input.requestId)||!uuid(input.opponentId)||input.opponentId===actor||!['forest','venice','arizona'].includes(input.court)||!['rally-doubles','side-out-doubles'].includes(input.scoring))throw new ApiError(400,'invitation','Choose a player, team, court, and scoring.');
   if(input.target!==undefined&&!isValidTargetScore(input.target))throw new ApiError(400,'invitation','Choose a points limit from 1 to 99.');
   if(!this.matches.config(actor).creationEnabled||!this.names.has(input.opponentId))throw new ApiError(403,'invitation','This player cannot be invited.');
-  const parsed=parseTeam(input.team),normalized={...input,team:parsed},team=await this.resolveTeam(parsed);return this.view(await this.repo.create({id:randomUUID(),creator_id:actor,recipient_id:input.opponentId,team,court:input.court,scoring:input.scoring,points_limit:input.target??3,status:'pending',created_at:new Date().toISOString(),match_id:null,request_id:input.requestId,request_hash:requestHash(normalized)}));
+  const parsed=parseTeam(input.team),normalized={...input,team:parsed},team=await this.resolveTeam(parsed);const row=await this.repo.create({id:randomUUID(),creator_id:actor,recipient_id:input.opponentId,team,court:input.court,scoring:input.scoring,points_limit:input.target??3,status:'pending',created_at:new Date().toISOString(),match_id:null,request_id:input.requestId,request_hash:requestHash(normalized)});
+  return this.created(row,actor);
+ }
+ private async created(row:InviteRow,actor:string){
+  if(row.status==='pending'&&this.onCreated){
+   try{await this.onCreated(this.view(row));}catch{console.warn('Automatic invitation acceptance deferred to bot worker.');}
+   return this.get(row.id,actor);
+  }
+  return this.view(row);
  }
  async rematchStatus(source:string,actor:string):Promise<RematchStatus>{
   await this.matches.get(source,actor);
@@ -55,7 +63,8 @@ export class InvitationService {
   if(row.status!=='pending')throw new ApiError(409,'rematch','This rematch was cancelled or declined. Start a new challenge to play again.');
   // The second player's Rematch tap is their acceptance of the shared request.
   if(row.recipient_id===actor){const next=await this.accept(row.id,actor,{team});return {invitationId:row.id,matchId:next.id};}
-  return {invitationId:row.id,matchId:null};
+  const invitation=await this.created(row,actor);
+  return {invitationId:row.id,matchId:invitation.matchId};
  }
  async accept(id:string,actor:string,input:any){
   const r=await this.repo.get(id,actor);if(!r)throw missing();if(r.recipient_id!==actor)throw new ApiError(403,'invitation','Only the invited player can accept.');

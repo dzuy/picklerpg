@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {botAction,botDelay,botReaction,surpriseInvitePlan} from '../server/multiplayer/community-bots';
+import {acceptBotChallenge,botAction,botDelay,botReaction,surpriseInvitePlan} from '../server/multiplayer/community-bots';
 import {MatchService} from '../server/multiplayer/service';
 import {MemoryRepository,A,B,testers,creation} from './helpers/remote';
 test('bot delay is bounded, varied, and stable across retries',()=>{
@@ -19,7 +19,7 @@ test('bot actions use normal rules, reject waiting turns, and complete a saved m
  assert.equal(game.status,'completed');assert.equal(botAction(game),null);
 });
 
-test('a community bot accepts a human invitation with its saved team and plays the opening turn',async()=>{
+test('challenging a generated bot immediately accepts and plays once; human accounts stay pending',async()=>{
  const {database,PgRepository}=await import('./helpers/postgres');
  const {pgInvitations}=await import('./helpers/invitations');
  const {InvitationService}=await import('../server/multiplayer/invitations');
@@ -27,13 +27,30 @@ test('a community bot accepts a human invitation with its saved team and plays t
  const {starterPlayer}=await import('../src/starter-player');
  const db=await database();try{
   await db.pool.query('insert into auth.users(id) values($1),($2)',[A,B]);
-  const matches=new MatchService(new PgRepository(db.pool),testers),invites=new InvitationService(pgInvitations(new PgRepository(db.pool)),matches,testers);
+  const matches=new MatchService(new PgRepository(db.pool),testers);
   const team=[starterPlayer('Mila','starter'),starterPlayer('Jun','partner')];
-  const invite=await invites.create(A,{requestId:randomUUID(),opponentId:B,team:[starterPlayer('You','starter'),starterPlayer('Partner','partner')],court:'forest',scoring:'rally-doubles',target:3});
-  const game=await invites.accept(invite.id,B,{team});
-  assert.equal((await invites.get(invite.id,A)).status,'accepted');
-  assert.equal(game.roster.you.name,'Mila');
-  const action=botAction(game);assert.ok(action);assert.equal((await matches.act(game.id,B,action)).toVersion,1);
+  let automated=true;const lookups:string[]=[];
+  const client={auth:{admin:{async getUserById(id:string){lookups.push(id);return {data:{user:{id,app_metadata:{community_bot:automated,multiplayer_playtest:true},user_metadata:{community_bot:true,open_play_team:team}}},error:null};}}}} as any;
+  const invites:InstanceType<typeof InvitationService>=new InvitationService(pgInvitations(new PgRepository(db.pool)),matches,testers,async team=>team,invite=>acceptBotChallenge(client,matches,invites,invite));
+  const request={requestId:randomUUID(),opponentId:B,team:[starterPlayer('You','starter'),starterPlayer('Partner','partner')],court:'forest',scoring:'rally-doubles',target:3};
+  const invite=await invites.create(A,request);
+  assert.equal(invite.status,'accepted');assert.ok(invite.matchId);assert.deepEqual(lookups,[B]);
+  let game=await matches.get(invite.matchId!,B);
+  assert.equal(game.roster.you.name,'Mila');assert.equal(game.version,1);
+  const retry=await invites.create(A,request);assert.equal(retry.matchId,invite.matchId);
+  assert.equal((await matches.get(invite.matchId!,B)).version,1,'retry cannot play an extra opening turn');
+  for(let turn=0;game.status==='active'&&turn<1500;turn++){
+   const actor=game.currentTeam==='home'?B:A;
+   const current=await matches.get(game.id,actor),action=botAction(current);assert.ok(action);
+   game=(await matches.act(game.id,actor,action)).state;
+  }
+  assert.equal(game.status,'completed');
+  const rematch=await invites.rematch(game.id,A);assert.ok(rematch.matchId);
+  assert.equal((await matches.get(rematch.matchId!,B)).version,1,'bot rematch also starts automatically');
+  automated=false;
+  const human=await invites.create(A,{...request,requestId:randomUUID()});
+  assert.equal(human.status,'pending');assert.equal(human.matchId,null,'user metadata cannot opt an account into bot control');
+
  }finally{await db.close();}
 });
 

@@ -401,8 +401,10 @@ async function create(){
  }
  const key=`pickle-remote:${account}:invitation:${(el('remote-opponent') as HTMLSelectElement).value}`;
  const freshRequest=async():Promise<InviteRequest>=>({requestId:playerId(),opponentId:(el('remote-opponent') as HTMLSelectElement).value,team:await createTeam!.freshTeam(),court:selectedCourt,target:Number((el('remote-target') as HTMLSelectElement).value),scoring:(el('remote-scoring') as HTMLSelectElement).value as InviteRequest['scoring']});
- await sendInvitationDraft(browserStorage.getItem(key),freshRequest,value=>{if(value===null)browserStorage.removeItem(key);else browserStorage.setItem(key,value)},request=>remoteRequest<Invitation>(c.token,'/api/invitations',request));
+ let acceptedMatch:string|null=null;
+ await sendInvitationDraft(browserStorage.getItem(key),freshRequest,value=>{if(value===null)browserStorage.removeItem(key);else browserStorage.setItem(key,value)},async request=>{const invitation=await remoteRequest<Invitation>(c.token,'/api/invitations',request);if(invitation.status==='accepted')acceptedMatch=invitation.matchId;return invitation;});
  status('');
+ if(acceptedMatch){await open(acceptedMatch);return;}
  await lobby();teamLobby?.selectTab('games');showTurnPromptAfterInvite();
 }
 let selectedCourt:'forest'|'venice'|'arizona'='forest';

@@ -2,7 +2,7 @@ import {createHash} from 'node:crypto';
 import {TrashTalkService} from './trash-talk';
 import type {SupabaseClient} from '@supabase/supabase-js';
 import {defaultTeam} from '../../src/multiplayer/team-directory';
-import type {TeamSelection} from '../../src/multiplayer/invitation-protocol';
+import type {Invitation,TeamSelection} from '../../src/multiplayer/invitation-protocol';
 import type {PublicMatch} from '../../src/multiplayer/protocol';
 import type {MatchService} from './service';
 import type {InvitationService} from './invitations';
@@ -31,6 +31,16 @@ export function surpriseInvitePlan(recipient:string,anchor:string,botIds:string[
  const delay=first?15*60000+number(key)%(75*60000):24*3600000+number(key)%(48*3600000);
  const hex=createHash('sha256').update(key).digest('hex');
  return {due:Date.parse(anchor)+delay,botId:ids[number(`${key}:sender`)%ids.length],requestId:`${hex.slice(0,8)}-${hex.slice(8,12)}-4${hex.slice(13,16)}-a${hex.slice(17,20)}-${hex.slice(20,32)}`};
+}
+/** Resolve only the challenged account; user-editable metadata never grants bot control. */
+export async function acceptBotChallenge(client:SupabaseClient,matches:MatchService,invitations:InvitationService,invite:Invitation){
+ if(invite.status!=='pending')return;
+ const {data,error}=await client.auth.admin.getUserById(invite.recipientId);if(error)throw error;
+ const user=data.user;
+ if(user?.app_metadata.community_bot!==true||user.app_metadata.multiplayer_playtest!==true)return;
+ const team=defaultTeam(user.user_metadata.open_play_team);if(!team)throw Error('Bot has no saved team.');
+ const game=await invitations.accept(invite.id,user.id,{team});
+ const action=botAction(game);if(action)await matches.act(game.id,user.id,action);
 }
 /** Only server-owned app_metadata can grant control to the bot worker. */
 export function startCommunityBots(client:SupabaseClient,matches:MatchService,invitations:InvitationService,refreshAccounts:()=>Promise<void>){
@@ -68,9 +78,10 @@ export function startCommunityBots(client:SupabaseClient,matches:MatchService,in
    const turns=await client.from('async_matches').select('id,current_action_user_id,version,updated_at').eq('status','active').in('current_action_user_id',ids);if(turns.error)throw turns.error;
    for(const row of turns.data){if(Date.now()-Date.parse(row.updated_at)<botDelay(`${row.id}:${row.version}`))continue;try{const game=await matches.get(row.id,row.current_action_user_id);if(game.version!==row.version)continue;if(botReaction(game,null)){
      try{
-      const latest=await client.from('match_trash_talk').select('created_at').eq('match_id',row.id).eq('sender_id',row.current_action_user_id).order('created_at',{ascending:false}).limit(1);
-      if(latest.error)throw latest.error;
-      const reaction=botReaction(game,latest.data[0]?Date.parse(latest.data[0].created_at):null);
+      const feed=await reactions.feed(row.id,row.current_action_user_id);
+      const ownPlayers=game.viewerTeam==='home'?['you','partner']:['opponent-left','opponent-right'];
+      const sent=feed.messages.filter(message=>ownPlayers.includes(message.player)).map(message=>Date.parse(message.createdAt));
+      const reaction=botReaction(game,sent.length?Math.max(...sent):null);
       if(reaction)await reactions.send(row.id,row.current_action_user_id,reaction);
      }catch(error){report(error);}
     }
