@@ -10,29 +10,33 @@ body{margin:0;background:linear-gradient(135deg,#0b3986,#092657);color:white;fon
 <script type="module">
 import {CourtTargetPicker} from '/src/target-picker.ts';
 import {Match} from '/src/match.ts';
+import {interpretShot} from '/src/shot-description.ts';
 const base=new Match().targetingMenu[0].intent;
 const choices=[['reset','air'],['lob','air'],['dink','bounce'],['reset','bounce'],['drive','bounce'],['overhead','air'],['counter','air'],['block','air'],['flick','air']].map(([type,timing])=>({intent:{...base,type},timing}));
 let lastPlay=null,fail=false;
-const source={team:'home',choices,context:{},decision:'test',enabled:true,validate(){},play(choice,point){if(fail)throw Error('That shot is no longer available. Choose another shot.');lastPlay={choice,point};document.querySelector('#played').textContent=`Played ${choice.intent.type}, ${choice.timing}`;}};
+const source={incoming:'Strong overhead incoming',async describe(text,point,signal){const parsed=await interpretShot(text,{opening:'rally',selectedTarget:point},signal);signal.throwIfAborted();document.querySelector('#played').textContent=`Interpreted: ${parsed.spinStrength} ${parsed.spin}, ${parsed.shot}, ${parsed.target}`;},assess(choice){return {risk:choice.intent.type==='lob'?'High':'Low',pressure:choice.intent.type==='reset'?'Low':'High'};},team:'home',choices,context:{},decision:'test',enabled:true,validate(){},play(choice,point){if(fail)throw Error('That shot is no longer available. Choose another shot.');lastPlay={choice,point};document.querySelector('#played').textContent=`Played ${choice.intent.type}, ${choice.timing}`;}};
 const scene={onCourtTap:null,setSelectedTarget(){},setShotPreview(){},projectTarget(){return {x:innerWidth/2,y:140}}};
 const picker=new CourtTargetPicker(source,scene),point={x:1,z:-3};
 function open(){picker.sync(true);scene.onCourtTap(point)}
 const assert=(condition,message)=>{if(!condition)throw Error(message)};
 try{
- open();const initialHeight=document.querySelector('.target-wheel').getBoundingClientRect().height;assert(document.querySelectorAll('.target-shot').length===4,'First page limited to four');
- assert(document.querySelector('[data-page-prev]').disabled,'Previous disabled on first page');
- document.querySelector('[data-page-next]').click();assert(document.querySelectorAll('.target-shot').length===4,'Second page limited to four');
- document.querySelector('[data-page-next]').click();assert(document.querySelectorAll('.target-shot').length===1,'Last choice remains accessible');
- assert(document.querySelector('[data-page-next]').disabled,'Next disabled on last page');
- assert(document.querySelector('.target-wheel').getBoundingClientRect().height===initialHeight,'Selector height stays constant on sparse pages');
- assert(document.querySelector('.target-shot').getBoundingClientRect().width<document.querySelector('.target-shots').getBoundingClientRect().width/2,'Single shot keeps its original tile width');
- document.querySelector('.target-shot').click();assert(lastPlay.choice.intent.type==='flick'&&lastPlay.point===point,'Paged choice preserves exact intent and target');
- open();assert(document.querySelector('[data-page-prev]').disabled,'New target resets pagination');
- fail=true;document.querySelector('.target-shot').click();assert(document.querySelector('.target-picker-status').textContent.includes('no longer available'),'Play errors stay visible');fail=false;
- document.querySelector('.target-picker-close').click();assert(!picker.active,'Close dismisses picker');
- source.choices=choices.slice(0,1);open();assert(!document.querySelector('.target-picker-pages'),'Single page needs no pagination');
- source.choices=choices.slice(0,5);open();
- document.querySelector('#checks').textContent='Passed: four-shot limit, stable page size, all pages reachable, exact target preserved, reset, error, close and single-page checks.';
+ open();const list=document.querySelector('.target-shots');
+ assert(document.querySelectorAll('.target-shot').length===9,'All choices in scroll list');
+ assert(!document.querySelector('.target-picker-pages'),'No pagination controls');
+ assert(list.scrollHeight>list.clientHeight,'Options scroll');
+ const row=document.querySelector('.target-shot').getBoundingClientRect().height;
+ assert(list.clientHeight>=row*3&&list.clientHeight<row*4,'Three visible rows plus a glimpse');
+ assert(document.querySelectorAll('.target-shot:first-child .shot-rating-bars i').length===6,'Three bars per metric');
+ assert(document.querySelectorAll('.target-shot:first-child .shot-rating-bars .is-filled').length===2,'Low ratings fill one bar each');
+ assert(document.querySelectorAll('.target-shot:nth-child(2) .shot-rating-bars .is-filled').length===6,'High ratings fill three bars each');
+ assert(document.querySelector('.target-shot-rating').getAttribute('aria-label')==='Risk: Low (1 of 3)','Accessible rating labels');
+ const description=document.querySelector('.target-shot-description input');description.value='Soft crosscourt dink';description.dispatchEvent(new Event('input',{bubbles:true}));
+ list.scrollTop=list.scrollHeight;
+ document.querySelectorAll('.target-shot')[8].click();assert(lastPlay.choice.intent.type==='flick','Last shot reachable');
+ open();assert(document.querySelector('.target-shot-description input').value==='Soft crosscourt dink','Draft survives reopening');
+ document.body.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerId:42}));document.body.dispatchEvent(new PointerEvent('pointerup',{bubbles:true,pointerId:42}));document.body.click();assert(!picker.active,'Outside dismissal');
+ source.decision='next';open();assert(document.querySelector('.target-shot-description input').value==='','New decision clears draft');
+ document.querySelector('#checks').textContent='Passed: three visible rows, scrollable options, risk and pressure labels, last shot reachable, draft persistence, outside dismissal.';
 }catch(error){document.querySelector('#checks').textContent=`FAILED: ${error.message}`;throw error;}
 document.querySelector('#reopen').onclick=open;
 window.addEventListener('resize',()=>picker.sync(true));

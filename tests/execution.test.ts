@@ -49,3 +49,20 @@ test('rare seeded mishits permit errors on otherwise safe trajectories',()=>{
  for(let seed=0;seed<1000;seed++){const result=executeShot({...intent,type:'lob',shape:'arc'},context,players,{seed,balance:1});if(result.mishit)mishits++}
  assert.ok(mishits>0&&mishits<100);
 });
+
+test('attempted low overheads and high dinks keep their technique and usually fail instead of rejecting',()=>{
+ const {intent,players,context}=setup();
+ for(const [type,y] of [['overhead',.3],['dink',2.2]] as const){
+  const c={...context,opening:'rally' as const,twoBounceSatisfied:true,bounced:true,contact:{...context.contact,y},incomingSpeed:22};
+  const attempted={...intent,type};
+  assert.throws(()=>executeShot(attempted,c,players,{seed:1,balance:1}));
+  let failures=0;
+  for(let seed=0;seed<100;seed++){
+   const result=executeShot(attempted,{...c,attemptTechnique:true},players,{seed,balance:1});
+   assert.equal(result.intended.intent.type,type);assert.deepEqual(result.leg.from,c.contact);
+   assert.ok(result.difficulty.some(d=>d.startsWith('Difficult technique:')));
+   if(result.outcome==='net')failures++;
+  }
+  assert.ok(failures>=85,`${type}: ${failures} failures`);
+ }
+});

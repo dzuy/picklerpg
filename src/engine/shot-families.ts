@@ -1,5 +1,5 @@
 import {COURT,type FlightLeg,type ShotType,type Vec3} from './model';
-export interface ShotContext {timingPressure?:number;movementZ?:number;allowRisky?:boolean;contact:Vec3; feet:Vec3; bounced:boolean; opening:'serve'|'return'|'rally'; twoBounceSatisfied:boolean; incomingSpeed:number}
+export interface ShotContext {attemptTechnique?:boolean;timingPressure?:number;movementZ?:number;allowRisky?:boolean;contact:Vec3; feet:Vec3; bounced:boolean; opening:'serve'|'return'|'rally'; twoBounceSatisfied:boolean; incomingSpeed:number}
 export interface ShotFamily {name:string; description:string; speed:number; lift:number; mode:'ground'|'volley'|'either'; minHeight:number; maxHeight:number}
 /** Deliberately tuned for readable scripted play, not measured biomechanics. */
 export const SHOT_FAMILIES:Record<ShotType,ShotFamily>={
@@ -28,14 +28,14 @@ export function contactIssue(type:ShotType,c:ShotContext):string|null{
   if(c.opening==='return'&&type!=='return')return 'Use the return family for this opening reply.';
   if(type==='return'&&c.opening!=='return')return 'A return follows the serve.';
   if(!c.bounced&&!c.twoBounceSatisfied)return 'Let the ball bounce during the two-bounce opening.';
-  if(family.mode==='ground'&&!c.bounced)return 'Let this ball bounce before playing this shot.';
-  if(family.mode==='volley'&&c.bounced)return 'This family takes the ball before its bounce.';
+  if(!c.attemptTechnique&&family.mode==='ground'&&!c.bounced)return 'Let this ball bounce before playing this shot.';
+  if(!c.attemptTechnique&&family.mode==='volley'&&c.bounced)return 'This family takes the ball before its bounce.';
   if(!c.bounced&&Math.abs(c.feet.z)<=COURT.kitchen&&Math.abs(c.feet.x)<=COURT.width/2)return 'Move outside the kitchen before volleying.';
  }
- if(type==='dink'&&!c.allowRisky&&Math.abs(c.feet.z)>COURT.kitchen+1.2)return 'Use a drop or reset from this far back.';
- if(c.contact.y<family.minHeight)return `${family.name} needs a higher contact.`;
- if(c.contact.y>family.maxHeight)return `${family.name} needs a lower contact.`;
- if((type==='counter'||type==='block')&&c.incomingSpeed<6)return 'This family responds to an incoming attack.';
+ if(!c.attemptTechnique&&type==='dink'&&!c.allowRisky&&Math.abs(c.feet.z)>COURT.kitchen+1.2)return 'Use a drop or reset from this far back.';
+ if(!c.attemptTechnique&&c.contact.y<family.minHeight)return `${family.name} needs a higher contact.`;
+ if(!c.attemptTechnique&&c.contact.y>family.maxHeight)return `${family.name} needs a lower contact.`;
+ if(!c.attemptTechnique&&(type==='counter'||type==='block')&&c.incomingSpeed<6)return 'This family responds to an incoming attack.';
  return null;
 }
 /** Family-level flight primitive. Caller supplies an already resolved landing point.

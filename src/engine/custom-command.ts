@@ -1,6 +1,6 @@
-import type {PlayerId,PlayerState,ShotIntent,ShotType,SpinIntent} from './model';
+import {COURT,type PlayerId,type PlayerState,type ShotIntent,type ShotType,type SpinIntent} from './model';
 import type {ShotContext} from './shot-families';
-const commandProperties={loft:{type:'string',enum:['normal','high','very-high']},shot:{type:'string',enum:['serve','return','drive','drop','dink','reset','volley','counter','block','overhead','lob','roll','lob-serve','atp']},target:{type:'string',enum:['middle','wide','line','crosscourt','open-court','far-left','far-right','left','right','jules','rio']},aim:{type:'string',enum:['space','body','feet','backhand','behind']},pace:{type:'string',enum:['soft','medium','fast']},spin:{type:'string',enum:['none','topspin','slice','sidespin']},spinDirection:{type:'string',enum:['none','left','right']},spinStrength:{type:'string',enum:['light','medium','strong']}};
+const commandProperties={loft:{type:'string',enum:['normal','high','very-high']},shot:{type:'string',enum:['serve','return','drive','drop','dink','reset','volley','counter','block','overhead','lob','roll','lob-serve','atp']},target:{type:'string',enum:['selected','middle','wide','line','crosscourt','open-court','far-left','far-right','left','right','jules','rio','you','partner','opponent-left','opponent-right']},aim:{type:'string',enum:['space','body','feet','backhand','behind','sideline']},pace:{type:'string',enum:['soft','medium','fast']},spin:{type:'string',enum:['none','topspin','slice','sidespin']},spinDirection:{type:'string',enum:['none','left','right']},spinStrength:{type:'string',enum:['light','medium','strong']}};
 export const COMMAND_SCHEMA={type:'object',properties:commandProperties,required:Object.keys(commandProperties).filter(key=>key!=='loft'),additionalProperties:false};
 export interface ParsedCommand {loft?:'normal'|'high'|'very-high';shot:ShotType|'roll'|'lob-serve'|'atp';target:string;aim:string;pace:ShotIntent['pace'];spin:'none'|'topspin'|'slice'|'sidespin';spinDirection:SpinIntent['side'];spinStrength:SpinIntent['strength']}
 export function requestsBounce(text:string):boolean{return /\b(?:let|allow|wait(?:\s+for)?)\b.{0,40}\bbounce\b|\bbounce\b.{0,24}\b(?:then|before)\b/i.test(text)}
@@ -26,14 +26,16 @@ export function parseLocalCommand(text:string):ParsedCommand{
  const directionIsSpin=!!directionalSpin;
  const edge=/\b(?:far|wide)\s+(left|right)\b/.exec(t);
  const target=edge&&!directionIsSpin?`far-${edge[1]}`:/\bjules\b/.test(t)?'jules':/\brio\b/.test(t)?'rio':/\bleft\s+(?:side\s+)?(?:player|opponent)\b/.test(t)||(!directionIsSpin&&/\bleft\b/.test(t))?'left':/\bright\s+(?:side\s+)?(?:player|opponent)\b/.test(t)||(!directionIsSpin&&/\bright\b/.test(t))?'right':/\bwide\b/.test(t)?'wide':/\bline\b/.test(t)?'line':/\bcrosscourt\b/.test(t)?'crosscourt':/\b(open|gap)\b/.test(t)||smash?'open-court':/\bmiddle\b/.test(t)?'middle':shot==='serve'||shot==='lob-serve'?'crosscourt':'middle';
- const aim=nelson?'body':/\bbackhand\b/.test(t)?'backhand':/\bfeet\b/.test(t)?'feet':/\bbehind\b/.test(t)?'behind':/\b(body|hip|jam)\b/.test(t)?'body':'space';
- if(aim!=='space'&&!['left','right','jules','rio'].includes(target))throw new Error('Specify left/right player, Jules or Rio for that target.');
+ const aim=/\bdown (?:the )?line\b|\bsideline\b/.test(t)?'sideline':nelson?'body':/\bbackhand\b/.test(t)?'backhand':/\bfeet\b/.test(t)?'feet':/\bbehind\b/.test(t)?'behind':/\b(body|hip|jam)\b/.test(t)?'body':'space';
+ if(aim!=='space'&&aim!=='sideline'&&!['left','right','jules','rio'].includes(target))throw new Error('Specify left/right player, Jules or Rio for that target.');
  const loft=(shot==='lob'||shot==='lob-serve')&&/\bhigh\b/.test(t)?(/\b(super|very|really|extra|extremely)\s+high\b/.test(t)?'very-high':'high'):undefined;
  return {...(loft?{loft}:{}),shot,target,aim,pace:nelson||atp||smash?'fast':/\b(hard|fast|rip|aggressive)\b/.test(t)?'fast':/\bsoft\b/.test(t)||['drop','dink','reset','block','lob','lob-serve'].includes(shot)?'soft':'medium',spin,spinDirection,spinStrength};
 }
 export function commandIntent(parsed:ParsedCommand,actor:PlayerId,c:ShotContext,players:PlayerState[]):{intent:ShotIntent;note:string}{
  const p=validateCommand(parsed),opponents=players.filter(p=>p.team!==players.find(a=>a.id===actor)!.team).sort((a,b)=>a.position.x-b.position.x);
- const targetPlayer=p.target==='jules'?players.find(p=>p.id==='opponent-left'):p.target==='rio'?players.find(p=>p.id==='opponent-right'):p.target==='left'?opponents[0]:p.target==='right'?opponents[1]:undefined;
+ const slotTarget=['you','partner','opponent-left','opponent-right'].includes(p.target);
+ if(slotTarget&&!opponents.some(player=>player.id===p.target))throw new Error('Target must be an opponent in this match.');
+ const targetPlayer=slotTarget?opponents.find(player=>player.id===p.target):p.target==='jules'?players.find(p=>p.id==='opponent-left'):p.target==='rio'?players.find(p=>p.id==='opponent-right'):p.target==='left'?opponents[0]:p.target==='right'?opponents[1]:undefined;
  const type:ShotType=p.shot==='atp'?'drive':p.shot==='lob-serve'?'serve':p.shot==='roll'?(c.bounced?'drive':'volley'):p.shot;
  const soft=['drop','dink','reset','block'].includes(type);
  let target:ShotIntent['target']={kind:'zone',zone:p.target as 'middle',depth:soft?'kitchen':'deep'};
@@ -44,7 +46,13 @@ export function commandIntent(parsed:ParsedCommand,actor:PlayerId,c:ShotContext,
  if(targetPlayer){
   if(p.aim==='body'||p.aim==='feet')target={kind:'player',playerId:targetPlayer.id,aim:p.aim};
   else if(p.aim==='backhand'&&!soft&&type!=='lob')target={kind:'player',playerId:targetPlayer.id,aim:'backhand-side'};
+  else if(slotTarget){target={kind:'point',x:Math.max(-COURT.width/2+.25,Math.min(COURT.width/2-.25,targetPlayer.position.x)),z:-Math.sign(c.contact.z)*(soft&&p.aim!=='behind'?1.25:5.6)}}
   else {target={kind:'zone',zone:targetPlayer.position.x*c.contact.x>=0?'line':'crosscourt',depth:soft&&p.aim!=='behind'?'kitchen':'deep'};note+=' Player-side landing approximates the requested lane; it is not an exact point target.'}
+ }
+ // Language placement is resolved from live geometry, never from a fixed roster slot side.
+ if(p.aim==='sideline'){
+  const side=Math.sign(targetPlayer?.position.x??(p.target==='far-left'?-1:p.target==='far-right'?1:c.contact.x))||Math.sign(c.contact.x)||1;
+  target={kind:'point',x:side*(COURT.width/2-.25),z:-Math.sign(c.contact.z)*(soft?1.25:5.6)};
  }
  if(p.shot==='atp')target={kind:'zone',zone:c.contact.x<0?'far-left':'far-right',depth:'deep'};
  return {intent:{schemaVersion:1,actor,type,target,pace:p.pace,shape:type==='serve'&&p.aim==='body'?'flat':type==='overhead'?'descending':soft||type==='lob'||type==='serve'||type==='return'?'arc':'flat',intendedNetClearance:(type==='lob'||type==='serve')&&p.loft==='very-high'?7:(type==='lob'||type==='serve')&&p.loft==='high'?4:p.shot==='lob-serve'?2.5:soft?.25:.12,tacticalIntent:type==='overhead'?'finish':soft?'neutralize':'pressure',aggression:p.pace==='fast'?.8:.4,source:'text',...(p.shot==='atp'?{technique:'atp' as const}:{}),...(spin.side!=='none'||spin.vertical!=='none'?{spin}:{})},note:note.trim()};

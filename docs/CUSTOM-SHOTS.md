@@ -25,3 +25,23 @@ Lob serve fix: “lob serve,” “high serve,” and “lofted serve” map to 
 Full matches model body contact before landing. A hit awards the serving team the point; on a miss or dodge the original parabola continues to ground and the diagonal service-box rules apply. This follows 2026 USA Pickleball rule 7.E.5 (receiver fault on pre-bounce contact), and 7.E.1–2 (invalid serve landing): https://fliphtml5.com/cksih/USAP-Official-Rulebook/ .
 
 The body envelope and seeded lateral dodge are prototype approximations. Hands skill and available flight time influence avoidance; these probabilities are design values, not measured player behavior. Only the deliberately targeted player's body is checked, not general swept collisions with all players. The shot lab demonstrates trajectories; full-match play resolves hits and dodges.
+
+## Current shot-selector language and corrections
+
+The court shot-selector text field always uses the LLM. It receives the current match roster; names resolve to stable player slots, and the engine resolves placement using current court positions. The seven-field command separates shot family, target, aim, pace and spin. Successful interpretation submits an attempt through normal physics; it does not guarantee success.
+
+User-approved meanings live in `server/shot-language.mjs`, shared by both model providers. To teach a correction, add the phrase, intended meaning, and contrasting examples there, implement any necessary geometry, and add regression coverage. This is maintained prompt guidance and tests, not model fine-tuning or automatic learning from every message.
+
+- “Down the line” → 25 cm inside the sideline on the hitter’s contact side.
+- “Down Luna’s line” → 25 cm inside the sideline on Luna’s current side, not aimed at Luna’s body or central lane.
+- Drives land deep (5.6 m past the net); soft shots retain their shallow depth.
+- “Deep to Luna” → deep in her lane; “hard at Luna” → fast body target.
+- Pace remains independent of placement. Sideline attempts use the same execution dispersion/out rules as other point targets.
+
+Named targeting works from either team and follows the player if they change sides. The model can still misinterpret novel or ambiguous language; corrections should become explicit examples and tests rather than assumed learning.
+
+## Awkward techniques are attempts
+
+Custom shot submission keeps the requested family even outside its usual contact-height, bounce-style, or court-position recommendations. Those recommendations still filter menus. They no longer reject an otherwise valid human shot at commit time. A technique mismatch currently has a seeded 95% poor-contact chance, resulting in a net error; this is a gameplay tuning value, not a measured probability. Descending shots retain a descending path instead of gaining a magical arc to clear the net. Ordinary execution still uses player skills and incoming pressure.
+
+Ownership, stale-decision checks, valid targets, and formal serve/two-bounce/kitchen rules remain enforced. If no timing was explicitly requested, a custom shot can use the available reception branch even when its usual branch is unavailable. Explicit unavailable timing still produces an error rather than fabricating a contact.

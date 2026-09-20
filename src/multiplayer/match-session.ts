@@ -1,3 +1,4 @@
+import {interpretShot} from '../shot-description';
 import {playerId} from '../player-design';
 import {RemoteError} from './api';
 import type {ActionReceipt,PublicMatch,RemoteAction} from './protocol';
@@ -19,12 +20,23 @@ export class RemoteSession {
   try{const c=await this.identity();const state=await this.request<PublicMatch>(c.token,`/api/matches/${this.matchId}`);await this.identity();if(generation!==this.generation)return;this.accept(state);this.offline=false;if(!this.pending)this.message='';}
   catch(e){if(generation!==this.generation)return;this.offline=true;this.message=(e as Error).message;if(e instanceof RemoteError&&[401,403,404].includes(e.status)){this.state=null;try{this.storage.removeItem(this.cacheKey)}catch{}}}finally{this.changed();}
  }
- async submit(choice:PublicMatch['choices'][number]){
+ async describe(text:string,point:{x:number;z:number},signal:AbortSignal){
+  const state=this.state,generation=this.generation;
+  if(!state||this.busy||this.pending||this.offline||state.status!=='active'||state.currentTeam!==state.viewerTeam)throw Error('Wait for your turn.');
+  const ensureCurrent=()=>{signal.throwIfAborted();if(generation!==this.generation||this.state?.version!==state.version||this.busy||this.pending||this.offline)throw Error('The decision changed. Choose a shot again.');};
+  const parsed=await interpretShot(text,{selectedTarget:point,opening:state.serving?'serve':state.display.bounces<2?'return':'rally',players:state.display.players,actingTeam:state.viewerTeam,roster:state.display.players.map(player=>({id:player.id,name:state.roster[player.id].name,team:player.team})),ball:state.display.ball},signal);
+  ensureCurrent();const c=await this.identity();ensureCurrent();
+  const choice=await this.request<PublicMatch['choices'][number]>(c.token,`/api/matches/${this.matchId}/describe-shot`,{expectedVersion:state.version,decisionId:state.decisionId,command:text,parsed,point});
+  ensureCurrent();await this.submit(choice,signal);
+  if(this.message)throw Error(this.message);
+ }
+ async submit(choice:PublicMatch['choices'][number],signal?:AbortSignal){
+  signal?.throwIfAborted();
   if(this.busy||this.pending)throw new Error('Resolve your saved turn before choosing another shot.');
   if(!this.state||this.offline||this.state.currentTeam!==this.state.viewerTeam||this.state.status!=='active')throw new Error('Wait for a current, legal turn.');
   const selectedState=this.state,generation=this.generation;
   this.busy=true;this.changed();
-  try{await this.identity();
+  try{await this.identity();signal?.throwIfAborted();
   if(generation!==this.generation||this.state?.version!==selectedState.version)throw new Error('The decision changed. Choose a shot again.');
   const action:RemoteAction={actionId:playerId(),expectedVersion:selectedState.version,decisionId:selectedState.decisionId,action:{kind:'play_shot',intent:structuredClone(choice.intent),...(choice.timing?{timing:choice.timing}:{})}};
   this.storage.setItem(this.pendingKey,JSON.stringify(action));this.pending=action;

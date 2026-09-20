@@ -43,6 +43,10 @@ export class PushService {
   await this.deliverToUser(event,'nudge');
  }
  private async deliverToUser(event:TurnReady,type:'turn'|'nudge'){
+  const {data:match,error:matchError}=await this.client.from('async_matches').select('*').eq('id',event.matchId).maybeSingle();
+  if(matchError)throw Error('push preference check');
+  if(!match||!(event.userId===match.home_user_id||event.userId===match.away_user_id)||(event.userId===match.home_user_id?match.muted_home:match.muted_away))return;
+
   const {data:rows,error:readError}=await this.client.from('push_subscriptions').select('id,endpoint,p256dh,auth,active_until').eq('user_id',event.userId);
   if(readError)throw Error('push subscriptions');
   // Any active device means the account is already seeing normal match updates.

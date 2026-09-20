@@ -145,6 +145,10 @@ Track friend pairs reaching:
 
 Career Mode, Arcade Mode, RPG progression, tournament ladders, skill unlocks, stamina/fatigue, scouting, and long-term character development are archived ideas, not V1 launch requirements. Voice improvements, real-time multiplayer, and deeper physical simulation are also outside the V1 launch scope unless explicitly reprioritized.
 
+## Future gameplay improvements
+
+- [ ] **Player-specific backhand strengths and weaknesses** (added September 20, 2026). Extend the current low-backhand penalty so forehand/backhand contact and each defender’s ability meaningfully affect return execution at normal heights too. Respect handedness, positioning, contact height, and shot type; targeting a weak backhand should provide a tactical advantage without guaranteeing failure. Validate strong versus weak backhands in equivalent situations. Keep defender skill ratings out of the shot selector’s Pressure indicator so players learn opponents’ weaknesses through play. Backlogged for later; not a new V1 launch requirement.
+
 ## History and references
 
 - [Historical roadmap and implementation log](BACKLOG-HISTORY.md) — original numbering and older decisions; not an active task list.

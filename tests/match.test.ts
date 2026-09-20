@@ -91,7 +91,7 @@ test('every home contact waits for explicit selection',()=>{
  assert.equal(m.state.phase,'complete');assert.equal(decisions,m.state.shotHistory.filter(s=>s.actor==='you'||s.actor==='partner').length);
 });
 test('a playable pop-up pauses at 75% of its trajectory and can be smashed before it bounces',()=>{
- const m=new Match();m.seed=1;m.reset();let found=false;
+ const m=new Match();m.seed=1;m.startSoloMatch(99);let found=false;
  for(let frame=0;frame<10000&&!found;frame++){
   if(m.receptionDecision){const contact=m.shot.receptionChoice?.airborne?.legs.at(-1)?.to;if(m.canTakeAir&&contact&&contact.y>=1.45){found=true;break}m.chooseReception(m.canLetBounce?'bounce':'air')}
   if(m.state.phase==='decision')m.submitIntent(m.availableIntents[(frame+1)%m.availableIntents.length]);

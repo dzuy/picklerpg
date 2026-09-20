@@ -1,3 +1,5 @@
+import {incomingShotLabel} from '../../src/incoming-shot';
+import {validateCommand} from '../../src/engine/custom-command';
 import {loadStrategyStory} from './strategy-story';
 import {personalShotMix,shotMixFilter} from './shot-mix';
 import {publicStrategy} from '../../src/multiplayer/strategy';
@@ -31,9 +33,11 @@ export function publicMatch(row:StoredMatch,actor:string,names:ReadonlyMap<strin
  const currentTeam=row.status==='active'&&(!row.friend_state||row.friend_state==='accepted')?match.decisionTeam:null;
  const menu=match.targetingMenu;
  const nextHitter=currentTeam?menu[0]?.intent.actor??null:null;
- return {endedEarly:!!row.ended_by,friendState:row.friend_state,invitedName:row.invited_name,archived:!!(viewerTeam==='home'?row.archived_home:row.archived_away),court:row.checkpoint.court??'forest',nextHitter,id:row.id,createdAt:row.created_at,completedAt:row.completed_at??undefined,version:row.version,status:row.status,accountIds:{home:row.home_user_id,away:row.away_user_id},viewerTeam,currentTeam,decisionId:decisionId(row),rules:{...row.checkpoint.rules},score:{...match.scoring.score},serveCall:match.scoring.call,serving:row.status==='active'&&match.targetingMenu.some(c=>c.intent.type==='serve'),server:match.scoring.server,pointIndex:match.point,
+ return {notificationsMuted:!!(viewerTeam==='home'?row.muted_home:row.muted_away),endedEarly:!!row.ended_by,friendState:row.friend_state,invitedName:row.invited_name,archived:!!(viewerTeam==='home'?row.archived_home:row.archived_away),court:row.checkpoint.court??'forest',nextHitter,id:row.id,createdAt:row.created_at,completedAt:row.completed_at??undefined,version:row.version,status:row.status,accountIds:{home:row.home_user_id,away:row.away_user_id},viewerTeam,currentTeam,decisionId:decisionId(row),rules:{...row.checkpoint.rules},score:{...match.scoring.score},serveCall:match.scoring.call,serving:row.status==='active'&&match.targetingMenu.some(c=>c.intent.type==='serve'),server:match.scoring.server,pointIndex:match.point,
   display:{schemaVersion:2,phase:s.phase,stage:s.stage,shotIndex:s.shotIndex,legIndex:0,elapsed:0,simulationTime:0,paused:true,ball:structuredClone(s.ball),players:structuredClone(s.players),shotHistory:[],rallyHistory:[],bounces:s.bounces,score:{...s.score},currentHitter:s.currentHitter,possession:s.possession,result:s.result?{...s.result}:null},
   roster:Object.fromEntries(SLOTS.map(id=>{const f=row.checkpoint.roster[id];return [id,{...f.design!,skills:{...f.skills},handedness:f.handedness}]})) as PublicMatch['roster'],
+  incomingShotLabel:currentTeam?incomingShotLabel(s.shotHistory.at(-1),menu.some(c=>c.intent.type==='serve')):null,
+  assessmentContacts:currentTeam===viewerTeam?match.shotAssessmentContexts:[],
   choices:currentTeam===viewerTeam&&(!row.friend_state||row.friend_state==='accepted')?structuredClone(menu):[],result:row.last_result,animation:structuredClone(row.animation)};
 }
 function animations(match:Match):TurnAnimation[]{
@@ -57,6 +61,12 @@ export class MatchService {
  config(actor:string){return {selfId:actor,selfName:this.testers.get(actor)??'Previous playtest account',creationEnabled:this.creationEnabled&&this.testers.has(actor),testers:[...this.testers].filter(([id])=>id!==actor&&this.testers.has(actor)).map(([id,name])=>({id,name}))};}
  async shotMix(actor:string,params:URLSearchParams){return personalShotMix(this.repository,actor,shotMixFilter(params),this.testers);}
  async leave(id:string,actor:string){if(!this.repository.leave)throw new ApiError(503,'unavailable','Leaving games is unavailable.');await this.repository.leave(id,actor);return {archived:true};}
+ async notifications(id:string,actor:string,input:unknown){
+  if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).length!==1||typeof (input as {muted?:unknown}).muted!=='boolean')throw new ApiError(400,'notifications','Choose whether to mute this game.');
+  const row=await this.repository.get(id,actor);if(!row)throw missing();teamFor(row,actor);
+  if(!this.repository.setMuted)throw new ApiError(503,'unavailable','Game notification settings are unavailable.');
+  const muted=(input as {muted:boolean}).muted;await this.repository.setMuted(id,actor,muted);return {muted};
+ }
  async archive(id:string,actor:string,input:unknown){
   if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).length!==1||typeof (input as {archived?:unknown}).archived!=='boolean')throw new ApiError(400,'archive','Choose archive or restore.');
   const row=await this.repository.get(id,actor);if(!row)throw missing();teamFor(row,actor);
@@ -99,6 +109,16 @@ export class MatchService {
  }
  async create(actor:string,input:unknown){
   return publicMatch(await this.repository.create(this.prepare(actor,input)),actor,this.testers);
+ }
+ /** Preparation has no side effects; normal actions remain the only commit path. */
+ async describe(id:string,actor:string,input:unknown){
+  const value=input as {expectedVersion?:unknown;decisionId?:unknown;command?:unknown;parsed?:unknown;point?:{x?:unknown;z?:unknown}};
+  if(!value||typeof value.command!=='string'||!value.command.trim()||value.command.length>240||!value.point||typeof value.point.x!=='number'||typeof value.point.z!=='number'||!Number.isFinite(value.point.x)||!Number.isFinite(value.point.z))throw new ApiError(400,'description','Invalid shot description.');
+  const row=await this.repository.get(id,actor);if(!row)throw missing();teamFor(row,actor);compatible(row);
+  if(row.version!==value.expectedVersion||decisionId(row)!==value.decisionId||row.status!=='active'||row.friend_state==='pending'||row.friend_state==='cancelled')throw conflict();
+  if(row.current_action_user_id!==actor)throw new ApiError(403,'wrong_turn','Wait for your turn.');
+  try{return Match.fromCheckpoint(row.checkpoint).describedChoice(validateCommand(value.parsed),value.command,{x:value.point.x,z:value.point.z});}
+  catch(error){throw new ApiError(400,'description',(error as Error).message);}
  }
  async act(id:string,actor:string,input:unknown):Promise<ActionReceipt>{
   const request=parseAction(input),hash=requestHash(request);

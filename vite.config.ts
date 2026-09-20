@@ -1,3 +1,4 @@
+import {createOpponentHandler,decide} from './server/opponent.mjs';
 import {defineConfig,loadEnv,type Plugin} from 'vite';
 import {configuredMatchHandler} from './server/multiplayer/routes';
 
@@ -8,8 +9,11 @@ function localMultiplayer(env:NodeJS.ProcessEnv):Plugin {
   apply:'serve',
   configureServer(server){
    const handler=configuredMatchHandler(env);
+   const provider=env.OPPONENT_PROVIDER??(env.OPENAI_API_KEY?'api':'codex');
+   const opponent=createOpponentHandler({provider,...(provider==='api'?{choose:(snapshot:unknown)=>decide(snapshot,{key:env.OPENAI_API_KEY,model:env.OPENAI_MODEL||'gpt-5.6-luna'})}:{})});
    server.middlewares.use((req,res,next)=>{
     const pathname=new URL(req.url??'/', 'http://localhost').pathname;
+    if(pathname==='/api/command'||pathname==='/api/opponent'){void opponent(req,res);return;}
     if(/^\/api\/(?:matches|invitations|multiplayer)(?:\/|$)/.test(pathname)){
      void handler(req,res);
      return;
@@ -25,6 +29,6 @@ export default defineConfig(({mode})=>{
  const env={...loadEnv(mode,process.cwd(),''),...process.env};
  return {
   plugins:[localMultiplayer(env)],
-  server:{proxy:{'/api/opponent':'http://127.0.0.1:5174','/api/command':'http://127.0.0.1:5174'}},
+
  };
 });

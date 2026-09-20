@@ -92,8 +92,12 @@ export function createMatchHandler(service:MatchService,authenticate:Authenticat
    }
    const leave=pathname.match(/^\/api\/matches\/([^/]+)\/leave$/);
    if(leave&&uuid(leave[1])&&req.method==='POST'){send(res,200,await service.leave(leave[1],actor));return;}
+   const notifications=pathname.match(/^\/api\/matches\/([^/]+)\/notifications$/);
+   if(notifications&&uuid(notifications[1])&&req.method==='POST'){limit(`notifications:${actor}`,30);send(res,200,await service.notifications(notifications[1],actor,await body(req)));return;}
    const archive=pathname.match(/^\/api\/matches\/([^/]+)\/archive$/);
    if(archive&&uuid(archive[1])&&req.method==='POST'){send(res,200,await service.archive(archive[1],actor,await body(req)));return;}
+   const description=pathname.match(/^\/api\/matches\/([^/]+)\/describe-shot$/);
+   if(description&&uuid(description[1])&&req.method==='POST'){limit(`describe:${actor}`,20);send(res,200,await service.describe(description[1].toLowerCase(),actor,await body(req)));return;}
    const match=pathname.match(/^\/api\/matches\/([^/]+)(\/actions)?$/);
    if(match&&uuid(match[1])){
     const id=match[1].toLowerCase();

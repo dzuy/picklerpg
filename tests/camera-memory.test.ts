@@ -10,3 +10,16 @@ test('camera memory restores exact orbit position, pan target, and distance',()=
 test('invalid stored cameras do not replace the current view',()=>{
  const s=scene();for(const v of [null,{}, {position:[NaN,2,3],target:[0,0,0],distance:50},{position:[0,0,0],target:[0,0,0],distance:50},{position:[0,0,999],target:[0,0,0],distance:50}])assert.equal(s.restoreCameraView(v),false);
 });
+
+test('default court camera matches the selected phone view and mirrors for either team',()=>{
+ const s=scene();s.host={clientWidth:412,clientHeight:867};s.camera.aspect=412/867;s.bottomOverlay=0;s.viewTeam='away';
+ const away=s.cameraPose();
+ assert.deepEqual(away.position.toArray(),[-.043266359038906514,15.480428319154527,-22.378986779359195]);
+ assert.deepEqual(away.look.toArray(),[-.05715387399123549,0,-.18111166957307018]);
+ s.viewTeam='home';const home=s.cameraPose();
+ assert.equal(home.position.x,-away.position.x);assert.equal(home.position.z,-away.position.z);assert.equal(home.position.y,away.position.y);
+ s.camera.aspect=320/900;const narrow=s.cameraPose();
+ assert.ok(narrow.position.distanceTo(narrow.look)>home.position.distanceTo(home.look));
+ assert.ok(narrow.position.clone().sub(narrow.look).normalize().distanceTo(home.position.clone().sub(home.look).normalize())<1e-12);
+ s.camera.aspect=16/9;assert.deepEqual(s.cameraPose().position.toArray(),home.position.toArray());
+});

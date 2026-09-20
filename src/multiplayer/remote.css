@@ -87,3 +87,14 @@ body.remote-playing{overflow:hidden}body.remote-playing .remote-app{padding:0;ma
 @media(max-width:760px){
  body.remote-playing #app .remote-move-banner{right:auto;left:max(10px,env(safe-area-inset-left));transform:none;bottom:calc(12px + env(safe-area-inset-bottom));max-width:calc(100% - 82px - env(safe-area-inset-left) - env(safe-area-inset-right))}
 }
+
+/* A compact scorecard with account identity and rules, without the neon frame. */
+body.remote-playing #app .score{width:250px;max-width:calc(100vw - 88px);aspect-ratio:auto;display:flex;flex-direction:column;gap:0;padding:0;border:1px solid #7899c36b;border-radius:12px;background:#10274aee;box-shadow:0 3px 10px #06132724;overflow:hidden}
+body.remote-playing #app .score::before{display:none}
+.remote-score-heading{display:flex;flex-direction:column;gap:3px;padding:10px 12px 9px;border-bottom:1px solid #9bb8db33;text-align:left}
+body.remote-playing #app .remote-score-heading strong{font-family:inherit;font-size:13px;font-weight:750;line-height:1.3;letter-spacing:0;color:#f1f6ff;overflow-wrap:anywhere;text-shadow:none}
+.remote-score-heading>span{font-size:11px;font-weight:550;line-height:1.3;letter-spacing:0;color:#adc4e0}
+body.remote-playing #app .score-row{grid-template-columns:minmax(0,1fr) 32px;gap:8px;min-height:32px;padding:4px 10px 4px 9px;border-left:3px solid #75dce7}
+body.remote-playing #app .score-row-away{border-left-color:#f28bab;border-top:1px solid #9bb8db20}
+body.remote-playing #app .score-row>span{font-family:inherit;font-style:normal;font-size:12px;font-weight:650;letter-spacing:0;line-height:1.3;padding:0;color:#dce8f8}
+body.remote-playing #app .score-row b{font-family:inherit;font-style:normal;font-size:21px;font-weight:800;letter-spacing:0;text-shadow:none;color:#fff}

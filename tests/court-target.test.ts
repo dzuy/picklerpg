@@ -65,7 +65,7 @@ test('serve targets allow the wrong service box and kitchen but cannot be used m
  match.startPractice('middle');assert.throws(()=>match.targetShot('serve',{x:-side,z:-5}),/serve only starts/);
 });
 test('targeted overhead uses the airborne branch even when no bounced reception exists',()=>{
- const match=new Match();match.seed=1;match.reset();let found=false;
+ const match=new Match();match.seed=1;match.startSoloMatch(99);let found=false;
  for(let frame=0;frame<10000&&!found;frame++){
   if(match.receptionDecision){
    const overhead=match.receptionOptions.find(option=>option.timing==='air'&&option.intent.type==='overhead');

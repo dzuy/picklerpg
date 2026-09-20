@@ -552,7 +552,7 @@ updateUI();let previous:number|undefined;function frame(now:number){
  if(onStartScreen||!resumeReady){previous=now;requestAnimationFrame(frame);return}
  const realDt=previous===undefined?0:Math.max(0,Math.min((now-previous)/1000,.1)),dt=realDt*1.125*speed;if(!creator.dialog.open&&(!endedGames.has(match.scoring)||match.replayIndex!==null))try{match.update(match.replayPlaying?realDt:dt)}catch(error){reportSaveError(error)};previous=now;updateUI();if(!endedGames.has(match.scoring))syncPointResult(realDt*speed);syncGameEnd();syncVoice();
  rallySounds.update(match.state,cue=>sounds.play(cue),'home',match.scoring.winner==='home');
- const replay=match.replayView();syncReplayUI(replay);scene.setGuides(guides&&!replay);scene.render(replay?.state??match.state,now/1000,replay?.shot??match.shot,!match.practice&&!replay?match.scoring.call:null);
+ const replay=match.replayView();syncReplayUI(replay);scene.setGuides(guides&&!replay);scene.render(replay?.state??match.state,now/1000,replay?.shot??match.shot,!match.practice&&!replay?match.scoring.call:null,!replay&&!settingsDialog.open&&!gameEnd.open&&match.state.phase==='decision'&&match.state.possession==='away'?match.state.currentHitter:null);
  const courtVisible=!onStartScreen&&!settingsDialog.open&&!creator.dialog.open&&!playerDrawer.open&&!gameEnd.open;
  courtReplay.hidden=!courtVisible||!!replay;courtReplay.disabled=!match.canReplay;courtReplay.title=match.canReplay?'Replay rally':'Replay available after a shot';
  reactions.update({id:match.matchId,version:match.point},reactionOwner());

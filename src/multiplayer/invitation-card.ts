@@ -20,6 +20,9 @@ export function invitationCard(invite:Invitation,incoming:boolean,recipientAvata
  ref.textContent=`${invite.court==='venice'?'The Beach':location.name} · ${invite.scoring==='rally-doubles'?'Rally':'Side-out'} · First to ${invite.target??3}`;
  const date=document.createElement('time');date.className='remote-card-created';date.dateTime=invite.createdAt;date.textContent=new Date(invite.createdAt).toLocaleString();
  const action=document.createElement('span');action.className='remote-card-action';action.textContent=received?'Review & accept ↗':'View invitation ↗';
- card.append(badge,lineup,score,date,ref,action);
+ const heading=document.createElement('span');heading.className='remote-card-heading';
+ const opponent=document.createElement('strong');opponent.className='remote-card-username';opponent.textContent=`vs ${incoming?invite.creatorName:invite.recipientName}`;
+ heading.append(opponent,badge);
+ card.append(heading,lineup,score,date,ref,action);
  return card;
 }

@@ -24,12 +24,12 @@ export function generateTrajectory(value:unknown,context:ShotContext,players:Pla
  const resolved=resolveTarget(intent.target,{actor:intent.actor,contact:context.contact,players,shotType:intent.type});
  if(intent.technique==='atp'){
   if(intent.type!=='drive'||context.opening!=='rally'||!context.twoBounceSatisfied)throw new Error('ATP is available during a rally, after the opening bounces.');
-  if(Math.abs(context.contact.x)<=COURT.netWidth/2+.08)throw new Error('ATP needs the ball wider than the net post.');
+  if(!context.attemptTechnique&&Math.abs(context.contact.x)<=COURT.netWidth/2+.08)throw new Error('ATP needs the ball wider than the net post.');
   if(resolved.kind!=='landing'||resolved.point.x*context.contact.x<=0)throw new Error('Aim the ATP deep on the same side as the contact.');
   const base=buildFamilyFlight(intent.type,context,resolved.point,resolved.kind);
   const leg:FlightLeg={...base,arc:.06,duration:base.duration/({soft:.7,medium:1,fast:1.3}[intent.pace])};
   const crossing=sampleFlight(leg,context.contact.z/(context.contact.z-resolved.point.z));
-  if(Math.abs(crossing.x)<=COURT.netWidth/2+.08)throw new Error('This angle would hit the post. Wait for a wider ATP contact.');
+  if(!context.attemptTechnique&&Math.abs(crossing.x)<=COURT.netWidth/2+.08)throw new Error('This angle would hit the post. Wait for a wider ATP contact.');
   return {intent,leg,aimPoint:{...resolved.point},apex:flightApex(leg),netClearance:crossing.y-COURT.netSideline};
  }
  const base=buildFamilyFlight(intent.type,context,resolved.point,resolved.kind,intent.type==='serve'&&(intent.target.kind==='point'||resolved.kind==='intercept'));
@@ -64,7 +64,10 @@ export function generateTrajectory(value:unknown,context:ShotContext,players:Pla
  }
  // A descending request must actually start descending; never silently turn it into a lob.
  const leg:FlightLeg={...base,duration,arc,...(sideCurve?{sideCurve}:{}),...(verticalSpin?{verticalSpin}:{})};
- if(intent.shape==='descending'&&sampleFlightVelocity(leg,0).y>1e-8)throw new Error('A descending shot cannot reach this target with that clearance. Lower the clearance or choose an arc.');
+ if(intent.shape==='descending'&&sampleFlightVelocity(leg,0).y>1e-8){
+  if(!context.attemptTechnique)throw new Error('A descending shot cannot reach this target with that clearance. Lower the clearance or choose an arc.');
+  leg.arc=Math.max(0,(context.contact.y-resolved.point.y)/4);
+ }
  return {intent,leg,aimPoint:{...resolved.point},apex:flightApex(leg),netClearance:sampleFlight(leg,t).y-net};
 }
 /** Slice a generated spin curve at an interception without changing its curve or timing. */

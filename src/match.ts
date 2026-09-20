@@ -1,3 +1,4 @@
+import {resolveTarget} from './engine/targeting';
 import {controllersFor,teamOf,playerForTeam,type PlayMode} from './engine/controllers';
 import type {TurnAction} from './engine/turn';
 import {CHECKPOINT_ENGINE,HUMAN_ENGINE,checkpointRally,hydrateRally,parseCheckpoint,SLOTS,type MatchCheckpoint,type FrozenAthlete} from './engine/checkpoint';
@@ -69,7 +70,7 @@ export class Match {
   const actor=setup?.actor??this.state.currentHitter;
   if(intent.actor!==actor||teamOf(intent.actor)!==this.decisionTeam)throw new Error('Wrong athlete for this decision.');
   // Build the plan from intent and authoritative context; never accept client trajectories.
-  const shot=this.plan(intent,'Human team decision',setup?.context??this.currentContext!,setup?.players??this.state.players,setup?.index??this.customIndex);
+  const shot=this.plan(intent,'Human team decision',{...(setup?.context??this.currentContext!),attemptTechnique:true},setup?.players??this.state.players,setup?.index??this.customIndex);
   const before=this.exportCheckpoint();
   this.applyingTurn=true;
   try{if(setup){this.queuedReceptionShot={shot,text:''};this.chooseReception(action.timing!)}else{this.engine.offerCustom(shot);this.submitIntent(intent)}}
@@ -210,6 +211,10 @@ export class Match {
   });
   return this.currentContext&&this.state.currentHitter?[{timing:null,actor:this.state.currentHitter,context:structuredClone(this.currentContext)}]:[];
  }
+ /** Only contact geometry and player attributes; no sampled shot outcomes. */
+ get shotAssessmentContexts(){
+  return this.selectionContexts.map(c=>({...c,players:structuredClone(c.timing?this.receptionSetup(c.timing)!.players:this.state.players)}));
+ }
  get displayedReceptionOptions(){return this.receptionOptions}
  /** The same menu choices shown in the shot dock, retaining their actual flight and timing. */
  get targetingMenu(){
@@ -217,6 +222,36 @@ export class Match {
   if(this.manualReceptionDecision)return this.displayedReceptionOptions;
   if(!this.humanContact)return [];
   return this.availableIntents.filter(intent=>intent.source!=='text').map(intent=>({intent,timing:undefined as 'air'|'bounce'|undefined}));
+ }
+ /** Build an unrestricted described attempt from the current contact, never the menu. */
+ describedChoice(parsed:ReturnType<typeof validateCommand>,text:string,point:{x:number;z:number}){
+  parsed=validateCommand(parsed);
+  const type=parsed.shot==='roll'?'volley':parsed.shot==='lob-serve'?'serve':parsed.shot==='atp'?'drive':parsed.shot;
+  let timing=this.receptionDecision?(requestsBounce(text)||/\bafter\s+(?:the\s+)?bounce\b/i.test(text)?'bounce':/\bbefore\s+(?:the\s+)?bounce\b|\bout of the air\b/i.test(text)?'air':this.targetReceptionTiming(type)):undefined;
+  if(timing&&!this.receptionSetup(timing)&&!requestsBounce(text)&&! /\bbefore\b|\bafter\b|\bout of the air\b/i.test(text))timing=timing==='air'?'bounce':'air';
+  const setup=timing?this.receptionSetup(timing):null;
+  if(timing&&!setup)throw Error(timing==='air'?'This ball cannot be reached before its bounce.':'This ball must be taken out of the air.');
+  const context=setup?.context??this.currentContext,actor=setup?.actor??this.state.currentHitter;
+  if(!context||!actor||(!this.receptionDecision&&!this.humanContact))throw Error('That contact is no longer available.');
+  // Spin-only descriptions still mean a serve/return during the two opening contacts.
+  if(context.opening!=='rally'&&['drive','volley','roll'].includes(parsed.shot))parsed={...parsed,shot:context.opening};
+  const {intent}=commandIntent(parsed,actor,context,setup?.players??this.state.players);
+  if(parsed.target==='selected')intent.target={kind:'point',x:point.x,z:point.z};
+  if(intent.type==='serve'&&/\bflat\b/i.test(text))intent.shape='flat';
+  // Explicit serve placement is an attempt: the engine can score a wrong-box landing as a fault.
+  if(intent.type==='serve'&&intent.target.kind==='zone'){
+   const target=resolveTarget(intent.target,{actor,contact:context.contact,players:setup?.players??this.state.players,shotType:'drive'}).point;
+   intent.target={kind:'point',x:target.x,z:target.z};
+  }
+  return {intent,...(timing?{timing}:{})};
+ }
+ playDescribedChoice(choice:{intent:ShotIntent;timing?:'air'|'bounce'},text:string){
+  if(this.isLocalHuman){this.submitTurn({decisionId:this.decisionId,playerId:this.currentPlayer!,...choice});return;}
+  const setup=choice.timing?this.receptionSetup(choice.timing):null;
+  if(choice.timing&&!setup)throw Error('That contact is no longer available.');
+  const shot=this.plan(choice.intent,'Custom tactical choice',{...(setup?.context??this.currentContext!),attemptTechnique:true},setup?.players??this.state.players,setup?.index??this.customIndex);
+  if(choice.timing){this.queuedReceptionShot={shot,text};this.chooseReception(choice.timing)}
+  else {this.engine.offerCustom(shot);this.submitIntent(shot.intent)}
  }
  previewMenuTarget(choice:{intent:ShotIntent;timing?:'air'|'bounce'},point:{x:number;z:number;playerId?:PlayerId}){
   if(this.replayIndex!==null||this.customBusy||this.thinking||!this.targetingMenu.some(o=>o.timing===choice.timing&&sameShotIntent(o.intent,choice.intent)))throw new Error('That shot is no longer available.');

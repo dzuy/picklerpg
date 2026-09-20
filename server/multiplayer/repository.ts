@@ -7,7 +7,7 @@ import type {MatchCheckpoint} from '../../src/engine/checkpoint';
 import type {PointResult} from '../../src/engine/model';
 import type {TurnAnimation} from '../../src/multiplayer/protocol';
 import {ApiError,conflict,missing} from './errors';
-export interface StoredMatch {ended_by?:string|null;friend_state?:'pending'|'accepted'|'cancelled';invited_name?:string;archived_home?:boolean;archived_away?:boolean;id:string;home_user_id:string;away_user_id:string|null;version:number;status:'active'|'completed';current_action_user_id:string|null;checkpoint:MatchCheckpoint&{court?:'forest'|'venice'|'arizona'};last_result:PointResult|null;animation:TurnAnimation[];creation_request_id:string;creation_hash:string;resolution_secret:string;seed_version:number;engine_version:string;created_at?:string;updated_at?:string;completed_at?:string|null}
+export interface StoredMatch {muted_home?:boolean;muted_away?:boolean;ended_by?:string|null;friend_state?:'pending'|'accepted'|'cancelled';invited_name?:string;archived_home?:boolean;archived_away?:boolean;id:string;home_user_id:string;away_user_id:string|null;version:number;status:'active'|'completed';current_action_user_id:string|null;checkpoint:MatchCheckpoint&{court?:'forest'|'venice'|'arizona'};last_result:PointResult|null;animation:TurnAnimation[];creation_request_id:string;creation_hash:string;resolution_secret:string;seed_version:number;engine_version:string;created_at?:string;updated_at?:string;completed_at?:string|null}
 export interface StoredReceipt {created_at?:string;match_id:string;action_id:string;actor_id:string;request_hash:string;from_version:number;to_version:number;checkpoint:MatchCheckpoint&{court?:'forest'|'venice'|'arizona'};result:Pick<StoredMatch,'status'|'current_action_user_id'|'animation'|'last_result'> & {completed_at?:string|null;archived_home?:boolean;archived_away?:boolean}}
 export interface CommitInput {match:StoredMatch;actor:string;hash:string;actionId:string;expectedVersion:number;action:unknown;selection?:SelectionCapture}
 export interface MatchRepository {
@@ -15,6 +15,7 @@ export interface MatchRepository {
  strategy?(id:string,actor:string):Promise<MatchStrategy|null>;
  rivalries?(actor:string,matchIds:string[]):Promise<Record<string,unknown>>;
  leave?(id:string,actor:string):Promise<void>;
+ setMuted?(id:string,actor:string,muted:boolean):Promise<void>;
  setArchived(id:string,actor:string,archived:boolean):Promise<void>;
  get(id:string,actor:string):Promise<StoredMatch|null>;
  list(actor:string):Promise<StoredMatch[]>;
@@ -38,6 +39,7 @@ export class SupabaseMatchRepository implements MatchRepository {
   return result;
  }
  async leave(id:string,actor:string){const {error}=await this.client.rpc('leave_async_match',{p_id:id,p_actor:actor});if(error)databaseError(error);}
+ async setMuted(id:string,actor:string,muted:boolean){const {error}=await this.client.rpc('set_async_match_muted',{p_id:id,p_actor:actor,p_muted:muted});if(error)databaseError(error);}
  async setArchived(id:string,actor:string,archived:boolean){const {error}=await this.client.rpc('set_async_match_archived',{p_id:id,p_actor:actor,p_archived:archived});if(error)databaseError(error);}
  async get(id:string,actor:string){const {data,error}=await this.client.from('async_matches').select('*').eq('id',id).or(`home_user_id.eq.${actor},away_user_id.eq.${actor}`).maybeSingle();if(error)databaseError(error);return data as StoredMatch|null;}
  async list(actor:string){

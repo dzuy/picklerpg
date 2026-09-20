@@ -11,11 +11,11 @@ test('subscription validates provider, transport and key lengths before server n
  for(const endpoint of ['http://web.push.apple.com/a','https://localhost/a','https://web.push.apple.com.evil.test/a','https://web.push.apple.com:123/a','https://user@web.push.apple.com/a'])assert.throws(()=>parseSubscription({...valid,endpoint}));
  assert.throws(()=>parseSubscription({...valid,keys:{p256dh:'abc',auth:'abc'}}));assert.throws(()=>parseSubscription(null));
 });
-function fakeStore(rows:any[]){
+function fakeStore(rows:any[],muted=false){
  const operations:any[]=[];let claimed=false;
  const client:any={rpc:async()=>({data:!claimed&&(claimed=true),error:null}),from:(table:string)=>{
   const op:any={table,filters:[]};operations.push(op);
-  const q:any={select:()=>{op.kind='select';return q},upsert:(v:any)=>{op.kind='upsert';op.value=v;return q},update:(v:any)=>{op.kind='update';op.value=v;return q},delete:()=>{op.kind='delete';return q},eq:(key:string,value:any)=>{op.filters.push([key,value]);return q},maybeSingle:async()=>({data:rows.length?{id:event.matchId}:null,error:null}),then:(resolve:any)=>Promise.resolve({data:rows,error:null}).then(resolve)};return q;
+  const q:any={select:()=>{op.kind='select';return q},upsert:(v:any)=>{op.kind='upsert';op.value=v;return q},update:(v:any)=>{op.kind='update';op.value=v;return q},delete:()=>{op.kind='delete';return q},eq:(key:string,value:any)=>{op.filters.push([key,value]);return q},maybeSingle:async()=>({data:rows.length?{id:event.matchId,home_user_id:event.userId,away_user_id:A,muted_home:muted,muted_away:false}:null,error:null}),then:(resolve:any)=>Promise.resolve({data:rows,error:null}).then(resolve)};return q;
  }};
  return {client,operations};
 }
@@ -83,4 +83,10 @@ test('nudges recheck current turn and share active suppression, payload and dead
  assert.equal(w.shown[0][1].body,'Chris nudged you. Your turn.');
  await w.fire('notificationclick',{notification:{data:w.shown[0][1].data,close(){}}});
  assert.equal(w.opened[0],`https://pickle.test/?multiplayer=1&match=${event.matchId}`);
+});
+
+test('muting a game suppresses both turn and nudge delivery',async()=>{
+ const db=fakeStore([{id:'a',endpoint:'a',active_until:null}],true);let sent=0;
+ const push=new PushService(db.client,'p','s','mailto:test@example.com',async()=>{sent++;return {} as any});
+ await push.notify(event);await push.notifyNudge(event);assert.equal(sent,0);
 });

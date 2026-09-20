@@ -1,3 +1,4 @@
+import type {AssessmentContact} from '../shot-assessment';
 import type {StrategyStory} from './strategy-story';
 import type {MatchStrategy} from './strategy';
 import type {MatchRivalry} from './rivalry';
@@ -16,7 +17,7 @@ export interface PublicMatch {
  strategy?:MatchStrategy;
  strategyStory?:StrategyStory;
  friendState?:'pending'|'accepted'|'cancelled';invitedName?:string;
- archived?:boolean;endedEarly?:boolean;
+ notificationsMuted?:boolean;archived?:boolean;endedEarly?:boolean;
  court?:'forest'|'venice'|'arizona';
  accountIds?:Record<Team,string|null>;
  createdAt?:string;completedAt?:string;
@@ -24,6 +25,8 @@ export interface PublicMatch {
  rules:ScoringRules;score:Record<Team,number>;serveCall:string;serving?:boolean;server:PlayerId;pointIndex:number;
  nextHitter?:PlayerId|null;
  display:GameState;roster:Record<PlayerId,DesignedPlayer>;
+ incomingShotLabel?:string|null;
+ assessmentContacts?:AssessmentContact[];
  choices:Array<{intent:ShotIntent;timing?:'air'|'bounce'}>;result:PointResult|null;
  animation:TurnAnimation[];
 }

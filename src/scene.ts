@@ -39,6 +39,7 @@ export class CourtScene {
  private nextHitter:PlayerId|null=null;
  setNextHitter(id:PlayerId|null){this.nextHitter=id}
  private serveBubble=document.createElement('div');
+ private thinkingBubble=document.createElement('div');
  private pausedBallMarker=document.createElement('div');
  private ballScreenPosition=new THREE.Vector3();
  private trajectoryArrow=new THREE.Mesh(new THREE.ConeGeometry(.23,.64,12).translate(0,-.32,0),new THREE.MeshBasicMaterial({color:'#efff58',depthTest:false,depthWrite:false}));
@@ -48,6 +49,9 @@ export class CourtScene {
  constructor(private host:HTMLElement,private selectPlayer:(id:PlayerId)=>void=()=>{}){
   this.turnArrow.className='turn-arrow';this.turnArrow.hidden=true;this.turnArrow.setAttribute('role','img');host.append(this.turnArrow);
   this.serveBubble.className='serve-bubble';this.serveBubble.hidden=true;this.serveBubble.setAttribute('role','status');host.append(this.serveBubble);
+  this.thinkingBubble.className='thinking-bubble';this.thinkingBubble.hidden=true;this.thinkingBubble.setAttribute('role','status');this.thinkingBubble.setAttribute('aria-label','Opponent thinking');
+  this.thinkingBubble.innerHTML='<svg viewBox="0 0 160 80" aria-hidden="true"><path d="M29 56C8 58 3 32 20 24C18 9 40 2 51 13C62 0 85 1 94 12C109 0 132 10 130 24C155 20 163 46 145 55C136 68 117 65 109 60C93 73 72 68 64 61C50 70 34 66 29 56Z"/><circle cx="36" cy="72" r="5"/><circle cx="24" cy="78" r="2"/></svg><span aria-hidden="true">Thinking<span class="thinking-dots"><i>.</i><i>.</i><i>.</i></span></span>';
+  host.append(this.thinkingBubble);
   this.pausedBallMarker.className='paused-ball-marker';this.pausedBallMarker.hidden=true;this.pausedBallMarker.setAttribute('role','img');this.pausedBallMarker.setAttribute('aria-label','Ball location — play paused');host.append(this.pausedBallMarker);
   const horizonColor=new THREE.Color('#87b6a1');this.scene.background=horizonColor;this.scene.fog=new THREE.Fog(horizonColor,105,172);
   this.renderer=new THREE.WebGLRenderer({antialias:true});this.renderer.setPixelRatio(Math.min(devicePixelRatio,2));this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;this.renderer.outputColorSpace=THREE.SRGBColorSpace;this.renderer.toneMapping=THREE.NeutralToneMapping;this.renderer.toneMappingExposure=1.2;host.append(this.renderer.domElement);
@@ -212,12 +216,14 @@ export class CourtScene {
   // Close: behind the team, looking through the net toward the opponents.
   // Far: gain height faster than distance for a downward tactical view.
   const near=t<.5,u=near?t*2:(t-.5)*2;
-  const y=THREE.MathUtils.lerp(near?5.2:17.5,near?17.5:27.5,u);
-  const z=THREE.MathUtils.lerp(near?17.5:19.8,near?19.8:7.5,u);
-  const look=new THREE.Vector3(0,near?THREE.MathUtils.lerp(.6,0,u):0,near?THREE.MathUtils.lerp(-.5,.1,u):.1);
-  const position=new THREE.Vector3(0,y,z);
-  // Preserve the viewing angle when backing up to fit a narrow screen.
-  if(aspect<1.15)position.sub(look).multiplyScalar(1.15/aspect).add(look);
+  const y=THREE.MathUtils.lerp(near?5.2:15.480428319154527,near?15.480428319154527:27.5,u);
+  const z=THREE.MathUtils.lerp(near?17.5:22.378986779359195,near?22.378986779359195:7.5,u);
+  // Calibrated from the chosen phone view; mirror this home-side pose for away players.
+  const look=new THREE.Vector3(.05715387399123549,near?THREE.MathUtils.lerp(.6,0,u):0,near?THREE.MathUtils.lerp(-.5,.18111166957307018,u):.18111166957307018);
+  const position=new THREE.Vector3(.043266359038906514,y,z);
+  // Keep that angle and framing, backing up only on screens narrower than the reference.
+  const referenceAspect=412/867;
+  if(aspect<referenceAspect)position.sub(look).multiplyScalar(referenceAspect/aspect).add(look);
   const p=viewerPoint(position,this.viewTeam),l=viewerPoint(look,this.viewTeam);return {position:new THREE.Vector3(p.x,position.y,p.z),look:new THREE.Vector3(l.x,look.y,l.z)};
  }
  private updateCamera(){
@@ -225,13 +231,23 @@ export class CourtScene {
   if(!this.host.clientWidth||!this.host.clientHeight)return;
   const {position,look}=this.cameraPose();this.camera.zoom=1.15;this.camera.position.copy(position);this.controls.target.copy(look);this.camera.lookAt(look);this.camera.updateProjectionMatrix();this.controls.update();
  }
- render(state:GameState,time:number,shot:RallyShot,serveCall:string|null=null){
+ render(state:GameState,time:number,shot:RallyShot,serveCall:string|null=null,thinkingPlayer:PlayerId|null=null){
   const renderDt=this.previousRenderTime?Math.max(0,time-this.previousRenderTime):0;this.previousRenderTime=time;
   if(state.simulationTime===0&&state.shotHistory.length===0)this.lastOpponentShot=null;
   const actualShotByOpponent=state.players.find(player=>player.id===shot.actor)?.team!==this.viewTeam;
   if(state.phase==='flight'&&actualShotByOpponent)this.lastOpponentShot=shot;
   const retainedOpponentShot=this.retainedTrajectory??(state.phase==='decision'&&state.possession===this.viewTeam&&!this.previewShot?this.lastOpponentShot:null);
   const displayShot=this.previewShot??retainedOpponentShot??shot;
+  const thinker=thinkingPlayer?state.players.find(p=>p.id===thinkingPlayer):undefined;
+  const head=thinker?new THREE.Vector3(thinker.position.x,1.65,thinker.position.z).project(this.camera):null;
+  const thought=head?{x:(head.x*.5+.5)*this.host.clientWidth,y:(-head.y*.5+.5)*this.host.clientHeight,visible:head.z>=-1&&head.z<=1}:null;
+  this.thinkingBubble.hidden=!thought?.visible;
+  if(thought?.visible){
+   const side=thought.x>this.host.clientWidth/2?-1:1;
+   this.thinkingBubble.dataset.side=side===1?'right':'left';
+   this.thinkingBubble.style.left=`${Math.max(54,Math.min(this.host.clientWidth-54,thought.x+side*72))}px`;
+   this.thinkingBubble.style.top=`${Math.max(60,Math.min(this.host.clientHeight-24,thought.y+8))}px`;
+  }
   const serving=serveCall!==null&&state.phase==='decision'&&shot.intent.type==='serve';
   this.serveBubble.hidden=!serving;
   if(serving){
@@ -239,7 +255,7 @@ export class CourtScene {
    const point=new THREE.Vector3(server.position.x,1.45,server.position.z).project(this.camera);
    const text=serveCall.replaceAll('–','-');
    if(this.serveBubble.textContent!==text)this.serveBubble.textContent=text;
-   const playerX=(point.x*.5+.5)*this.host.clientWidth,side=playerX>this.host.clientWidth/2?-1:1;
+   const playerX=(point.x*.5+.5)*this.host.clientWidth,side=(playerX>this.host.clientWidth/2?-1:1)*(thinkingPlayer===shot.actor?-1:1);
    this.serveBubble.style.left=`${Math.max(45,Math.min(this.host.clientWidth-45,playerX+side*48))}px`;
    this.serveBubble.style.top=`${Math.max(48,Math.min(this.host.clientHeight-20,(-point.y*.5+.5)*this.host.clientHeight))}px`;
   }
