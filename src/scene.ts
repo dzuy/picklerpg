@@ -44,7 +44,7 @@ export class CourtScene {
  private trajectoryArrow=new THREE.Mesh(new THREE.ConeGeometry(.23,.64,12).translate(0,-.32,0),new THREE.MeshBasicMaterial({color:'#efff58',depthTest:false,depthWrite:false}));
  private scene=new THREE.Scene(); private camera=new THREE.PerspectiveCamera(38,1,.1,180); private renderer:THREE.WebGLRenderer;
  private controls:OrbitControls;private customizedView=false;
- private players=new Map<PlayerId,THREE.Group>();private ball:THREE.Group;private ballHalo:THREE.Mesh;private shadow:THREE.Mesh;private trail:THREE.Line;private trailDots:THREE.Points;private target:THREE.Mesh;private labels=new Map<PlayerId,HTMLDivElement>();private cameraDistance=50;private guides=true;private lastShot:RallyShot|null=null;private previewShot:RallyShot|null=null;private lastOpponentShot:RallyShot|null=null;
+ private players=new Map<PlayerId,THREE.Group>();private ball:THREE.Group;private ballHalo:THREE.Mesh;private shadow:THREE.Mesh;private trail:THREE.Line;private trailDots:THREE.Points;private target:THREE.Group;private labels=new Map<PlayerId,HTMLDivElement>();private cameraDistance=50;private guides=true;private lastShot:RallyShot|null=null;private previewShot:RallyShot|null=null;private lastOpponentShot:RallyShot|null=null;
  constructor(private host:HTMLElement,private selectPlayer:(id:PlayerId)=>void=()=>{}){
   this.turnArrow.className='turn-arrow';this.turnArrow.hidden=true;this.turnArrow.setAttribute('role','img');host.append(this.turnArrow);
   this.serveBubble.className='serve-bubble';this.serveBubble.hidden=true;this.serveBubble.setAttribute('role','status');host.append(this.serveBubble);
@@ -88,7 +88,23 @@ export class CourtScene {
   this.trajectoryArrow.renderOrder=22;this.trajectoryArrow.visible=false;this.scene.add(this.trajectoryArrow);
   const trailGeometry=new THREE.BufferGeometry();this.trail=new THREE.Line(trailGeometry,new THREE.LineDashedMaterial({color:'#efff70',transparent:true,opacity:.98,dashSize:.24,gapSize:.07,linewidth:2,depthTest:false}));this.trail.renderOrder=20;this.scene.add(this.trail);
   this.trailDots=new THREE.Points(trailGeometry,new THREE.PointsMaterial({color:'#efff70',size:2.5,sizeAttenuation:false,transparent:true,opacity:.92,depthTest:false}));this.trailDots.renderOrder=21;this.trailDots.visible=false;this.scene.add(this.trailDots);
-  this.target=new THREE.Mesh(new THREE.RingGeometry(.28,.32,48),new THREE.MeshBasicMaterial({color:'#edff7f',side:THREE.DoubleSide}));this.target.rotation.x=-Math.PI/2;this.scene.add(this.target);
+  this.target=new THREE.Group();
+  // A dark outline keeps the lime bullseye readable on every court and over court lines.
+  const targetLayer=(geometry:THREE.BufferGeometry,color:string,order:number,opacity=1)=>{
+   const mesh=new THREE.Mesh(geometry,new THREE.MeshBasicMaterial({color,side:THREE.DoubleSide,transparent:true,opacity,depthTest:false,depthWrite:false}));
+   mesh.renderOrder=30+order;this.target.add(mesh);return mesh;
+  };
+  targetLayer(new THREE.RingGeometry(.29,.55,64),'#dfff32',0,.2);
+  targetLayer(new THREE.RingGeometry(.30,.47,64),'#03122f',1);
+  targetLayer(new THREE.RingGeometry(.34,.43,64),'#dfff32',2);
+  targetLayer(new THREE.RingGeometry(.18,.21,48),'#ffffff',3);
+  targetLayer(new THREE.CircleGeometry(.09,32),'#03122f',4);
+  targetLayer(new THREE.CircleGeometry(.055,32),'#ffffff',5);
+  for(let i=0;i<4;i++){
+   const tick=targetLayer(new THREE.PlaneGeometry(.055,.18),'#dfff32',2),angle=i*Math.PI/2;
+   tick.position.set(Math.sin(angle)*.49,Math.cos(angle)*.49,0);tick.rotation.z=-angle;
+  }
+  this.target.rotation.x=-Math.PI/2;this.scene.add(this.target);
   this.bounceRing.rotation.x=-Math.PI/2;this.scene.add(this.heightGuide,this.speedStreak,this.bounceRing);
   new ResizeObserver(()=>this.resize()).observe(host);this.resize();
  }
@@ -255,7 +271,7 @@ export class CourtScene {
   (this.trail.material as THREE.LineDashedMaterial).color.set(opponentShot?'#FF4F63':'#DFFF32');const dots=this.trailDots.material as THREE.PointsMaterial;dots.color.set(opponentShot?'#FF4F63':'#DFFF32');dots.size=opponentShot?3.6:2.4;
   const opponentThinking=!this.retainedTrajectory&&state.phase==='decision'&&state.possession!==this.viewTeam;
   const showingDecisionPath=!!this.previewShot||!!retainedOpponentShot;
-  this.trail.visible=this.guides&&!opponentThinking&&(state.phase==='flight'||showingDecisionPath);this.trailDots.visible=this.trail.visible;const destination=this.selectedTarget?{...this.selectedTarget,y:.08}:displayShot.aimPoint;this.target.rotation.x=destination.y>.1?0:-Math.PI/2;this.target.position.set(destination.x,Math.max(.058,destination.y),destination.z);this.target.visible=!!this.selectedTarget||(this.guides&&state.phase==='decision'&&!!this.previewShot);
+  this.trail.visible=this.guides&&!opponentThinking&&(state.phase==='flight'||showingDecisionPath);this.trailDots.visible=this.trail.visible;const destination=this.selectedTarget?{...this.selectedTarget,y:.08}:displayShot.aimPoint;this.target.rotation.set(destination.y>.1?0:-Math.PI/2,0,this.reducedMotion.matches?0:time*.8);this.target.position.set(destination.x,Math.max(.058,destination.y),destination.z);this.target.visible=!!this.selectedTarget||(this.guides&&state.phase==='decision'&&!!this.previewShot);
   if(!this.customizedView){const base=this.cameraPose().look,tracking=state.phase==='flight'?new THREE.Vector3(THREE.MathUtils.clamp(state.ball.position.x*.045,-.24,.24),0,THREE.MathUtils.clamp(state.ball.position.z*.025,-.3,.3)):new THREE.Vector3();const desired=base.add(tracking),delta=desired.clone().sub(this.controls.target).multiplyScalar(cameraBlend(state.paused?0:renderDt,this.reducedMotion.matches));this.controls.target.add(delta);this.camera.position.add(delta)}
   this.controls.update();
   this.updateOverlayFraming();

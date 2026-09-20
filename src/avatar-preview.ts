@@ -8,8 +8,9 @@ export class AvatarPreview {
  private observer:ResizeObserver;
  private motion=matchMedia('(prefers-reduced-motion: reduce)');
  private started=performance.now();
- private syncMotion=()=>{this.renderer.setAnimationLoop(this.animated&&!this.motion.matches?()=>{if(document.hidden)return;if(this.avatar)animateRosterAthlete(this.avatar,(performance.now()-this.started)/1000);this.draw()}:null);if(this.avatar&&this.animated)poseAthleteForRoster(this.avatar);this.draw()};
- constructor(private host:HTMLElement,private animated=false){
+ private syncMotion=()=>{this.renderer.setAnimationLoop(this.animated&&!this.motion.matches?()=>{if(document.hidden||!this.host.getClientRects().length)return;if(this.avatar)animateRosterAthlete(this.avatar,(performance.now()-this.started)/1000);this.draw()}:null);if(this.avatar&&this.animated)poseAthleteForRoster(this.avatar);this.draw()};
+ constructor(private host:HTMLElement,private animated=false,zoom=1){
+  this.camera.zoom=zoom;
   this.renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});this.renderer.setPixelRatio(Math.min(devicePixelRatio,2));this.renderer.outputColorSpace=THREE.SRGBColorSpace;this.renderer.toneMapping=THREE.ACESFilmicToneMapping;
   this.renderer.domElement.setAttribute('aria-label','Your player in 3D. Drag to rotate.');this.renderer.domElement.setAttribute('role','img');host.append(this.renderer.domElement);
   this.camera.position.set(-.6,1.05,-3.2);this.controls=new OrbitControls(this.camera,this.renderer.domElement);this.controls.target.set(0,.78,0);this.controls.enablePan=false;this.controls.enableZoom=false;this.controls.minPolarAngle=.65;this.controls.maxPolarAngle=1.6;this.controls.update();this.controls.addEventListener('change',()=>this.draw());light(this.scene);

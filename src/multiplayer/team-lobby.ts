@@ -12,6 +12,8 @@ import {remoteRequest} from './api';
 import type {profileRecord} from '../profile-record';
 import type {LobbyTeam,TeamDirectory} from './team-directory';
 import './team-lobby.css';
+const friendsPlayIcon='<rect x="9" y="8" width="21" height="29" rx="6" transform="rotate(-20 20 22)"/><path d="m25 37 6 17"/><rect x="49" y="8" width="21" height="29" rx="6" transform="rotate(20 60 22)"/><path d="m55 37-6 17"/><circle cx="40" cy="13" r="4"/>';
+const soloPlayIcon='<rect x="24" y="6" width="25" height="32" rx="7" transform="rotate(20 36 22)"/><path d="m31 38-6 17"/><circle cx="59" cy="43" r="6"/>';
 function node<K extends keyof HTMLElementTagNameMap>(tag:K,cls:string,text=''){const e=document.createElement(tag);e.className=cls;e.textContent=text;return e;}
 export class TeamLobby {
  readonly element=node('section','team-lobby');
@@ -37,7 +39,7 @@ export class TeamLobby {
   this.element.replaceChildren();this.element.dataset.tab=this.tab;
   const heading=node('div','team-lobby-heading');
   if(this.tab==='profile'||this.tab==='friends'||this.tab==='community')heading.append(node('h1','',this.tab==='profile'?'Profile':'Friends'));
-  else {const copy=node('div','team-lobby-heading-copy');copy.append(node('h1','','Open Play'),node('p','','Challenge friends or meet new players.'));heading.append(copy);}
+  else {const copy=node('div','team-lobby-heading-copy');copy.append(node('h1','','Open Play'));heading.append(copy);}
   const nav=appNavigation(this.tab==='community'?'friends':this.tab,(key,href)=>{
    if(key==='home'){location.assign(href);return;}
    this.selectTab(key);
@@ -63,7 +65,7 @@ export class TeamLobby {
     const title=node('h2','');const profile=this.button(person.manager,()=>this.openFriendProfile(person),'lobby-person-name');profile.dataset.personId=person.id;profile.setAttribute('aria-label',`View ${person.manager}’s profile`);title.append(profile);identity.append(title);
     const recordLabel=node('span','lobby-person-record','');title.append(recordLabel);
     void this.record(person).then(record=>{recordLabel.textContent=` (${record.wins.toLocaleString()}-${record.losses.toLocaleString()})`;recordLabel.setAttribute('aria-label',`${record.wins} wins, ${record.losses} losses`);}).catch(()=>{recordLabel.textContent=' (—)';recordLabel.setAttribute('aria-label','Record unavailable');});
-    const controls=node('div','lobby-person-actions'),challenge=this.button('Start Game',()=>this.actions.challenge(person),'team-lobby-primary');challenge.disabled=!this.actions.enabled;
+    const controls=node('div','lobby-person-actions'),challenge=this.button('Challenge',()=>this.actions.challenge(person),'team-lobby-primary');challenge.disabled=!this.actions.enabled;
     if(!this.data.friends.includes(person.id)){controls.classList.add('has-add-friend');controls.append(this.button('Add Friend',()=>void this.friend(person.id),'team-lobby-add-friend'));}controls.append(challenge);
     card.append(identity,controls);list.append(card);
    }
@@ -71,12 +73,17 @@ export class TeamLobby {
   }
   if(this.tab==='profile')directory.append(profilePanel(this.portraits,this.actions.authenticate,this.actions.signOut));
   const aside=node('div','team-lobby-header-actions');
-  const solo=this.button('Play Solo',()=>openGameSurface(),'team-lobby-primary team-lobby-create');
-  const create=this.button('Create a Game',this.actions.create,'team-lobby-primary team-lobby-create');
-  aside.append(solo,create);
+  const solo=this.button('Play Solo',()=>openGameSurface(),'team-lobby-primary team-lobby-create lobby-play-solo');
+  const create=this.button('Play With Friends',this.actions.create,'team-lobby-primary team-lobby-create');
+  for(const [button,icon] of [[create,friendsPlayIcon],[solo,soloPlayIcon]] as const){
+   const label=node('span','lobby-play-label',button.textContent??'');
+   const art=node('span','lobby-play-icon');art.setAttribute('aria-hidden','true');art.innerHTML=`<svg viewBox="0 0 80 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>`;
+   const arrow=node('span','lobby-play-arrow','↗');arrow.setAttribute('aria-hidden','true');button.replaceChildren(art,label,arrow);
+  }
+  aside.append(create,solo);
   if(this.tab==='games'){
    const start=node('section','play-start');start.setAttribute('aria-label','Start playing');
-   const intro=node('div','play-start-intro');intro.append(node('p','play-start-eyebrow','THE COURT IS YOURS'),node('h2','','How do you want to play?'),node('p','','Get a quick game in, or start something with a friend.'));
+   const intro=node('div','play-start-intro');intro.append(node('h2','','How do you want to play?'));
    const choices=node('div','play-start-choices');
    const choice=(title:string,description:string,tag:string,icon:string,action:()=>void,kind:string)=>{
     const card=this.button('',action,`play-start-choice ${kind}`);
@@ -84,7 +91,7 @@ export class TeamLobby {
     const text=node('span','play-start-text');text.append(node('span','play-start-tag',tag),node('strong','',title),node('span','play-start-description',description));
     const arrow=node('span','play-start-arrow','↗');arrow.setAttribute('aria-hidden','true');card.append(art,text,arrow);return card;
    };
-   choices.append(choice('Play with Friends','Invite a friend. Take turns strategizing your shots. Build your rivalry.','BETTER WITH FRIENDS','<rect x="9" y="8" width="21" height="29" rx="6" transform="rotate(-20 20 22)"/><path d="m25 37 6 17"/><rect x="49" y="8" width="21" height="29" rx="6" transform="rotate(20 60 22)"/><path d="m55 37-6 17"/><circle cx="40" cy="13" r="4"/>',this.actions.create,'play-start-social'),choice('Play Solo','Take down the bots. Learn patterns and shot types at your own pace.','READY WHEN YOU ARE','<rect x="24" y="6" width="25" height="32" rx="7" transform="rotate(20 36 22)"/><path d="m31 38-6 17"/><circle cx="59" cy="43" r="6"/>',()=>openGameSurface(),'play-start-solo'));
+   choices.append(choice('Play With Friends','Invite a friend. Take turns strategizing your shots. Build your rivalry.','BETTER WITH FRIENDS',friendsPlayIcon,this.actions.create,'play-start-social'),choice('Play Solo','Take down the bots. Learn patterns and shot types at your own pace.','READY WHEN YOU ARE',soloPlayIcon,()=>openGameSurface(),'play-start-solo'));
    start.append(intro,choices);directory.append(start);
   }
   grid.append(directory);if(this.tab==='games')heading.append(aside);this.element.append(heading,grid,nav);
@@ -105,7 +112,7 @@ export class TeamLobby {
    const record=await this.record(person);
    [record.games,record.wins,record.losses].forEach((value,i)=>values[i].textContent=String(value));recordStatus.remove();
   })().catch(()=>{recordStatus.textContent='Game record is unavailable right now.';}).finally(()=>stats.setAttribute('aria-busy','false'));
-  const play=this.button('Start Game',()=>{dialog.close();this.actions.challenge(person)},'team-lobby-primary');play.disabled=!this.actions.enabled;
+  const play=this.button('Challenge',()=>{dialog.close();this.actions.challenge(person)},'team-lobby-primary');play.disabled=!this.actions.enabled;
   const friend=this.button('',()=>{},'team-lobby-quiet');
   const sync=()=>{const connected=this.data.friends.includes(person.id);relationship.textContent=connected?'Your friend':'Community player';friend.textContent=connected?'Remove Friend':'Add Friend';};sync();
   friend.onclick=()=>{friend.disabled=true;status.textContent='';void this.friend(person.id).then(saved=>{if(saved)sync();else status.textContent=this.message;}).finally(()=>{friend.disabled=false;});};

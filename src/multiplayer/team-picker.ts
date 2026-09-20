@@ -1,3 +1,6 @@
+import {authClient} from '../auth-session';
+import {playerFromRow} from '../cloud-players';
+import {defaultLineup} from './default-lineup';
 import {rosterStarters,ownedRosterPlayers} from '../roster-membership';
 import {CommunitySection} from '../community-section';
 import {refreshCommunityDesigns} from '../community-players';
@@ -14,13 +17,27 @@ import {browserStorage} from '../browser-storage';
 export class TeamPicker {
  private lineup={players:[...ownedRosterPlayers(parseLibrary(browserStorage.getItem(PLAYER_STORAGE_KEY)).players),...rosterStarters()],selected:[] as string[]};
  private community=new CommunitySection(players=>this.setCommunity(players));
- private setCommunity(players:DesignedPlayer[]){const all=[...ownedRosterPlayers(this.ownedPlayers??parseLibrary(browserStorage.getItem(PLAYER_STORAGE_KEY)).players),...players];for(const p of this.initial??[])if(!all.some(v=>v.id===p.id))all.push(p);const selected=this.lineup.selected.filter(id=>all.some(p=>p.id===id));for(const p of all)if(selected.length<2&&!selected.includes(p.id))selected.push(p.id);while(selected.length<2&&all.length)selected.push(all[0].id);this.lineup={players:all,selected:selected.slice(0,2)};this.draw();}
+ private setCommunity(players:DesignedPlayer[]){const all=[...ownedRosterPlayers(this.ownedPlayers??parseLibrary(browserStorage.getItem(PLAYER_STORAGE_KEY)).players),...players];for(const p of (this.useDefaults?[]:this.initial??[]))if(!all.some(v=>v.id===p.id))all.push(p);const selected=this.lineup.selected.filter(id=>all.some(p=>p.id===id));for(const p of all)if(selected.length<2&&!selected.includes(p.id))selected.push(p.id);while(selected.length<2&&all.length)selected.push(all[0].id);this.lineup={players:all,selected:this.useDefaults&&!this.defaultsApplied?defaultLineup(all,this.defaultActiveId,this.defaultUsername):selected.slice(0,2)};this.defaultsApplied=true;this.draw();}
+ private defaultActiveId:string|null=null;private defaultUsername='';private defaultsApplied=false;
  private ready:Promise<void>=Promise.resolve();
  async freshTeam(){await this.ready;if(this.lineup.selected.length<2)throw Error('Add a player to Your Roster.');return await refreshCommunityDesigns(this.team) as TeamSelection}
  private static portraits:AvatarThumbnails|undefined;
  async hasTeam(){await this.ready;return this.lineup.selected.length>=2;}
- constructor(private host:HTMLElement,private ownedPlayers?:DesignedPlayer[],private initial?:TeamSelection){if(ownedPlayers)this.lineup.players=[...ownedRosterPlayers(ownedPlayers),...rosterStarters()];this.lineup.selected=this.lineup.players.length?[this.lineup.players[0].id,(this.lineup.players[1]??this.lineup.players[0]).id]:[];if(initial){for(const p of initial)if(!this.lineup.players.some(v=>v.id===p.id))this.lineup.players.push(p);this.lineup.selected=initial.map(p=>p.id);}
- this.draw();this.ready=this.community.load();void preloadAthletes().then(()=>{if(this.host.isConnected)this.draw()}).catch(()=>{})}
+ constructor(private host:HTMLElement,private ownedPlayers?:DesignedPlayer[],private initial?:TeamSelection,private useDefaults=false){if(ownedPlayers)this.lineup.players=[...ownedRosterPlayers(ownedPlayers),...rosterStarters()];this.lineup.selected=this.lineup.players.length?[this.lineup.players[0].id,(this.lineup.players[1]??this.lineup.players[0]).id]:[];if(initial){for(const p of initial)if(!this.lineup.players.some(v=>v.id===p.id))this.lineup.players.push(p);this.lineup.selected=initial.map(p=>p.id);}
+ this.draw();this.ready=this.useDefaults?this.loadDefaultRoster():this.community.load();void this.ready.catch(error=>{this.host.replaceChildren();const notice=document.createElement('p');notice.setAttribute('role','alert');notice.textContent=(error as Error).message;this.host.append(notice);});void preloadAthletes().then(()=>{if(this.host.isConnected)this.draw()}).catch(()=>{})}
+ private async loadDefaultRoster(){
+  this.host.inert=true;this.host.setAttribute('aria-busy','true');
+  try{
+   const client=authClient();const session=client?(await client.auth.getSession()).data.session:null;
+   if(client&&session){
+    const {data,error}=await client.from('players').select('id,name,catchphrase,appearance,skills,handedness,is_active,is_public').eq('owner_id',session.user.id);
+    if(error)throw Error('Could not load your roster. Reopen setup to try again.');
+    this.ownedPlayers=(data??[]).map(playerFromRow);this.defaultActiveId=data?.find(row=>row.is_active)?.id??null;
+    this.defaultUsername=String(session.user.user_metadata?.username??session.user.user_metadata?.player_name??'');
+   }else{const library=parseLibrary(browserStorage.getItem(PLAYER_STORAGE_KEY));this.ownedPlayers=library.players;this.defaultActiveId=library.activeId;}
+   await this.community.load();
+  }finally{this.host.inert=false;this.host.removeAttribute('aria-busy');}
+ }
  get team():TeamSelection{return this.lineup.selected.slice(0,2).map(id=>structuredClone(this.lineup.players.find(p=>p.id===id)!)) as TeamSelection}
  private draw(){
   this.host.replaceChildren();this.host.className='remote-team-picker roster-grid';

@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shot picker preview</title>
+<link rel="stylesheet" href="/src/style.css">
+<style>
+body{margin:0;background:linear-gradient(135deg,#0b3986,#092657);color:white;font:15px system-ui;min-height:100dvh}main{padding:16px}#checks{font-size:13px;max-width:360px}#reopen{padding:12px;border-radius:10px}#court{position:fixed;inset:130px 12px 12px;border:2px solid #a6d7db77;background:linear-gradient(90deg,transparent 49.7%,#a6d7db77 50%,transparent 50.3%),linear-gradient(0deg,#224a6455 49.7%,#a6d7db77 50%,#34592c55 50.3%);pointer-events:none}
+</style>
+<main><button id="reopen">Open shot picker</button><p id="checks">Running checks…</p><p id="played"></p></main><div id="court"></div>
+<script type="module">
+import {CourtTargetPicker} from '/src/target-picker.ts';
+import {Match} from '/src/match.ts';
+const base=new Match().targetingMenu[0].intent;
+const choices=[['reset','air'],['lob','air'],['dink','bounce'],['reset','bounce'],['drive','bounce'],['overhead','air'],['counter','air'],['block','air'],['flick','air']].map(([type,timing])=>({intent:{...base,type},timing}));
+let lastPlay=null,fail=false;
+const source={team:'home',choices,context:{},decision:'test',enabled:true,validate(){},play(choice,point){if(fail)throw Error('That shot is no longer available. Choose another shot.');lastPlay={choice,point};document.querySelector('#played').textContent=`Played ${choice.intent.type}, ${choice.timing}`;}};
+const scene={onCourtTap:null,setSelectedTarget(){},setShotPreview(){},projectTarget(){return {x:innerWidth/2,y:140}}};
+const picker=new CourtTargetPicker(source,scene),point={x:1,z:-3};
+function open(){picker.sync(true);scene.onCourtTap(point)}
+const assert=(condition,message)=>{if(!condition)throw Error(message)};
+try{
+ open();const initialHeight=document.querySelector('.target-wheel').getBoundingClientRect().height;assert(document.querySelectorAll('.target-shot').length===4,'First page limited to four');
+ assert(document.querySelector('[data-page-prev]').disabled,'Previous disabled on first page');
+ document.querySelector('[data-page-next]').click();assert(document.querySelectorAll('.target-shot').length===4,'Second page limited to four');
+ document.querySelector('[data-page-next]').click();assert(document.querySelectorAll('.target-shot').length===1,'Last choice remains accessible');
+ assert(document.querySelector('[data-page-next]').disabled,'Next disabled on last page');
+ assert(document.querySelector('.target-wheel').getBoundingClientRect().height===initialHeight,'Selector height stays constant on sparse pages');
+ assert(document.querySelector('.target-shot').getBoundingClientRect().width<document.querySelector('.target-shots').getBoundingClientRect().width/2,'Single shot keeps its original tile width');
+ document.querySelector('.target-shot').click();assert(lastPlay.choice.intent.type==='flick'&&lastPlay.point===point,'Paged choice preserves exact intent and target');
+ open();assert(document.querySelector('[data-page-prev]').disabled,'New target resets pagination');
+ fail=true;document.querySelector('.target-shot').click();assert(document.querySelector('.target-picker-status').textContent.includes('no longer available'),'Play errors stay visible');fail=false;
+ document.querySelector('.target-picker-close').click();assert(!picker.active,'Close dismisses picker');
+ source.choices=choices.slice(0,1);open();assert(!document.querySelector('.target-picker-pages'),'Single page needs no pagination');
+ source.choices=choices.slice(0,5);open();
+ document.querySelector('#checks').textContent='Passed: four-shot limit, stable page size, all pages reachable, exact target preserved, reset, error, close and single-page checks.';
+}catch(error){document.querySelector('#checks').textContent=`FAILED: ${error.message}`;throw error;}
+document.querySelector('#reopen').onclick=open;
+window.addEventListener('resize',()=>picker.sync(true));
+</script>

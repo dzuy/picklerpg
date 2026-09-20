@@ -1,3 +1,5 @@
+import {hudButtonIcon} from '../hud-button';
+import {showTurnPromptAfterInvite} from '../pwa';
 import {copyInviteLink} from './pending-invite-card';
 import {TeamPicker} from './team-picker';
 import type {TeamSelection} from './invitation-protocol';
@@ -13,17 +15,22 @@ function button(label:string,primary=false){const b=document.createElement('butt
 export function inviteFriend(done:(game:string)=>Promise<void>,initial?:TeamSelection){
  track('invite_friend_started');
  const d=panel('Private match');const intro=document.createElement('p');intro.textContent='Invite a friend to manage the opposing team. Each of you chooses and controls two athletes.';d.append(intro);d.classList.add('friend-team-dialog');const heading=document.createElement('h2');heading.textContent='Team A · You manage';const teamHost=document.createElement('div');d.append(heading,teamHost);const picker=new TeamPicker(teamHost,undefined,initial);const form=document.createElement('form'),label=document.createElement('label'),input=document.createElement('input');label.textContent='Team B · Invite a friend to manage this team';input.autocomplete='off';input.placeholder='Ryan';input.maxLength=24;input.required=true;label.append(input);const create=button('Create private invitation',true);create.type='submit';const status=document.createElement('p');status.setAttribute('role','status');form.append(label,create,status);d.append(form);input.focus({preventScroll:true});
- form.onsubmit=e=>{e.preventDefault();if(create.disabled)return;track('invite_name_entered');create.disabled=true;teamHost.inert=true;input.disabled=true;void(async()=>{const c=await matchCredentials(),key=`pickle-friend-draft:${c.owner}`,team=await picker.freshTeam(),name=input.value.trim();let draft:{name:string;team:TeamSelection;requestId:string};let cached;try{cached=JSON.parse(browserStorage.getItem(key)??'null')}catch{}draft=cached&&cached.name===name&&JSON.stringify(cached.team)===JSON.stringify(team)?cached:{name,team,requestId:playerId()};browserStorage.setItem(key,JSON.stringify(draft));const challenge=await remoteRequest<FriendChallenge>(c.token,'/api/multiplayer/challenges',draft);browserStorage.removeItem(key);d.close();shareChallenge(challenge,true);await done(challenge.matchId);})().catch(e=>{status.textContent=e.message;create.disabled=false;teamHost.inert=false;input.disabled=false;});};
+ form.onsubmit=e=>{e.preventDefault();if(create.disabled)return;track('invite_name_entered');create.disabled=true;teamHost.inert=true;input.disabled=true;void(async()=>{const c=await matchCredentials(),key=`pickle-friend-draft:${c.owner}`,team=await picker.freshTeam(),name=input.value.trim();let draft:{name:string;team:TeamSelection;requestId:string};let cached;try{cached=JSON.parse(browserStorage.getItem(key)??'null')}catch{}draft=cached&&cached.name===name&&JSON.stringify(cached.team)===JSON.stringify(team)?cached:{name,team,requestId:playerId()};browserStorage.setItem(key,JSON.stringify(draft));const challenge=await remoteRequest<FriendChallenge>(c.token,'/api/multiplayer/challenges',draft);browserStorage.removeItem(key);d.close();shareChallenge(challenge,true);await done(challenge.matchId);showTurnPromptAfterInvite();})().catch(e=>{status.textContent=e.message;create.disabled=false;teamHost.inert=false;input.disabled=false;});};
 }
 export function shareChallenge(i:FriendChallenge,openShare=false){
- const d=panel(`Waiting for ${i.invitedName}`),match=document.createElement('p');match.textContent=`${i.inviterName} vs. ${i.invitedName}`;
+ const d=panel(`Waiting for ${i.invitedName}`);d.classList.add('friend-share-dialog');
+ const close=d.querySelector('button')!;close.className='friend-share-close';close.setAttribute('aria-label','Close');close.title='Close';close.innerHTML=hudButtonIcon('close');
+ const intro=document.createElement('p');intro.className='friend-share-intro';intro.textContent='Share the game link with your friends to start playing.';
  const url=new URL(`/challenge/${i.token}`,location.origin).href,link=document.createElement('input');link.value=url;link.readOnly=true;link.setAttribute('aria-label','Challenge link');link.onclick=()=>link.select();
- const send=button('Send Challenge',true),copy=button('Copy Link'),cancel=button('Cancel challenge'),message=document.createElement('p');message.setAttribute('role','status');
+ const send=button('Send Challenge',true),copy=button('Copy Link'),message=document.createElement('p');message.setAttribute('role','status');
  async function copyLink(){try{await copyInviteLink(url);message.textContent='Link copied.';track('invite_link_copied',i.token);}catch{link.focus();link.select();message.textContent='Select and copy the link above.';}}
  const nativeShare=()=>navigator.share({title:'PickleBash challenge',text:`${i.inviterName} challenged you to PickleBash. Think you can outplay them?`,url});
  send.onclick=()=>{track('invite_share_opened',i.token);if(typeof navigator.share==='function')void nativeShare().catch(e=>{if(e.name!=='AbortError')void copyLink();});else void copyLink();};copy.onclick=()=>void copyLink();
- cancel.onclick=()=>{cancel.disabled=true;void matchCredentials().then(c=>remoteRequest(c.token,`/api/multiplayer/challenges/${i.token}/cancel`,{})).then(()=>{d.close();location.href='/?multiplayer=1';}).catch(e=>{message.textContent=e.message;cancel.disabled=false;});};
- d.append(match,link,send,copy,message,cancel);
+ const actions=document.createElement('div');actions.className='friend-share-actions';actions.append(copy,send);
+ const cancel=document.createElement('a');cancel.href='#';cancel.className='friend-share-cancel';cancel.textContent='Cancel Invitation';
+ let cancelling=false;
+ cancel.onclick=event=>{event.preventDefault();if(cancelling)return;cancelling=true;cancel.setAttribute('aria-disabled','true');message.textContent='';void matchCredentials().then(c=>remoteRequest(c.token,`/api/multiplayer/challenges/${i.token}/cancel`,{})).then(()=>{d.close();location.assign('/?openplay=1');}).catch(error=>{message.textContent=(error as Error).message||'Could not cancel the invitation. Please try again.';cancelling=false;cancel.removeAttribute('aria-disabled');});};
+ d.append(intro,link,actions,message,cancel);
  if(openShare&&typeof navigator.share==='function')void nativeShare().then(()=>track('invite_share_opened',i.token)).catch(()=>{});
  let checking=false;const refresh=setInterval(()=>{if(document.hidden||checking)return;checking=true;void matchCredentials().then(c=>remoteRequest<FriendChallenge>(c.token,`/api/multiplayer/challenge-for-match/${i.matchId}`)).then(next=>{if(next.status!=='pending')d.close();}).catch(()=>{}).finally(()=>{checking=false;});},5000);d.addEventListener('close',()=>clearInterval(refresh));
 }

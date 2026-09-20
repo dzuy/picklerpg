@@ -63,8 +63,8 @@ export class MatchService {
   await this.repository.setArchived(id,actor,(input as {archived:boolean}).archived);
   return {archived:(input as {archived:boolean}).archived};
  }
- async get(id:string,actor:string){const row=await this.repository.get(id,actor);if(!row)throw missing();const match=(await this.withRivalries([publicMatch(row,actor,this.testers)],actor))[0];if(match.status==='completed'&&!match.endedEarly&&this.repository.strategy){try{const summary=await this.repository.strategy(id,actor);if(summary)match.strategy=publicStrategy(summary);if(row.completed_at){const opponent=actor===row.home_user_id?row.away_user_id:row.home_user_id;if(opponent){const story=await loadStrategyStory(this.repository,actor,id,opponent,row.completed_at);if(story)match.strategyStory=story;}}}catch{console.warn('Match strategy unavailable');}}return match;}
- async list(actor:string){return this.withRivalries((await this.repository.list(actor)).map(row=>publicMatch(row,actor,this.testers)),actor);}
+ async get(id:string,actor:string){const row=await this.repository.get(id,actor);if(!row)throw missing();if(row.friend_state==='cancelled')throw new ApiError(410,'cancelled','This invitation has been cancelled.');const match=(await this.withRivalries([publicMatch(row,actor,this.testers)],actor))[0];if(match.status==='completed'&&!match.endedEarly&&this.repository.strategy){try{const summary=await this.repository.strategy(id,actor);if(summary)match.strategy=publicStrategy(summary);if(row.completed_at){const opponent=actor===row.home_user_id?row.away_user_id:row.home_user_id;if(opponent){const story=await loadStrategyStory(this.repository,actor,id,opponent,row.completed_at);if(story)match.strategyStory=story;}}}catch{console.warn('Match strategy unavailable');}}return match;}
+ async list(actor:string){return this.withRivalries((await this.repository.list(actor)).filter(row=>row.friend_state!=='cancelled').map(row=>publicMatch(row,actor,this.testers)),actor);}
  private async withRivalries(matches:PublicMatch[],actor:string){
   if(!this.repository.rivalries||!matches.length)return matches;
   try{

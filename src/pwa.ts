@@ -20,33 +20,39 @@ let restoringNotifications=true;
 const supported=()=> 'Notification' in window&&'PushManager' in window&&'serviceWorker' in navigator;
 const notificationDismissed=()=>!!owner&&browserSessionStorage.getItem(`pickle-notifications-dismissed:${owner}`)==='1';
 const dismissed=()=>browserStorage.getItem('pickle-install-dismissed')==='1';
-export function setTurnPromptEligible(value:boolean){eligible=value;render();}
+export function showTurnPromptAfterInvite(){eligible=true;render();}
 export function mountTurnPrompt(host:HTMLElement){
- const card=document.createElement('section');card.className='turn-prompt';host.prepend(card);
+ const dialog=document.createElement('dialog');dialog.className='turn-notification-modal';dialog.setAttribute('aria-labelledby','turn-prompt-title');dialog.setAttribute('aria-describedby','turn-prompt-copy');
+ const card=document.createElement('section');card.className='turn-prompt';dialog.append(card);host.append(dialog);
+ dialog.addEventListener('close',()=>{eligible=false;if(owner)browserSessionStorage.setItem(`pickle-notifications-dismissed:${owner}`,'1');});
+ const hide=()=>{card.hidden=true;if(dialog.open)dialog.close();};
  render=()=>{
-  card.replaceChildren();card.hidden=!eligible||!owner||enabled||restoringNotifications||notificationDismissed();if(card.hidden)return;
+  card.replaceChildren();card.hidden=!eligible||!owner||enabled||restoringNotifications||notificationDismissed();if(card.hidden){hide();return;}
   const installed=standalone();
   const needsInstall=ios&&!installed;
-  if(!needsInstall&&(!supported()||Notification.permission==='denied')){card.hidden=true;return;}
-  if(needsInstall&&dismissed()){card.hidden=true;return;}
-  const title=document.createElement('strong');title.textContent=!needsInstall?"Know when it's your turn":'Never miss your turn';
-  const copy=document.createElement('p');copy.textContent=!needsInstall?'Get notified when your opponent plays, even while you’re using another app.':"Add PickleBash to your Home Screen and we'll let you know when your friends play.";
-  const button=document.createElement('button');button.type='button';button.disabled=busy;
+  if(!needsInstall&&(!supported()||Notification.permission==='denied')){hide();return;}
+  if(needsInstall&&dismissed()){hide();return;}
+  const icon=document.createElement('span');icon.className='turn-prompt-icon';icon.setAttribute('aria-hidden','true');icon.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4M12 2V1"/></svg>';
+  const content=document.createElement('div');content.className='turn-prompt-content';
+  const actions=document.createElement('div');actions.className='turn-prompt-actions';
+  const title=document.createElement('strong');title.id='turn-prompt-title';title.textContent="Your game is ready. Know when it’s your turn.";
+  const copy=document.createElement('p');copy.id='turn-prompt-copy';copy.textContent=!needsInstall?'Enable notifications so you’ll know when your friend plays and it’s your turn next—even when PickleBash is closed.':"Add PickleBash to your Home Screen, then enable notifications to find out when your friend plays and it’s your turn next.";
+  const button=document.createElement('button');button.type='button';button.className='turn-enable';button.disabled=busy;
   if(needsInstall){
    button.textContent='Add PickleBash';button.onclick=()=>void install();
    if(installedThisSession){copy.textContent='Open PickleBash from your Home Screen to enable notifications.';button.hidden=true;}
    else if(!ios&&!installPrompt){copy.textContent+=' Use your browser’s menu to install PickleBash.';button.hidden=true;}
-   const close=document.createElement('button');close.className='turn-later';close.textContent='Not right now';close.onclick=()=>{browserStorage.setItem('pickle-install-dismissed','1');render();};card.append(close);
+   const close=document.createElement('a');close.href='#';close.className='turn-later';close.textContent='Not right now';close.onclick=event=>{event.preventDefault();browserStorage.setItem('pickle-install-dismissed','1');render();};actions.append(close);
   }else{
    button.textContent=enabled?'Notifications enabled':'Enable Notifications';button.disabled=busy||enabled;
    if(!supported()){copy.textContent='Notifications aren’t supported in this browser. Try an updated browser.';button.hidden=true;}
    else if(Notification.permission==='denied'){copy.textContent='Notifications are blocked. You can change this in your device or browser settings.';button.hidden=true;}
    else if(!publicKey){copy.textContent='Notifications are not available yet.';button.hidden=true;}
    button.onclick=()=>void enable();
-   const later=document.createElement('button');later.type='button';later.className='turn-later';later.textContent='Not right now';later.onclick=()=>{if(owner)browserSessionStorage.setItem(`pickle-notifications-dismissed:${owner}`,'1');render();};card.append(later);
+   const later=document.createElement('a');later.href='#';later.className='turn-later';later.textContent='Not right now';later.onclick=event=>{event.preventDefault();if(owner)browserSessionStorage.setItem(`pickle-notifications-dismissed:${owner}`,'1');render();};actions.append(later);
   }
   const status=document.createElement('p');status.setAttribute('role','status');status.textContent=message;
-  card.append(title,copy,button,status);
+  actions.prepend(button);content.append(title,copy,actions,status);card.append(icon,content);if(!dialog.open)dialog.showModal();
  };
  render();
 }

@@ -26,6 +26,10 @@ test('friend slot exists before account claim; retries, races, cancellation, aut
  const events=(await db.pool.query('select event from public.invite_events where invite_id=$1',[i.id])).rows.map(r=>r.event);for(const event of ['invite_created','invite_accepted','guest_first_turn_completed','guest_character_created','guest_game_completed'])assert.ok(events.includes(event),event);
  const onward=await make(winner);assert.equal((await db.pool.query("select count(*) from public.invite_events where actor_id=$1 and event='guest_sent_first_invite'",[winner])).rows[0].count,1);assert.ok(onward.match_id!==i.match_id);
  const cancelled=await make();await claim(A,cancelled.token,true);await assert.rejects(claim(B,cancelled.token));
+ assert.equal((await repo.get(cancelled.match_id,A))!.friend_state,'cancelled');
+ assert.ok(!(await service.list(A)).some(game=>game.id===cancelled.match_id),'cancelled invitations must leave the game list');
+ await assert.rejects(service.get(cancelled.match_id,A),/invitation has been cancelled/);
+ await assert.rejects(service.act(cancelled.match_id,A,action(publicMatch({...before,friend_state:undefined},A))),/not ready/);
  for(const role of ['anon','authenticated']){const c=await db.pool.connect();try{await c.query(`set role ${role}`);await assert.rejects(c.query('select * from public.friend_challenges'),/permission denied/);await assert.rejects(c.query('select public.claim_friend_challenge($1,$2,$3,false)',[i.token,B,'Ryan']),/permission denied/);}finally{await c.query('reset role');c.release();}}
  }finally{await db.close();}
 });

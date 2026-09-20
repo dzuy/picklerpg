@@ -1,3 +1,4 @@
+import {hudButtonIcon} from './hud-button';
 import {isSpeedUp} from './engine/speed-up';
 import {isOpposingTarget} from './engine/controllers';
 import {COURT,type PlayerId,type Team,type ShotIntent} from './engine/model';
@@ -26,6 +27,7 @@ export class CourtTargetPicker {
  private context:unknown=null;
  private decision='';
  private enabled=false;
+ private page=0;
  get active(){return !!this.point&&!this.panel.hidden}
  constructor(private source:TargetingSource,private scene:CourtScene){
   this.panel.className='target-picker';this.panel.hidden=true;this.panel.setAttribute('aria-label','Court target shot picker');
@@ -34,7 +36,7 @@ export class CourtTargetPicker {
    if(!this.enabled||!this.source.team||!isOpposingTarget(point,this.source.team))return false;
    const serving=this.source.choices.some(choice=>choice.intent.type==='serve');
    if(!serving&&(Math.abs(point.x)>COURT.width/2||Math.abs(point.z)>COURT.length/2))return false;
-   this.source.aim?.();this.point=point;this.context=this.source.context;this.decision=this.source.decision;
+   this.source.aim?.();this.page=0;this.point=point;this.context=this.source.context;this.decision=this.source.decision;
    scene.setSelectedTarget(point);scene.setShotPreview(null);this.draw();return true;
   };
   // Consume the whole dismissal gesture so it cannot place a new target or activate a control underneath.
@@ -57,10 +59,11 @@ export class CourtTargetPicker {
   this.panel.hidden=!this.point||!this.enabled;
   if(this.point&&!this.panel.hidden){
    const p=this.scene.projectTarget(this.point),width=this.panel.offsetWidth,height=this.panel.offsetHeight;
-   const left=Math.max(8,Math.min(innerWidth-width-8,p.x-width/2)),top=Math.max(8,Math.min(innerHeight-height-8,p.y-height/2));
+   const left=Math.max(8,Math.min(innerWidth-width-8,p.x-width/2));
+   // Prefer space below or above the landing point so the court marker stays visible.
+   const preferredTop=p.y+24+height<=innerHeight-8?p.y+24:p.y-height-24;
+   const top=Math.max(8,Math.min(innerHeight-height-8,preferredTop));
    this.panel.style.left=`${left}px`;this.panel.style.top=`${top}px`;
-   // Keep the aperture and reticle on the exact court point, even when the wheel is clamped at a screen edge.
-   this.panel.style.setProperty('--aim-x',`${p.x-left-2}px`);this.panel.style.setProperty('--aim-y',`${p.y-top-2}px`);
   }
  }
  private status(text:string){this.panel.querySelector<HTMLElement>('.target-picker-status')!.textContent=text}
@@ -76,24 +79,23 @@ export class CourtTargetPicker {
    return [{...choice,label}];
   });
   if(!choices.length){this.clear();return}
-  const slice=(choice:typeof choices[number],index:number)=>{
-   const type=choice.intent.type,caption=choice.label;
+  const pageCount=Math.ceil(choices.length/4);this.page=Math.min(this.page,pageCount-1);
+  const visible=choices.slice(this.page*4,this.page*4+4);
+  const tile=(choice:typeof choices[number],index:number)=>{
    const timing=choice.timing?(choice.timing==='air'?'Before bounce':'After bounce'):'';
-   const step=360/choices.length,angle=index*step-90,start=angle-step/2+.35,end=angle+step/2-.35;
-   const at=(degrees:number,radius:number)=>({x:50+radius*Math.cos(degrees*Math.PI/180),y:50+radius*Math.sin(degrees*Math.PI/180)});
-   const edge=Array.from({length:17},(_,i)=>at(start+(end-start)*i/16,50));
-   const clip=choices.length===1?'none':`polygon(50% 50%,${edge.map(p=>`${p.x}% ${p.y}%`).join(',')})`;
-   const label=at(angle,33);
-   return `<button type="button" class="target-slice" style="clip-path:${clip}" data-type="${type}" data-choice="${index}"><span class="target-slice-content" style="left:${label.x}%;top:${label.y}%">${shotIcon(choice.intent,index,'wheel')}<span class="target-slice-label">${caption}</span>${timing?`<span class="target-slice-timing">${timing}</span>`:''}</span></button>`;
+   return `<button type="button" class="target-shot" data-type="${choice.intent.type}" data-choice="${this.page*4+index}">${shotIcon(choice.intent,index,'wheel')}<span class="target-shot-label">${choice.label}</span>${timing?`<span class="target-shot-timing" data-timing="${choice.timing}">${timing}</span>`:''}</button>`;
   };
-  this.panel.innerHTML=`<div class="target-wheel" role="group" aria-label="Shot type"><div class="target-slices">${choices.map(slice).join('')}</div><span class="target-wheel-center" aria-hidden="true"><svg viewBox="0 0 80 80" fill="none"><circle cx="40" cy="40" r="34"/><circle cx="40" cy="40" r="12"/><path d="M40 2v16M40 62v16M2 40h16M62 40h16"/><circle class="reticle-dot" cx="40" cy="40" r="2"/></svg></span></div><span class="target-picker-status sr-only" role="status"></span>`;
+  this.panel.innerHTML=`<div class="target-wheel" role="group" aria-label="Shot type"><header class="target-picker-heading"><span>Choose your shot</span><button type="button" class="target-picker-close" aria-label="Close shot picker">${hudButtonIcon('close')}</button></header><div class="target-shots" data-has-timing="${choices.some(choice=>!!choice.timing)}">${visible.map(tile).join('')}</div>${pageCount>1?`<nav class="target-picker-pages" aria-label="Shot options pages"><button type="button" data-page-prev aria-label="Previous shots" ${this.page===0?'disabled':''}>‹</button><span aria-live="polite">${this.page+1} / ${pageCount}</span><button type="button" data-page-next aria-label="More shots" ${this.page===pageCount-1?'disabled':''}>More shots <span aria-hidden="true">›</span></button></nav>`:''}<span class="target-picker-status" role="status"></span></div>`;
+  this.panel.querySelector('.target-picker-close')!.addEventListener('click',()=>this.clear());
+  this.panel.querySelector('[data-page-prev]')?.addEventListener('click',()=>{this.page--;this.draw()});
+  this.panel.querySelector('[data-page-next]')?.addEventListener('click',()=>{this.page++;this.draw()});
 
   for(const button of Array.from(this.panel.querySelectorAll<HTMLButtonElement>('[data-type]'))){
    const choice=choices[Number(button.dataset.choice)];
    button.title=`Play ${choice.label}${choice.timing?choice.timing==='air'?' · before bounce':' · after bounce':''}`;
    button.addEventListener('click',()=>{
     try{this.source.play(choice,this.point!);this.panel.hidden=true}
-    catch(error){this.status((error as Error).message);this.draw()}
+    catch(error){this.draw();if(this.active)this.status((error as Error).message)}
 
    });
   }

@@ -1,1 +1,29 @@
-.turn-prompt{position:relative;margin:16px 0;padding:18px;border:1px solid #bad75a;border-radius:16px;background:#f5f9e9;color:#163c36;font:16px/1.4 system-ui,sans-serif}.turn-prompt[hidden]{display:none}.turn-prompt strong{display:block;font-size:20px;padding-right:95px}.turn-prompt p{margin:6px 0 12px}.turn-prompt p:empty{display:none}.turn-prompt button,.turn-install button{border:0;border-radius:9px;padding:10px 16px;background:#163c36;color:white;font:inherit;cursor:pointer}.turn-prompt button:disabled{opacity:.65;cursor:default}.turn-prompt .turn-later{position:absolute;right:12px;top:12px;background:transparent;color:#163c36;font-size:12px;padding:5px}.turn-install{max-width:min(360px,calc(100vw - 40px));border:0;border-radius:18px;padding:24px;background:#f5f9e9;color:#163c36;font:16px/1.6 system-ui,sans-serif}.turn-install::backdrop{background:#0009}.turn-install h2{margin-top:0}.turn-install li{padding:4px 0}
+/* Quiet utility card beneath the main play choices. */
+.turn-prompt{display:flex;align-items:flex-start;gap:14px;margin:20px 0;padding:20px;border:1px solid #95b7e32e;border-radius:16px;background:#081e4666;color:#e6efff;font:14px/1.5 system-ui,sans-serif}
+.turn-prompt[hidden]{display:none}
+.turn-prompt-icon{display:grid;place-items:center;flex:0 0 36px;width:36px;height:36px;border-radius:11px;background:#b2cff014;color:#afc9eb}
+.turn-prompt-icon svg{width:21px;height:21px}
+.turn-prompt-content{flex:1;min-width:0}
+.turn-prompt strong{display:block;font-size:16px;font-weight:650;line-height:1.4;color:#e6efff}
+.turn-prompt p{margin:5px 0 0;color:#b5c8e3;font-size:13px;line-height:1.55;max-width:52ch}
+.turn-prompt p:empty{display:none}
+.turn-prompt-actions{display:flex;align-items:center;flex-wrap:wrap;gap:4px 20px;margin-top:13px}
+#app .turn-prompt .turn-enable{width:auto;min-height:40px;margin:0;padding:8px 13px;border:1px solid #8cadd54d;border-radius:9px;background:#aac9f010;box-shadow:none;color:#dceaff;font:600 13px/1.4 system-ui,sans-serif;cursor:pointer}
+#app .turn-prompt .turn-enable:hover{background:#aac9f024;border-color:#8cadd580}
+#app .turn-prompt .turn-enable:disabled{opacity:.65;cursor:default}
+#app .turn-prompt .turn-enable[hidden]{display:none}
+#app .turn-prompt .turn-later{display:inline-flex;align-items:center;min-height:40px;padding:0;border:0;background:none;box-shadow:none;color:#b5c8e3;font:400 13px/1.4 system-ui,sans-serif;text-decoration:underline;text-decoration-color:#b5c8e366;text-underline-offset:4px;cursor:pointer}
+#app .turn-prompt .turn-later:hover{color:#fff;text-decoration-color:currentColor}
+#app .turn-prompt :is(button,a):focus-visible{outline:2px solid #b9dcff;outline-offset:4px}
+.turn-prompt [role=status]:not(:empty){margin-top:12px;color:#dfebff}
+@media(max-width:480px){.turn-prompt{padding:16px;gap:11px}.turn-prompt-actions{column-gap:16px}.turn-prompt-icon{flex-basis:30px;width:30px;height:30px;border-radius:9px}}
+.turn-install button{border:0;border-radius:9px;padding:10px 16px;background:#163c36;color:white;font:inherit;cursor:pointer}
+.turn-install{max-width:min(360px,calc(100vw - 40px));border:0;border-radius:18px;padding:24px;background:#f5f9e9;color:#163c36;font:16px/1.6 system-ui,sans-serif}.turn-install::backdrop{background:#0009}.turn-install h2{margin-top:0}.turn-install li{padding:4px 0}
+
+.turn-notification-modal{width:min(460px,calc(100vw - 32px));max-height:calc(100dvh - 48px);padding:0;border:1px solid #7fa5d455;border-radius:20px;background:#102853;color:#e6efff;box-shadow:0 24px 80px #020b2699;overflow:auto}
+.turn-notification-modal::backdrop{background:#020b26b3;backdrop-filter:blur(4px)}
+.turn-notification-modal .turn-prompt{margin:0;padding:26px;border:0;background:none;gap:16px}
+.turn-notification-modal .turn-prompt strong{font-size:21px;line-height:1.3;letter-spacing:-.3px}
+.turn-notification-modal .turn-prompt p{font-size:14px;margin-top:10px}
+.turn-notification-modal .turn-prompt-actions{margin-top:20px}
+@media(max-width:480px){.turn-notification-modal .turn-prompt{padding:22px 18px;gap:12px}.turn-notification-modal .turn-prompt strong{font-size:19px}}

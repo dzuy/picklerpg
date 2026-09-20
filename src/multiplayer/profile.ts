@@ -14,7 +14,7 @@ import type {PublicMatch} from './protocol';
 
 function node<K extends keyof HTMLElementTagNameMap>(tag:K,text='',cls=''){const el=document.createElement(tag);el.textContent=text;el.className=cls;return el;}
 export function profilePanel(portraits:AvatarThumbnails|undefined,authenticate:(signup:boolean,guest:boolean)=>void,signOut:()=>Promise<void>){
- const panel=node('section','','lobby-profile');panel.setAttribute('aria-label','Your profile');panel.setAttribute('aria-busy','true');panel.append(node('p','Loading your profile…'));
+ const panel=node('section','','lobby-profile own-profile');panel.setAttribute('aria-label','Your profile');panel.setAttribute('aria-busy','true');panel.append(node('p','Loading your profile…'));
  void (async()=>{
   const client=authClient();
   const session=client?await client.auth.getSession():null;
@@ -37,19 +37,27 @@ export function profilePanel(portraits:AvatarThumbnails|undefined,authenticate:(
    const result=await client!.from('players').select(columns).eq('owner_id',user.id).order('is_active',{ascending:false}).order('created_at').limit(1);if(result.error)throw result.error;players=result.data;
   }
   const player=players?.[0]?playerFromRow(players[0]):null;
-  if(portraits){const avatar=node('img');avatar.src=portraits.get(player?.appearance??profileAvatar(user.id,user.user_metadata.profile_avatar),'full');avatar.alt=`${name||'Player'}’s character`;panel.append(avatar);}
-  panel.append(node('h2',name||'Player'));
-  if(player){const edit=node('a','Edit Player','team-lobby-quiet');edit.href=`/?openplay=1&tab=roster&editPlayer=${encodeURIComponent(player.id)}`;panel.append(edit);}
+  const header=node('header','','profile-identity');
+  if(portraits){const avatar=node('img','','profile-avatar');avatar.src=portraits.get(player?.appearance??profileAvatar(user.id,user.user_metadata.profile_avatar),'face');avatar.alt=`${name||'Player'}’s avatar`;header.append(avatar);}
+  const identity=node('div','','profile-identity-copy');
+  const username=typeof user.user_metadata.username==='string'?user.user_metadata.username.trim():name;
+  identity.append(node('h2',username||'Player'),node('p',name!==username?name:'PickleBash player','profile-display-name'));
+  if(player?.catchphrase?.trim())identity.append(node('p',player.catchphrase.trim(),'profile-bio'));
+  header.append(identity);panel.append(header);
+  const actions=node('div','','profile-actions');
+  if(player){const edit=node('a','Edit player','profile-edit');edit.href=`/?openplay=1&tab=roster&editPlayer=${encodeURIComponent(player.id)}`;actions.append(edit);}
+  const roster=node('a','My roster','profile-roster');roster.href='/?openplay=1&tab=roster';actions.append(roster);
   const stats=node('dl','','lobby-profile-stats');
-  const values=['Games played','Wins','Losses'].map(label=>{const stat=node('div'),value=node('dd','—');stat.append(node('dt',label),value);stats.append(stat);return value;});
-  const note=node('p','Loading your game record…','lobby-profile-note');note.setAttribute('role','status');panel.append(stats,note,shotMixPanel());
+  const values=['Games','Wins','Losses'].map(label=>{const stat=node('div'),value=node('dd','—');stat.append(node('dt',label),value);stats.append(stat);return value;});
+  const note=node('p','Loading your game record…','lobby-profile-note');note.setAttribute('role','status');panel.append(stats,actions,note);
+  const insights=node('section','','profile-insights');insights.append(node('h3','Your game'),node('p','A closer look at how you play.','profile-section-copy'),shotMixPanel());panel.append(insights);
   const footer=node('footer','','lobby-profile-account'),signOutButton=node('button','Sign out','team-lobby-quiet'),accountStatus=node('p');
   signOutButton.type='button';accountStatus.setAttribute('role','status');
   let currentEmail=user.email??'';
-  const accountLabel=node('p',`Logged in as ${currentEmail||name||'Player'}`),editEmail=node('button','Edit email','team-lobby-quiet');editEmail.type='button';
+  const accountLabel=node('p',currentEmail||name||'Player','profile-email'),editEmail=node('button','Edit email','team-lobby-quiet');editEmail.type='button';
   if(user.new_email&&user.new_email!==currentEmail)accountStatus.textContent=`Email change to ${user.new_email} awaits confirmation. Check your email inboxes.`;
-  editEmail.onclick=()=>editEmailDialog(user.id,currentEmail,(email,pending)=>{currentEmail=email;accountLabel.textContent=`Logged in as ${email}`;accountStatus.textContent=pending?`Email change to ${pending} awaits confirmation. Check your email inboxes.`:'Email address updated.';});
-  footer.append(accountLabel,editEmail,signOutButton,accountStatus);panel.append(footer);
+  editEmail.onclick=()=>editEmailDialog(user.id,currentEmail,(email,pending)=>{currentEmail=email;accountLabel.textContent=email;accountStatus.textContent=pending?`Email change to ${pending} awaits confirmation. Check your email inboxes.`:'Email address updated.';});
+  const accountActions=node('div','','profile-account-actions');accountActions.append(editEmail,signOutButton);footer.append(node('span','Email address','profile-account-label'),accountLabel,accountActions,accountStatus);const settings=node('details','','profile-account-settings');settings.append(node('summary','Account settings'),footer);panel.append(settings);
   signOutButton.onclick=()=>{signOutButton.disabled=true;signOutButton.textContent='Signing out…';accountStatus.textContent='';void signOut().catch(()=>{accountStatus.textContent='Could not sign out. Please try again.';}).finally(()=>{signOutButton.disabled=false;signOutButton.textContent='Sign out';});};
   try{
    const history=async()=>{const matches:HistoryMatch[]=[];for(let offset=0;;offset+=500){const result=await client!.from('match_history').select('id,home_names,away_names,home_score,away_score,ended_early,completed_at').eq('owner_id',user.id).order('completed_at',{ascending:false}).order('id').range(offset,offset+499);if(result.error)throw result.error;matches.push(...result.data);if(result.data.length<500)return matches;}};

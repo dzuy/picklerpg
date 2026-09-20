@@ -42,7 +42,7 @@ const directGame=rosterRoute.has('game')||rosterRoute.get('newgame')==='1';
 let onStartScreen=true;
 document.body.dataset.screen='start';
 const startScreen=document.createElement('main');startScreen.id='start-screen';startScreen.setAttribute('aria-labelledby','start-title');
-startScreen.innerHTML=`<h1 id="start-title" class="start-accessible-title">PickleBash</h1><div class="start-stage"><img class="start-background" src="/images/start/background.png" alt="" fetchpriority="high"><nav class="start-actions" aria-label="Main menu"><button id="start-multiplayer" class="start-text-action" aria-label="Open Play"><strong>Open Play</strong><small>Find your next game</small></button><button id="start-new-game" class="start-text-action practice-entry" aria-label="Practice"><strong>Practice</strong><small>Drills · Coming soon</small></button><button id="start-roster" aria-label="Roster" disabled><img src="/images/start/roster.png" alt="" draggable="false"></button></nav><p class="start-loading" role="status">Getting the court ready…</p></div>`;
+startScreen.innerHTML=`<h1 id="start-title" class="start-accessible-title">PickleBash</h1><div class="start-stage"><img class="start-background" src="/images/start/background.png" alt="" fetchpriority="high"><nav class="start-actions" aria-label="Main menu"><button id="start-multiplayer" aria-label="Open Play"><img src="/images/start/open-play.png" alt="" width="2172" height="724" draggable="false"></button><button id="start-roster" aria-label="Roster" disabled><img src="/images/start/roster.png" alt="" draggable="false"></button></nav><p class="start-loading" role="status">Getting the court ready…</p></div>`;
 startScreen.hidden=directRoster||directGame;
 document.body.append(startScreen);
 const rosterLoading=document.createElement('div');
@@ -497,17 +497,12 @@ function showMatchSetup(returnToCourt=false){
 function showStartScreen(){
  matchup.hide();
  voice.stop();voiceHandsFree=false;voiceHandsFreeInput.checked=false;match.stopReplay();
- onStartScreen=true;document.body.dataset.screen='start';app.inert=true;startScreen.hidden=false;targetPicker.sync(false);byId('start-new-game').focus();
+ onStartScreen=true;document.body.dataset.screen='start';app.inert=true;startScreen.hidden=false;targetPicker.sync(false);byId('start-multiplayer').focus();
 }
 function enterCourt(fresh=true){
  if(fresh){match.practice=null;reset()}
  onStartScreen=false;document.body.dataset.screen='court';app.inert=false;startScreen.hidden=true;showPanel('play');lastUI='';updateUI();byId('open-settings').focus();
 }
-byId('start-new-game').addEventListener('click',()=>{
- const dialog=document.createElement('dialog');dialog.className='practice-preview';
- dialog.innerHTML='<p class="eyebrow">PRACTICE</p><h2>A little court time. A better game.</h2><p>Focused drills and repeatable situations are coming here. For a full match, head to Open Play.</p><button type="button">Back to home</button>';
- dialog.querySelector('button')!.onclick=()=>dialog.close();dialog.addEventListener('close',()=>dialog.remove());document.body.append(dialog);dialog.showModal();
-});
 byId('start-multiplayer').addEventListener('click',()=>location.assign('/?openplay=1'));
 byId('start-roster').addEventListener('click',()=>creator.open());
 byId('back-to-lobby').addEventListener('click',()=>{if(settingsCloseTimer)window.clearTimeout(settingsCloseTimer);settingsDialog.close();settingsDialog.classList.remove('is-closing');closeGameSurface()});

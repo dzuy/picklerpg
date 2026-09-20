@@ -1,0 +1,5 @@
+Tool: built-in image_gen
+Reference: public/images/start/multiplayer.png
+Output: public/images/start/open-play.png
+
+Use case: text-localization. Asset type: transparent PNG home-screen game button. Edit target: the supplied Multiplayer button. Replace only its lettering with exactly "OPEN PLAY", centered and filling the panel in the same bold italic white beveled comic lettering with dark navy extrusion. Preserve the hot pink angular panel, cyan lightning border, yellow accents, halftone textures, wide 3:1 composition and transparent exterior. Keep the entire button visible with no clipping. No other words or extra objects. Produce a genuinely transparent background with alpha.
