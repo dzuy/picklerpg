@@ -9,6 +9,9 @@ class Element {
 }
 test('empty roster exposes roster choices and can recover to an acceptable two-player team',async()=>{
  const result=await build({entryPoints:['src/multiplayer/team-picker.ts'],bundle:true,write:false,format:'iife',globalName:'Picker',plugins:[{name:'boundaries',setup(b){b.onResolve({filter:/.*/},args=>args.kind==='entry-point'?undefined:{path:args.path,namespace:'mock'});b.onLoad({filter:/.*/,namespace:'mock'},({path})=>({contents:
+ path.includes('auth-session')?'export const authClient=()=>null;':
+ path.includes('cloud-players')?'export const playerFromRow=row=>row;':
+ path.includes('default-lineup')?'export const defaultLineup=players=>[players[0]?.id,players[1]?.id??players[0]?.id].filter(Boolean);':
  path.includes('roster-membership')?'export const rosterStarters=()=>[];export const ownedRosterPlayers=p=>p;':
  path.includes('community-section')?'export class CommunitySection {element=document.createElement("section");constructor(changed){globalThis.addRosterPlayers=changed}async load(){globalThis.addRosterPlayers([])}}':
  path.includes('community-players')?'export const refreshCommunityDesigns=async t=>t;':

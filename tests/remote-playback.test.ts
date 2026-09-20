@@ -17,5 +17,5 @@ test('replay visits a bounce between regular sample times without cutting across
  const segment={...receipt.state.animation[0],duration:1,pathTimes:[0,.43,1],path:[{x:0,y:1,z:0},{x:1,y:.037,z:1},{x:2,y:.7,z:2}]};
  assert.deepEqual(samplePlayback(segment,430).position,segment.path[1]);
  assert.ok(samplePlayback(segment,400).position.y>.037);assert.ok(samplePlayback(segment,460).position.y>.037);
- for(const original of receipt.state.animation){assert.equal(original.pathTimes?.length,original.path.length);assert.equal(original.pathTimes?.[0],0);assert.equal(original.pathTimes?.at(-1),original.duration);}
+ for(const original of receipt.state.animation){assert.equal(original.pathTimes?.length,original.path.length);assert.equal(original.pathTimes?.[0],0);assert.ok(Math.abs(original.pathTimes!.at(-1)!-original.duration)<1e-9,'final path time matches duration within floating-point precision');}
 });
