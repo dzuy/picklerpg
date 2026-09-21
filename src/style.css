@@ -560,7 +560,6 @@ body[data-screen=start]{overflow:hidden;background:var(--pb-surface)}
 
 #local-save-status:not([hidden]) { position:fixed; z-index:1000; bottom:1rem; left:1rem; right:1rem; margin:0; padding:.8rem 1rem; border:1px solid var(--pb-border-accent); border-radius:.5rem; background:var(--pb-surface-inset); color:var(--pb-text); font:14px/1.4 sans-serif; }
 #local-save-status + button:not([hidden]) {position:fixed;z-index:1001;bottom:5rem;left:1rem;padding:.6rem 1rem;}
-.browser-storage-warning{position:fixed;z-index:1100;left:50%;bottom:max(12px,env(safe-area-inset-bottom));width:max-content;max-width:calc(100% - 24px);transform:translateX(-50%);margin:0;padding:10px 14px;border:1px solid var(--pb-border-accent);border-radius:var(--pb-radius-card);background:var(--pb-surface-inset);color:var(--pb-text);box-shadow:var(--pb-shadow-card);font:600 12px/1.4 sans-serif;text-align:center;pointer-events:none}
 
 #local-turn-banner:not([hidden]) {position:absolute;bottom:calc(12px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:max-content;max-width:min(600px,calc(100% - 180px));text-align:center;background:color-mix(in srgb, var(--pb-surface) 96%, transparent);color:var(--pb-text);border:2px solid var(--pb-border-accent);border-radius:var(--pb-radius-card);padding:14px 20px;margin:0;z-index:15;font:800 18px/1.4 sans-serif;box-shadow:var(--pb-shadow-card);pointer-events:none;}
 .local-human-mode .match-settings,.local-human-mode .match-insights,.local-human-mode .settings-lineup,.local-human-mode label[for="partner-autonomy"],.local-human-mode label[for="player-autonomy"],.local-human-mode label[for="result-timer"],.local-human-mode #restart,.local-human-mode #open-player-design,.local-human-mode .voice-controls {display:none!important;}
@@ -648,4 +647,3 @@ body[data-screen=start], .roster-route-loading { background: var(--pb-bg); backg
 #local-turn-banner:not([hidden]){text-align:left;border-radius:10px;font-style:italic;font-synthesis:style;background:var(--pb-teal);color:var(--pb-white);border-color:var(--pb-teal)}
 
 /* Keep storage guidance clear of the Games/Profile navigation. */
-body:has(#remote-lobby:not([hidden])) .browser-storage-warning,body:has(#player-creator[open]) .browser-storage-warning{bottom:calc(90px + env(safe-area-inset-bottom));}

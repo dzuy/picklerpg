@@ -54,7 +54,7 @@ import {remoteRequest,RemoteError} from './api';
 import {playbackDuration,samplePlayback} from './playback';
 import {RemoteSession} from './match-session';
 import type {PublicMatch,RemoteConfig,TurnAnimation} from './protocol';
-import {browserSessionStorage,browserStorage,browserStoragePersistent,STORAGE_UNAVAILABLE_MESSAGE} from '../browser-storage';
+import {browserSessionStorage,browserStorage} from '../browser-storage';
 document.body.dataset.screen='remote';
 const root=document.querySelector<HTMLDivElement>('#app')!;
 root.className='remote-app';
@@ -66,7 +66,6 @@ const claimPlayer=document.createElement('button');claimPlayer.className='remote
 const reshare=document.createElement('button');reshare.className='remote-quiet';reshare.textContent='Share game';reshare.hidden=true;reshare.onclick=()=>{if(session)void shareMatch(session.state!.id,session.state!.friendState==='pending').catch(e=>status(e.message));};el('game-settings').append(reshare);
 const nudgeHost=document.createElement('div');el('game-settings').append(nudgeHost);
 const nudgeControl=new NudgeControl(nudgeHost,matchCredentials);
-if(!browserStoragePersistent){const warning=document.createElement('p');warning.className='browser-storage-warning';warning.setAttribute('role','status');warning.textContent=STORAGE_UNAVAILABLE_MESSAGE;document.body.append(warning)}
 let session:RemoteSession|null=null,scene:CourtScene|undefined,account='',config:RemoteConfig|null=null;
 let signup=true,accountEmail='',shownRoster='';
 const settings=el('game-settings') as HTMLDialogElement;

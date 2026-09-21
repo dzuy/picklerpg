@@ -35,7 +35,7 @@ import './gameplay-hud.css';
 import './settings.css';
 import {CourtScene} from './scene';
 import {preloadAthletes} from './athlete';
-import {browserStorage,browserStoragePersistent,STORAGE_UNAVAILABLE_MESSAGE} from './browser-storage';
+import {browserStorage} from './browser-storage';
 const app=document.querySelector<HTMLDivElement>('#app')!;
 const rosterRoute=new URLSearchParams(location.search);
 const directRoster=rosterRoute.get('roster')==='1';
@@ -514,7 +514,6 @@ byId('start-roster').addEventListener('click',()=>creator.open());
 byId('back-to-lobby').addEventListener('click',()=>{if(settingsCloseTimer)window.clearTimeout(settingsCloseTimer);settingsDialog.close();settingsDialog.classList.remove('is-closing');closeGameSurface()});
 document.querySelector('.brand')!.addEventListener('click',event=>{event.preventDefault();showStartScreen()});
 const saveStatus=document.createElement('p');saveStatus.id='local-save-status';saveStatus.setAttribute('role','status');saveStatus.hidden=true;document.body.append(saveStatus);
-if(!browserStoragePersistent){const warning=document.createElement('p');warning.className='browser-storage-warning';warning.setAttribute('role','status');warning.textContent=STORAGE_UNAVAILABLE_MESSAGE;document.body.append(warning)}
 let localStore:OpenPlayStore|null=null;
 let resumeReady=false;
 function reportSaveError(error:unknown){saveStatus.hidden=false;saveStatus.textContent=error instanceof Error?error.message:'Could not save this match.';}
