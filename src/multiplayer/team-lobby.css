@@ -313,3 +313,6 @@ body[data-screen=remote]:has(#remote-lobby:not([hidden])){background:var(--pb-su
 .friend-profile-dialog .friend-profile-actions .team-lobby-primary:hover{background:var(--pb-primary-hover)}
 .friend-profile-dialog .rivalry-profile{margin:0;padding:0;border:0}
 .friend-profile-dialog .friend-profile-close{display:grid;place-items:center;padding:0;min-height:44px}
+
+#remote-lobby .remote-share-action{display:block;margin:0;padding:10px 20px;width:100%;min-height:44px;border:0;border-top:1px solid var(--pb-border);border-radius:0;text-align:right;color:var(--pb-text-secondary);background:var(--pb-surface);font-size:12px;font-weight:700;}
+#remote-lobby .remote-share-action:focus-visible{outline:2px solid var(--pb-focus);outline-offset:-3px;}

@@ -8,7 +8,7 @@ export async function copyInviteLink(value:string){
 }
 
 /** Separate controls from the clickable card so buttons never nest inside buttons. */
-export function pendingInviteCard(card:HTMLButtonElement,link:()=>Promise<string>,_recipient:string,incoming?:{accept:()=>Promise<void>;decline:()=>Promise<void>}){
+export function pendingInviteCard(card:HTMLButtonElement,link:()=>Promise<string>,_recipient:string,incoming?:{accept:()=>Promise<void>;decline:()=>Promise<void>},share?:()=>void|Promise<void>){
  const row=document.createElement('div');row.className='remote-pending-entry';
  card.querySelector('.remote-card-score')?.remove();
  const controls=document.createElement('div');controls.className='pending-invite-controls';
@@ -23,5 +23,6 @@ export function pendingInviteCard(card:HTMLButtonElement,link:()=>Promise<string
  const copy=document.createElement('button');copy.type='button';copy.textContent='Copy Link';
  async function run(button:HTMLButtonElement,action:()=>Promise<void>){button.disabled=true;notice.textContent='';try{await action()}catch(error){if((error as Error).name!=='AbortError')notice.textContent=(error as Error).message||'Please try again.';}finally{button.disabled=false;}}
  copy.onclick=()=>void run(copy,async()=>{await copyInviteLink(await link());notice.textContent='Link copied';});
+ if(share){const send=document.createElement('button');send.type='button';send.textContent='Share game';send.onclick=()=>void run(send,async()=>{await share();});controls.append(send);}
  controls.append(copy);row.append(card,controls,notice);return row;
 }

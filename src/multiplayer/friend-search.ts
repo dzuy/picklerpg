@@ -29,7 +29,7 @@ export class FriendSearch {
    }else if(event.key==='Enter'&&!this.list.hidden&&this.active>=0){event.preventDefault();this.choose(this.matches[this.active]);}
   });
  }
- reset(team?:LobbyTeam){this.input.value=team?.manager??'';this.select(team??null);this.hint.textContent=team?`Invitation will be sent to ${team.manager}.`:'';this.close();}
+ reset(team?:LobbyTeam){this.input.value=team?.manager??'';this.select(team??null);this.hint.textContent=team?`Invitation will be sent to ${team.manager}. You’ll also get a link to share.`:'';this.close();}
  private search(){
   this.matches=matchingFriends(this.teams(),this.input.value);this.active=-1;this.list.replaceChildren();this.input.removeAttribute('aria-activedescendant');
   for(const [index,team] of this.matches.entries()){
@@ -53,9 +53,9 @@ export class FriendSearch {
    option.addEventListener('click',event=>{event.preventDefault();if(!committed)this.choose(team);});this.list.append(option);
   }
   this.list.hidden=!this.matches.length;this.input.setAttribute('aria-expanded',String(!this.list.hidden));
-  this.hint.textContent=this.input.value.trim()?(this.matches.length?'Choose a username to send an in-app invitation.':'New player: you’ll get a game link to share.'):'';
+  this.hint.textContent=this.input.value.trim()?(this.matches.length?'Choose a username to invite that player and get a share link.':'New player: you’ll get a game link to share.'):'';
  }
  private highlight(){Array.from(this.list.children).forEach((option,index)=>option.setAttribute('aria-selected',String(index===this.active)));this.input.setAttribute('aria-activedescendant',`friend-search-option-${this.active}`);}
- private choose(team:LobbyTeam){this.input.value=team.manager;this.select(team);this.close();this.hint.textContent=`Invitation will be sent to ${team.manager}.`;}
+ private choose(team:LobbyTeam){this.input.value=team.manager;this.select(team);this.close();this.hint.textContent=`Invitation will be sent to ${team.manager}. You’ll also get a link to share.`;}
  private close(){this.list.hidden=true;this.active=-1;this.input.setAttribute('aria-expanded','false');this.input.removeAttribute('aria-activedescendant');}
 }

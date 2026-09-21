@@ -10,3 +10,20 @@ test('registration upgrades the authenticated identity, preserves metadata and n
  await service.upgrade(A,{email:'ryan@example.com',password:'pickleball',username:'ryan',playerName:'Ryan'});assert.equal(writes.length,1);
  await assert.rejects(service.upgrade(A,{email:'someone@example.com',password:'pickleball',username:'ryan',playerName:'Ryan'}));
 });
+
+
+test('creating a named challenge never creates or updates a recipient account',async()=>{
+ const {randomUUID}=await import('node:crypto');
+ const {MatchService}=await import('../server/multiplayer/service');
+ const {MemoryRepository,testers,creation}=await import('./helpers/remote');
+ const matches=new MatchService(new MemoryRepository(),testers),roster=creation().roster;
+ let created=false;
+ const client:any={get auth(){assert.fail('Invitation creation must not access account administration');},rpc:async(name:string,input:any)=>{
+  if(name==='account_skill_budget')return {data:35};
+  assert.equal(name,'create_friend_challenge');created=true;
+  assert.equal(input.p_invite.invited_name,'maeling');
+  return {data:{...input.p_invite,match_id:input.p_match.id,status:'pending'}};
+ }};
+ const result=await new FriendService(client,matches).create(A,{name:'maeling',requestId:randomUUID(),team:[roster.you,roster.partner]});
+ assert.equal(created,true);assert.equal(result.status,'pending');assert.equal(result.invitedName,'maeling');
+});
