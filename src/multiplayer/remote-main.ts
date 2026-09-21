@@ -449,7 +449,14 @@ for(const button of Array.from(document.querySelectorAll<HTMLButtonElement>('[da
 const existingPlayer=document.createElement('button');existingPlayer.className='remote-quiet';existingPlayer.textContent='Invite an existing player';el('remote-start-setup').after(existingPlayer);
 el('remote-start-setup').textContent='Create a Game';el('remote-start-setup').onclick=()=>challengeTeam();
 existingPlayer.onclick=()=>teamLobby?.selectTab('friends');
-el('remote-cancel-setup').onclick=event=>{event.preventDefault();void lobby().catch(e=>status(e.message));};
+el('remote-cancel-setup').onclick=event=>{
+ event.preventDefault();
+ if(document.activeElement instanceof HTMLElement)document.activeElement.blur();
+ el('remote-setup').hidden=true;el('remote-lobby').hidden=false;
+ teamLobby?.selectTab('games');status('');
+ window.scrollTo({top:0,behavior:'instant'});
+ document.getElementById('lobby-nav-games')?.focus({preventScroll:true});
+};
 el('remote-create').onclick=()=>{const button=el('remote-create') as HTMLButtonElement;if(button.disabled||!(el('remote-target') as HTMLSelectElement).reportValidity()||(inviteByLink&&!(el('remote-friend-name') as HTMLInputElement).reportValidity()))return;button.disabled=true;button.textContent='Starting game…';button.setAttribute('aria-busy','true');status('Preparing your team and sending invitation…');void create().catch(e=>status(e.message)).finally(()=>{button.disabled=inviteByLink?false:!config?.creationEnabled;button.textContent='Start Game';button.removeAttribute('aria-busy');});};
 el('remote-back').onclick=()=>void lobby().catch(e=>status(e.message));
 el('remote-retry').onclick=()=>void session?.retry();

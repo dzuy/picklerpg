@@ -19,7 +19,7 @@ export class PushService {
  async subscribe(userId:string,input:unknown){
   const s=parseSubscription(input);
   // Reassign only when this authenticated browser explicitly enables notifications.
-  const {error}=await this.client.from('push_subscriptions').upsert({user_id:userId,endpoint:s.endpoint,p256dh:s.keys.p256dh,auth:s.keys.auth,updated_at:new Date().toISOString(),active_until:null},{onConflict:'endpoint'});
+  const {error}=await this.client.from('push_subscriptions').upsert({user_id:userId,endpoint:s.endpoint,p256dh:s.keys.p256dh,auth:s.keys.auth,updated_at:new Date().toISOString()},{onConflict:'endpoint'});
   if(error)throw new ApiError(503,'push_storage','Could not save notifications. Try again.');
  }
  async remove(userId:string,input:unknown){

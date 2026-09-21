@@ -42,6 +42,7 @@ test('unsubscribe and activity are restricted to authenticated account and endpo
  await push.remove(A,{endpoint:valid.endpoint});await push.activity(A,{endpoint:valid.endpoint,active:true});
  for(const op of db.operations)assert.deepEqual(op.filters,[['user_id',A],['endpoint',valid.endpoint]]);
  await push.subscribe(B,valid);assert.equal(db.operations.at(-1).value.user_id,B);
+ assert.equal(Object.hasOwn(db.operations.at(-1).value,'active_until'),false,'Refreshing a subscription must not erase a live activity lease');
 });
 test('only committed actionable ownership changes notify; failed side effects and retries preserve game',async()=>{
  const db=new MemoryRepository();const events:any[]=[];

@@ -1,3 +1,4 @@
+import {pushActivityState} from './push-activity';
 import {authClient,matchCredentials} from './auth-session';
 import {remoteRequest} from './multiplayer/api';
 import {browserStorage,browserSessionStorage} from './browser-storage';
@@ -81,7 +82,9 @@ async function enable(){
 }
 async function activity(forceInactive=false){
  if(!enabled||!subscription||!owner)return;
- try{const c=await matchCredentials();if(c.owner!==owner)return;await fetch('/api/multiplayer/push/activity',{method:'POST',headers:{Authorization:`Bearer ${c.token}`,'Content-Type':'application/json'},body:JSON.stringify({endpoint:subscription.endpoint,active:!forceInactive&&document.visibilityState==='visible'&&document.hasFocus()}),keepalive:true});}catch{}
+ const active=pushActivityState(document.visibilityState,forceInactive,window.parent!==window);
+ if(active===null)return;
+ try{const c=await matchCredentials();if(c.owner!==owner)return;await fetch('/api/multiplayer/push/activity',{method:'POST',headers:{Authorization:`Bearer ${c.token}`,'Content-Type':'application/json'},body:JSON.stringify({endpoint:subscription.endpoint,active}),keepalive:true});}catch{}
 }
 // Clear this device before explicit logout; other devices remain subscribed.
 export async function disableDevicePush(){
@@ -110,5 +113,5 @@ authClient()?.auth.onAuthStateChange((_event,session)=>{
 });
 setInterval(()=>void activity(),15000);
 window.addEventListener('pagehide',()=>void activity(true));
-for(const event of ['focus','blur'])window.addEventListener(event,()=>void activity());
+window.addEventListener('focus',()=>void activity());
 document.addEventListener('visibilitychange',()=>void activity());
