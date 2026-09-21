@@ -20,7 +20,8 @@
     "rebuild:strategies": "node --env-file-if-exists=.env.local --import tsx scripts/rebuild-strategies.ts",
     "rebuild:rivalries": "node --env-file-if-exists=.env.local --import tsx scripts/rebuild-rivalries.ts",
     "backfill:shot-selections": "node --env-file-if-exists=.env.local --import tsx scripts/backfill-shot-selections.ts",
-    "multiplayer-server": "node --env-file-if-exists=.env.local --import tsx server/multiplayer/entry.ts"
+    "multiplayer-server": "node --env-file-if-exists=.env.local --import tsx server/multiplayer/entry.ts",
+    "check:design": "node scripts/check-design-system.mjs"
   },
   "dependencies": {
     "@huggingface/transformers": "^4.2.0",

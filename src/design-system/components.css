@@ -1,0 +1,21 @@
+/* Shared component contracts. Existing feature selectors own layout and behavior. */
+:root { font-family:var(--pb-font-body); color:var(--pb-text); background:var(--pb-bg); }
+button, input, select, textarea { font:inherit; }
+:where(button, [role=button], input, select, textarea, a):focus-visible { outline:3px solid var(--pb-focus); outline-offset:3px; }
+:where(button, [role=button]) { touch-action:manipulation; }
+:where(button):disabled { cursor:default; }
+:where(input, select, textarea) { accent-color:var(--pb-info-ink); }
+.pb-button { display:inline-flex; align-items:center; justify-content:center; gap:var(--pb-space-2); min-height:48px; padding:12px 20px; border:1px solid var(--pb-border-strong); border-radius:var(--pb-radius-button); background:var(--pb-surface); color:var(--pb-text); font-weight:700; cursor:pointer; text-decoration:none; transition:background var(--pb-motion-fast); }
+.pb-button:hover { background:var(--pb-surface-hover); }
+.pb-button--primary { background:var(--pb-primary); color:var(--pb-on-primary); border-color:transparent; }
+.pb-button--primary:hover { background:var(--pb-primary-hover); }
+.pb-button--social { background:var(--pb-social); color:var(--pb-on-social); border-color:transparent; }
+.pb-button--social:hover { background:var(--pb-social-hover); }
+.pb-button--danger { background:var(--pb-danger); color:var(--pb-on-danger); border-color:transparent; }
+.pb-button:disabled { opacity:.45; }
+.pb-card { padding:var(--pb-space-6); border:1px solid var(--pb-border); border-radius:var(--pb-radius-card); background:var(--pb-surface); box-shadow:var(--pb-shadow-card); }
+.pb-input { min-height:48px; padding:12px 16px; border:1px solid var(--pb-border-strong); border-radius:var(--pb-radius-input); background:var(--pb-surface); color:var(--pb-text); }
+.pb-tag { display:inline-flex; gap:6px; align-items:center; padding:6px 10px; border-radius:var(--pb-radius-pill); font-size:12px; font-weight:700; background:var(--pb-tint-blue); color:var(--pb-info-ink); }
+.pb-tag--social { background:var(--pb-tint-pink); color:var(--pb-social-ink); }
+.pb-tag--success { background:var(--pb-tint-mint); color:var(--pb-success-ink); }
+@media(prefers-reduced-motion:reduce) { .pb-button { transition:none; } }

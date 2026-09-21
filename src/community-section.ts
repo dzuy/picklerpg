@@ -1,5 +1,5 @@
 import {attachPlayerDetails} from './player-details';
-import {startingPlayers,rosterStarters,loadRosterStarters,setStarterAdded} from './roster-membership';
+import {rosterStarters,loadRosterStarters,setStarterAdded} from './roster-membership';
 import {communityPlayers,setCommunityAdded,type CommunityPlayer} from './community-players';
 import {fillPlayerCard,playerRecord} from './player-card';
 import type {HistoryMatch} from './player-history';
@@ -14,8 +14,9 @@ export class CommunitySection {
  readonly element=document.createElement('section');private rows:CommunityPlayer[]=[];private generation=0;
  get addedPlayers(){return [...rosterStarters(),...this.rows.filter(r=>r.added).map(r=>r.player)]}
  rosterCards(history:Promise<HistoryMatch[]>){return this.addedPlayers.map(player=>{const card=this.card(player,true);card.querySelector('.roster-card-identity')!.append(playerRecord(player.id,history));return card})}
- constructor(private changed:(players:DesignedPlayer[])=>void=()=>{}){
-  this.element.className='community-section';this.element.innerHTML='<h2>Get more players</h2><p>Add players below to Your Roster to choose them for your team.</p><p data-community-status role="status"></p><h3>Community</h3><div class="community-grid roster-grid"></div><h3>Starting Lineup</h3><div class="starting-grid roster-grid"></div>';
+ constructor(private changed:(players:DesignedPlayer[])=>void=()=>{},private editSkills?:(player:DesignedPlayer)=>void){
+  document.addEventListener('community-moderated',()=>{void this.load();});
+  this.element.className='community-section';this.element.innerHTML='<h2>Get more players</h2><p>Add these community-created players to your roster to play as them</p><p data-community-status role="status"></p><h3>Community</h3><div class="community-grid roster-grid"></div>';
  }
  async load(){const generation=++this.generation;const status=this.element.querySelector<HTMLElement>('[data-community-status]')!;status.textContent='Loading Community Players…';
   await loadRosterStarters();
@@ -28,7 +29,7 @@ export class CommunitySection {
   let portrait='';try{portraits??=new AvatarThumbnails(384);portrait=portraits.get(player.appearance,'roster',player.handedness)}catch{}
   const change=async()=>{await (row?setCommunityAdded(row.public_id,!added):setStarterAdded(player.id,!added));await this.load();};
   fillPlayerCard(article,player,row?`By ${row.creator_name}`:'Starting Lineup',portrait);
-  attachPlayerDetails(article,player,row?`By ${row.creator_name}`:'Starting Lineup',portrait,undefined,added?{label:'Remove from roster',change}:undefined);
+  attachPlayerDetails(article,player,row?`By ${row.creator_name}`:'Starting Lineup',portrait,row&&added&&this.editSkills?()=>this.editSkills!(player):undefined,added?{label:'Remove from roster',change}:undefined);
   if(inRoster)return article;
   const actions=document.createElement('div');actions.className='roster-card-actions';
   const button=document.createElement('button');button.type='button';button.className='roster-play';button.textContent=added?(inRoster?'Remove from roster':'In Your Roster'):'Add to roster';button.disabled=added&&!inRoster;button.setAttribute('aria-label',added&&!inRoster?`${player.name} is in Your Roster`:`${added?'Remove':'Add'} ${player.name} ${added?'from':'to'} Your Roster`);
@@ -37,10 +38,8 @@ export class CommunitySection {
  private draw(){
   const added=new Set(this.addedPlayers.map(player=>player.id));
   const community=this.element.querySelector<HTMLElement>('.community-grid')!;
-  const starters=this.element.querySelector<HTMLElement>('.starting-grid')!;
   community.replaceChildren(...this.rows.filter(row=>!added.has(row.player.id)).map(row=>this.card(row.player,false)));
-  starters.replaceChildren(...startingPlayers.filter(player=>!added.has(player.id)).map(player=>this.card(player,false)));
-  for(const grid of [community,starters]){
+  for(const grid of [community]){
    grid.hidden=grid.childElementCount===0;
    (grid.previousElementSibling as HTMLElement).hidden=grid.hidden;
   }

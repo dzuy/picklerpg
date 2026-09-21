@@ -1,91 +1,81 @@
-# PickleBash style guide
+# PickleBash UI design system
 
-Status: foundation for product and future marketing content. Color direction agreed September 15, 2026; typography, logo rules, and marketing templates still need a dedicated pass.
+The approved direction is **Daylight Arcade**: warm cream, white cards, deep teal text, pink primary actions with white labels, pink social accents, and cyan navigation. The supplied design-system markdown is the starting palette; the moodboard informs energy and friendliness. Preserve the current logo.
 
-## Core direction
+This replaces the earlier [neon arena guide](archive/STYLE-GUIDE-NEON.md) for application UI. Character art, models, outfits, court materials, and gameplay remain unchanged. Marketing artwork and the legacy asset pack are not automatically recolored.
 
-Cobalt-to-indigo gradients with neon cyan, lime/electric yellow, and hot pink accents. The feel is energetic, playful, and competitive, inspired by a floodlit pickleball arena and collectible character cards.
+## Source of truth
 
-Use this as the default for new design work. Build depth with saturated blue gradients rather than flat, greenish teal-navy panels. Keep neon selective: it should highlight actions and moments, not compete with every other element.
+Edit [tokens.css](../src/design-system/tokens.css). This is the single editable palette for product UI. [components.css](../src/design-system/components.css) defines reusable controls; existing feature styles consume the same semantic roles. [page-theme.css](../src/page-theme.css) loads both for every route. Do not create another per-feature palette.
 
-## Palette and roles
-
-The exact accent values below are a starting palette drawn from the current product, not a claim that every existing screen has already been standardized.
-
-| Role | Color | Use |
+| Purpose | Token | Initial value |
 | --- | --- | --- |
-| Cobalt | `#0848C4` | Bright areas of the page gradient |
-| Deep blue | `#082270` | Page base and gradient edges |
-| Indigo shadow | `#06194F` | Darkest page areas |
-| Panel blue | `#10265F` | Darker surfaces over the page |
-| Panel edge | `#4264A4` | Subtle borders and separators |
-| Neon cyan | `#12E1F3` | Links, focus, secondary emphasis, light effects |
-| Lime / electric yellow | `#D1EF62` | Primary calls to action, readiness, positive highlights |
-| Hot pink | `#FF3D7D` | Opponents, competition, occasional visual highlights |
-| Cool white | `#EDF5FF` | Primary text |
-| Pale blue | `#D0E1F5` | Secondary text |
+| Page canvas | `--pb-bg` | Warm Cream `#FFF9EF` |
+| Cards and menus | `--pb-surface` | White `#FFFFFF` |
+| Primary text | `--pb-text` | Deep Teal `#123F56` |
+| Secondary text | `--pb-text-secondary` | `#3B6D7C` |
+| Primary action | `--pb-primary` | Action Pink `#D92364` |
+| Social accent | `--pb-social` | Bash Pink `#FF3D7A` |
+| Information/navigation | `--pb-info` | Court Cyan `#14CFE8` |
+| Positive state | `--pb-success` | Mint Pop `#70E5C2` |
+| Pending state | `--pb-warning` | Sunshine `#FFD45C` |
+| Destructive/error | `--pb-danger` | `#BB2645` |
 
-Pink is a competitive accent, not inherently an error color. Pair status colors with text or icons; never make color the only way to understand state.
+Primitive brand swatches feed semantic roles. Components use semantic roles: `--pb-primary`, not `--pb-lime`. A different brand can therefore change the primary action independently from other uses of lime. Palette replacement includes foreground, background, hover, focus, and status pairs; it is not simply replacing six hex values.
 
-## Gradients
+For text on pale surfaces use the `*-ink` variants. Bright pink/cyan/mint are not normal-size text colors. Social buttons use a dark foreground because white on the reference pink does not provide sufficient normal-text contrast. Metadata also uses a darker accessible variant of the starter's soft slate. Use `--pb-border-strong` for control boundaries that need to be visually identifiable; soft borders are for grouping.
 
-The product source of truth is [src/page-theme.css](../src/page-theme.css). Reuse its tokens instead of duplicating gradient definitions across screens.
+## Components and states
 
-Page canvas:
+- **Primary:** pink, white text, fully rounded pill corners. Play, start, accept, continue, and save.
+- **Social:** pink or blush with a readable foreground. Invitations, friends, and rematches.
+- **Secondary:** white or pale blue, teal text, subtle outline. Back, cancel, inspect, edit.
+- **Destructive:** danger text or danger fill with white text; never use social pink as the error role.
+- **Navigation:** light surface, a filled primary-pink icon for the active destination, outlined inactive icons, and readable teal labels. Retain existing links and destinations.
+- **Inputs:** white/pale surface, dark text, visible boundary, separate focus outline. Preserve native input and dialog behavior.
+- **Cards:** white, 20px radius, soft tinted border and shadow. Decorative player accents remain separate from text contrast.
+- **HUD:** compact white scoreboard; settings, replay, and reactions use white SVG icons without background containers; home/away accents have their own semantic roles. Retain service dots, labels, disabled states, and all existing interactions.
+- **Skill summary:** DUPR uses royal blue (`--pb-royal`), white text, and 8px corners. Creator meters use primary pink for Power, cyan for Control, lime for Speed, lavender for Hands, and mint for Defense. Defense groups Return and Reset; Control groups Drop and Dink. These summaries do not change stored skill values or the rating formula.
+- **Typography:** DM Sans body and controls; Manrope headings. The existing logo keeps its expressive display lettering. Doodle copy and fixed artwork can retain their own type.
+- **Motion:** short existing transitions; respect reduced motion. Do not introduce animation that blocks input.
 
-```css
-radial-gradient(ellipse at 85% 12%, #00c8ff55, transparent 46%),
-radial-gradient(ellipse at 8% 52%, #087dff70, transparent 55%),
-linear-gradient(160deg, #082270 0%, #0848c4 43%, #062d91 72%, #06194f 100%)
-```
+Shared examples use `.pb-button` with `--primary`, `--social`, and `--danger` modifiers, `.pb-input`, `.pb-card`, and `.pb-tag`. Feature components keep their existing selectors and layouts while consuming the same tokens. Do not replace meaningful buttons with clickable decoration.
 
-Panel surface:
+## Internal preview and iteration
 
-```css
-linear-gradient(145deg, #183982 0%, #10265f 58%, #0b1b49 100%)
-```
+Run `npm run dev` and open `/design-system.html`. The preview is a separate development page, not a player-facing setting or a production build entry. It includes shared controls, disabled states, keyboard focus, status tags, HUD SVGs, and an embedded real app at phone or available width.
 
-For design tools, use the same color stops and visually match the direction; gradient angle conventions can differ from CSS. Place broad cyan-blue glows above the base gradient. Panels should stay darker than the surrounding page, with cool blue borders. Preserve clear hover, selected, and keyboard-focus states.
+Name a palette and use **Save as new style** to keep a separate version. Select a saved style to load it, edit it, then choose **Update saved style** to revise its colors or name. Saved palettes live in `art/design-system/styles.json`, survive reloads/server restarts, and can be committed with the project. Duplicate names are rejected instead of silently overwriting another palette.
 
-## Product treatments
+**Use in app** applies the selected saved palette to the canonical CSS tokens and matching browser/PWA canvas metadata. Save pending edits first; applying is disabled for unsaved changes. Updating a saved style does not silently reapply it. The production app receives the chosen palette on its next build/deployment. The initial library includes Original Daylight and the user's captured Hot Pink experiment (`#FF2E77` primary).
 
-- Use the shared page gradient on page canvases and major drawers. Keep the actual game court's environment artwork separate.
-- Use darker cobalt/indigo surfaces for cards, setup panels, and controls. Avoid returning to flat greenish slate/teal backgrounds.
-- Keep primary action buttons lime with dark text. Use cyan for supporting emphasis and pink sparingly.
-- Character art can use vivid diagonal streaks, colored glows, and accent borders. Keep those decorations behind the character.
-- Catchphrases belong in small, readable speech bubbles within the hero artwork, clear of faces. Allow natural wrapping; do not split words or force long phrases into oversized rotated text.
-- Character portraits may use varied ready and low swing poses. Animation should respect reduced-motion preferences and avoid arms intersecting the torso or oversized head.
+Unsaved palette/name edits are recovered from this browser's local storage after refresh. **Revert to saved style** discards the draft. **Show CSS changes** remains available for inspection. The save/apply API exists only on the localhost Vite development server; it is absent from production. The internal preview can interact normally with the embedded game, but palette controls never alter player data.
 
-## Graphic motifs: streaks and halftone dots
+Colors are saved and applied exactly as chosen. Contrast checking reports advisory notes without darkening or rejecting intentional brand colors. Named styles currently contain all exposed palette controls; component geometry and typography continue to use the shared system.
 
-Approved direction: sharp, irregular diagonal streaks paired with dotted/halftone textures. These should feel exciting, energetic, and playful, like motion marks on a sports poster.
+After edits:
 
-- **Streaks:** tapered, angular slashes with slightly broken or brush-like edges. Use neon cyan, lime/electric yellow, and hot pink over the blue foundation. Vary length and width instead of making uniform stripes.
-- **Halftone dots:** clusters of repeated dots that change in size, density, or opacity and fade into the background. Use brighter blue/cyan for texture; occasional neon accents can echo nearby streaks.
-- **Placement:** favor corners, outer edges, and behind character art. Let the marks point toward the main subject, with calmer space around text and controls.
-- **Layering:** blue gradient first, quieter dotted texture next, then a few stronger streaks. Keep characters, headlines, and calls to action visually dominant.
-- **Restraint:** use motifs as framing and emphasis, not a dense pattern across every surface. At small sizes, simplify the dots and streaks rather than crowding the layout.
-- **Motion:** these patterns can communicate energy while static. Animation is optional; avoid flashing effects and respect reduced-motion preferences.
+1. Run `npm run check:design` for missing/circular tokens and advisory contrast checks.
+2. Inspect start, Open Play, roster/editor, settings, setup, gameplay, and result/dialog states at mobile and desktop sizes.
+3. Inspect actual screenshots: automated token checks cannot prove contrast over every image or overlapping surface.
+4. Run the production build and relevant existing regression tests when markup changes.
+5. Record accepted changes here. Update shared roles before adding exceptions.
 
-Use this vocabulary in future product decoration and marketing templates. This records the visual direction; it does not mean every existing page needs decorative patterns added immediately.
+## Explicit boundaries and exceptions
 
-## Applying this to marketing
+- Player color data, swatches, model geometry, materials, lighting, animations, and court/environment palettes are outside this UI theme.
+- Existing logo, start-screen illustration, player illustrations, and decorative asset-pack graphics have baked colors. They remain fixed assets; do not use CSS filters to simulate recoloring.
+- Start menu and Start Match buttons, team heading text, scoreboard, and HUD control frames are now themeable instead of baked control images.
+- CSS mask colors define transparency, not brand color; keep them independent.
+- `public/assets/picklebash-select/design-tokens.json` is historical asset-pack metadata, not a runtime theme. Do not copy its neon palette into new components.
+- Browser/PWA launch colors must match `--pb-bg`. **Use in app** updates these static metadata values in `index.html` and `public/manifest.webmanifest` automatically; manual canvas edits must keep them in sync.
 
-Carry the same blue foundation and accent hierarchy into social graphics, landing pages, promotional banners, and presentation material. Start with a cobalt/indigo field, establish one main character or message, then add a restrained cyan, lime, or pink highlight.
+## Change log
 
-Diagonal streaks and arena-like lighting can add movement. Leave quieter space behind headlines and calls to action. Do not place essential text directly over busy streaks, bright glows, or detailed character art. Use cool white text or a contrasting text panel and check legibility at the final display size.
+- September 2026: adopted the markdown Daylight palette for UI; superseded the dark cobalt guide; centralized UI tokens, replaced raster control treatments, and added an internal preview and contrast/token check. Character and court restyling explicitly deferred.
 
-The visual reference establishes palette and energy; it does not require every asset to include a stadium, palm trees, lightning, or the same composition. Screenshots used in marketing should retain the product's real colors and behavior.
+- September 21, 2026: primary action buttons changed to pink with white labels; use `--pb-primary` / `--pb-on-primary`. Action pink is slightly deeper than the decorative Bash Pink to meet normal-text contrast. Lime ball illustrations and selection accents stay independent.
 
-For web assets, check contrast in the actual composition: target WCAG AA contrast (4.5:1 for normal text, 3:1 for large text). Neon colors are accents, not a substitute for readable text. Check mobile crops as well as desktop layouts.
+- September 21, 2026: all standard action buttons use fully rounded pills through `--pb-radius-button`; cards and inputs retain separate shape tokens. Circular icon buttons remain circular.
 
-## Still to define
-
-- Approved logo variants, clear space, minimum sizes, and placement.
-- Display and body typography, licensing, and size hierarchy.
-- Brand voice, headline examples, and catchphrase guidance.
-- Social, launch announcement, feature highlight, and presentation templates.
-- Export dimensions, safe areas, and print color conversions.
-- A consolidated set of accent tokens and any semantic success/warning/error colors.
-
-Keep these items open rather than treating the current prototype's mixed fonts and assets as final brand standards.
+- September 21, 2026: added project-backed named styles, save/update/load, local draft recovery, and explicit Use in app. Preserved the user’s current Hot Pink palette without changing its colors.

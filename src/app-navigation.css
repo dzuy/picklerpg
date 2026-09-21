@@ -1,8 +1,12 @@
-:is(#remote-lobby,#player-creator) .lobby-bottom-nav{position:fixed;z-index:80;bottom:0;left:0;right:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding:8px max(10px,env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));border-top:1px solid #2396e6;background:#031530f5;backdrop-filter:blur(18px);box-shadow:0 -8px 30px #00102d66}
-:is(#remote-lobby,#player-creator) .lobby-bottom-nav .lobby-nav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:62px;min-width:0;border:0;border-radius:10px;background:transparent;color:#a9c8ed;font-size:12px;font-weight:650;padding:6px 2px;text-decoration:none}
+:is(#remote-lobby,#player-creator) .lobby-bottom-nav{position:fixed;z-index:80;bottom:0;left:0;right:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding:8px max(10px,env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));border-top:1px solid var(--pb-border-accent);background:color-mix(in srgb, var(--pb-surface) 96%, transparent);backdrop-filter:blur(18px);box-shadow:var(--pb-shadow-card)}
+:is(#remote-lobby,#player-creator) .lobby-bottom-nav .lobby-nav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:62px;min-width:0;border:0;border-radius:var(--pb-radius-card);background:transparent;color:var(--pb-text-secondary);font-size:12px;font-weight:650;padding:6px 2px;text-decoration:none}
 :is(#remote-lobby,#player-creator) .lobby-nav-item svg{width:25px;height:25px}
-:is(#remote-lobby,#player-creator) .lobby-bottom-nav .lobby-nav-item[aria-current=page]{color:#b6ff5c;background:#a1f7430a;text-shadow:0 0 15px #b1ff6644}
-:is(#remote-lobby,#player-creator) .lobby-nav-item[aria-current=page] svg{filter:drop-shadow(0 0 6px #b0ff6655)}
-:is(#remote-lobby,#player-creator) .lobby-nav-item:focus-visible{outline:2px solid #b6ff5c;outline-offset:-2px}
+:is(#remote-lobby,#player-creator) .lobby-bottom-nav .lobby-nav-item[aria-current=page]{color:var(--pb-info-ink);background:transparent;text-shadow:none;box-shadow:none}
+:is(#remote-lobby,#player-creator) .lobby-nav-item[aria-current=page] svg{filter:none;color:var(--pb-primary)}
+:is(#remote-lobby,#player-creator) .lobby-nav-item:focus-visible{outline:2px solid var(--pb-focus);outline-offset:-2px}
 @media(min-width:801px){:is(#remote-lobby,#player-creator) .lobby-bottom-nav{padding-left:max(20px,calc((100vw - 800px)/2));padding-right:max(20px,calc((100vw - 800px)/2))}}
 @media(max-width:480px){:is(#remote-lobby,#player-creator) .lobby-bottom-nav .lobby-nav-item{font-size:11px}}
+
+.lobby-nav-item .nav-icon-filled{display:none}
+.lobby-nav-item[aria-current=page] .nav-icon-outline{display:none}
+.lobby-nav-item[aria-current=page] .nav-icon-filled{display:inline}

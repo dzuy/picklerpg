@@ -41,7 +41,7 @@ export function profilePanel(portraits:AvatarThumbnails|undefined,authenticate:(
   if(portraits){const avatar=node('img','','profile-avatar');avatar.src=portraits.get(player?.appearance??profileAvatar(user.id,user.user_metadata.profile_avatar),'face');avatar.alt=`${name||'Player'}’s avatar`;header.append(avatar);}
   const identity=node('div','','profile-identity-copy');
   const username=typeof user.user_metadata.username==='string'?user.user_metadata.username.trim():name;
-  identity.append(node('h2',username||'Player'),node('p',name!==username?name:'PickleBash player','profile-display-name'));
+  identity.append(node('span','Your corner of the court','profile-eyebrow'),node('h2',username||'Player'),node('p',name!==username?name:'PickleBash player','profile-display-name'));
   if(player?.catchphrase?.trim())identity.append(node('p',player.catchphrase.trim(),'profile-bio'));
   header.append(identity);panel.append(header);
   const actions=node('div','','profile-actions');
@@ -50,6 +50,22 @@ export function profilePanel(portraits:AvatarThumbnails|undefined,authenticate:(
   const stats=node('dl','','lobby-profile-stats');
   const values=['Games','Wins','Losses'].map(label=>{const stat=node('div'),value=node('dd','—');stat.append(node('dt',label),value);stats.append(stat);return value;});
   const note=node('p','Loading your game record…','lobby-profile-note');note.setAttribute('role','status');panel.append(stats,actions,note);
+  const progression=node('section','','profile-skill-progress');
+  const progressHeader=node('div','','profile-progress-header'),progressTitle=node('div');
+  progressTitle.append(node('span','Level up together','profile-eyebrow'),node('h3','Skill points'));
+  const budgetBadge=node('div','','profile-budget-badge');budgetBadge.hidden=true;
+  progressHeader.append(progressTitle,budgetBadge);
+  const progressCopy=node('p','Loading your account skill budget…','profile-progress-copy');progressCopy.setAttribute('role','status');
+  const progressBar=node('progress','','profile-progress-bar');progressBar.max=10;progressBar.hidden=true;progressBar.setAttribute('aria-label','Completed games toward your next skill point');
+  const rewardNote=node('p','','profile-reward-note');
+  progression.append(progressHeader,progressCopy,progressBar,rewardNote);panel.append(progression);
+  void client!.rpc('my_skill_progress').then(({data,error})=>{
+   if(error||!data){progressCopy.textContent='Skill progress is unavailable right now.';return;}
+   budgetBadge.replaceChildren(node('strong',String(data.budget)),node('span','per player'));budgetBadge.hidden=false;
+   progressCopy.textContent=data.nextAt===null?'Maximum budget reached. Make every point count.':`${data.nextAt-data.games} more ${data.nextAt-data.games===1?'game':'games'} to your next skill point.`;
+   progressBar.value=data.nextAt===null?10:data.games%10;progressBar.hidden=false;
+   rewardNote.textContent=`${data.games} completed online games · Every 10 earns +1 point, up to 45.`;
+  });
   const insights=node('section','','profile-insights');insights.append(node('h3','Your game'),node('p','A closer look at how you play.','profile-section-copy'),shotMixPanel());panel.append(insights);
   const footer=node('footer','','lobby-profile-account'),signOutButton=node('button','Sign out','team-lobby-quiet'),accountStatus=node('p');
   signOutButton.type='button';accountStatus.setAttribute('role','status');

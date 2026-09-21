@@ -35,7 +35,8 @@ export class FriendSearch {
    const option=document.createElement('div');option.id=`friend-search-option-${index}`;option.className='friend-search-option';option.setAttribute('role','option');option.setAttribute('aria-selected','false');
    const avatar=document.createElement('img');avatar.className='friend-search-avatar';avatar.alt='';avatar.src=this.portrait(team);
    const name=document.createElement('strong');name.textContent=team.manager;option.append(avatar,name);
-   option.addEventListener('pointerdown',event=>event.preventDefault());option.addEventListener('click',()=>this.choose(team));this.list.append(option);
+   // Keep the combobox focused until the click commits the selection.
+   option.addEventListener('pointerdown',event=>event.preventDefault());option.addEventListener('click',event=>{event.preventDefault();this.choose(team);});this.list.append(option);
   }
   this.list.hidden=!this.matches.length;this.input.setAttribute('aria-expanded',String(!this.list.hidden));
   this.hint.textContent=this.input.value.trim()?(this.matches.length?'Choose a username to send an in-app invitation.':'New player: you’ll get a game link to share.'):'';

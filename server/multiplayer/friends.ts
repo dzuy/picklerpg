@@ -1,3 +1,4 @@
+import {resolvePublicTeam} from './public-players';
 import {friendIds} from '../../src/multiplayer/team-directory';
 import {starterPlayer} from '../../src/starter-player';
 import {isValidTargetScore} from '../../src/engine/scoring';
@@ -23,7 +24,7 @@ export class FriendService {
   const name=playerName(input.name);if(name.length>24)throw new ApiError(400,'name','Use a friend’s name of up to 24 characters.');const self=this.matches.config(actor).selfName;
   const court=input.court??'forest',scoring=input.scoring??'rally-doubles',target=input.target??3;
   if(!['forest','venice','arizona'].includes(court)||!['rally-doubles','side-out-doubles'].includes(scoring)||!isValidTargetScore(target))throw new ApiError(400,'settings','Choose valid scoring, points limit, and court.');
-  const team=parseTeam(input.team);
+  const team=await resolvePublicTeam(this.client,parseTeam(input.team),actor);
   const make=(name:string)=>({...newPlayer(randomUUID()),name:name.slice(0,24)});
   const m=this.matches.prepare(actor,{creationId:input.requestId,opponentId:randomUUID(),scoring,roster:{you:team[0],partner:team[1],'opponent-left':make(name),'opponent-right':make('Partner')}},true);
   m.checkpoint.court=court;m.checkpoint.rules.target=target;
@@ -35,7 +36,7 @@ export class FriendService {
   const identity=challengeIdentity(user,i.invited_name);
   if(!cancel&&i.status==='pending'&&identity.needsChoice&&acceptAs!==actor)throw new ApiError(409,'identity_choice',`You’re signed in as ${identity.name}. Choose which player should accept this challenge.`);
   const name=playerName(identity.name);
-  const team=!cancel&&i.status==='pending'&&selectedTeam!==undefined?parseTeam(selectedTeam):undefined;
+  const team=!cancel&&i.status==='pending'&&selectedTeam!==undefined?await resolvePublicTeam(this.client,parseTeam(selectedTeam),actor):undefined;
   if(team&&user.is_anonymous)throw new ApiError(400,'team','Guest challenges start with an assigned team.');
   const opening=!cancel&&i.status==='pending'?await this.matches.friendOpening(i.match_id,i.inviter_id,team):null;
   const {data,error:claimError}=await this.client.rpc('claim_friend_challenge',{p_token:token,p_actor:actor,p_name:name.slice(0,24),p_cancel:cancel,p_guest:!!user.is_anonymous,p_opening_checkpoint:opening,p_selected_team:!!team});this.check(claimError);

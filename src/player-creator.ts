@@ -1,3 +1,7 @@
+import {accountSkillBudget} from './account-skill-budget';
+import {allocateArea,allocateDetail,areaPoints,usedSkillPoints,normalizeSkillBudget,fitsSkillBudget,randomBudgetSkills,skillCap} from './skill-budget';
+import {saveCommunitySkills} from './community-players';
+import {randomPlayerName,randomPlayerCatchphrase} from './player-identity-randomizer';
 import {openGameSurface} from './game-surface';
 import {appNavigation,type NavigationPage} from './app-navigation';
 import {teamDisplayName} from './team-name';
@@ -30,12 +34,13 @@ const outfitColors=['#fa6796','#4285df','#efbf43','#e85860','#ac7bd8','#36936c',
 const equipmentColors=['#315d58','#f56794','#41617a','#303d3e','#ece4ce','#ffffff','#17191e','#ed8d3c','#efbf43','#ac7bd8','#e85860','#4285df','#80cdd2'];
 const labels:Record<string,string>={jersey:'T-shirt',backwards:'Cap back',sport:'Sport shades','side-part':'Side part','pleated-skirt':'Pleated skirt','long-shorts':'Long shorts','high-top':'High tops','slip-on':'Slip-ons','cat-eye':'Cat eye'};
 const title=(text:string)=>labels[text]??text.charAt(0).toUpperCase()+text.slice(1);
-const summaryIcons={Power:'ϟ',Control:'◎',Speed:'➟',Hands:'✋'} as const;
+const summaryIcons={Power:'ϟ',Control:'◎',Speed:'➟',Hands:'✋',Defense:'⛨'} as const;
 const skillHelp:Record<typeof SKILLS[number],string>={serve:'Start the point with reliable placement.',return:'Control the return after the bounce.',drive:'Execute fast, attacking groundstrokes.',drop:'Land a soft shot in the kitchen.',dink:'Control soft exchanges at the net.',reset:'Take pace off an incoming attack.',volley:'Strike cleanly before the bounce.',counter:'Redirect an attack into pressure.',overhead:'Finish high balls with control.',movement:'Reach more balls around the court.',hands:'Handle fast exchanges at the net.'};
 
 export class PlayerCreator {
  readonly dialog=document.createElement('dialog');
  navigate:((page:NavigationPage,href:string)=>void)|null=null;
+ private budget=35;private budgetReady=false;
  private creatorName='You';private teamName='';
  saveTeamName:(name:string)=>Promise<string>=async()=>{throw new Error('Connect to your account to save a team name.')};
  setTeamName(name?:string){this.teamName=name?.trim()||'';this.updateTeamHeading();}
@@ -43,7 +48,7 @@ export class PlayerCreator {
 
  setCreatorName(name?:string){const next=name?.trim()||'You';if(next===this.creatorName)return;this.creatorName=next;this.updateTeamHeading();if(this.dialog.open&&this.dialog.dataset.view==='roster')this.showRoster();}
  loadHistory:()=>Promise<HistoryMatch[]>=async()=>{throw new Error('History unavailable')};
- private community=new CommunitySection(()=>{if(this.dialog.open&&this.dialog.dataset.view==='roster')this.showRoster()});
+ private community=new CommunitySection(()=>{if(this.dialog.open&&this.dialog.dataset.view==='roster')this.showRoster()},player=>this.switchDraft(()=>{this.loadDraft(player);this.showEditor()}));
  private rosterThumbnails:AvatarThumbnails|null=null;
  private thumbnails:AvatarThumbnails|null=null;private thumbnailsReady=false;
  private library:PlayerLibrary={version:1,activeId:null,players:[]};private draft=newPlayer();private baseline='';private preview:AvatarPreview|null=null;private previewFailed=false;private loadError='';private pending:(()=>void)|null=null;
@@ -52,15 +57,16 @@ export class PlayerCreator {
   const active=this.library.players.find(p=>p.id===this.library.activeId);
   if(active)this.draft=structuredClone(active);this.baseline=JSON.stringify(this.draft);
   this.dialog.id='player-creator';this.dialog.setAttribute('aria-labelledby','creator-title');
-  this.dialog.innerHTML=`<section class="player-roster-page" aria-labelledby="roster-title"><div class="roster-top"><div class="roster-title-row"><h1 id="roster-title">Your Roster</h1><button type="button" class="roster-team-edit" data-edit-team aria-label="Edit team name" title="Edit team name"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 3 5 5M4 15 16 3a2.1 2.1 0 0 1 5 5L9 20l-6 1 1-6Z"/></svg></button></div></div><form class="roster-team-form" data-team-form hidden><label for="roster-team-name">Team name</label><p>Leave blank to use your account player name.</p><input id="roster-team-name" type="text" maxlength="48" autocomplete="off"><div><button type="submit">Save team name</button><button type="button" data-cancel-team>Cancel</button></div><p data-team-status role="status"></p></form><label class="roster-search"><span>Search players</span><input type="search" data-roster-search placeholder="Search players by name" autocomplete="off" aria-controls="roster-player-results"></label><p class="roster-search-empty" data-roster-search-empty role="status" hidden>No players match your search.</p><div class="roster-actions"><button type="button" data-create-player>+ Create new player</button><button type="button" data-resume hidden>Continue editing</button></div><p data-roster-status role="status"></p><section data-saved-section id="roster-player-results"><div data-saved-roster class="roster-grid"></div></section><div data-community-section></div><nav class="roster-pagination" data-roster-pagination aria-label="Available players pages" hidden><button type="button" data-roster-prev aria-label="Previous page">‹</button><span data-roster-page-label role="status"></span><button type="button" data-roster-next aria-label="Next page">›</button></nav></section><div class="creator-topline"><button type="button" data-back-roster>← Roster</button></div>
+  this.dialog.innerHTML=`<section class="player-roster-page" aria-labelledby="roster-title"><div class="roster-top"><div class="roster-title-row"><h1 id="roster-title">Your Roster</h1><button type="button" class="roster-team-edit" data-edit-team aria-label="Edit team name" title="Edit team name"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 3 5 5M4 15 16 3a2.1 2.1 0 0 1 5 5L9 20l-6 1 1-6Z"/></svg></button></div></div><form class="roster-team-form" data-team-form hidden><label for="roster-team-name">Team name</label><p>Leave blank to use your account player name.</p><input id="roster-team-name" type="text" maxlength="48" autocomplete="off"><div><button type="submit">Save team name</button><button type="button" data-cancel-team>Cancel</button></div><p data-team-status role="status"></p></form><label class="roster-search"><span>Search players</span><input type="search" data-roster-search placeholder="Search players by name" autocomplete="off" aria-controls="roster-player-results"></label><p class="roster-search-empty" data-roster-search-empty role="status" hidden>No players match your search.</p><div class="roster-actions"><button type="button" data-create-player>+ Create new player</button></div><p data-roster-status role="status"></p><section data-saved-section id="roster-player-results"><div data-saved-roster class="roster-grid"></div></section><div data-community-section></div><nav class="roster-pagination" data-roster-pagination aria-label="Available players pages" hidden><button type="button" data-roster-prev aria-label="Previous page">‹</button><span data-roster-page-label role="status"></span><button type="button" data-roster-next aria-label="Next page">›</button></nav></section><div class="creator-topline"><button type="button" data-back-roster>← Roster</button></div>
   <div class="creator-layout"><section class="creator-stage" aria-label="Avatar preview"><div class="creator-heading"><h2 id="creator-title">Create Your Player</h2></div>
 
-  <div class="creator-identity"><label for="creator-name">PLAYER NAME<input id="creator-name" type="text" inputmode="text" enterkeyhint="done" autocapitalize="words" maxlength="24" autocomplete="off" placeholder="Name your player"></label><label class="creator-catchphrase-label" for="creator-catchphrase">CATCHPHRASE<input id="creator-catchphrase" type="text" inputmode="text" enterkeyhint="done" maxlength="30" autocomplete="off"></label>
-  <label class="creator-public-control"><input id="creator-public" type="checkbox"> Anyone can use this player</label>
+  <div class="creator-identity"><div class="creator-identity-field"><label for="creator-name">PLAYER NAME</label><div class="creator-identity-input"><input id="creator-name" type="text" inputmode="text" enterkeyhint="done" autocapitalize="words" maxlength="24" autocomplete="off" placeholder="Name your player"><button type="button" data-randomize-name aria-label="Shuffle player name" title="Shuffle player name">⤨</button></div></div>
+  <label class="creator-public-control"><input id="creator-public" type="checkbox"><span>Anyone can use<br>this player</span></label>
+  <div class="creator-identity-field creator-catchphrase-label"><label for="creator-catchphrase">CATCHPHRASE</label><div class="creator-identity-input"><input id="creator-catchphrase" type="text" inputmode="text" enterkeyhint="done" maxlength="30" autocomplete="off"><button type="button" data-randomize-catchphrase aria-label="Shuffle catchphrase" title="Shuffle catchphrase">⤨</button></div></div>
   </div>
   <div class="creator-tabs" role="tablist" aria-label="Player controls"><button type="button" role="tab" id="appearance-tab" aria-controls="appearance-panel" aria-selected="true" data-tab="appearance">${rowIcon('top')} Appearance</button><button type="button" role="tab" id="skills-tab" aria-controls="skills-panel" aria-selected="false" tabindex="-1" data-tab="skills">${rowIcon('style')} Skills</button></div>
   <div class="creator-preview"></div><div class="creator-plinth"></div>
-  <div class="creator-stage-bottom"><button type="button" data-randomize aria-label="Randomize look" title="Randomize look"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h3c5 0 7 12 12 12h3m-4-4 4 4-4 4M3 18h3c2 0 3.5-2 5-5m2-2c1.5-3 3-5 5-5h3m-4-4 4 4-4 4"/></svg></button></div><span data-preview-name class="sr-only"></span></section>
+  <div class="creator-stage-bottom"><button type="button" data-randomize aria-label="Shuffle appearance and skills" title="Shuffle appearance and skills"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h3c5 0 7 12 12 12h3m-4-4 4 4-4 4M3 18h3c2 0 3.5-2 5-5m2-2c1.5-3 3-5 5-5h3m-4-4 4 4-4 4"/></svg></button></div><span data-preview-name class="sr-only"></span></section>
   <section class="creator-editor">
   <div id="appearance-panel" role="tabpanel" aria-labelledby="appearance-tab"><div class="creator-options">
   ${this.optionRow('hairStyle','Hair','⌁')}
@@ -86,12 +92,12 @@ export class PlayerCreator {
   ${this.optionRow('expression','Expression','')}
   ${this.optionRow('paddleShape','Paddle Shape','')}
   </div></div>
-  <div id="skills-panel" role="tabpanel" aria-labelledby="skills-tab" hidden><section class="skills-overview-card" aria-label="Player skill summary"><header><div><strong data-skills-name>Your player</strong><span>Skill profile</span></div><p class="skills-overview-rating" title="Game skill estimate, not an official DUPR rating"><span>DUPR</span><strong data-dupr></strong></p></header><div class="skills-overview-stats">${(['Power','Control','Speed','Hands'] as const).map(name=>`<div class="skills-overview-stat" data-stat="${name}"><span class="skills-overview-icon" aria-hidden="true">${summaryIcons[name]}</span><label for="summary-${name.toLowerCase()}">${name}</label><input id="summary-${name.toLowerCase()}" type="range" min="0" max="100" step="1" value="70" data-summary-control="${name}" title="Adjusts ${SUMMARY_SKILLS[name].map(title).join(', ')}"><output data-summary-value="${name}"></output></div>`).join('')}</div></section><details class="skills-details"><summary><span>Fine-tune skills</span></summary><div class="skills-details-body"><label for="creator-preset">Start from an archetype<select id="creator-preset"><option value="">Custom skills</option>${Object.entries(ARCHETYPES).map(([id,p])=>`<option value="${id}">${p.name}</option>`).join('')}</select></label><div class="creator-skills">${SKILLS.map(skill=>`<div class="creator-skill"><label for="skill-${skill}">${title(skill)}<output for="skill-${skill}" id="value-${skill}">70</output></label><input id="skill-${skill}" data-skill="${skill}" type="range" min="0" max="100" step="1" aria-describedby="help-${skill}"><small id="help-${skill}">${skillHelp[skill]}</small></div>`).join('')}</div></div></details></div>
+  <div id="skills-panel" role="tabpanel" aria-labelledby="skills-tab" hidden><section class="skills-overview-card" aria-label="Player skill summary"><header><div><strong data-skills-name>Your player</strong><span>Skill profile</span></div><p class="skills-overview-rating" title="Game skill estimate, not an official DUPR rating"><span>DUPR</span><strong data-dupr></strong></p></header><section class="creator-budget" aria-label="Account skill budget"><strong data-budget-left></strong><span data-budget-used></span><progress data-budget-progress max="35" value="35"></progress><p data-budget-help></p><small>Earn 1 point per 10 completed online games, up to 45. Each player gets your full account budget.</small></section><div class="skills-overview-stats">${(['Power','Control','Speed','Hands','Defense'] as const).map(name=>`<div class="skills-overview-stat" data-stat="${name}"><span class="skills-overview-icon" aria-hidden="true">${summaryIcons[name]}</span><label for="summary-${name.toLowerCase()}">${name}</label><input id="summary-${name.toLowerCase()}" type="range" min="0" max="9" step="1" value="7" data-summary-control="${name}" title="Adjusts ${SUMMARY_SKILLS[name].map(title).join(', ')}"><output data-summary-value="${name}"></output></div>`).join('')}</div></section><details class="creator-published-build" hidden><summary>Community starting build · 35 points</summary><p>Choose the starting skills others receive. Your earned points stay with your account. Existing personal copies do not change.</p><p data-published-budget></p>${(Object.keys(SUMMARY_SKILLS) as (keyof typeof SUMMARY_SKILLS)[]).map(name=>`<label>${name}<input type="range" min="0" max="9" step="1" data-published-area="${name}"><output data-published-value="${name}"></output></label>`).join('')}</details><details class="skills-details"><summary><span>Fine-tune skills</span></summary><div class="skills-details-body"><p class="skill-budget-detail-help">Detailed skills use the same budget. Each area’s average rounds up to a whole point.</p><label for="creator-preset">Start from an archetype<select id="creator-preset"><option value="">Custom skills</option>${Object.entries(ARCHETYPES).map(([id,p])=>`<option value="${id}">${p.name}</option>`).join('')}</select></label><div class="creator-skills">${SKILLS.map(skill=>`<div class="creator-skill"><label for="skill-${skill}">${title(skill)}<output for="skill-${skill}" id="value-${skill}">70</output></label><input id="skill-${skill}" data-skill="${skill}" type="range" min="0" max="9" step="0.1" aria-describedby="help-${skill}"><small id="help-${skill}">${skillHelp[skill]}</small></div>`).join('')}</div></div></details></div>
   <div class="creator-delete-confirm" hidden><p data-delete-message></p><button type="button" data-cancel-delete>Keep player</button><button type="button" data-confirm-delete>Delete player permanently</button></div>
-  <div class="creator-confirm" hidden><p>Discard unsaved changes to continue?</p><button type="button" data-keep>Keep editing</button><button type="button" data-discard>Discard and continue</button></div>
+  <dialog class="creator-confirm" aria-labelledby="creator-confirm-title"><h2 id="creator-confirm-title">Save your player?</h2><p>You have unsaved changes. Save them before leaving, or discard them.</p><p data-confirm-status role="status"></p><div><button type="button" data-keep>Cancel</button><button type="button" data-discard>Discard</button><button type="button" data-save-leave>Save</button></div></dialog>
   <div class="creator-footer"><button type="button" data-delete hidden>Delete player</button><p data-status role="status"></p><div><button type="button" data-save>Save Player &nbsp; →</button></div></div></section></div>`;
   this.dialog.append(appNavigation('roster',(page,href)=>{
-   if(page==='roster'){this.showRoster();return;}
+   if(page==='roster'){this.switchDraft(()=>this.showRoster());return;}
    this.switchDraft(()=>{if(this.navigate)this.navigate(page,href);else location.assign(href)});
   }));
   document.body.append(this.dialog);
@@ -105,35 +111,49 @@ export class PlayerCreator {
   this.updateTeamHeading();
   this.dialog.append(this.el('.creator-confirm'));
   this.setupAppearancePages();
-  this.el('[data-delete]').addEventListener('click',()=>{const player=this.library.players.find(p=>p.id===this.draft.id);if(!player||this.loadError)return;this.el('[data-delete-message]').textContent=`Delete “${player.name}”? This removes the saved player and any unsaved edits. This cannot be undone.`;this.el('.creator-confirm').hidden=true;this.pending=null;this.el('.creator-delete-confirm').hidden=false;this.el('[data-cancel-delete]').focus()});
+  this.el('[data-delete]').addEventListener('click',()=>{const player=this.library.players.find(p=>p.id===this.draft.id);if(!player||this.loadError)return;this.el('[data-delete-message]').textContent=`Delete “${player.name}”? This removes the saved player and any unsaved edits. This cannot be undone.`;(this.el('.creator-confirm') as HTMLDialogElement).close();this.pending=null;this.el('.creator-delete-confirm').hidden=false;this.el('[data-cancel-delete]').focus()});
   this.el('[data-cancel-delete]').addEventListener('click',()=>{this.el('.creator-delete-confirm').hidden=true;this.el('[data-delete]').focus()});
   this.el('[data-confirm-delete]').addEventListener('click',()=>this.removePlayer());
-  this.el('[data-back-roster]').addEventListener('click',()=>this.showRoster());
+  this.el('[data-back-roster]').addEventListener('click',()=>this.switchDraft(()=>this.showRoster()));
+  this.dialog.addEventListener('cancel',event=>{if(event.target!==this.dialog)return;event.preventDefault();this.switchDraft(()=>this.dialog.close());});
   this.el('[data-roster-search]').addEventListener('input',()=>this.filterRoster());
   for(const [selector,step] of [['[data-roster-prev]',-1],['[data-roster-next]',1]] as const)this.el(selector).addEventListener('click',()=>{this.rosterAddPage+=step;this.filterRoster();});
   new MutationObserver(()=>this.filterRoster()).observe(this.community.element,{childList:true,subtree:true});
-  this.el('[data-create-player]').addEventListener('click',()=>this.switchDraft(()=>{this.loadDraft(newPlayer());this.showEditor()}));
-  this.el('[data-resume]').addEventListener('click',()=>this.showEditor());
-  this.el('[data-keep]').addEventListener('click',()=>{this.pending=null;this.el('.creator-confirm').hidden=true});
-  this.el('[data-discard]').addEventListener('click',()=>{this.pending?.();this.pending=null;this.el('.creator-confirm').hidden=true});
+  this.el('[data-create-player]').addEventListener('click',()=>this.switchDraft(()=>{this.loadDraft(this.shuffledPlayer());this.showEditor()}));
+  this.el('[data-keep]').addEventListener('click',()=>{this.pending=null;(this.el('.creator-confirm') as HTMLDialogElement).close()});
+  this.el('[data-discard]').addEventListener('click',()=>{const action=this.pending;this.pending=null;this.loadDraft(JSON.parse(this.baseline));(this.el('.creator-confirm') as HTMLDialogElement).close();action?.();});
+  this.el('.creator-confirm').addEventListener('cancel',event=>{event.preventDefault();if((this.el('[data-save-leave]') as HTMLButtonElement).disabled)return;this.pending=null;(this.el('.creator-confirm') as HTMLDialogElement).close();});
+  this.el('[data-save-leave]').addEventListener('click',async()=>{const action=this.pending;const buttons=Array.from(this.el('.creator-confirm').querySelectorAll('button'));buttons.forEach(b=>b.disabled=true);try{if(await this.save(false)){this.pending=null;(this.el('.creator-confirm') as HTMLDialogElement).close();action?.();}else this.el('[data-confirm-status]').textContent=this.el('[data-status]').textContent;}finally{buttons.forEach(b=>b.disabled=false);}});
+  this.el('[data-randomize-name]').addEventListener('click',()=>{this.draft.name=randomPlayerName(this.draft.name);this.input('#creator-name').value=this.draft.name;this.updateCaption();this.changed();});
+  this.el('[data-randomize-catchphrase]').addEventListener('click',()=>{this.draft.catchphrase=randomPlayerCatchphrase(this.draft.catchphrase);this.input('#creator-catchphrase').value=this.draft.catchphrase;this.changed();});
   this.input('#creator-name').addEventListener('click',()=>this.input('#creator-name').focus());
   this.input('#creator-name').addEventListener('keydown',event=>{if(event instanceof KeyboardEvent&&event.key==='Enter'){event.preventDefault();this.input('#creator-name').blur()}});
-  this.input('#creator-public').addEventListener('change',()=>{this.draft.isPublic=(this.input('#creator-public') as HTMLInputElement).checked;this.changed()});
+  this.input('#creator-public').addEventListener('change',()=>{this.draft.isPublic=(this.input('#creator-public') as HTMLInputElement).checked;if(this.draft.isPublic&&!this.draft.publishedSkills)this.draft.publishedSkills=normalizeSkillBudget(this.draft.skills,35);this.updateSummary();this.changed()});
   this.input('#creator-catchphrase').addEventListener('input',()=>{this.draft.catchphrase=this.input('#creator-catchphrase').value;this.changed()});
   this.input('#creator-name').addEventListener('input',()=>{this.draft.name=this.input('#creator-name').value;this.updateCaption();this.changed()});
   this.dialog.querySelectorAll<HTMLButtonElement>('[data-choice]').forEach(button=>button.addEventListener('click',()=>{if(button.dataset.key==='presentation')this.draft.appearance=applyPresentation(this.draft.appearance,button.dataset.choice as Appearance['presentation']);else Object.assign(this.draft.appearance,{[button.dataset.key!]:button.dataset.choice});this.syncAppearance();this.refreshPreview();this.changed()}));
   this.dialog.querySelectorAll<HTMLInputElement>('[data-color]').forEach(control=>{const apply=()=>{if(this.draft.appearance[control.dataset.color as keyof Appearance]===control.value)return;Object.assign(this.draft.appearance,{[control.dataset.color!]:control.value});this.syncAppearance();this.refreshPreview();this.changed()};control.addEventListener('input',apply);control.addEventListener('change',apply)});
-  this.el('[data-randomize]').addEventListener('click',()=>{const pick=<T,>(items:readonly T[])=>items[Math.floor(Math.random()*items.length)];const look=pick(LOOKS);this.draft.appearance={...look.appearance,expression:pick(APPEARANCE_OPTIONS.expression),paddleShape:pick(APPEARANCE_OPTIONS.paddleShape.filter(value=>value!=='rectangular'&&value!=='circular')),hairStyle:pick(APPEARANCE_OPTIONS.hairStyle),hat:pick(APPEARANCE_OPTIONS.hat.filter(value=>value!=='beanie'&&value!=='bucket')),glasses:pick(APPEARANCE_OPTIONS.glasses),glassesColor:pick(equipmentColors),shoeStyle:pick(APPEARANCE_OPTIONS.shoeStyle),top:pick(APPEARANCE_OPTIONS.top),bottom:pick(APPEARANCE_OPTIONS.bottom.filter(value=>value!=='skort')),accessory:pick(APPEARANCE_OPTIONS.accessory)};this.syncAppearance();this.refreshPreview();this.changed()});
+  this.el('[data-randomize]').addEventListener('click',()=>{this.draft.appearance=this.shuffledAppearance();this.draft.skills=this.shuffledSkills();this.syncAppearance();this.fillSkills();this.updateSummary();this.refreshPreview();this.changed()});
   this.dialog.querySelectorAll<HTMLButtonElement>('[data-hand]').forEach(button=>button.addEventListener('click',()=>{this.draft.handedness=button.dataset.hand as 'left'|'right';this.syncAppearance();this.refreshPreview();this.changed()}));
-  this.dialog.querySelectorAll<HTMLInputElement>('[data-skill]').forEach(control=>control.addEventListener('input',()=>{const key=control.dataset.skill as typeof SKILLS[number];this.draft.skills[key]=Number(control.value);this.el(`#value-${key}`).textContent=control.value;this.el(`#help-${key}`).textContent=skillLevel(Number(control.value))+' · '+skillHelp[key];this.input('#creator-preset').value='';this.updateSummary();this.changed()}));
-  this.dialog.querySelectorAll<HTMLInputElement>('[data-summary-control]').forEach(control=>control.addEventListener('input',()=>{const name=control.dataset.summaryControl as keyof typeof SUMMARY_SKILLS;this.draft.skills=setSummarySkillLevel(this.draft.skills,name,Number(control.value));this.fillSkills();this.input('#creator-preset').value='';this.updateSummary();this.changed()}));
-  this.input('#creator-preset').addEventListener('change',()=>{const preset=ARCHETYPES[this.input('#creator-preset').value as keyof typeof ARCHETYPES];if(preset){this.draft.skills={...preset.skills};this.fillSkills();this.updateSummary();this.changed()}});
+  this.dialog.querySelectorAll<HTMLInputElement>('[data-skill]').forEach(control=>control.addEventListener('input',()=>{const key=control.dataset.skill as typeof SKILLS[number];this.draft.skills=allocateDetail(this.draft.skills,key,Number(control.value)*10,this.budget);this.fillSkills();this.el(`#help-${key}`).textContent=skillLevel(this.draft.skills[key])+' · '+skillHelp[key];this.input('#creator-preset').value='';this.updateSummary();this.changed()}));
+  this.dialog.querySelectorAll<HTMLInputElement>('[data-summary-control]').forEach(control=>control.addEventListener('input',()=>{const name=control.dataset.summaryControl as keyof typeof SUMMARY_SKILLS;this.draft.skills=allocateArea(this.draft.skills,name,Number(control.value),this.budget);this.fillSkills();this.input('#creator-preset').value='';this.updateSummary();this.changed()}));
+  this.input('#creator-preset').addEventListener('change',()=>{const preset=ARCHETYPES[this.input('#creator-preset').value as keyof typeof ARCHETYPES];if(preset){this.draft.skills=normalizeSkillBudget(preset.skills,this.budget);this.fillSkills();this.updateSummary();this.changed()}});
+  this.dialog.querySelectorAll<HTMLInputElement>('[data-published-area]').forEach(input=>input.oninput=()=>{this.draft.publishedSkills=allocateArea(this.draft.publishedSkills??normalizeSkillBudget(this.draft.skills,35),input.dataset.publishedArea as keyof typeof SUMMARY_SKILLS,Number(input.value),35);this.updateSummary();this.changed();});
   const tabs=Array.from(this.dialog.querySelectorAll<HTMLButtonElement>('[data-tab]'));
   const selectTab=(tab:HTMLButtonElement)=>{for(const button of tabs){const selected=button===tab;button.setAttribute('aria-selected',String(selected));button.tabIndex=selected?0:-1;this.el(`#${button.dataset.tab}-panel`).hidden=!selected}};
   for(const tab of tabs){tab.addEventListener('click',()=>selectTab(tab));tab.addEventListener('keydown',event=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(event.key)){event.preventDefault();const next=tabs[event.key==='Home'?0:event.key==='End'?1:tab===tabs[0]?1:0];selectTab(next);next.focus()}})}
   this.el('[data-save]').addEventListener('click',()=>this.save(false));
   this.fill();
  }
+ private shuffledPlayer():DesignedPlayer{
+  const player=newPlayer();
+  player.name=randomPlayerName();player.catchphrase=randomPlayerCatchphrase();
+  player.appearance=this.shuffledAppearance();
+  player.skills=this.shuffledSkills();
+  return player;
+ }
+ private shuffledSkills():DesignedPlayer['skills']{return randomBudgetSkills(this.budget);}
+ private shuffledAppearance():Appearance{const pick=<T,>(items:readonly T[])=>items[Math.floor(Math.random()*items.length)];const look=pick(LOOKS);return {...look.appearance,expression:pick(APPEARANCE_OPTIONS.expression),paddleShape:pick(APPEARANCE_OPTIONS.paddleShape.filter(value=>value!=='rectangular'&&value!=='circular')),hairStyle:pick(APPEARANCE_OPTIONS.hairStyle),hat:pick(APPEARANCE_OPTIONS.hat.filter(value=>value!=='beanie'&&value!=='bucket')),glasses:pick(APPEARANCE_OPTIONS.glasses),glassesColor:pick(equipmentColors),shoeStyle:pick(APPEARANCE_OPTIONS.shoeStyle),top:pick(APPEARANCE_OPTIONS.top),bottom:pick(APPEARANCE_OPTIONS.bottom.filter(value=>value!=='skort')),accessory:pick(APPEARANCE_OPTIONS.accessory)};}
  private setupAppearancePages(){
   const track=this.el('.creator-options');
   const rows=Array.from(track.children);
@@ -182,10 +202,20 @@ export class PlayerCreator {
  }catch{/* Text labels remain usable if thumbnail rendering is unavailable. */}}
  private updateSummary(){const {meters,estimatedDupr}=summarizeSkills(this.draft.skills);
   for(const [name,value] of Object.entries(meters)){
-   this.dialog.querySelectorAll<HTMLOutputElement>(`[data-summary-value="${name}"]`).forEach(output=>output.textContent=String(Math.round(value)));
+   this.dialog.querySelectorAll<HTMLOutputElement>(`[data-summary-value="${name}"]`).forEach(output=>output.textContent=String(Math.ceil(value/10))+'/10');
   }
-  for(const [name,value] of Object.entries(meters)){const control=this.input(`[data-summary-control="${name}"]`);control.value=String(Math.round(value));control.style.setProperty('--value',value+'%');control.setAttribute('aria-valuetext',`${Math.round(value)} out of 100; adjusts ${SUMMARY_SKILLS[name as keyof typeof SUMMARY_SKILLS].map(title).join(', ')}`)}
+  for(const [name,value] of Object.entries(meters)){const control=this.input(`[data-summary-control="${name}"]`);control.setAttribute('max',String(skillCap(this.budget)/10));control.value=String(Math.ceil(value/10));control.style.setProperty('--value',value+'%');control.setAttribute('aria-valuetext',`${Math.ceil(value/10)} out of 10; adjusts ${SUMMARY_SKILLS[name as keyof typeof SUMMARY_SKILLS].map(title).join(', ')}`)}
   this.el('[data-dupr]').textContent=estimatedDupr.toFixed(2);
+  const used=usedSkillPoints(this.draft.skills),left=this.budget-used;
+  this.el('[data-budget-left]').textContent=left?`${left} ${left===1?'point':'points'} left`:`All ${this.budget} points assigned`;
+  this.el('[data-budget-used]').textContent=`${used} of ${this.budget} assigned`;
+  const bar=this.el('[data-budget-progress]') as HTMLProgressElement;bar.max=this.budget;bar.value=used;
+  this.el('[data-budget-help]').textContent=left?'Assign points or move them between skills anytime.':'Lower another skill to free up a point.';
+  this.el('.creator-published-build').hidden=!this.draft.isPublic||isCommunityPlayer(this.draft);
+  const published=this.draft.publishedSkills??normalizeSkillBudget(this.draft.skills,35);
+  this.el('[data-published-budget]').textContent=`${35-usedSkillPoints(published)} points left · ${usedSkillPoints(published)} of 35 assigned`;
+  this.dialog.querySelectorAll<HTMLInputElement>('[data-published-area]').forEach(input=>{const name=input.dataset.publishedArea as keyof typeof SUMMARY_SKILLS;input.value=String(areaPoints(published,name));this.el(`[data-published-value="${name}"]`).textContent=input.value+'/10';});
+
 
  }
  get savedPlayers(){return structuredClone(ownedRosterPlayers(this.library.players))}
@@ -199,18 +229,23 @@ export class PlayerCreator {
  }
  setCloudStatus(state:CloudSaveState){
  }
- createPlayer(){this.open();this.switchDraft(()=>{this.loadDraft(newPlayer());this.showEditor()})}
- editPlayer(player:DesignedPlayer|null){this.open();if(player&&isCommunityPlayer(player)){this.el('[data-roster-status]').textContent='Community Players can only be edited by their creator.';return;}this.showEditor();if(player&&player.id!==this.draft.id)this.switchDraft(()=>this.loadDraft(player))}
- open(){if(!this.dialog.open)this.dialog.showModal();this.showRoster();void this.community.load()}
+ createPlayer(){this.open();this.switchDraft(()=>{this.loadDraft(this.shuffledPlayer());this.showEditor()})}
+ editPlayer(player:DesignedPlayer|null){this.open();if(player&&isCommunityPlayer(player)){this.el('[data-roster-status]').textContent='Open this player from Your Roster to customize its skills.';return;}this.showEditor();if(player&&player.id!==this.draft.id)this.switchDraft(()=>this.loadDraft(player))}
+ open(){void this.refreshBudget();if(!this.dialog.open)this.dialog.showModal();this.showRoster();void this.community.load()}
 
+ private async refreshBudget(){try{this.budget=await accountSkillBudget();this.budgetReady=true;this.library.players=this.library.players.map(p=>({...p,skills:normalizeSkillBudget(p.skills,this.budget)}));this.draft.skills=normalizeSkillBudget(this.draft.skills,this.budget);this.fillSkills();this.updateSummary();}catch(error){this.el('[data-status]').textContent=(error as Error).message;}}
  private showEditor(){
   this.dialog.dataset.view='editor';this.dialog.setAttribute('aria-labelledby','creator-title');
   this.el('#creator-title').innerHTML=this.library.players.some(p=>p.id===this.draft.id)?'Edit Your Player':'Create Your Player';
+  const shared=isCommunityPlayer(this.draft);
+  this.el('#creator-title').textContent=shared?'Customize player skills':this.el('#creator-title').textContent;
+  this.el('.creator-identity').hidden=shared;this.el('[data-randomize]').hidden=shared;
+  (this.el('[data-tab=appearance]') as HTMLButtonElement).disabled=shared;
+  if(shared)this.el('[data-tab=skills]').click();
   this.refreshPreview();this.loadThumbnails();this.el('[data-back-roster]').focus();
  }
  private showRoster(){
   this.dialog.dataset.view='roster';this.dialog.setAttribute('aria-labelledby','roster-title');
-  this.el('[data-resume]').hidden=JSON.stringify(this.draft)===this.baseline;
   this.el('[data-roster-status]').textContent=this.loadError;
   this.el('[data-community-section]').append(this.community.element);
   const saved=this.el('[data-saved-roster]');saved.replaceChildren();
@@ -224,7 +259,11 @@ export class PlayerCreator {
    article.querySelector('.roster-card-identity')!.append(playerRecord(player.id,history));
    const added=ownedRosterPlayers([player]).length>0;
    const change=async()=>{await setOwnedPlayerAdded(player.id,!added);this.showRoster();};
-   attachPlayerDetails(article,player,role,portrait,edit,{label:added?'Remove from roster':'Add to roster',change});
+   const requestDelete=()=>{
+    const confirm=()=>{if(this.draft.id!==player.id)this.loadDraft(player);this.showEditor();this.el('[data-delete]').click();};
+    if(this.draft.id===player.id)confirm();else this.switchDraft(confirm);
+   };
+   attachPlayerDetails(article,player,role,portrait,edit,{label:added?'Remove from roster':'Add to roster',change},this.loadError?undefined:requestDelete);
    if(!added){const actions=document.createElement('div');actions.className='roster-card-actions';const button=document.createElement('button');button.type='button';button.className='roster-play';button.textContent='Add to roster';button.onclick=()=>{button.disabled=true;void change().catch(error=>{this.el('[data-roster-status]').textContent=(error as Error).message;button.disabled=false;});};actions.append(button);article.append(actions);}
    return article;
   };
@@ -258,12 +297,15 @@ export class PlayerCreator {
  }
  private el(selector:string){return this.dialog.querySelector<HTMLElement>(selector)!}
  private input(selector:string){return this.dialog.querySelector<HTMLInputElement|HTMLSelectElement>(selector)!}
- private switchDraft(action:()=>void){if(JSON.stringify(this.draft)!==this.baseline){this.pending=action;this.el('.creator-confirm').hidden=false;this.el('[data-keep]').focus()}else action()}
- private loadDraft(player:DesignedPlayer){this.draft=structuredClone(player);this.baseline=JSON.stringify(this.draft);this.fill();this.refreshPreview();this.changed()}
+ private switchDraft(action:()=>void){
+  const unsaved=JSON.stringify(this.draft)!==this.baseline||(!isCommunityPlayer(this.draft)&&!this.library.players.some(p=>p.id===this.draft.id));
+  if(this.dialog.dataset.view==='editor'&&unsaved){this.pending=action;this.el('[data-confirm-status]').textContent='';(this.el('.creator-confirm') as HTMLDialogElement).showModal();this.el('[data-save-leave]').focus();}else action();
+ }
+ private loadDraft(player:DesignedPlayer){this.draft={...structuredClone(player),skills:this.budgetReady?normalizeSkillBudget(player.skills,this.budget):structuredClone(player.skills)};this.baseline=JSON.stringify(this.draft);this.fill();this.refreshPreview();this.changed()}
  private removePlayer(){
   if(this.loadError)return;
   const id=this.draft.id;if(!this.library.players.some(p=>p.id===id))return;
-  try{this.library=deletePlayer(browserStorage,this.library,id);this.onLibraryChange(structuredClone(this.library),{kind:'delete',playerId:id});this.pending=null;this.el('.creator-delete-confirm').hidden=true;this.el('.creator-confirm').hidden=true;this.onDelete(id);this.loadDraft(this.activePlayer??this.library.players[0]??newPlayer());this.showRoster();this.el('[data-roster-status]').textContent=this.library.players.length?'Player deleted.':''}catch{this.el('[data-status]').textContent='Could not delete the player. Your saved roster is unchanged.'}
+  try{this.library=deletePlayer(browserStorage,this.library,id);this.onLibraryChange(structuredClone(this.library),{kind:'delete',playerId:id});this.pending=null;this.el('.creator-delete-confirm').hidden=true;(this.el('.creator-confirm') as HTMLDialogElement).close();this.onDelete(id);this.loadDraft(this.activePlayer??this.library.players[0]??newPlayer());this.showRoster();this.el('[data-roster-status]').textContent=this.library.players.length?'Player deleted.':''}catch{this.el('[data-status]').textContent='Could not delete the player. Your saved roster is unchanged.'}
  }
  private fill(){
   this.el('#creator-title').innerHTML=this.library.players.some(p=>p.id===this.draft.id)?'Edit Your Player':'Create Your Player';
@@ -277,16 +319,23 @@ export class PlayerCreator {
   this.el('[data-status]').textContent=this.loadError;
   (this.el('[data-save]') as HTMLButtonElement).disabled=!!this.loadError;
  }
- private fillSkills(){this.input('#creator-preset').value=Object.entries(ARCHETYPES).find(([,p])=>SKILLS.every(key=>p.skills[key]===this.draft.skills[key]))?.[0]??'';for(const skill of SKILLS){this.input(`#skill-${skill}`).value=String(this.draft.skills[skill]);this.el(`#value-${skill}`).textContent=String(this.draft.skills[skill]);this.el(`#help-${skill}`).textContent=skillLevel(this.draft.skills[skill])+' · '+skillHelp[skill]}}
+ private fillSkills(){this.input('#creator-preset').value=Object.entries(ARCHETYPES).find(([,p])=>SKILLS.every(key=>p.skills[key]===this.draft.skills[key]))?.[0]??'';for(const skill of SKILLS){this.input(`#skill-${skill}`).value=String(this.draft.skills[skill]/10);this.input(`#skill-${skill}`).setAttribute('max',String(skillCap(this.budget)/10));this.el(`#value-${skill}`).textContent=(this.draft.skills[skill]/10).toFixed(1);this.el(`#help-${skill}`).textContent=skillLevel(this.draft.skills[skill])+' · '+skillHelp[skill]}}
  private updateCaption(){const name=this.draft.name.trim()||'Your player';this.el('[data-preview-name]').textContent=name;this.dialog.querySelectorAll<HTMLElement>('[data-skills-name]').forEach(label=>label.textContent=name)}
  private changed(){this.el('[data-status]').textContent=this.loadError}
  private refreshPreview(){if(!this.dialog.open||this.dialog.dataset.view==='roster'||this.previewFailed)return;try{this.preview??=new AvatarPreview(this.el('.creator-preview'),true,1.2);this.preview.setPlayer(this.draft)}catch{this.previewFailed=true;this.el('.creator-preview').textContent='3D preview is unavailable. You can still edit and save your player.'}}
- private save(play:boolean){
-  if(this.loadError)return;
+ private async save(play:boolean):Promise<boolean>{
+  if(this.loadError)return false;
+  if(!this.budgetReady){this.el('[data-status]').textContent='Loading account skill budget. Please try again.';void this.refreshBudget();return false;}
+  if(!fitsSkillBudget(this.draft.skills,this.budget)){this.el('[data-status]').textContent='Your build exceeds your skill budget.';return false;}
+  if(isCommunityPlayer(this.draft)){
+   const button=this.el('[data-save]') as HTMLButtonElement;button.disabled=true;
+   try{await saveCommunitySkills(this.draft.id.slice(10),this.draft.skills);this.baseline=JSON.stringify(this.draft);await this.community.load();this.showRoster();return true;}catch(error){this.el('[data-status]').textContent=(error as Error).message;return false;}finally{button.disabled=false;}
+  }
   try{
    this.library=savePlayer(browserStorage,this.library,this.draft,play);this.draft=structuredClone(this.library.players.find(p=>p.id===this.draft.id)!);this.baseline=JSON.stringify(this.draft);this.fill();this.onLibraryChange(structuredClone(this.library),{kind:'save',playerId:this.draft.id});
-   this.pending=null;this.el('.creator-confirm').hidden=true;this.el('[data-status]').textContent='Player saved.';
-   if(play){this.onPlay(structuredClone(this.draft));this.dialog.close()}else this.showRoster()
-  }catch(error){this.el('[data-status]').textContent=error instanceof Error&&error.name==='QuotaExceededError'?'Browser storage is full. Your edits are still here; the player was not saved.':error instanceof Error?error.message:'Could not save. Your edits are still here.'}
+   this.pending=null;(this.el('.creator-confirm') as HTMLDialogElement).close();this.el('[data-status]').textContent='Player saved.';
+   if(play){this.onPlay(structuredClone(this.draft));this.dialog.close()}else this.showRoster();
+   return true;
+  }catch(error){this.el('[data-status]').textContent=error instanceof Error&&error.name==='QuotaExceededError'?'Browser storage is full. Your edits are still here; the player was not saved.':error instanceof Error?error.message:'Could not save. Your edits are still here.';return false;}
  }
 }

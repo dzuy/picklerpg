@@ -11,7 +11,7 @@ test('chosen friend team survives creation, acceptance, and unrelated character 
  const db=await database();try{
  await db.pool.query('insert into auth.users(id) values($1),($2)',[A,B]);
  const repo=new PgRepository(db.pool),matches=new MatchService(repo,testers);
- const client:any={rpc:async(_name:string,{p_invite,p_match}:any)=>({data:(await repo.query('select public.create_friend_challenge($1,$2) as value',[p_invite,p_match])).rows[0].value})};
+ const client:any={rpc:async(name:string,{p_invite,p_match,p_owner}:any)=>({data:name==='account_skill_budget'?(await db.pool.query('select account_skill_budget($1) as value',[p_owner])).rows[0].value:(await repo.query('select public.create_friend_challenge($1,$2) as value',[p_invite,p_match])).rows[0].value})};
  const friends=new FriendService(client,matches),roster=creation().roster;
  const team=[{...roster.you,name:'Selected captain'},{...roster.partner,name:'Selected partner'}];
  await db.pool.query("insert into public.players(owner_id,id,name,appearance,skills,handedness) values($1,'unrelated','Other character',$2,$3,'right')",[A,roster['opponent-left'].appearance,roster['opponent-left'].skills]);

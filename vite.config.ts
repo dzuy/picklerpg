@@ -1,3 +1,4 @@
+import {designStyles} from './scripts/design-style-plugin';
 import {createOpponentHandler,decide} from './server/opponent.mjs';
 import {defineConfig,loadEnv,type Plugin} from 'vite';
 import {configuredMatchHandler} from './server/multiplayer/routes';
@@ -28,7 +29,7 @@ export default defineConfig(({mode})=>{
  // Server-only configuration; never expose service credentials through `define`.
  const env={...loadEnv(mode,process.cwd(),''),...process.env};
  return {
-  plugins:[localMultiplayer(env)],
+  plugins:[localMultiplayer(env),designStyles()],
 
  };
 });

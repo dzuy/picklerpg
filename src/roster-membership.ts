@@ -1,8 +1,9 @@
+import {normalizeSkillBudget} from './skill-budget';
 import {authClient} from './auth-session';
 import {LOOKS} from './player-looks';
 import {newPlayer,type DesignedPlayer} from './player-design';
 import {browserStorage} from './browser-storage';
-export const startingPlayers:DesignedPlayer[]=LOOKS.map((look,i)=>({...newPlayer(`preset-${i}`),name:look.name,appearance:{...look.appearance},skills:{...look.skills}}));
+export const startingPlayers:DesignedPlayer[]=LOOKS.map((look,i)=>({...newPlayer(`preset-${i}`),name:look.name,appearance:{...look.appearance},skills:normalizeSkillBudget(look.skills,35)}));
 const defaults=['preset-0','preset-1'];
 let owner='local',ids=[...defaults],removedOwned:string[]=[];
 const ownedKey=()=>`pickle-roster-owned-excluded-v1:${owner}`;

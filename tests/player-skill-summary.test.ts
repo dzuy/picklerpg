@@ -61,3 +61,17 @@ test('starting lineup offers a distinct spread from beginners to advanced',()=>{
  for(let i=1;i<ratings.length;i++)assert.ok(ratings[i]-ratings[i-1]>.15,'Roster ratings should be meaningfully distinct');
  for(const player of LOOKS)for(const skill of SKILLS)assert.ok(Number.isInteger(player.skills[skill])&&player.skills[skill]>=0&&player.skills[skill]<=100);
 });
+
+test('Defense groups Return and Reset independently of Control without changing source skills',()=>{
+ const skills={...newPlayer('defense-test').skills,return:90,reset:70,drop:40,dink:60};
+ const original={...skills};
+ const summary=summarizeSkills(skills);
+ assert.equal(summary.meters.Defense,80);
+ assert.equal(summary.meters.Control,50);
+ assert.deepEqual(skills,original);
+ const adjusted=setSummarySkillLevel(skills,'Defense',85);
+ assert.equal(adjusted.return,85);
+ assert.equal(adjusted.reset,85);
+ assert.equal(summarizeSkills(adjusted).meters.Control,50);
+ assert.deepEqual(skills,original);
+});

@@ -9,7 +9,7 @@ export class AvatarPreview {
  private motion=matchMedia('(prefers-reduced-motion: reduce)');
  private started=performance.now();
  private syncMotion=()=>{this.renderer.setAnimationLoop(this.animated&&!this.motion.matches?()=>{if(document.hidden||!this.host.getClientRects().length)return;if(this.avatar)animateRosterAthlete(this.avatar,(performance.now()-this.started)/1000);this.draw()}:null);if(this.avatar&&this.animated)poseAthleteForRoster(this.avatar);this.draw()};
- constructor(private host:HTMLElement,private animated=false,zoom=1){
+ constructor(private host:HTMLElement,private animated=false,zoom=1,options:{allowZoom?:boolean;verticalOffset?:number}={}){
   this.camera.zoom=zoom;
   this.renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});this.renderer.setPixelRatio(Math.min(devicePixelRatio,2));this.renderer.outputColorSpace=THREE.SRGBColorSpace;this.renderer.toneMapping=THREE.ACESFilmicToneMapping;
   this.renderer.domElement.setAttribute('aria-label','Your player in 3D. Drag to rotate.');this.renderer.domElement.setAttribute('role','img');host.append(this.renderer.domElement);
@@ -17,6 +17,8 @@ export class AvatarPreview {
   const ground=new THREE.Mesh(new THREE.CircleGeometry(.57,64),new THREE.MeshBasicMaterial({color:'#8e9c8b',transparent:true,opacity:.14,depthWrite:false}));ground.rotation.x=-Math.PI/2;ground.scale.set(1.15,.6,1);ground.position.y=.002;this.scene.add(ground);
   this.observer=new ResizeObserver(()=>this.resize());this.observer.observe(host);
   if(animated){this.camera.position.set(-.55,.95,-3.9);this.controls.target.set(0,.75,0);this.controls.update();this.renderer.domElement.setAttribute('aria-label','Animated player in 3D. Drag to rotate.');this.motion.addEventListener('change',this.syncMotion);this.syncMotion();}
+  if(options.verticalOffset){this.camera.position.y+=options.verticalOffset;this.controls.target.y+=options.verticalOffset;this.controls.update();}
+  if(options.allowZoom){this.controls.enableZoom=true;this.controls.minDistance=2.4;this.controls.maxDistance=6;this.controls.zoomSpeed=.7;this.renderer.domElement.setAttribute('aria-label','Player in 3D. Drag to rotate. Pinch to zoom.');}
  }
  setPlayer(player:DesignedPlayer){if(this.avatar){this.scene.remove(this.avatar);disposeAthlete(this.avatar)}this.avatar=createAthlete('you',player.appearance.jersey,player.appearance);setAthleteHandedness(this.avatar,player.handedness);(this.animated?poseAthleteForRoster:poseAthleteForPortrait)(this.avatar);this.scene.add(this.avatar);this.resize()}
  dispose(){this.renderer.setAnimationLoop(null);this.motion.removeEventListener('change',this.syncMotion);this.observer.disconnect();this.controls.dispose();if(this.avatar){this.scene.remove(this.avatar);disposeAthlete(this.avatar)}this.scene.traverse(object=>{if(object instanceof THREE.Mesh){object.geometry.dispose();for(const material of Array.isArray(object.material)?object.material:[object.material])material.dispose()}});this.renderer.dispose();this.renderer.forceContextLoss();this.renderer.domElement.remove();}

@@ -121,7 +121,7 @@ export function configuredMatchHandler(env:NodeJS.ProcessEnv=process.env){
  const register=env.MULTIPLAYER_CREATE_ENABLED==='true'?async(input:unknown)=>{const result=await registerPlaytester(client,input);refreshed=0;return result;}:undefined;
  const push=configuredPush(client,env);
  const service=new MatchService(new SupabaseMatchRepository(client),testers,env.MULTIPLAYER_CREATE_ENABLED==='true',push?event=>push.notify(event):undefined);
- const invitations:InvitationService=new InvitationService(new SupabaseInviteRepository(client),service,testers,team=>resolvePublicTeam(client,team),env.COMMUNITY_BOTS_ENABLED==='false'?undefined:invite=>acceptBotChallenge(client,service,invitations,invite));
+ const invitations:InvitationService=new InvitationService(new SupabaseInviteRepository(client),service,testers,(team,owner)=>resolvePublicTeam(client,team,owner),env.COMMUNITY_BOTS_ENABLED==='false'?undefined:invite=>acceptBotChallenge(client,service,invitations,invite));
  if(env.MULTIPLAYER_CREATE_ENABLED==='true'&&env.COMMUNITY_BOTS_ENABLED!=='false')startCommunityBots(client,service,invitations,refreshTesters);
  return createMatchHandler(service,authenticate,register,invitations,push,new NudgeService(client,testers,push?event=>push.notifyNudge(event):undefined,env.NUDGE_TEST_UNLIMITED==='true'),new TrashTalkService(client),new FriendService(client,service),new TeamDirectoryService(client,testers),input=>signInAccount(client,async credentials=>{const exchange=createClient(url,env.VITE_SUPABASE_PUBLISHABLE_KEY??key,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});const {data,error}=await exchange.auth.signInWithPassword(credentials);return error?null:data.session;},input));
 }

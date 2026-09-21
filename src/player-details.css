@@ -1,14 +1,14 @@
 .roster-card-compact{cursor:pointer}
-.roster-card-compact:focus-visible{outline:3px solid #293d66;outline-offset:3px}
+.roster-card-compact:focus-visible{outline:3px solid var(--pb-focus);outline-offset:3px}
 .roster-card-compact .roster-card-actions{grid-column:1/-1;grid-row:3;margin-top:8px}
-.roster-details-drawer{box-sizing:border-box;position:fixed;inset:0 0 0 auto;margin:0;width:min(460px,100vw);height:100dvh;max-height:none;max-width:none;border:0;border-left:1px solid #d1d7e3;border-radius:20px 0 0 20px;padding:22px;background:#eff2f7;color:#1e2d4b;overflow:auto;box-shadow:-12px 0 40px #10182733}
-.roster-details-drawer::backdrop{background:#10182766}
+.roster-details-drawer{box-sizing:border-box;position:fixed;inset:0 0 0 auto;margin:0;width:min(460px,100vw);height:100dvh;max-height:none;max-width:none;border:0;border-left:1px solid var(--pb-border);border-radius:20px 0 0 20px;padding:22px;background:var(--pb-surface);color:var(--pb-text);overflow:auto;box-shadow:var(--pb-shadow-card)}
+.roster-details-drawer::backdrop{background:var(--pb-scrim)}
 .roster-details-drawer>header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:18px}
 .roster-details-drawer>header h2{margin:0;font-size:26px;overflow-wrap:anywhere}
-.roster-details-drawer button{min-height:44px;padding:10px 14px;border:1px solid #b1b8c6;border-radius:10px;background:#fff;color:#1e2d4b;font:600 14px Arial,sans-serif;cursor:pointer}
+.roster-details-drawer button{min-height:44px;padding:10px 14px;border:1px solid var(--pb-border);border-radius:var(--pb-radius-button);background:var(--pb-surface);color:var(--pb-text);font:600 14px Arial,sans-serif;cursor:pointer}
 .roster-details-drawer .roster-card details{grid-column:1/-1;grid-row:auto;margin:0 13px;padding:12px 0}
 .roster-details-drawer .roster-card dl{grid-row:3}
-.roster-details-drawer .roster-details-edit{margin-top:16px;width:100%;background:#243557;color:#fff}
+.roster-details-drawer .roster-details-edit{margin-top:16px;width:100%;background:var(--pb-surface);color:var(--pb-text)}
 @media(prefers-reduced-motion:no-preference){.roster-details-drawer[open]{animation:roster-drawer-in .18s ease-out}@keyframes roster-drawer-in{from{transform:translateX(100%)}to{transform:translateX(0)}}}
 
 @media(prefers-reduced-motion:no-preference){.roster-details-drawer[open].is-closing{animation:roster-drawer-out .18s ease-in forwards}.roster-details-drawer.is-closing::backdrop{animation:roster-backdrop-out .18s ease-in forwards}@keyframes roster-drawer-out{to{transform:translateX(100%)}}@keyframes roster-backdrop-out{to{background:transparent}}}

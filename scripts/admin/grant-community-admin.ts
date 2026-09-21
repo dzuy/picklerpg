@@ -1,0 +1,10 @@
+import {createClient} from '@supabase/supabase-js';
+const client=createClient(process.env.SUPABASE_URL??process.env.VITE_SUPABASE_URL!,process.env.SUPABASE_SERVICE_ROLE_KEY!,{auth:{persistSession:false,autoRefreshToken:false}});
+const email='dzuylinh@gmail.com';
+const {data:handle,error}=await client.from('usernames').select('user_id').eq('username','dzuy').single();
+if(error||!handle)throw new Error('Could not verify @dzuy. No account changed.');
+const {data:{user},error:lookup}=await client.auth.admin.getUserById(handle.user_id);
+if(lookup||!user||user.email?.toLowerCase()!==email)throw new Error('Username and email do not match. No account changed.');
+const {error:update}=await client.auth.admin.updateUserById(user.id,{app_metadata:{...user.app_metadata,community_admin:true}});
+if(update)throw new Error('Admin grant failed.');
+console.log('Verified @dzuy and matching email; community admin access granted.');

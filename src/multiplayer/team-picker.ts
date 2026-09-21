@@ -45,7 +45,8 @@ export class TeamPicker {
   this.team.forEach((p,i)=>{
    const role=i?'Athlete 2':'Athlete 1',card=document.createElement('article');card.className='roster-card remote-team-card';
    let portrait='';try{TeamPicker.portraits??=new AvatarThumbnails(384);portrait=TeamPicker.portraits.get(p.appearance,'roster')}catch{}
-   fillPlayerCard(card,p,role,portrait);if(gameSetup)card.querySelector('.roster-role')?.remove();attachPlayerDetails(card,p,gameSetup?'':role,portrait);
+   const credit=gameSetup?(p.id.startsWith('preset-')?'Starting Lineup':p.id.startsWith('community-')?'Community player':this.defaultUsername?`By ${this.defaultUsername}`:'Your player'):role;
+   fillPlayerCard(card,p,credit,portrait);attachPlayerDetails(card,p,gameSetup?'':role,portrait);
    const controls=document.createElement('div');controls.className='roster-card-actions remote-team-controls';for(const step of [-1,1]){const button=document.createElement('button');button.type='button';button.dataset.teamSlot=String(i);button.dataset.teamStep=String(step);button.textContent=gameSetup?(step<0?'‹':'›'):(step<0?'‹ Previous':'Next ›');button.setAttribute('aria-label',`${step<0?'Previous':'Next'} ${i?'partner':'player'}`);button.onclick=()=>{this.lineup.selected=cyclePlayer(this.lineup.players.map(p=>p.id),this.lineup.selected.slice(0,2),i,step);this.draw();this.host.querySelector<HTMLButtonElement>(`[data-team-slot="${i}"][data-team-step="${step}"]`)?.focus()};controls.append(button)}
    card.append(controls);this.host.append(card);
   });

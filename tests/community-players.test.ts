@@ -6,7 +6,7 @@ import {newPlayer,validatePlayer,savePlayer} from '../src/player-design';
 import {MatchService} from '../server/multiplayer/service';
 import {resolvePublicTeam} from '../server/multiplayer/public-players';
 
-test('public catalog is opt-in, owner-editable, live for later selections, and independent of match snapshots',async()=>{
+test('community copies preserve their starting build across source edits, unpublishing and deletion',async()=>{
  const db=await database();try{
  await db.pool.query('insert into auth.users(id) values($1),($2)',[A,B]);
  await db.pool.query("update auth.users set raw_user_meta_data=$2 where id=$1",[A,{player_name:'Alex'}]);
@@ -24,9 +24,9 @@ test('public catalog is opt-in, owner-editable, live for later selections, and i
  await as(B,'insert into community_player_selections(owner_id,public_id) values($1,$2)',[B,id]);assert.equal((await as(B,'select * from community_player_catalog()')).rows[0].added,true);
  assert.equal((await as(A,'select * from community_player_catalog()')).rows[0].added,false);
  const service=new MatchService(new PgRepository(db.pool),testers),input=creation();input.roster.you=validatePlayer(published.player);const match=await service.create(A,input);
- await as(A,"update players set name='Thor Updated' where id=$1",[player.id]);assert.equal((await as(B,'select * from community_player_catalog()')).rows[0].player.name,'Thor Updated');assert.equal((await service.get(match.id,A)).roster.you.name,'Thor');
- await as(A,'update players set is_public=false where id=$1',[player.id]);assert.equal((await as(B,'select * from community_player_catalog()')).rows.length,0);
- await as(A,'delete from players where id=$1',[player.id]);assert.equal((await as(B,'select * from community_player_selections')).rows.length,0);assert.equal((await service.get(match.id,A)).roster.you.name,'Thor');
+ await as(A,"update players set name='Thor Updated' where id=$1",[player.id]);assert.equal((await as(B,'select * from community_player_catalog()')).rows[0].player.name,'Thor');assert.equal((await service.get(match.id,A)).roster.you.name,'Thor');
+ await as(A,'update players set is_public=false where id=$1',[player.id]);assert.equal((await as(B,'select * from community_player_catalog()')).rows.length,1);
+ await as(A,'delete from players where id=$1',[player.id]);assert.equal((await as(B,'select * from community_player_selections')).rows.length,1);assert.equal((await service.get(match.id,A)).roster.you.name,'Thor');
  }finally{await db.close()}
 });
 
@@ -39,5 +39,5 @@ test('server resolves public designs and rejects unavailable community selection
  const old={...newPlayer('community-11111111-1111-4111-8111-111111111111'),name:'Old'},latest={...old,name:'Updated'};
  const fake={rpc:async()=>({data:[{player:latest}],error:null})} as any;
  assert.equal((await resolvePublicTeam(fake,[old,newPlayer('partner')]))[0].name,'Updated');
- await assert.rejects(resolvePublicTeam({rpc:async()=>({data:[],error:null})} as any,[old,newPlayer('partner')]),/no longer public/);
+ await assert.rejects(resolvePublicTeam({rpc:async()=>({data:[],error:null})} as any,[old,newPlayer('partner')]),/no longer in your roster/);
 });

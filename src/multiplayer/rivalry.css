@@ -6,27 +6,27 @@
 .rivalry-game-end .game-end-rule{margin:12px 0 18px}
 .rivalry-game-end .rivalry-completion h2{letter-spacing:normal;font-size:clamp(19px,3.6vw,26px);line-height:1.25;margin:0 0 16px;overflow-wrap:anywhere}
 .rivalry-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:16px 0}
-.rivalry-stats>div{padding:12px 6px;border-radius:12px;background:#ffffff70;text-align:center;min-width:0}
-.rivalry-stats dt{font-size:11px;line-height:1.4;color:#53627d}
+.rivalry-stats>div{padding:12px 6px;border-radius:var(--pb-radius-card);background:color-mix(in srgb, var(--pb-surface) 44%, transparent);text-align:center;min-width:0}
+.rivalry-stats dt{font-size:11px;line-height:1.4;color:var(--pb-text-secondary)}
 .rivalry-stats dd{margin:5px 0 0;font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
-.rivalry-note{font-size:12px;line-height:1.5;color:#53627d}
+.rivalry-note{font-size:12px;line-height:1.5;color:var(--pb-text-secondary)}
 .rematch-status{font-size:14px;line-height:1.5;overflow-wrap:anywhere;margin:12px 0}
 .rematch-status:empty{display:none}
 .rivalry-game-end .game-end-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
-.rivalry-game-end .game-end-actions .rematch-primary{grid-column:1/-1;background:#213152;border-color:#213152;color:#fff;font-size:18px;min-height:54px}
+.rivalry-game-end .game-end-actions .rematch-primary{grid-column:1/-1;background:var(--pb-surface);border-color:var(--pb-border);color:var(--pb-text);font-size:18px;min-height:54px}
 .rivalry-game-end .game-end-actions .rematch-primary:disabled{opacity:.75}
 .rivalry-game-end .game-end-actions button{padding:14px 10px}
-.remote-card-rivalry{display:block;font-size:13px;font-weight:700;color:#53627d;margin:8px 0;overflow-wrap:anywhere}
-.rivalry-profile{border-top:1px solid #b5c1d9;margin-top:22px;padding-top:18px;width:100%;min-width:0}
+.remote-card-rivalry{display:block;font-size:13px;font-weight:700;color:var(--pb-text-secondary);margin:8px 0;overflow-wrap:anywhere}
+.rivalry-profile{border-top:1px solid var(--pb-border);margin-top:22px;padding-top:18px;width:100%;min-width:0}
 .rivalry-profile h3{font-size:20px;margin:0 0 8px;overflow-wrap:anywhere}
 .rivalry-profile p{line-height:1.5}
 .rivalry-series{font-weight:750}
 .rivalry-recent{list-style:none;display:flex;flex-wrap:wrap;gap:6px;padding:0;margin:16px 0}
-.rivalry-recent li{font-size:12px;font-weight:750;padding:8px 10px;border:1px solid #93a6b8;border-radius:9px;font-variant-numeric:tabular-nums}
-.rivalry-recent li.win{background:#d5eadf;color:#1a593c}.rivalry-recent li.loss{background:#e8e8f0;color:#424866}
+.rivalry-recent li{font-size:12px;font-weight:750;padding:8px 10px;border:1px solid var(--pb-border);border-radius:var(--pb-radius-card);font-variant-numeric:tabular-nums}
+.rivalry-recent li.win{background:var(--pb-surface-inset);color:var(--pb-text)}.rivalry-recent li.loss{background:var(--pb-surface-inset);color:var(--pb-text-secondary)}
 @media(max-width:500px){.rivalry-game-end .game-end-card{padding:24px 16px}.rivalry-stats{gap:5px}.rivalry-stats dd{font-size:16px}.rivalry-stats dt{font-size:10px}.rivalry-game-end .game-end-actions button{font-size:13px}.rivalry-game-end .game-end-subtitle{margin:10px 0 16px}}
 
-.strategy-details{text-align:left;margin:18px 0;font-size:13px;line-height:1.5}.strategy-details summary{cursor:pointer;font-weight:750;padding:10px 0}.strategy-details table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}.strategy-details caption{text-align:left;font-weight:700}.strategy-details th,.strategy-details td{padding:6px;border-bottom:1px solid #b5c1d9}.strategy-details td:first-child{text-transform:capitalize}
-.strategy-story{text-align:left;margin:16px 0;padding:14px;border:1px solid #aabbd2;border-radius:12px;background:#ffffff60;font-size:14px;line-height:1.5;overflow-wrap:anywhere}.strategy-story>p{margin:0}.strategy-story details{font-size:12px;margin-top:8px}.strategy-story summary{cursor:pointer;font-weight:700;padding:6px 0}.strategy-story ul{padding-left:20px}.strategy-story a{color:inherit;text-decoration:underline}
+.strategy-details{text-align:left;margin:18px 0;font-size:13px;line-height:1.5}.strategy-details summary{cursor:pointer;font-weight:750;padding:10px 0}.strategy-details table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}.strategy-details caption{text-align:left;font-weight:700}.strategy-details th,.strategy-details td{padding:6px;border-bottom:1px solid var(--pb-border)}.strategy-details td:first-child{text-transform:capitalize}
+.strategy-story{text-align:left;margin:16px 0;padding:14px;border:1px solid var(--pb-border);border-radius:var(--pb-radius-card);background:color-mix(in srgb, var(--pb-surface) 38%, transparent);font-size:14px;line-height:1.5;overflow-wrap:anywhere}.strategy-story>p{margin:0}.strategy-story details{font-size:12px;margin-top:8px}.strategy-story summary{cursor:pointer;font-weight:700;padding:6px 0}.strategy-story ul{padding-left:20px}.strategy-story a{color:inherit;text-decoration:underline}
 .rivalry-share{box-sizing:border-box;width:min(480px,calc(100vw - 24px));max-height:calc(100dvh - 32px);overflow:auto}.rivalry-share textarea{box-sizing:border-box;width:100%;resize:vertical;font:inherit;line-height:1.5;padding:12px;border-radius:8px}.rivalry-share label{display:flex;align-items:center;gap:8px;margin:16px 0}.rivalry-share input[type=checkbox]{width:auto}.rivalry-share p{font-size:13px;line-height:1.5}.rivalry-share [role=status]:empty{display:none}
 .friend-dialog.rivalry-share label{display:flex;flex-direction:row;align-items:center;gap:10px}.friend-dialog.rivalry-share input[type=checkbox]{appearance:auto;display:inline-block;flex:0 0 18px;width:18px;height:18px;min-height:0;padding:0;margin:0}.friend-dialog.rivalry-share h2{font-size:24px;line-height:1.2;letter-spacing:normal}

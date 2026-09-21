@@ -1,68 +1,68 @@
-/* The roster continues the multiplayer lobby's navy, cyan, and lime palette. */
+/* The roster shares the application's Daylight UI tokens. */
 #player-creator[data-view=roster] {
-  color-scheme: dark;
-  background: var(--page-blue-gradient);
+  color-scheme: light;
+  background: var(--pb-bg);
   background-attachment: fixed;
-  color: #edf5ff;
+  color: var(--pb-text);
   padding: 0 max(24px, env(safe-area-inset-right)) 0 max(24px, env(safe-area-inset-left));
 }
-#player-creator[data-view=roster]::backdrop { background: #082270; }
+#player-creator[data-view=roster]::backdrop { background: var(--pb-scrim); }
 #player-creator[data-view=roster] .player-roster-page { max-width: 1240px; padding: max(32px, env(safe-area-inset-top)) 0 max(48px, env(safe-area-inset-bottom)); }
-#player-creator[data-view=roster] .roster-top { min-height: 0; align-items: center; padding-bottom: 26px; border-bottom: 1px solid #36558b; }
-#player-creator[data-view=roster] .roster-top h1 { margin: 0; color: #f2f7ff; font-family: inherit; font-size: clamp(32px, 4vw, 46px); font-weight: 850; letter-spacing: -1.5px; }
+#player-creator[data-view=roster] .roster-top { min-height: 0; align-items: center; padding-bottom: 26px; border-bottom: 1px solid var(--pb-border); }
+#player-creator[data-view=roster] .roster-top h1 { margin: 0; color: var(--pb-text); font-family: var(--pb-font-heading); font-size: clamp(32px, 4vw, 46px); font-weight: 850; letter-spacing: -1.5px; }
 #player-creator[data-view=roster] .roster-top h1::after { content: none; }
-#player-creator[data-view=roster] .roster-cheer { color: #7de4e9; font-family: inherit; font-size: 14px; line-height: 1.5; font-weight: 600; transform: none; padding-right: 50px; }
-#player-creator[data-view=roster] .roster-cheer svg { width: 38px; height: 48px; top: 0; color: #d1ef62; }
+#player-creator[data-view=roster] .roster-cheer { color: var(--pb-info-ink); font-family: inherit; font-size: 14px; line-height: 1.5; font-weight: 600; transform: none; padding-right: 50px; }
+#player-creator[data-view=roster] .roster-cheer svg { width: 38px; height: 48px; top: 0; color: var(--pb-success-ink); }
 #player-creator[data-view=roster] .roster-actions { flex-wrap: wrap; margin: 24px 0; }
-#player-creator[data-view=roster] button { min-height: 44px; background: var(--surface-blue-gradient); border: 1px solid var(--surface-blue-border); border-radius: 10px; color: #c4eaf0; font-weight: 700; }
-#player-creator[data-view=roster] button:hover { background: var(--surface-blue-hover); border-color: #7199e9; }
-#player-creator[data-view=roster] .creator-close { background: var(--surface-blue-gradient); border-color: var(--surface-blue-border); color: #bed0e1; border-radius: 10px; }
-#player-creator[data-view=roster] [data-create-player] { background: #d1ef62; color: #132b30; border-color: #d1ef62; padding: 14px 20px; font-size: 14px; font-weight: 800; }
-#player-creator[data-view=roster] [data-create-player]:hover { background: #dff58e; border-color: #dff58e; }
-#player-creator[data-view=roster] .player-roster-page p { color: #a7bbcf; }
+#player-creator[data-view=roster] button { min-height: 44px; background: var(--pb-surface); border: 1px solid var(--pb-border); border-radius: var(--pb-radius-button); color: var(--pb-text-secondary); font-weight: 700; }
+#player-creator[data-view=roster] button:hover { background: var(--pb-surface-hover); border-color: var(--pb-border-accent); }
+#player-creator[data-view=roster] .creator-close { background: var(--pb-surface); border-color: var(--pb-border); color: var(--pb-text-secondary); border-radius: var(--pb-radius-card); }
+#player-creator[data-view=roster] [data-create-player] { background: var(--pb-primary); color: var(--pb-on-primary); border-color: var(--pb-border-accent); padding: 14px 20px; font-size: 14px; font-weight: 800; }
+#player-creator[data-view=roster] [data-create-player]:hover { background: var(--pb-primary-hover); border-color: var(--pb-border); }
+#player-creator[data-view=roster] .player-roster-page p { color: var(--pb-text-secondary); }
 #player-creator[data-view=roster] [data-roster-status]:empty,
 #player-creator[data-view=roster] [data-community-status]:empty { display: none; }
 #player-creator[data-view=roster] .roster-grid { gap: 18px; align-items: stretch; }
-:is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-card { background: var(--surface-blue-gradient); color: #edf5ff; border: 1px solid #36558b; border-radius: 16px; box-shadow: none; transition: background 160ms, border-color 160ms; }
-#player-creator[data-view=roster] .roster-card[role=button]:hover { transform: none; background: var(--surface-blue-hover); border-color: #7199e9; box-shadow: none; }
-:is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-banner { background: color-mix(in srgb, var(--card-color) 25%, var(--surface-blue)); border-radius: 11px 11px 7px 7px; }
-:is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-motto { color: #edf5ff; font-size: clamp(14px, 6cqw, 22px); white-space: pre-line; }
+:is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-card { background: var(--pb-surface); color: var(--pb-text); border: 1px solid var(--pb-border); border-radius: var(--pb-radius-card); box-shadow: none; transition: background 160ms, border-color 160ms; }
+:is(#player-creator[data-view=roster], #remote-create-team) .roster-card[role=button]:hover { transform: none; background: var(--pb-surface-hover); border-color: var(--pb-border-accent); box-shadow: none; }
+:is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-banner { background: color-mix(in srgb, var(--card-color) 25%, var(--pb-surface)); border-radius: 11px 11px 7px 7px; }
+:is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-motto { color: var(--pb-text); font-size: clamp(14px, 6cqw, 22px); white-space: pre-line; }
 :is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-doodle { display: none; }
-:is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-card h3 { color: #edf5ff; font-family: inherit; letter-spacing: -.4px; }
-:is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-card .roster-role { background: #2a4a87; color: #bde9ed; }
-:is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-card .roster-rating { background: #274a98; color: #e3faff; }
-:is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-rating :is(span, strong) { color: #e3faff; }
-#player-creator[data-view=roster] .roster-card .player-record { color: #9bb1c6; }
-#player-creator[data-view=roster] .roster-card-actions { align-self: end; }
-#player-creator[data-view=roster] .roster-card-actions .roster-play { min-height: 44px; background: var(--surface-blue-selected); color: #8cf0f2; border: 1px solid #567bd2; border-radius: 9px; box-shadow: none; }
-#player-creator[data-view=roster] .roster-card-actions .roster-play:hover { background: #2956ad; border-color: #6a91a8; }
+:is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-card h3 { color: var(--pb-text); font-family: var(--pb-font-heading); letter-spacing: -.4px; }
+:is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-card .roster-role { background: var(--pb-surface-hover); color: var(--pb-text-secondary); }
+:is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-card .roster-rating { background: var(--pb-surface-hover); color: var(--pb-text); }
+:is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-rating :is(span, strong) { color: var(--pb-text); }
+:is(#player-creator[data-view=roster], #remote-create-team) .roster-card .player-record { color: var(--pb-text-secondary); }
+:is(#player-creator[data-view=roster], #remote-create-team) .roster-card-actions { align-self: end; }
+:is(#player-creator[data-view=roster], #remote-create-team) .roster-card-actions .roster-play { min-height: 44px; background: var(--pb-selected); color: var(--pb-info-ink); border: 1px solid var(--pb-border-accent); border-radius: var(--pb-radius-button); box-shadow: none; }
+:is(#player-creator[data-view=roster], #remote-create-team) .roster-card-actions .roster-play:hover { background: var(--pb-tint-blue); border-color: var(--pb-border); }
 #player-creator[data-view=roster] button:disabled { opacity: .45; cursor: default; }
-#player-creator[data-view=roster] .community-section { background: transparent; color: #edf5ff; border: 0; border-top: 1px solid #36558b; border-radius: 0; margin: 36px 0 0; padding: 28px 0 0; }
-#player-creator[data-view=roster] .community-section > h2 { color: #edf5ff; font-family: inherit; font-size: 26px; font-weight: 800; letter-spacing: -.8px; }
-#player-creator[data-view=roster] .community-section > h3 { color: #7de4e9; font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; margin: 28px 0 16px; }
-#player-creator[data-view=roster] .community-section > p { color: #a7bbcf !important; }
+#player-creator[data-view=roster] .community-section { background: transparent; color: var(--pb-text); border: 0; border-top: 1px solid var(--pb-border); border-radius: 0; margin: 36px 0 0; padding: 28px 0 0; }
+#player-creator[data-view=roster] .community-section > h2 { color: var(--pb-text); font-family: var(--pb-font-heading); font-size: 26px; font-weight: 800; letter-spacing: -.8px; }
+#player-creator[data-view=roster] .community-section > h3 { color: var(--pb-info-ink); font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; margin: 28px 0 16px; }
+#player-creator[data-view=roster] .community-section > p { color: var(--pb-text-secondary) !important; }
 #player-creator[data-view=roster] :focus-visible,
-.roster-details-drawer :focus-visible { outline: 3px solid #8ce6ed; outline-offset: 3px; }
+.roster-details-drawer :focus-visible { outline: 3px solid var(--pb-focus); outline-offset: 3px; }
 
 /* Keep the player inspection drawer consistent with its roster cards. */
-.roster-details-drawer { color-scheme: dark; background: var(--page-blue-gradient); background-attachment: fixed; color: #edf5ff; border-color: var(--surface-blue-border); box-shadow: -18px 0 60px #03111e66; }
-.roster-details-drawer::backdrop { background: #04111eb3; }
-.roster-details-drawer > header { padding-bottom: 20px; border-bottom: 1px solid #36558b; }
-.roster-details-drawer button { background: var(--surface-blue-gradient); color: #bed0e1; border-color: var(--surface-blue-border); }
-.roster-details-drawer .roster-details-edit { background: #d1ef62; color: #132b30; border-color: #d1ef62; }
-.roster-details-drawer .roster-details-edit:hover { background: #dff58e; }
-:is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-card :is(dl, details) { border-color: #36558b; }
-.roster-details-drawer .roster-card :is(dt, summary) { color: #a7bbcf; }
-.roster-details-drawer .five-block-meter i { background: linear-gradient(to right, var(--meter-color, #82e3e9) var(--fill), #36558b var(--fill)); box-shadow: none; }
-.roster-details-drawer .roster-skill meter::-webkit-meter-bar { background: #36558b; }
-.roster-details-drawer .roster-skill meter::-webkit-meter-optimum-value { background: #82e3e9; }
-.roster-details-drawer .roster-skill meter::-moz-meter-bar { background: #82e3e9; }
+.roster-details-drawer { color-scheme: light; background: var(--pb-bg); background-attachment: fixed; color: var(--pb-text); border-color: var(--pb-border); box-shadow: var(--pb-shadow-card); }
+.roster-details-drawer::backdrop { background: var(--pb-scrim); }
+.roster-details-drawer > header { padding-bottom: 20px; border-bottom: 1px solid var(--pb-border); }
+.roster-details-drawer button { background: var(--pb-surface); color: var(--pb-text-secondary); border-color: var(--pb-border); }
+.roster-details-drawer .roster-details-edit { background: var(--pb-primary); color: var(--pb-on-primary); border-color: var(--pb-border-accent); }
+.roster-details-drawer .roster-details-edit:hover { background: var(--pb-primary-hover); }
+:is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-card :is(dl, details) { border-color: var(--pb-border); }
+.roster-details-drawer .roster-card :is(dt, summary) { color: var(--pb-text-secondary); }
+.roster-details-drawer .five-block-meter i { background: linear-gradient(to right, var(--meter-color, var(--pb-surface-inset)) var(--fill), var(--pb-surface-hover) var(--fill)); box-shadow: none; }
+.roster-details-drawer .roster-skill meter::-webkit-meter-bar { background: var(--pb-surface-hover); }
+.roster-details-drawer .roster-skill meter::-webkit-meter-optimum-value { background: var(--pb-surface-inset); }
+.roster-details-drawer .roster-skill meter::-moz-meter-bar { background: var(--pb-surface-inset); }
 @media (max-width: 600px) {
   #player-creator[data-view=roster] { padding-left: 16px; padding-right: 16px; }
   #player-creator[data-view=roster] .player-roster-page { padding-top: max(22px, env(safe-area-inset-top)); }
   #player-creator[data-view=roster] .roster-top { gap: 12px; padding-bottom: 22px; }
   #player-creator[data-view=roster] .roster-grid { gap: 12px; }
-  #player-creator[data-view=roster] .roster-card-actions .roster-play { padding: 10px 6px; font-size: 11px; }
+  :is(#player-creator[data-view=roster], #remote-create-team) .roster-card-actions .roster-play { padding: 10px 6px; font-size: 11px; }
   #player-creator[data-view=roster] .roster-grid .roster-motto { font-size: 13px; line-height: 1.15; top: 12px; right: 6px; max-width: 43%; }
   #player-creator[data-view=roster] .roster-grid .roster-banner img { width: 145px; height: 145px; left: -25px; bottom: -22px; }
 }
@@ -70,45 +70,45 @@
   #player-creator[data-view=roster] .roster-grid { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) {
-  #player-creator[data-view=roster] .roster-card { transition: none; }
+  :is(#player-creator[data-view=roster], #remote-create-team) .roster-card { transition: none; }
 }
 
 /* Give portraits room, with no decorative marks over the characters. */
 :is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-banner::after { content: none; }
 #player-creator[data-view=roster] .roster-grid .roster-banner { height: 190px; }
 #player-creator[data-view=roster] .roster-grid .roster-banner img { width: 220px; height: 220px; left: -24px; bottom: -5px; }
-:is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-card .roster-credit { background: none; border-radius: 0; padding: 3px 0; font-weight: 400; color: #a7bbcf; }
-:is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-card .roster-rating { background: #254cdb; width: 42px; padding: 3px; border-radius: 5px; }
+:is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-card .roster-credit { background: none; border-radius: 0; padding: 3px 0; font-weight: 400; color: var(--pb-text-secondary); }
+:is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-card .roster-rating { background: var(--pb-tint-blue); width: 42px; padding: 3px; border-radius: 5px; }
 :is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-card .roster-rating span { font-size: 7px; }
 :is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-card .roster-rating strong { font-size: 16px; }
 #player-creator[data-view=roster] .community-card .roster-card-actions { justify-self: start; }
-#player-creator[data-view=roster] .community-card .roster-card-actions .roster-play { width: auto; min-height: 32px; padding: 6px 10px; font-size: 11px; border-radius: 7px; }
+#player-creator[data-view=roster] .community-card .roster-card-actions .roster-play { width: auto; min-height: 32px; padding: 6px 10px; font-size: 11px; border-radius: var(--pb-radius-button); }
 @media (max-width: 600px) {
  #player-creator[data-view=roster] .roster-grid .roster-banner { height: 160px; }
  #player-creator[data-view=roster] .roster-grid .roster-banner img { width: 190px; height: 190px; left: -25px; bottom: -5px; }
 }
 
-.roster-details-drawer .roster-details-membership { display: block; margin-top: 12px; padding: 10px 16px; border: 1px solid #5272af; border-radius: 9px; font-size: 13px; }
+.roster-details-drawer .roster-details-membership { display: block; margin-top: 12px; padding: 10px 16px; border: 1px solid var(--pb-border); border-radius: var(--pb-radius-card); font-size: 13px; }
 .roster-details-drawer .roster-details-membership:disabled { opacity: .5; }
 
 #player-creator[data-view=roster] .roster-top > div { min-width: 0; }
 #player-creator[data-view=roster] .roster-top h1 { overflow-wrap: anywhere; }
 #player-creator[data-view=roster] .roster-title-row { display: flex; align-items: center; gap: 8px; }
-#player-creator[data-view=roster] .roster-team-edit { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 36px; width: 36px; min-height: 36px; padding: 8px; border: 0; background: none; color: #a7bbcf; }
-#player-creator[data-view=roster] .roster-team-edit:hover { color: #edf5ff; background: var(--surface-blue-hover); }
+#player-creator[data-view=roster] .roster-team-edit { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 36px; width: 36px; min-height: 36px; padding: 8px; border: 0; background: none; color: var(--pb-text-secondary); }
+#player-creator[data-view=roster] .roster-team-edit:hover { color: var(--pb-text); background: var(--pb-surface-hover); }
 #player-creator[data-view=roster] .roster-team-edit svg { width: 18px; height: 18px; }
-#player-creator[data-view=roster] .roster-team-form { max-width: 520px; margin: 20px 0; padding: 20px; border: 1px solid var(--surface-blue-border); border-radius: 12px; background: var(--surface-blue-gradient); }
+#player-creator[data-view=roster] .roster-team-form { max-width: 520px; margin: 20px 0; padding: 20px; border: 1px solid var(--pb-border); border-radius: var(--pb-radius-card); background: var(--pb-surface); }
 #player-creator[data-view=roster] .roster-team-form[hidden] { display: none; }
-#player-creator[data-view=roster] .roster-team-form label { color: #edf5ff; font-size: 14px; }
+#player-creator[data-view=roster] .roster-team-form label { color: var(--pb-text); font-size: 14px; }
 #player-creator[data-view=roster] .roster-team-form p { font-size: 12px; margin: 8px 0; }
-#player-creator[data-view=roster] .roster-team-form input { width: 100%; box-sizing: border-box; min-height: 44px; margin: 8px 0 14px; padding: 10px 12px; border: 1px solid #5272af; border-radius: 8px; background: #081a2b; color: #edf5ff; font-size: 16px; }
+#player-creator[data-view=roster] .roster-team-form input { width: 100%; box-sizing: border-box; min-height: 44px; margin: 8px 0 14px; padding: 10px 12px; border: 1px solid var(--pb-border-strong); border-radius: 8px; background: var(--pb-surface); color: var(--pb-text); font-size: 16px; }
 #player-creator[data-view=roster] .roster-team-form > div { display: flex; flex-wrap: wrap; gap: 10px; }
 #player-creator[data-view=roster] .roster-team-form button { padding: 10px 14px; font-size: 12px; }
-#player-creator[data-view=roster] .roster-team-form button[type=submit] { background: #d1ef62; color: #132b30; border-color: #d1ef62; }
+#player-creator[data-view=roster] .roster-team-form button[type=submit] { background: var(--pb-primary); color: var(--pb-on-primary); border-color: var(--pb-border-accent); }
 
 /* Keep attribution close to the player name and secondary to it. */
 :is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-card .roster-card-identity h3 { margin-bottom: 2px; }
-:is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-card .roster-card-identity .roster-credit { display: block; margin: 0; padding: 0; font-size: 10px; line-height: 1.3; font-weight: 400; color: #8fa5b8; }
+:is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-card .roster-card-identity .roster-credit { display: block; margin: 0; padding: 0; font-size: 10px; line-height: 1.3; font-weight: 400; color: var(--pb-text-secondary); }
 
 /* Catchphrases get a full-width caption, clear of the portrait. */
 :is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-card .roster-banner {
@@ -134,9 +134,9 @@
   max-height: none;
   padding: 10px 12px;
   transform: none;
-  background: #18374b;
-  border-top: 1px solid #496477;
-  color: #edf5ff;
+  background: var(--pb-surface);
+  border-top: 1px solid var(--pb-border);
+  color: var(--pb-text);
   font-family: inherit;
   font-size: 14px;
   font-style: normal;
@@ -150,27 +150,27 @@
 }
 :is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-card .roster-motto:empty { display: none; }
 @media (max-width: 600px) {
-  #player-creator[data-view=roster] .roster-card .roster-banner { padding-top: 160px; }
-  #player-creator[data-view=roster] .roster-card .roster-banner img { width: 190px; height: 190px; left: calc(50% - 95px); }
+  :is(#player-creator[data-view=roster], #remote-create-team) .roster-card .roster-banner { padding-top: 160px; }
+  :is(#player-creator[data-view=roster], #remote-create-team) .roster-card .roster-banner img { width: 190px; height: 190px; left: calc(50% - 95px); }
 }
 
 :is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-card .roster-banner.has-live-preview { padding-top: 0; }
 .roster-live-preview { position: relative; height: 290px; touch-action: none; cursor: grab; }
 .roster-live-preview:active { cursor: grabbing; }
 .roster-live-preview canvas { display: block; width: 100%; height: 100%; }
-.roster-preview-hint { position: absolute; bottom: 8px; left: 0; right: 0; text-align: center; color: #c4d9e8; font-size: 11px; pointer-events: none; }
+.roster-preview-hint { position: absolute; bottom: 8px; left: 0; right: 0; text-align: center; color: var(--pb-text-secondary); font-size: 11px; pointer-events: none; }
 
 /* Layered trading-card energy, kept behind the character and its caption. */
 :is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-card {
-  border-color: color-mix(in srgb, var(--card-energy) 42%, #36558b);
-  background: linear-gradient(155deg, color-mix(in srgb, var(--card-energy) 9%, var(--surface-blue)), var(--surface-blue) 65%);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--card-energy) 18%, transparent);
+  border-color: color-mix(in srgb, var(--card-energy) 42%, var(--pb-border));
+  background: var(--pb-surface);
+  box-shadow: inset 0 0 0 1px var(--pb-border);
 }
 :is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-card .roster-banner {
   --portrait-height: 190px;
   isolation: isolate;
-  background: #101426;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--card-energy) 65%, transparent);
+  background: var(--pb-surface);
+  box-shadow: inset 0 0 0 1px var(--pb-border);
 }
 :is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-banner::before {
   content: '';
@@ -182,7 +182,7 @@
     url('/assets/brand/character-halftone.svg'),
     radial-gradient(ellipse at 50% 46%, color-mix(in srgb, var(--card-energy) 85%, transparent), transparent 70%),
     repeating-linear-gradient(142deg, transparent 0 28px, color-mix(in srgb, var(--card-energy) 27%, transparent) 29px 31px, transparent 32px 52px),
-    linear-gradient(150deg, #151124, color-mix(in srgb, var(--card-energy) 55%, #11182b) 48%, #080e20);
+    linear-gradient(150deg, var(--pb-surface), color-mix(in srgb, var(--card-energy) 55%, var(--pb-surface)) 48%, var(--pb-surface));
   background-size: 100% 100%;
 }
 :is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-banner::after {
@@ -200,18 +200,18 @@
 }
 :is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-card .roster-banner img {
   z-index: 1;
-  filter: drop-shadow(0 5px 5px #03081799);
+  filter: drop-shadow(0 5px 5px var(--pb-shadow-color));
 }
 :is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-card .roster-motto {
   z-index: 2;
-  background: #102655;
-  border-top-color: color-mix(in srgb, var(--card-energy) 40%, #36558b);
+  background: var(--pb-surface);
+  border-top-color: color-mix(in srgb, var(--card-energy) 40%, var(--pb-border));
 }
 :is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-card .roster-banner.has-live-preview { --portrait-height: 290px; }
 .roster-live-preview { z-index: 1; }
-.roster-preview-hint { text-shadow: 0 1px 4px #000; }
+.roster-preview-hint { text-shadow: none; }
 @media (max-width: 600px) {
-  #player-creator[data-view=roster] .roster-card .roster-banner { --portrait-height: 160px; }
+  :is(#player-creator[data-view=roster], #remote-create-team) .roster-card .roster-banner { --portrait-height: 160px; }
 }
 
 /* A small speech bubble gives the catchphrase a voice inside the artwork. */
@@ -232,11 +232,11 @@
   max-width: calc(100% - 20px);
   min-height: 0;
   padding: 7px 10px;
-  border: 1px solid color-mix(in srgb, var(--card-energy) 65%, #fff);
+  border: 1px solid color-mix(in srgb, var(--card-energy) 65%, var(--pb-border));
   border-radius: 12px 12px 12px 3px;
-  background: #f0f7ff;
-  color: #18253a;
-  box-shadow: 0 3px 10px #02091655;
+  background: var(--pb-surface);
+  color: var(--pb-text);
+  box-shadow: var(--pb-shadow-card);
   font-size: 11px;
   font-weight: 750;
   line-height: 1.3;
@@ -250,13 +250,13 @@
   bottom: -6px;
   width: 10px;
   height: 7px;
-  background: #f0f7ff;
+  background: var(--pb-surface);
   clip-path: polygon(0 0, 100% 0, 0 100%);
 }
 :is(#player-creator[data-view=roster], .roster-details-drawer, #remote-create-team) .roster-card .roster-banner.has-live-preview { --portrait-height: 340px; }
 .roster-live-preview { height: 300px; margin-top: 40px; }
 @media (max-width: 600px) {
-  #player-creator[data-view=roster] .roster-card .roster-banner { --portrait-height: 210px; padding-top: 0; }
+  :is(#player-creator[data-view=roster], #remote-create-team) .roster-card .roster-banner { --portrait-height: 210px; padding-top: 0; }
 }
 
 /* Bring the characters closer without crowding the speech bubbles. */
@@ -267,7 +267,7 @@
   bottom: -24px;
 }
 @media (max-width: 600px) {
-  #player-creator[data-view=roster] .roster-card .roster-banner img {
+  :is(#player-creator[data-view=roster], #remote-create-team) .roster-card .roster-banner img {
     width: 225px;
     height: 225px;
     left: calc(50% - 112.5px);
@@ -278,19 +278,113 @@
 #player-creator[data-view=roster] .community-card .roster-card-actions { margin-top: 12px; }
 
 #player-creator[data-view=roster] .roster-search{display:block;margin:22px 0 0}
-#player-creator[data-view=roster] .roster-search>span{display:block;margin-bottom:8px;color:#c5d9ef;font-size:13px;font-weight:650}
-#player-creator[data-view=roster] .roster-search input{display:block;width:100%;box-sizing:border-box;min-height:48px;padding:12px 16px;border:1px solid #6d95c1;border-radius:12px;background:#0c2250;color:#f1f7ff;font-family:inherit;font-size:16px;line-height:1.4}
-#player-creator[data-view=roster] .roster-search input::placeholder{color:#9eb7d5}
-#player-creator[data-view=roster] .roster-search input:focus-visible{outline:2px solid #9ae7f3;outline-offset:3px}
-#player-creator[data-view=roster] .roster-card[hidden],#player-creator .roster-search-empty[hidden]{display:none!important}
-#player-creator[data-view=roster] .roster-search-empty{margin:20px 0;color:#c5d9ef}
+#player-creator[data-view=roster] .roster-search>span{display:block;margin-bottom:8px;color:var(--pb-text-secondary);font-size:13px;font-weight:650}
+#player-creator[data-view=roster] .roster-search input{display:block;width:100%;box-sizing:border-box;min-height:48px;padding:12px 16px;border:1px solid var(--pb-border-strong);border-radius:var(--pb-radius-input);background:var(--pb-surface);color:var(--pb-text);font-family:var(--pb-font-body);font-size:16px;line-height:1.4}
+#player-creator[data-view=roster] .roster-search input::placeholder{color:var(--pb-text-secondary)}
+#player-creator[data-view=roster] .roster-search input:focus-visible{outline:2px solid var(--pb-focus);outline-offset:3px}
+:is(#player-creator[data-view=roster], #remote-create-team) .roster-card[hidden],#player-creator .roster-search-empty[hidden]{display:none!important}
+#player-creator[data-view=roster] .roster-search-empty{margin:20px 0;color:var(--pb-text-secondary)}
 
 #player-creator[data-view=roster] .player-roster-page{padding-bottom:calc(120px + env(safe-area-inset-bottom))}
 #player-creator .roster-pagination{display:flex;align-items:center;justify-content:center;gap:16px;margin:24px 0;scroll-margin-bottom:calc(120px + env(safe-area-inset-bottom))}
 #player-creator .roster-pagination[hidden]{display:none}
-#player-creator[data-view=roster] .roster-pagination button{flex:0 0 64px;width:64px;min-height:46px;padding:4px;border:1px solid #e5faff;border-radius:10px;background:#c5ecf5;color:#12365c;box-shadow:0 2px 0 #071a3b66;font-size:28px;line-height:1;font-weight:800}
-#player-creator[data-view=roster] .roster-pagination button:hover{background:#e5faff;color:#082344;border-color:#fff}
-#player-creator[data-view=roster] .roster-pagination button:active{background:#a4dce9;box-shadow:none}
+#player-creator[data-view=roster] .roster-pagination button{flex:0 0 64px;width:64px;min-height:46px;padding:4px;border:1px solid var(--pb-border);border-radius:var(--pb-radius-button);background:var(--pb-surface-inset);color:var(--pb-text-secondary);box-shadow:var(--pb-shadow-card);font-size:28px;line-height:1;font-weight:800}
+#player-creator[data-view=roster] .roster-pagination button:hover{background:var(--pb-surface-inset);color:var(--pb-text);border-color:var(--pb-border)}
+#player-creator[data-view=roster] .roster-pagination button:active{background:var(--pb-surface-inset);box-shadow:none}
 #player-creator .roster-pagination button:disabled{opacity:.4;cursor:default}
-#player-creator .roster-pagination button:focus-visible{outline:3px solid #fff;outline-offset:3px}
-#player-creator .roster-pagination span{color:#c5d9ef;font-size:13px;white-space:nowrap}
+#player-creator .roster-pagination button:focus-visible{outline:3px solid var(--pb-focus);outline-offset:3px}
+#player-creator .roster-pagination span{color:var(--pb-text-secondary);font-size:13px;white-space:nowrap}
+
+/* Roster names lead the card; attribution and records stay below the portrait. */
+:is(#player-creator[data-view=roster], #remote-create-team) .roster-card .roster-card-identity{display:contents}
+:is(#player-creator[data-view=roster], #remote-create-team) .roster-card .roster-card-identity h3{grid-column:1/-1;grid-row:1;margin:0;padding:10px 6px 12px;font-size:16px;line-height:1.2;overflow-wrap:anywhere}
+:is(#player-creator[data-view=roster], #remote-create-team) .roster-card .roster-banner{grid-column:1/-1;grid-row:2}
+:is(#player-creator[data-view=roster], #remote-create-team) .roster-card .roster-card-identity .roster-role{grid-column:1;grid-row:3;align-self:center;margin:8px 6px;padding:0;min-width:0;overflow-wrap:anywhere}
+:is(#player-creator[data-view=roster], #remote-create-team) .roster-card .roster-rating{grid-column:2;grid-row:3;align-self:center;justify-self:end;width:42px;margin:8px 6px 4px 0;padding:5px 3px;border-radius:8px;background:var(--pb-royal);color:var(--pb-white)}
+:is(#player-creator[data-view=roster], #remote-create-team) .roster-card .roster-rating span{font-size:7px;color:var(--pb-white)}
+:is(#player-creator[data-view=roster], #remote-create-team) .roster-card .roster-rating strong{font-size:14px;color:var(--pb-white)}
+:is(#player-creator[data-view=roster], #remote-create-team) .roster-card .player-record{grid-column:1/-1;grid-row:4;margin:4px 6px 8px;font-size:10px;line-height:1.4;font-weight:400;color:var(--pb-text-muted)}
+:is(#player-creator[data-view=roster], #remote-create-team) .roster-card .roster-card-actions{grid-column:1/-1;grid-row:5}
+
+/* Attribution uses the remaining width; the rating only reserves its own space. */
+:is(#player-creator[data-view=roster], #remote-create-team) .roster-card{grid-template-columns:minmax(0,1fr) 48px}
+:is(#player-creator[data-view=roster], #remote-create-team) .roster-card .roster-card-identity .roster-role{max-width:none;justify-self:stretch;word-break:normal;overflow-wrap:anywhere}
+
+/* Pair the name and DUPR in the card header. */
+:is(#player-creator[data-view=roster], #remote-create-team) .roster-card .roster-card-identity h3{grid-column:1;grid-row:1;align-self:center;padding:10px 6px}
+:is(#player-creator[data-view=roster], #remote-create-team) .roster-card .roster-rating{grid-column:2;grid-row:1;align-self:start;margin:8px 6px 8px 0}
+:is(#player-creator[data-view=roster], #remote-create-team) .roster-card .roster-card-identity .roster-role{grid-column:1/-1;grid-row:3}
+
+/* Keep creator attribution directly below the name within the header. */
+:is(#player-creator[data-view=roster], #remote-create-team) .roster-card .roster-card-identity h3{align-self:end;padding-bottom:2px}
+:is(#player-creator[data-view=roster], #remote-create-team) .roster-card .roster-card-identity .roster-role{grid-column:1;grid-row:2;align-self:start;margin:0 6px 10px}
+:is(#player-creator[data-view=roster], #remote-create-team) .roster-card .roster-rating{grid-row:1/3}
+:is(#player-creator[data-view=roster], #remote-create-team) .roster-card .roster-banner{grid-row:3}
+
+#player-creator[data-view=roster] .community-card .roster-card-actions{justify-self:center;justify-content:center;margin-left:0;margin-right:0}
+#player-creator[data-view=roster] .community-card .roster-card-actions .roster-play{background:var(--pb-primary);color:var(--pb-on-primary);border-color:var(--pb-primary)}
+#player-creator[data-view=roster] .community-card .roster-card-actions .roster-play:hover:not(:disabled){background:var(--pb-primary-hover);border-color:var(--pb-primary-hover)}
+
+:is(#player-creator[data-view=roster], #remote-create-team) .roster-card .player-record{text-align:center;justify-self:stretch}
+
+/* Read-only player inspection uses the creator's skill presentation. */
+#roster-details>header>div{min-width:0}
+#roster-details.roster-details-drawer .roster-details-attribution{margin:5px 0 0;font-size:13px;font-weight:400;color:var(--pb-text-secondary)}
+#roster-details>header>button{box-sizing:border-box;display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;min-height:44px;padding:0;border-radius:50%;line-height:1}
+#roster-details.roster-details-drawer .roster-card .roster-rating{width:76px;padding:7px 5px;margin:8px 8px 0 0;border-radius:8px;background:var(--pb-royal);color:var(--pb-white)}
+#roster-details.roster-details-drawer .roster-card .roster-rating span{font-size:10px;color:var(--pb-white)}
+#roster-details.roster-details-drawer .roster-card .roster-rating strong{font-size:23px;color:var(--pb-white)}
+#roster-details.roster-details-drawer .roster-card .roster-card-identity h3{padding-right:84px}
+#roster-details.roster-details-drawer .roster-card dl{grid-column:1/-1;display:grid;gap:10px;padding:14px 0;border-top:1px solid var(--pb-border);margin:14px 13px}
+#roster-details.roster-details-drawer .roster-card dl>div{display:grid;grid-template-columns:104px minmax(0,1fr) 26px;align-items:center;gap:8px;min-height:25px}
+#roster-details.roster-details-drawer .roster-card dt{font-size:12px;font-weight:400;gap:8px}
+#roster-details.roster-details-drawer .roster-card dd{width:100%;min-width:0;margin:0}
+#roster-details.roster-details-drawer .roster-summary-value{text-align:right;font-size:11px;font-weight:700;color:var(--pb-text-secondary);font-variant-numeric:tabular-nums}
+#roster-details.roster-details-drawer .roster-card [data-stat=Power]{--meter-color:var(--pb-primary)}
+#roster-details.roster-details-drawer .roster-card [data-stat=Control]{--meter-color:var(--pb-cyan)}
+#roster-details.roster-details-drawer .roster-card [data-stat=Speed]{--meter-color:var(--pb-lime)}
+#roster-details.roster-details-drawer .roster-card [data-stat=Hands]{--meter-color:var(--pb-lavender)}
+#roster-details.roster-details-drawer .roster-card [data-stat=Defense]{--meter-color:var(--pb-mint)}
+#roster-details.roster-details-drawer .five-block-meter{height:12px;gap:5px;border-radius:4px;overflow:hidden}
+#roster-details.roster-details-drawer .five-block-meter i{border-radius:0;background:linear-gradient(to right,var(--meter-color) var(--fill),var(--pb-surface-inset) var(--fill));box-shadow:none}
+#roster-details.roster-details-drawer .roster-card details{grid-column:1/-1;grid-row:auto;margin:0 13px 16px;padding:0;border:1px solid var(--pb-border);border-radius:var(--pb-radius-card);overflow:hidden;background:var(--pb-surface)}
+#roster-details.roster-details-drawer .roster-card details>summary{display:flex;align-items:center;gap:10px;min-height:52px;box-sizing:border-box;padding:12px 16px;list-style:none;font-size:13px;font-weight:800;cursor:pointer}
+#roster-details.roster-details-drawer .roster-card details>summary::-webkit-details-marker{display:none}
+#roster-details.roster-details-drawer .roster-card details>summary::after{content:'⌄';margin-left:auto;font-size:20px;font-weight:400}
+#roster-details.roster-details-drawer .roster-card details[open]>summary{border-bottom:1px solid var(--pb-border)}
+#roster-details.roster-details-drawer .roster-card details[open]>summary::after{transform:rotate(180deg)}
+#roster-details.roster-details-drawer .roster-skill{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:12px 16px;color:var(--pb-text-secondary);font-size:12px}
+#roster-details.roster-details-drawer .roster-skill>span:last-child{grid-column:2;grid-row:1;padding:3px 7px;border-radius:6px;background:var(--pb-surface-hover);color:var(--pb-text);font-weight:700}
+#roster-details.roster-details-drawer .roster-skill meter{grid-column:1/-1;grid-row:2;width:100%;height:10px;appearance:none}
+#roster-details.roster-details-drawer .roster-skill meter::-webkit-meter-bar{height:10px;border:0;border-radius:5px;background:var(--pb-surface-inset)}
+#roster-details.roster-details-drawer .roster-skill meter::-webkit-meter-optimum-value{background:var(--pb-royal);border-radius:5px}
+#roster-details.roster-details-drawer .roster-skill meter::-moz-meter-bar{background:var(--pb-royal);border-radius:5px}
+
+/* Player details fill the viewport rather than sitting inside a nested card. */
+#roster-details.roster-details-drawer{inset:0;width:100vw;height:100dvh;max-width:none;margin:0;padding:0;border:0;border-radius:0;box-shadow:none;background:var(--pb-surface)}
+#roster-details.roster-details-drawer>header{margin:0;padding:max(20px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) 20px max(20px,env(safe-area-inset-left))}
+#roster-details.roster-details-drawer .roster-card{width:100%;box-sizing:border-box;margin:0;padding:0 0 max(20px,env(safe-area-inset-bottom));border:0;border-radius:0;box-shadow:none;background:transparent}
+#roster-details.roster-details-drawer .roster-card .roster-banner{border:0;border-radius:0;box-shadow:none}
+#roster-details.roster-details-drawer .roster-card .roster-banner.has-live-preview{--portrait-height:clamp(340px,52dvh,600px)}
+#roster-details.roster-details-drawer>.roster-details-edit,#roster-details.roster-details-drawer>.roster-details-membership{display:block;width:calc(100% - 40px);margin:16px 20px}
+
+/* Give the information below the full-width portrait comfortable breathing room. */
+#roster-details.roster-details-drawer{--details-gutter:clamp(24px,5vw,40px)}
+#roster-details.roster-details-drawer .roster-card .roster-card-identity{padding:24px var(--details-gutter) 8px;box-sizing:border-box}
+#roster-details.roster-details-drawer .roster-card .roster-rating{margin:24px var(--details-gutter) 8px 0}
+#roster-details.roster-details-drawer .roster-card dl{margin:24px var(--details-gutter);padding:20px 0;gap:14px}
+#roster-details.roster-details-drawer .roster-card details{margin:0 var(--details-gutter) 28px}
+
+/* The WebGL canvas must occupy the entire responsive portrait area. */
+#roster-details.roster-details-drawer .roster-live-preview{position:absolute;inset:0;width:100%;height:100%;margin:0}
+
+#roster-details.roster-details-drawer>.roster-details-moderate{display:block;width:calc(100% - 48px);margin:16px 24px;background:var(--pb-danger);border-color:var(--pb-danger);color:var(--pb-on-danger)}
+#roster-details.roster-details-drawer>.roster-moderation-status{margin:0 24px 20px;color:var(--pb-text-secondary);font-size:13px}
+
+#roster-details.roster-details-drawer>.roster-details-delete{display:block;width:calc(100% - 48px);margin:16px 24px;background:var(--pb-danger);border-color:var(--pb-danger);color:var(--pb-on-danger)}
+
+/* Raise roster portraits within the artwork without changing character scale. */
+:is(#player-creator[data-view=roster], #remote-create-team) .roster-card .roster-banner img{bottom:-4px}
+@media(max-width:600px){
+ :is(#player-creator[data-view=roster], #remote-create-team) .roster-card .roster-banner img{bottom:0}
+}

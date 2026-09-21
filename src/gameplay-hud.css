@@ -2,19 +2,19 @@
 body.match-mode[data-screen=court] #app>.header{display:none}
 body.match-mode[data-panel=play][data-screen=court] #app main{height:100dvh;padding:0}
 body.match-mode[data-panel=play][data-screen=court] .court-wrap{border:0;border-radius:0;box-shadow:none}
-.gameplay-corner{position:absolute;z-index:5;width:clamp(180px,28vw,420px);height:auto;pointer-events:none;user-select:none}
+.gameplay-corner{position:absolute;z-index:5;width:clamp(180px,28vw,420px);height:auto;pointer-events:none;user-select:none;display:none}
 .gameplay-corner-top-left{top:-18px;left:-18px}
 #app .gameplay-settings{position:absolute;z-index:12;top:max(16px,env(safe-area-inset-top));right:max(16px,env(safe-area-inset-right));width:64px;height:64px;min-height:44px;padding:0;border:0;border-radius:50%;background:none;cursor:pointer;transition:filter .16s,scale .16s}
 .gameplay-settings img{display:block;width:100%;height:100%;object-fit:contain;pointer-events:none}
-#app .gameplay-settings:focus-visible{outline:3px solid #3276ff;outline-offset:3px}
-@media(hover:hover){#app .gameplay-settings:hover{filter:drop-shadow(0 0 10px #12e1f388);scale:1.05}}
+#app .gameplay-settings:focus-visible{outline:3px solid var(--pb-focus);outline-offset:3px}
+@media(hover:hover){#app .gameplay-settings:hover{filter:drop-shadow(0 0 10px var(--pb-shadow-color));scale:1.05}}
 #app .court-top{z-index:10;top:max(28px,env(safe-area-inset-top));left:max(22px,env(safe-area-inset-left));right:auto;pointer-events:none}
 /* The frame has transparent space above/below its two rows (1448 × 1086). */
-#app .score{position:relative;isolation:isolate;width:clamp(220px,23vw,300px);min-width:0;aspect-ratio:2.62;display:grid;grid-template-rows:1fr 1fr;gap:0;padding:6% 11% 6% 10%;border:0;border-radius:0;background:none;box-shadow:none;overflow:visible;color:#f9fcff}
-#app .score::before{content:'';position:absolute;inset:-50% 0;z-index:-1;background:url('/assets/picklebash-gameplay-ui/hud/picklebash-scoreboard-frame.png') center/100% 100% no-repeat;pointer-events:none}
-#app .score-row{display:grid;grid-template-columns:minmax(0,1fr) 15%;gap:4%;min-height:0;border:0;background:none}
-#app .score-row>span{min-width:0;padding:0 0 0 4px;font-family:Impact,Haettenschweiler,'Arial Narrow Bold',sans-serif;font-weight:400;font-style:italic;font-synthesis:style;font-size:clamp(13px,1.45vw,20px);letter-spacing:.04em;line-height:1.15;overflow-wrap:anywhere;color:#f9fcff}
-#app .score-row b{align-self:stretch;border:0;background:none;font-family:Impact,Haettenschweiler,'Arial Narrow Bold',sans-serif;font-weight:400;font-size:clamp(22px,2.1vw,30px);letter-spacing:.04em;color:#f9fcff;text-shadow:0 0 8px #12e1f3}
+#app .score{position:relative;isolation:isolate;width:clamp(220px,23vw,300px);min-width:0;display:grid;grid-template-rows:1fr 1fr;overflow:visible;aspect-ratio:auto;padding:10px 14px;gap:6px;border:1px solid var(--pb-border);border-radius:10px;background:var(--pb-surface);box-shadow:var(--pb-shadow-card);color:var(--pb-text)}
+#app .score::before{position:absolute;inset:-50% 0;z-index:-1;background:url('/assets/picklebash-gameplay-ui/hud/picklebash-scoreboard-frame.png') center/100% 100% no-repeat;pointer-events:none;content:none}
+#app .score-row{display:grid;gap:4%;min-height:0;border:0;background:none;align-items:center;grid-template-columns:minmax(0,1fr) 32px;padding:3px 0;border-left:3px solid var(--pb-team-home)}
+#app .score-row>span{min-width:0;padding:0 0 0 4px;font-synthesis:style;font-size:clamp(13px,1.45vw,20px);line-height:1.15;overflow-wrap:anywhere;color:var(--pb-text);font-family:var(--pb-font-body);font-style:normal;font-weight:700;letter-spacing:0;padding-left:8px}
+#app .score-row b{align-self:stretch;border:0;background:none;font-size:clamp(22px,2.1vw,30px);letter-spacing:.04em;color:var(--pb-text);font-family:var(--pb-font-heading);font-weight:800;text-shadow:none;font-variant-numeric:tabular-nums}
 #game-settings .settings-game-actions{display:grid;gap:9px;margin:10px 0 20px}
 #game-settings .settings-game-actions .settings-restart{display:block;width:100%;margin:0;text-align:left}
 @media(max-width:760px){
@@ -27,10 +27,10 @@ body.match-mode[data-panel=play][data-screen=court] .court-wrap{border:0;border-
 }
 @media(prefers-reduced-motion:reduce){#app .gameplay-settings{transition:none}}
 /* Team accents remain HTML overlays, separate from the lit forest geometry. */
-#court .player-label{background:#071a43ed;color:#f8fcff;border:1px solid #12e1f3;border-left:4px solid #12e1f3;box-shadow:0 2px 5px #03122f55;letter-spacing:.025em}
-#court .player-label[data-team=away]{border-color:#ff4f63;border-left-color:#ff3d7d}
-#court .player-label.is-you{border-left-color:#3276ff}
-#court .serve-bubble{background:#071a43;color:#f8fcff;border-color:#12e1f3}
+#court .player-label{background:var(--pb-teal);color:var(--pb-white);border:1px solid var(--pb-teal);box-shadow:var(--pb-shadow-card);letter-spacing:.025em}
+#court .player-label[data-team=away]{border-color:var(--pb-teal)}
+#court .player-label.is-you{border-color:var(--pb-teal)}
+#court .serve-bubble{background:var(--pb-surface);color:var(--pb-text);border-color:var(--pb-border-accent)}
 
 /* Games stays at the top right; match controls stack above Reactions. */
 #app{--hud-size:56px;--hud-gap:8px;--hud-edge:16px;--hud-bottom:calc(16px + env(safe-area-inset-bottom))}
@@ -49,3 +49,16 @@ body.match-mode[data-panel=play][data-screen=court] .court-wrap{border:0;border-
 #app .trash-toggle{width:var(--hud-size);height:var(--hud-size);padding:0;border:0;background:none;box-shadow:none}
 #app .open-play-replay:disabled,#app.remote-app #remote-replay:disabled{opacity:1}
 #app .open-play-replay:disabled .hud-button-symbol,#app.remote-app #remote-replay:disabled .hud-button-symbol{opacity:.35}
+#app .score-row-away{border-left-color:var(--pb-team-away)}
+.hud-button-face{fill:var(--pb-surface);stroke:var(--pb-border-strong);stroke-width:1.5}
+.hud-button-symbol{color:var(--pb-text)}
+button:hover .hud-button-face, a:hover .hud-button-face{fill:var(--pb-selected);stroke:var(--pb-info-ink)}
+
+/* Court utility icons retain their full button hit area without a visible container. */
+.hud-button-art--bare .hud-button-face{display:none}
+.hud-button-art--bare .hud-button-symbol{color:var(--pb-white)}
+
+/* Gameplay exit shares the bare white treatment of court utility controls. */
+#app :is(#remote-back,.open-play-games-link){background:none;border:0;box-shadow:none}
+#app :is(#remote-back,.open-play-games-link) .hud-button-face{display:none}
+#app :is(#remote-back,.open-play-games-link) .hud-button-symbol{color:var(--pb-white)}

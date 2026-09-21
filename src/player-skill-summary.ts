@@ -13,7 +13,7 @@ function ratingForSkill(skill:number){
  const t=a.skill===b.skill?0:(skill-a.skill)/(b.skill-a.skill);
  return a.rating+(b.rating-a.rating)*t;
 }
-export const SUMMARY_SKILLS={Power:['serve','drive','overhead'],Control:['return','drop','dink','reset'],Speed:['movement'],Hands:['volley','counter','hands']} as const;
+export const SUMMARY_SKILLS={Power:['serve','drive','overhead'],Control:['drop','dink'],Speed:['movement'],Hands:['volley','counter','hands'],Defense:['return','reset']} as const;
 export type SummarySkillName=keyof typeof SUMMARY_SKILLS;
 export function setSummarySkillLevel(skills:PlayerSkills,name:SummarySkillName,value:number):PlayerSkills{
  const level=Math.max(0,Math.min(100,Math.round(value))),next={...skills};

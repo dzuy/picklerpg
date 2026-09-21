@@ -27,7 +27,7 @@ export async function database(){
   const closed=[...connections].map(client=>new Promise<void>(resolve=>client.once('end',resolve)));
   await pool.end();await Promise.all(closed);
  }
- await pool.query("create role anon; create role authenticated; create role service_role bypassrls; create schema auth; create table auth.users(id uuid primary key,raw_user_meta_data jsonb not null default '{}'); create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$; grant usage on schema public,auth to anon,authenticated,service_role;");
+ await pool.query("create role anon; create role authenticated; create role service_role bypassrls; create schema auth; create table auth.users(id uuid primary key,raw_user_meta_data jsonb not null default '{}',raw_app_meta_data jsonb not null default '{}'); create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$; grant usage on schema public,auth to anon,authenticated,service_role;");
  for(const name of (await readdir(new URL('../../supabase/migrations/',import.meta.url))).sort())await pool.query(await readFile(new URL(`../../supabase/migrations/${name}`,import.meta.url),'utf8'));
  return {get pool(){return pool},async restart(){await drain();await server.stop();await server.start();pool=makePool();},async close(){await drain();await server.stop();await rm(directory,{recursive:true,force:true});}};
 }

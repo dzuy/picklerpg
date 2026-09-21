@@ -1,14 +1,3 @@
-/* Shared page canvas: keep this in one place so every route uses the same blues. */
-:root {
-  --surface-blue: #10265f;
-  --surface-blue-gradient: linear-gradient(145deg, #183982 0%, #10265f 58%, #0b1b49 100%);
-  --surface-blue-hover: linear-gradient(145deg, #224b9b, #163374 65%, #102659);
-  --surface-blue-selected: linear-gradient(145deg, #285bd0, #1b3e94);
-  --surface-blue-inset: #0a1b48;
-  --surface-blue-border: #4264a4;
-  --page-blue-base: #082270;
-  --page-blue-gradient:
-    radial-gradient(ellipse at 85% 12%, #00c8ff55, transparent 46%),
-    radial-gradient(ellipse at 8% 52%, #087dff70, transparent 55%),
-    linear-gradient(160deg, #082270 0%, #0848c4 43%, #062d91 72%, #06194f 100%);
-}
+/* Every route shares the Daylight UI tokens. */
+@import './design-system/tokens.css';
+@import './design-system/components.css';
