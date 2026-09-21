@@ -297,7 +297,7 @@
 
 /* Roster names lead the card; attribution and records stay below the portrait. */
 :is(#player-creator[data-view=roster], #remote-create-team) .roster-card .roster-card-identity{display:contents}
-:is(#player-creator[data-view=roster], #remote-create-team) .roster-card .roster-card-identity h3{grid-column:1/-1;grid-row:1;margin:0;padding:10px 6px 12px;font-size:16px;line-height:1.2;overflow-wrap:anywhere}
+:is(#player-creator[data-view=roster], #remote-create-team) .roster-card .roster-card-identity h3{grid-column:1/-1;grid-row:1;margin:0;padding:10px 6px 12px;font-size:14px;line-height:1.2;overflow-wrap:normal}
 :is(#player-creator[data-view=roster], #remote-create-team) .roster-card .roster-banner{grid-column:1/-1;grid-row:2}
 :is(#player-creator[data-view=roster], #remote-create-team) .roster-card .roster-card-identity .roster-role{grid-column:1;grid-row:3;align-self:center;margin:8px 6px;padding:0;min-width:0;overflow-wrap:anywhere}
 :is(#player-creator[data-view=roster], #remote-create-team) .roster-card .roster-rating{grid-column:2;grid-row:3;align-self:center;justify-self:end;width:42px;margin:8px 6px 4px 0;padding:5px 3px;border-radius:8px;background:var(--pb-royal);color:var(--pb-white)}

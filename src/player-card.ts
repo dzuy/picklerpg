@@ -16,7 +16,7 @@ export function fillPlayerCard(article:HTMLElement,player:DesignedPlayer,role:st
    if(portrait){const img=document.createElement('img');img.src=portrait;img.alt=player.name;banner.append(img)}
    const slogan=document.createElement('span');slogan.className='roster-motto';slogan.textContent=player.catchphrase?.trim()??'';banner.append(slogan);
    const doodle=document.createElement('span');doodle.className='roster-doodle';doodle.textContent=themeIndex%2===0?'✧':'〰';doodle.setAttribute('aria-hidden','true');banner.append(doodle);article.append(banner);
-   const heading=document.createElement('h3');heading.textContent=player.name;const identity=document.createElement('div');identity.className='roster-card-identity';identity.append(heading);article.append(identity);
+   const heading=document.createElement('h3');heading.textContent=player.name;heading.title=player.name;const identity=document.createElement('div');identity.className='roster-card-identity';identity.append(heading);article.append(identity);
    const description=document.createElement('p');description.textContent=role;description.className=role.startsWith('By ')?'roster-role roster-credit':'roster-role';identity.append(description);
    const {meters,estimatedDupr}=summarizeSkills(player.skills);
    const rating=document.createElement('p');rating.className='roster-rating';rating.innerHTML='<span>DUPR</span><strong>'+estimatedDupr.toFixed(2)+'</strong>';rating.title='Game skill estimate, not an official DUPR rating';article.append(rating);

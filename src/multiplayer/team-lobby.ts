@@ -72,6 +72,11 @@ export class TeamLobby {
     card.append(identity,controls);list.append(card);
    }
    directory.append(list);
+   if(this.tab==='friends'){
+    const inviteBar=node('div','friends-invite-bar');
+    inviteBar.append(this.button('Invite a Friend',this.actions.create,'friends-invite-button'));
+    directory.append(inviteBar);
+   }
   }
   if(this.tab==='profile')directory.append(profilePanel(this.portraits,this.actions.authenticate,this.actions.signOut));
   const aside=node('div','team-lobby-header-actions');
@@ -103,12 +108,12 @@ export class TeamLobby {
   const dialog=node('dialog','friend-profile-dialog'),header=node('div','friend-profile-header'),title=node('h2','','Profile');
   title.id='friend-profile-title';dialog.setAttribute('aria-labelledby',title.id);
   const close=this.button('✕',()=>dialog.close(),'friend-profile-close');close.setAttribute('aria-label','Close friend profile');header.append(title,close);
-  const panel=node('section','lobby-profile'),avatar=node('img','');avatar.alt=`${person.manager}’s character`;
-  const renderAvatar=()=>{try{TeamLobby.portraits??=new AvatarThumbnails(256);avatar.src=this.portraits!.get(person.avatar,'full')}catch{avatar.hidden=true}};
+  const panel=node('section','lobby-profile friend-profile'),avatar=node('img','profile-avatar');avatar.alt=`${person.manager}’s character`;
+  const renderAvatar=()=>{try{TeamLobby.portraits??=new AvatarThumbnails(256);avatar.src=this.portraits!.get(person.avatar,'face')}catch{avatar.hidden=true}};
   if(this.portraits)renderAvatar();else void preloadAthletes().then(renderAvatar).catch(()=>{avatar.hidden=true});
-  const relationship=node('p',''),actions=node('div','friend-profile-actions'),status=node('p','');status.setAttribute('role','status');
+  const relationship=node('p','profile-eyebrow'),actions=node('div','friend-profile-actions profile-actions'),status=node('p','');status.setAttribute('role','status');
   const stats=node('dl','lobby-profile-stats');stats.setAttribute('aria-busy','true');
-  const values=['Games played','Wins','Losses'].map(label=>{const stat=node('div',''),value=node('dd','','—');stat.append(node('dt','',label),value);stats.append(stat);return value;});
+  const values=['Games','Wins','Losses'].map(label=>{const stat=node('div',''),value=node('dd','','—');stat.append(node('dt','',label),value);stats.append(stat);return value;});
   const recordStatus=node('p','lobby-profile-note','Loading game record…');recordStatus.setAttribute('role','status');
   void (async()=>{
    const record=await this.record(person);
@@ -118,7 +123,13 @@ export class TeamLobby {
   const friend=this.button('',()=>{},'team-lobby-quiet');
   const sync=()=>{const connected=this.data.friends.includes(person.id);relationship.textContent=connected?'Your friend':'Community player';friend.textContent=connected?'Remove Friend':'Add Friend';};sync();
   friend.onclick=()=>{friend.disabled=true;status.textContent='';void this.friend(person.id).then(saved=>{if(saved)sync();else status.textContent=this.message;}).finally(()=>{friend.disabled=false;});};
-  actions.append(play,friend);panel.append(avatar,node('h2','',person.manager),relationship,node('p','',person.name),stats,recordStatus,rivalryProfile(this.actions.rivalryFor?.(person.id),person.manager),actions,status);dialog.append(header,panel);
+  const identity=node('header','profile-identity'),identityCopy=node('div','profile-identity-copy');
+  identityCopy.append(relationship,node('h2','',person.manager));
+  if(person.name&&person.name!==person.manager)identityCopy.append(node('p','profile-display-name',person.name));
+  identity.append(avatar,identityCopy);
+  const rivalry=node('section','profile-insights');
+  rivalry.append(rivalryProfile(this.actions.rivalryFor?.(person.id),person.manager));
+  actions.append(play,friend);panel.append(identity,stats,actions,recordStatus,rivalry,status);dialog.append(header,panel);
   dialog.addEventListener('close',()=>{dialog.remove();const name=Array.from(this.element.querySelectorAll<HTMLButtonElement>('[data-person-id]')).find(button=>button.dataset.personId===person.id);(name??this.element.querySelector<HTMLElement>('#friends-tab-'+this.tab))?.focus({preventScroll:true});},{once:true});
   document.body.append(dialog);dialog.showModal();close.focus();
  }

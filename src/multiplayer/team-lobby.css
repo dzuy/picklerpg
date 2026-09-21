@@ -217,37 +217,37 @@ body[data-screen=remote]:has(#remote-lobby:not([hidden])){background:var(--pb-su
 
 /* Personal profile: social identity first, account utilities second. */
 #remote-lobby .team-directory:has(.own-profile){border:0;background:none;box-shadow:none;overflow:visible}
-#remote-lobby .own-profile{display:flex;align-items:stretch;gap:0;max-width:720px;width:100%;box-sizing:border-box;padding:8px 0 28px;text-align:left}
-#remote-lobby .profile-identity{display:flex;align-items:center;gap:24px;padding:0 0 26px}
-#remote-lobby .own-profile .profile-avatar{flex:0 0 104px;width:104px;height:104px;object-fit:cover;border-radius:50%;border:3px solid var(--pb-border);background:var(--pb-surface);box-shadow:var(--pb-shadow-card)}
-#remote-lobby .profile-identity-copy{min-width:0;flex:1}
-#remote-lobby .own-profile .profile-identity h2{font-size:clamp(26px,4vw,36px);letter-spacing:-.7px;line-height:1.2;margin:0 0 6px}
-#remote-lobby .own-profile .profile-display-name{font-size:14px;color:var(--pb-text-secondary)}
-#remote-lobby .own-profile .profile-bio{margin-top:10px;font-size:14px;color:var(--pb-text)}
-#remote-lobby .own-profile .lobby-profile-stats{margin:0 0 22px;gap:0;padding:19px 0;border-top:1px solid color-mix(in srgb, var(--pb-border) 22%, transparent);border-bottom:1px solid color-mix(in srgb, var(--pb-border) 22%, transparent)}
-#remote-lobby .own-profile .lobby-profile-stats>div{display:flex;flex-direction:column-reverse;gap:4px;text-align:center;background:none;border-radius:0;padding:0 8px}
-#remote-lobby .own-profile .lobby-profile-stats>div+div{border-left:1px solid color-mix(in srgb, var(--pb-border) 19%, transparent)}
-#remote-lobby .own-profile .lobby-profile-stats dd{font-size:28px;line-height:1.1;margin:0;color:var(--pb-text)}
-#remote-lobby .own-profile .lobby-profile-stats dt{font-size:12px;color:var(--pb-text-secondary)}
-#remote-lobby .profile-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px}
-#remote-lobby .own-profile .profile-actions a{display:flex;align-items:center;justify-content:center;min-height:44px;padding:10px 16px;box-sizing:border-box;border:1px solid color-mix(in srgb, var(--pb-border) 33%, transparent);border-radius:var(--pb-radius-button);background:color-mix(in srgb, var(--pb-surface-inset) 7%, transparent);color:var(--pb-text);text-decoration:none;font-size:14px;font-weight:700}
-#remote-lobby .own-profile .profile-actions a:hover{background:color-mix(in srgb, var(--pb-surface-inset) 15%, transparent);border-color:var(--pb-border)}
-#remote-lobby .own-profile .lobby-profile-note{margin-bottom:20px}
-#remote-lobby .profile-insights{padding:24px;border:1px solid color-mix(in srgb, var(--pb-border) 20%, transparent);border-radius:var(--pb-radius-card);background:color-mix(in srgb, var(--pb-surface) 40%, transparent)}
-#remote-lobby .own-profile .profile-insights h3{font-size:18px;margin:0 0 5px}
-#remote-lobby .own-profile .profile-section-copy{font-size:13px;color:var(--pb-text-secondary)}
-#remote-lobby .own-profile .shot-mix-panel{margin-top:18px;padding-top:14px;border-color:color-mix(in srgb, var(--pb-border) 20%, transparent);box-sizing:border-box}
-#remote-lobby .own-profile .shot-mix-panel>summary{font-size:15px;padding:8px 0;color:var(--pb-text)}
-#remote-lobby .profile-account-settings{margin-top:24px;border-top:1px solid color-mix(in srgb, var(--pb-border) 20%, transparent);padding-top:14px}
-#remote-lobby .profile-account-settings>summary{padding:12px 0;font-size:14px;font-weight:650;color:var(--pb-text-secondary);cursor:pointer}
-#remote-lobby .own-profile .lobby-profile-account{align-items:stretch;gap:8px;padding:12px 0 0;margin:0;border:0;text-align:left}
-#remote-lobby .profile-account-label{font-size:11px;color:var(--pb-text-secondary)}
-#remote-lobby .own-profile .profile-email{font-size:14px;color:var(--pb-text)}
-#remote-lobby .profile-account-actions{display:flex;justify-content:space-between;gap:12px;margin-top:8px}
-#remote-lobby .profile-account-actions button{border:0;background:none;padding:8px 0;color:var(--pb-text-secondary);font-size:13px;text-decoration:underline;text-underline-offset:4px;text-align:left;min-width:0}
-#remote-lobby .profile-account-actions button:last-child{color:var(--pb-text-secondary)}
-#remote-lobby .own-profile :is(a,button,summary):focus-visible{outline:2px solid var(--pb-focus);outline-offset:4px}
-@media(max-width:480px){#remote-lobby .profile-identity{gap:18px}#remote-lobby .own-profile .profile-avatar{flex-basis:84px;width:84px;height:84px}#remote-lobby .profile-insights{padding:20px}}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile){display:flex;align-items:stretch;gap:0;max-width:720px;width:100%;box-sizing:border-box;padding:8px 0 28px;text-align:left}
+:is(#remote-lobby,.friend-profile-dialog) .profile-identity{display:flex;align-items:center;gap:24px;padding:0 0 26px}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-avatar{flex:0 0 104px;width:104px;height:104px;object-fit:cover;border-radius:50%;border:3px solid var(--pb-border);background:var(--pb-surface);box-shadow:var(--pb-shadow-card)}
+:is(#remote-lobby,.friend-profile-dialog) .profile-identity-copy{min-width:0;flex:1}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-identity h2{font-size:clamp(26px,4vw,36px);letter-spacing:-.7px;line-height:1.2;margin:0 0 6px}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-display-name{font-size:14px;color:var(--pb-text-secondary)}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-bio{margin-top:10px;font-size:14px;color:var(--pb-text)}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .lobby-profile-stats{margin:0 0 22px;gap:0;padding:19px 0;border-top:1px solid color-mix(in srgb, var(--pb-border) 22%, transparent);border-bottom:1px solid color-mix(in srgb, var(--pb-border) 22%, transparent)}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .lobby-profile-stats>div{display:flex;flex-direction:column-reverse;gap:4px;text-align:center;background:none;border-radius:0;padding:0 8px}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .lobby-profile-stats>div+div{border-left:1px solid color-mix(in srgb, var(--pb-border) 19%, transparent)}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .lobby-profile-stats dd{font-size:28px;line-height:1.1;margin:0;color:var(--pb-text)}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .lobby-profile-stats dt{font-size:12px;color:var(--pb-text-secondary)}
+:is(#remote-lobby,.friend-profile-dialog) .profile-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-actions a{display:flex;align-items:center;justify-content:center;min-height:44px;padding:10px 16px;box-sizing:border-box;border:1px solid color-mix(in srgb, var(--pb-border) 33%, transparent);border-radius:var(--pb-radius-button);background:color-mix(in srgb, var(--pb-surface-inset) 7%, transparent);color:var(--pb-text);text-decoration:none;font-size:14px;font-weight:700}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-actions a:hover{background:color-mix(in srgb, var(--pb-surface-inset) 15%, transparent);border-color:var(--pb-border)}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .lobby-profile-note{margin-bottom:20px}
+:is(#remote-lobby,.friend-profile-dialog) .profile-insights{padding:24px;border:1px solid color-mix(in srgb, var(--pb-border) 20%, transparent);border-radius:var(--pb-radius-card);background:color-mix(in srgb, var(--pb-surface) 40%, transparent)}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-insights h3{font-size:18px;margin:0 0 5px}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-section-copy{font-size:13px;color:var(--pb-text-secondary)}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .shot-mix-panel{margin-top:18px;padding-top:14px;border-color:color-mix(in srgb, var(--pb-border) 20%, transparent);box-sizing:border-box}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .shot-mix-panel>summary{font-size:15px;padding:8px 0;color:var(--pb-text)}
+:is(#remote-lobby,.friend-profile-dialog) .profile-account-settings{margin-top:24px;border-top:1px solid color-mix(in srgb, var(--pb-border) 20%, transparent);padding-top:14px}
+:is(#remote-lobby,.friend-profile-dialog) .profile-account-settings>summary{padding:12px 0;font-size:14px;font-weight:650;color:var(--pb-text-secondary);cursor:pointer}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .lobby-profile-account{align-items:stretch;gap:8px;padding:12px 0 0;margin:0;border:0;text-align:left}
+:is(#remote-lobby,.friend-profile-dialog) .profile-account-label{font-size:11px;color:var(--pb-text-secondary)}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-email{font-size:14px;color:var(--pb-text)}
+:is(#remote-lobby,.friend-profile-dialog) .profile-account-actions{display:flex;justify-content:space-between;gap:12px;margin-top:8px}
+:is(#remote-lobby,.friend-profile-dialog) .profile-account-actions button{border:0;background:none;padding:8px 0;color:var(--pb-text-secondary);font-size:13px;text-decoration:underline;text-underline-offset:4px;text-align:left;min-width:0}
+:is(#remote-lobby,.friend-profile-dialog) .profile-account-actions button:last-child{color:var(--pb-text-secondary)}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) :is(a,button,summary):focus-visible{outline:2px solid var(--pb-focus);outline-offset:4px}
+@media(max-width:480px){:is(#remote-lobby,.friend-profile-dialog) .profile-identity{gap:18px}:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-avatar{flex-basis:84px;width:84px;height:84px}:is(#remote-lobby,.friend-profile-dialog) .profile-insights{padding:20px}}
 
 #remote-lobby .has-player-faces>.remote-card-heading{grid-column:1/-1;grid-row:1;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 12px;min-width:0;margin-bottom:4px}
 #remote-lobby .remote-card-heading>.remote-card-username{font-size:15px;line-height:1.3;letter-spacing:0;color:var(--pb-text);overflow-wrap:anywhere;text-align:left}
@@ -258,43 +258,58 @@ body[data-screen=remote]:has(#remote-lobby:not([hidden])){background:var(--pb-su
 #remote-lobby:not([data-games-state=ready]) .remote-empty{display:none}
 
 /* Account profile uses the same card, action and accent tokens as the creator. */
-#remote-lobby .own-profile{gap:18px;font-family:var(--pb-font-body)}
-#remote-lobby .own-profile .profile-identity{position:relative;isolation:isolate;overflow:hidden;padding:24px;gap:18px;border-radius:var(--pb-radius-card);background:var(--pb-surface);box-shadow:var(--pb-shadow-card)}
-#remote-lobby .own-profile .profile-identity::before{content:"";position:absolute;z-index:-1;inset:0;background:linear-gradient(125deg,color-mix(in srgb,var(--pb-cyan) 20%,transparent),transparent 65%),linear-gradient(155deg,transparent 68%,color-mix(in srgb,var(--pb-lime) 22%,transparent) 68%,color-mix(in srgb,var(--pb-lime) 22%,transparent) 77%,transparent 77%);pointer-events:none}
-#remote-lobby .own-profile .profile-avatar{border:3px solid var(--pb-surface);box-shadow:var(--pb-shadow-card)}
-#remote-lobby .own-profile .profile-eyebrow{display:block;font-size:10px;line-height:1.5;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--pb-text-secondary);margin-bottom:6px}
-#remote-lobby .own-profile .profile-identity h2{font-family:var(--pb-font-heading);font-weight:800}
-#remote-lobby .own-profile .profile-bio{font-style:italic;font-size:13px}
-#remote-lobby .own-profile .lobby-profile-stats{padding:0;border:0;margin:0;gap:10px}
-#remote-lobby .own-profile .lobby-profile-stats>div{padding:18px 8px;border:0;border-radius:var(--pb-radius-card);background:var(--pb-surface);box-shadow:var(--pb-shadow-card)}
-#remote-lobby .own-profile .lobby-profile-stats>div:nth-child(1){background:color-mix(in srgb,var(--pb-cyan) 16%,var(--pb-surface))}
-#remote-lobby .own-profile .lobby-profile-stats>div:nth-child(2){background:color-mix(in srgb,var(--pb-mint) 24%,var(--pb-surface))}
-#remote-lobby .own-profile .lobby-profile-stats>div:nth-child(3){background:color-mix(in srgb,var(--pb-lavender) 16%,var(--pb-surface))}
-#remote-lobby .own-profile .lobby-profile-stats dd{font:800 32px/1.1 var(--pb-font-heading)}
-#remote-lobby .own-profile .lobby-profile-stats dt{font-weight:600}
-#remote-lobby .own-profile .profile-actions{margin:0;gap:10px}
-#remote-lobby .own-profile .profile-actions a{min-height:48px;background:var(--pb-surface);border:1px solid var(--pb-border);font-weight:800}
-#remote-lobby .own-profile .profile-actions .profile-edit{background:var(--pb-primary);color:var(--pb-on-primary);border-color:transparent}
-#remote-lobby .own-profile .profile-actions .profile-edit:hover{background:var(--pb-primary-hover)}
-#remote-lobby .own-profile .profile-actions .profile-roster:hover{background:var(--pb-surface-hover)}
-#remote-lobby .own-profile :is(.profile-skill-progress,.profile-insights,.profile-account-settings){padding:24px;border:0;border-radius:var(--pb-radius-card);background:var(--pb-surface);box-shadow:var(--pb-shadow-card);margin:0}
-#remote-lobby .own-profile .profile-progress-header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:18px}
-#remote-lobby .own-profile :is(.profile-skill-progress,.profile-insights) h3{font:800 22px/1.2 var(--pb-font-heading);margin:0}
-#remote-lobby .own-profile .profile-budget-badge{flex:none;min-width:76px;padding:10px 12px;background:var(--pb-royal);color:var(--pb-white);border-radius:12px;text-align:center}
-#remote-lobby .own-profile .profile-budget-badge[hidden]{display:none}
-#remote-lobby .own-profile .profile-budget-badge strong{display:block;font:800 32px/1.1 var(--pb-font-heading)}
-#remote-lobby .own-profile .profile-budget-badge span{font-size:10px;font-weight:700}
-#remote-lobby .own-profile .profile-progress-copy{font-size:14px;font-weight:700;color:var(--pb-text)}
-#remote-lobby .own-profile .profile-progress-bar{display:block;appearance:none;width:100%;height:10px;border:0;border-radius:999px;overflow:hidden;margin:14px 0;background:var(--pb-surface-inset)}
-#remote-lobby .own-profile .profile-progress-bar[hidden]{display:none}
-#remote-lobby .own-profile .profile-progress-bar::-webkit-progress-bar{background:var(--pb-surface-inset)}
-#remote-lobby .own-profile .profile-progress-bar::-webkit-progress-value{background:var(--pb-primary);border-radius:999px}
-#remote-lobby .own-profile .profile-progress-bar::-moz-progress-bar{background:var(--pb-primary);border-radius:999px}
-#remote-lobby .own-profile .profile-reward-note{font-size:12px}
-#remote-lobby .own-profile .profile-insights .profile-section-copy{margin-top:8px}
-#remote-lobby .own-profile .shot-mix-panel{border-color:var(--pb-border)}
-#remote-lobby .own-profile .profile-account-settings>summary{padding:0;font-size:16px;font-weight:750;color:var(--pb-text)}
-#remote-lobby .own-profile .profile-account-settings[open]>summary{padding-bottom:12px;border-bottom:1px solid var(--pb-border)}
-#remote-lobby .own-profile .profile-account-actions button{padding:10px 16px;border:1px solid var(--pb-border);border-radius:var(--pb-radius-pill);background:var(--pb-surface-inset);text-decoration:none;font-weight:700}
-#remote-lobby .own-profile .profile-account-actions button:hover{background:var(--pb-surface-hover)}
-@media(max-width:480px){#remote-lobby .own-profile .profile-identity{padding:20px;gap:14px}#remote-lobby .own-profile .profile-avatar{width:76px;height:76px;flex-basis:76px}#remote-lobby .own-profile :is(.profile-skill-progress,.profile-insights,.profile-account-settings){padding:20px}}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile){gap:18px;font-family:var(--pb-font-body)}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-identity{position:relative;isolation:isolate;overflow:hidden;padding:24px;gap:18px;border-radius:var(--pb-radius-card);background:var(--pb-surface);box-shadow:var(--pb-shadow-card)}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-identity::before{content:"";position:absolute;z-index:-1;inset:0;background:linear-gradient(125deg,color-mix(in srgb,var(--pb-cyan) 20%,transparent),transparent 65%),linear-gradient(155deg,transparent 68%,color-mix(in srgb,var(--pb-lime) 22%,transparent) 68%,color-mix(in srgb,var(--pb-lime) 22%,transparent) 77%,transparent 77%);pointer-events:none}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-avatar{border:3px solid var(--pb-surface);box-shadow:var(--pb-shadow-card)}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-eyebrow{display:block;font-size:10px;line-height:1.5;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--pb-text-secondary);margin-bottom:6px}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-identity h2{font-family:var(--pb-font-heading);font-weight:800}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-bio{font-style:italic;font-size:13px}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .lobby-profile-stats{padding:0;border:0;margin:0;gap:10px}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .lobby-profile-stats>div{padding:18px 8px;border:0;border-radius:var(--pb-radius-card);background:var(--pb-surface);box-shadow:var(--pb-shadow-card)}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .lobby-profile-stats>div:nth-child(1){background:color-mix(in srgb,var(--pb-cyan) 16%,var(--pb-surface))}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .lobby-profile-stats>div:nth-child(2){background:color-mix(in srgb,var(--pb-mint) 24%,var(--pb-surface))}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .lobby-profile-stats>div:nth-child(3){background:color-mix(in srgb,var(--pb-lavender) 16%,var(--pb-surface))}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .lobby-profile-stats dd{font:800 32px/1.1 var(--pb-font-heading)}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .lobby-profile-stats dt{font-weight:600}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-actions{margin:0;gap:10px}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-actions a{min-height:48px;background:var(--pb-surface);border:1px solid var(--pb-border);font-weight:800}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-actions .profile-edit{background:var(--pb-primary);color:var(--pb-on-primary);border-color:transparent}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-actions .profile-edit:hover{background:var(--pb-primary-hover)}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-actions .profile-roster:hover{background:var(--pb-surface-hover)}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) :is(.profile-skill-progress,.profile-insights,.profile-account-settings){padding:24px;border:0;border-radius:var(--pb-radius-card);background:var(--pb-surface);box-shadow:var(--pb-shadow-card);margin:0}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-progress-header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:18px}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) :is(.profile-skill-progress,.profile-insights) h3{font:800 22px/1.2 var(--pb-font-heading);margin:0}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-budget-badge{flex:none;min-width:76px;padding:10px 12px;background:var(--pb-royal);color:var(--pb-white);border-radius:12px;text-align:center}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-budget-badge[hidden]{display:none}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-budget-badge strong{display:block;font:800 32px/1.1 var(--pb-font-heading)}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-budget-badge span{font-size:10px;font-weight:700}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-progress-copy{font-size:14px;font-weight:700;color:var(--pb-text)}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-progress-bar{display:block;appearance:none;width:100%;height:10px;border:0;border-radius:999px;overflow:hidden;margin:14px 0;background:var(--pb-surface-inset)}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-progress-bar[hidden]{display:none}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-progress-bar::-webkit-progress-bar{background:var(--pb-surface-inset)}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-progress-bar::-webkit-progress-value{background:var(--pb-primary);border-radius:999px}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-progress-bar::-moz-progress-bar{background:var(--pb-primary);border-radius:999px}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-reward-note{font-size:12px}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-insights .profile-section-copy{margin-top:8px}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .shot-mix-panel{border-color:var(--pb-border)}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-account-settings>summary{padding:0;font-size:16px;font-weight:750;color:var(--pb-text)}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-account-settings[open]>summary{padding-bottom:12px;border-bottom:1px solid var(--pb-border)}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-account-actions button{padding:10px 16px;border:1px solid var(--pb-border);border-radius:var(--pb-radius-pill);background:var(--pb-surface-inset);text-decoration:none;font-weight:700}
+:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-account-actions button:hover{background:var(--pb-surface-hover)}
+@media(max-width:480px){:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-identity{padding:20px;gap:14px}:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) .profile-avatar{width:76px;height:76px;flex-basis:76px}:is(#remote-lobby .own-profile,.friend-profile-dialog .friend-profile) :is(.profile-skill-progress,.profile-insights,.profile-account-settings){padding:20px}}
+
+/* Keep the invite action within reach, above the persistent 78px navigation. */
+#remote-lobby .friends-invite-bar{position:fixed;z-index:79;left:0;right:0;bottom:calc(78px + env(safe-area-inset-bottom));display:flex;justify-content:center;padding:12px 20px;background:var(--pb-surface-inset)}
+#remote-lobby .friends-invite-button{width:100%;max-width:560px;min-height:52px;padding:12px 24px;border:0;border-radius:999px;background:var(--pb-primary);color:var(--pb-on-primary);font-size:17px;font-weight:750}
+#remote-lobby .friends-invite-button:hover{background:var(--pb-primary-hover)}
+#remote-lobby .team-lobby[data-tab=friends] .team-directory-list{padding-bottom:80px}
+
+.friend-profile-dialog{background:var(--pb-surface-inset);border-radius:16px}
+.friend-profile-dialog .friend-profile{padding-top:20px;padding-bottom:0}
+.friend-profile-dialog .friend-profile-actions{max-width:none;grid-template-columns:1fr 1fr;margin:0}
+.friend-profile-dialog .friend-profile-actions button{min-height:48px;padding:12px 16px;border:1px solid var(--pb-border);border-radius:var(--pb-radius-pill);background:var(--pb-surface);color:var(--pb-text);font-weight:750}
+.friend-profile-dialog .friend-profile-actions .team-lobby-primary{background:var(--pb-primary);color:var(--pb-on-primary);border-color:var(--pb-primary)}
+.friend-profile-dialog .friend-profile-actions .team-lobby-primary:hover{background:var(--pb-primary-hover)}
+.friend-profile-dialog .rivalry-profile{margin:0;padding:0;border:0}
+.friend-profile-dialog .friend-profile-close{display:grid;place-items:center;padding:0;min-height:44px}

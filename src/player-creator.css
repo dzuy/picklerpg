@@ -574,3 +574,6 @@
 #player-creator>dialog.creator-confirm>div{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
 #player-creator>dialog.creator-confirm button{margin:0}
 #player-creator>dialog.creator-confirm [data-save-leave]{background:var(--pb-primary);color:var(--pb-on-primary);border-color:transparent}
+
+.roster-card .roster-card-identity{min-width:0}
+.roster-card .roster-card-identity h3{min-width:0;max-width:100%;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;overflow-wrap:normal;word-break:normal}
