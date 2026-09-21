@@ -451,7 +451,7 @@ body.match-mode[data-panel=play] #match-panel #open-replay{width:100%;min-height
 .target-shot-rating[data-metric=risk] .shot-rating-icon{color:var(--rating-color)}
 .shot-rating-bars{display:inline-flex;align-items:center;gap:4px;height:18px;padding:0 2px}
 .shot-rating-bars i{box-sizing:border-box;display:block;width:11px;height:6px;transform:skewX(-25deg);border:1px solid var(--rating-color);background:transparent}
-.shot-rating-bars .is-filled{background:var(--rating-color);box-shadow:var(--pb-shadow-card)}
+.shot-rating-bars .is-filled{background:var(--rating-color);box-shadow:0 0 5px color-mix(in srgb,var(--rating-color) 35%,transparent)}
 .target-shot-rating[data-metric=risk][data-level="1"]{--rating-color:var(--pb-risk-low)}
 .target-shot-rating[data-metric=risk][data-level="2"]{--rating-color:var(--pb-risk-medium)}
 .target-shot-rating[data-metric=risk][data-level="3"]{--rating-color:var(--pb-risk-high)}
@@ -645,4 +645,4 @@ body[data-screen=start], .roster-route-loading { background: var(--pb-bg); backg
 .target-wheel .target-shot-erne .target-shot-label{color:var(--pb-cyan)}
 .target-wheel .target-atp-description{color:var(--pb-shot-text)}
 
-#local-turn-banner:not([hidden]){font-style:italic;font-synthesis:style;background:color-mix(in srgb,var(--pb-lime) 65%,var(--pb-white));color:var(--pb-teal);border-color:var(--pb-lime)}
+#local-turn-banner:not([hidden]){text-align:left;font-style:italic;font-synthesis:style;background:var(--pb-teal);color:var(--pb-white);border-color:var(--pb-teal)}

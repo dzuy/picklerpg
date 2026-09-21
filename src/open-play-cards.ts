@@ -1,3 +1,4 @@
+import {installGameListExit} from './game-list-exit';
 import {gameCardLineup} from './game-card-lineup';
 import {openGameSurface} from './game-surface';
 import {OpenPlayStore} from './persistence/open-play-store';
@@ -21,6 +22,10 @@ export function renderOpenPlayGames(host:HTMLElement,owner:string,filter:string,
    text('span','remote-card-ref',`${c.mode==='local-human'?'Two managers · Same device':'Team B · Computer managed'} · Saved on this browser`);
    text('span','remote-card-action',done?'View result ↗':'Resume game ↗');
    card.onclick=()=>openGameSurface(`/?game=${encodeURIComponent(c.matchId)}`);
+   if(!done&&!game.archived)installGameListExit(card,{
+    title:'End this game?',message:'This ends your saved game. You can still view its result in Finished games.',action:'End game',
+    confirm:()=>{store.end(c.matchId);refresh();}
+   });
    const archive=document.createElement('button');archive.className='remote-quiet remote-archive-action';archive.textContent=game.archived?'Restore':'Archive';archive.setAttribute('aria-label',`${archive.textContent} ${name('you','your team')} game`);
    archive.onclick=()=>{try{store.archive(c.matchId,!game.archived);refresh()}catch(error){onError((error as Error).message)}};
    row.append(card,archive);host.append(row);

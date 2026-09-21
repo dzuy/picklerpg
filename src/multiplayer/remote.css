@@ -91,12 +91,12 @@ body.remote-playing{overflow:hidden}body.remote-playing .remote-app{padding:0;ma
 /* A compact scorecard with account identity and rules, without the neon frame. */
 body.remote-playing #app .score{width:220px;max-width:calc(100vw - 88px);aspect-ratio:auto;display:flex;flex-direction:column;gap:0;padding:0;border:1px solid color-mix(in srgb, var(--pb-border) 42%, transparent);border-radius:10px;background:color-mix(in srgb, var(--pb-surface) 93%, transparent);box-shadow:var(--pb-shadow-card);overflow:hidden}
 body.remote-playing #app .score::before{display:none}
-.remote-score-heading{display:flex;flex-direction:column;gap:2px;padding:7px 10px 6px;border-bottom:1px solid color-mix(in srgb, var(--pb-border) 20%, transparent);text-align:left}
-body.remote-playing #app .remote-score-heading strong{font-family:var(--pb-font-heading);font-size:13px;font-weight:750;line-height:1.3;letter-spacing:0;color:var(--pb-text);overflow-wrap:anywhere;text-shadow:none}
-.remote-score-heading>span{font-size:11px;font-weight:550;line-height:1.3;letter-spacing:0;color:var(--pb-text-secondary)}
+.remote-score-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 10px 6px;border-bottom:1px solid color-mix(in srgb, var(--pb-border) 20%, transparent);text-align:left}
+body.remote-playing #app .remote-score-heading strong{font-family:var(--pb-font-heading);font-size:13px;font-weight:750;line-height:1.3;letter-spacing:0;color:var(--pb-text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-shadow:none}
+.remote-score-heading>span{flex-shrink:0;white-space:nowrap;font-size:11px;font-weight:550;line-height:1.3;letter-spacing:0;color:var(--pb-text-secondary)}
 body.remote-playing #app .score-row{grid-template-columns:minmax(0,1fr) 26px;gap:6px;min-height:28px;padding:2px 9px 2px 7px;border-left:3px solid var(--pb-border)}
 body.remote-playing #app .score-row-away{border-left-color:var(--pb-border);border-top:1px solid color-mix(in srgb, var(--pb-border) 13%, transparent)}
 body.remote-playing #app .score-row>span{font-family:var(--pb-font-body);font-style:normal;font-size:12px;font-weight:650;letter-spacing:0;line-height:1.3;padding:0;color:var(--pb-text)}
-body.remote-playing #app .score-row b{font-family:var(--pb-font-body);font-style:normal;font-size:21px;font-weight:800;letter-spacing:0;text-shadow:none;color:var(--pb-text)}
+body.remote-playing #app .score-row b{font-family:var(--pb-font-body);font-style:normal;font-size:18px;font-weight:800;letter-spacing:0;text-shadow:none;color:var(--pb-text)}
 
-.remote-move-banner{font-style:italic;font-synthesis:style;background:color-mix(in srgb,var(--pb-lime) 65%,var(--pb-white));color:var(--pb-teal);border-color:var(--pb-lime)}
+.remote-move-banner{text-align:left;font-style:italic;font-synthesis:style;background:var(--pb-teal);color:var(--pb-white);border-color:var(--pb-teal)}

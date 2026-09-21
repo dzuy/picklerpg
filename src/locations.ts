@@ -1,7 +1,7 @@
 /** Locations contain presentation only. All play uses the shared COURT model. */
 export type CourtLocation='forest'|'venice'|'arizona';
 export const COURT_LOCATIONS=[
- {id:'forest',name:'The Forest',description:'Shaded courts. Clean rallies.',image:'/assets/picklebash-select/locations/forest.jpg'},
+ {id:'forest',name:'The Forest',description:'Shaded courts. Clean rallies.',image:'/images/forest-court.png'},
  {id:'venice',name:'Venice Sunset',description:'Los Angeles · Palms. Pacific. Pink skies.',image:'/images/venice-sunset.svg'},
  {id:'arizona',name:'Arizona Desert',description:'Red rock. Saguaros. Wide-open skies.',image:'/images/arizona-desert.svg'},
 ] as const;

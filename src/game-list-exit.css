@@ -1,0 +1,7 @@
+.game-list-swipe{touch-action:pan-y pinch-zoom}
+dialog.game-list-exit{box-sizing:border-box;position:fixed;inset:0;margin:auto;width:min(420px,calc(100vw - 32px));max-height:calc(100dvh - 32px);padding:24px;border:1px solid var(--pb-border);border-radius:16px;background:var(--pb-surface);color:var(--pb-text);box-shadow:var(--pb-shadow-card)}
+dialog.game-list-exit::backdrop{background:var(--pb-scrim)}
+.game-list-exit h2{font-size:26px;line-height:1.2;margin:0 0 12px}
+.game-list-exit p{line-height:1.5;margin:0 0 20px}
+.game-list-exit-actions{display:flex;justify-content:flex-end;gap:12px}
+.game-list-exit-actions button{border-radius:12px}

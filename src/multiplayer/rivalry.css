@@ -1,9 +1,10 @@
 .rivalry-game-end .game-end-emblem{display:none}
-.rivalry-game-end .game-end-card{padding:26px 32px}
+#game-end.rivalry-game-end{border-radius:16px;background:var(--pb-surface)}
+.rivalry-game-end .game-end-card{padding:26px 32px;background:linear-gradient(155deg,color-mix(in srgb,var(--pb-cyan) 13%,var(--pb-surface)),var(--pb-surface) 48%)}
 .rivalry-game-end .game-end-kicker{overflow-wrap:anywhere;line-height:1.6;margin-bottom:14px}
-.rivalry-game-end .game-end-score{padding:16px 4px}
+.rivalry-game-end .game-end-score{padding:20px 12px;margin:22px 0;border:0;border-radius:12px;background:var(--pb-royal);color:var(--pb-white)}
+.rivalry-game-end .game-end-dash{color:var(--pb-white)}
 .rivalry-game-end .game-end-score strong{font-size:clamp(64px,14vw,94px)}
-.rivalry-game-end .game-end-rule{margin:12px 0 18px}
 .rivalry-game-end .rivalry-completion h2{letter-spacing:normal;font-size:clamp(19px,3.6vw,26px);line-height:1.25;margin:0 0 16px;overflow-wrap:anywhere}
 .rivalry-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:16px 0}
 .rivalry-stats>div{padding:12px 6px;border-radius:var(--pb-radius-card);background:color-mix(in srgb, var(--pb-surface) 44%, transparent);text-align:center;min-width:0}
@@ -13,10 +14,15 @@
 .rematch-status{font-size:14px;line-height:1.5;overflow-wrap:anywhere;margin:12px 0}
 .rematch-status:empty{display:none}
 .rivalry-game-end .game-end-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
-.rivalry-game-end .game-end-actions .rematch-primary{grid-column:1/-1;background:var(--pb-surface);border-color:var(--pb-border);color:var(--pb-text);font-size:18px;min-height:54px}
+.rivalry-game-end .game-end-actions .rematch-primary{grid-column:1/-1;background:var(--pb-primary);border-color:var(--pb-primary);color:var(--pb-on-primary);font-size:18px;min-height:54px}
 .rivalry-game-end .game-end-actions .rematch-primary:disabled{opacity:.75}
-.rivalry-game-end .game-end-actions button{padding:14px 10px}
-.remote-card-rivalry{display:block;font-size:13px;font-weight:700;color:var(--pb-text-secondary);margin:8px 0;overflow-wrap:anywhere}
+.rivalry-game-end .game-end-actions button{padding:14px 10px;border-radius:12px;background:var(--pb-surface-inset)}
+.rivalry-game-end .rivalry-stats>div{border-radius:10px;background:color-mix(in srgb,var(--pb-cyan) 14%,var(--pb-surface))}
+.rivalry-game-end .rivalry-stats>div:nth-child(2){background:color-mix(in srgb,var(--pb-lime) 22%,var(--pb-surface))}
+.rivalry-game-end .rivalry-stats>div:nth-child(3){background:color-mix(in srgb,var(--pb-royal) 12%,var(--pb-surface))}
+.rivalry-game-end .strategy-details{border:1px solid var(--pb-border);border-radius:10px;padding:4px 12px;background:var(--pb-surface-inset)}
+.remote-card-rivalry{grid-column:1/-1;width:100%;display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:13px;font-weight:700;color:var(--pb-text-secondary);margin:14px 0 8px;overflow-wrap:anywhere}
+.remote-card-rivalry>span:last-child{text-align:right}
 .rivalry-profile{border-top:1px solid var(--pb-border);margin-top:22px;padding-top:18px;width:100%;min-width:0}
 .rivalry-profile h3{font-size:20px;margin:0 0 8px;overflow-wrap:anywhere}
 .rivalry-profile p{line-height:1.5}

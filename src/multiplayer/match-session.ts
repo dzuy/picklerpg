@@ -1,3 +1,4 @@
+import {analyzeShot,createCommentaryMemory} from '../shot-commentary';
 import {interpretShot} from '../shot-description';
 import {playerId} from '../player-design';
 import {RemoteError} from './api';
@@ -7,6 +8,9 @@ export type Transport=<T>(token:string,path:string,body?:unknown)=>Promise<T>;
 /** Client cache and retry identities only. No local Match, scoring, or resolution. */
 export class RemoteSession {
  state:PublicMatch|null=null;busy=false;offline=false;message='';pending:RemoteAction|null=null;
+ private commentaryMemory=createCommentaryMemory();
+ selectionCommentary:{version:number;text:string}|null=null;
+ private pendingCommentary='';
  private generation=0;
  constructor(readonly owner:string,readonly matchId:string,private credentials:()=>Promise<Credentials>,private request:Transport,private storage:Pick<Storage,'getItem'|'setItem'|'removeItem'>,private changed:()=>void=()=>{}){
   try{const value=JSON.parse(storage.getItem(this.cacheKey)??'null');if(value?.id===matchId&&Number.isSafeInteger(value.version)){this.state=value;this.offline=true;}}catch{}
@@ -40,6 +44,8 @@ export class RemoteSession {
   if(generation!==this.generation||this.state?.version!==selectedState.version)throw new Error('The decision changed. Choose a shot again.');
   const action:RemoteAction={actionId:playerId(),expectedVersion:selectedState.version,decisionId:selectedState.decisionId,action:{kind:'play_shot',intent:structuredClone(choice.intent),...(choice.timing?{timing:choice.timing}:{})}};
   this.storage.setItem(this.pendingKey,JSON.stringify(action));this.pending=action;
+  const contact=selectedState.assessmentContacts?.find(c=>c.actor===choice.intent.actor&&(c.timing??undefined)===choice.timing);
+  this.pendingCommentary=analyzeShot(choice.intent,contact?.context,contact?.players??selectedState.display.players,`${this.matchId}:${selectedState.version}`,this.commentaryMemory);
   }finally{this.busy=false;this.changed();}
   await this.retry();
  }
@@ -47,6 +53,7 @@ export class RemoteSession {
   if(this.busy||!this.pending)return;this.busy=true;this.changed();const generation=this.generation;
   try{const c=await this.identity();const r=await this.request<ActionReceipt>(c.token,`/api/matches/${this.matchId}/actions`,this.pending);await this.identity();if(generation!==this.generation)return;
    if(r.actionId!==this.pending.actionId)throw new Error('Unexpected turn receipt. Retry your saved turn.');
+   this.selectionCommentary=this.pendingCommentary?{version:r.state.version,text:this.pendingCommentary}:null;this.pendingCommentary='';
    this.accept(r.state);this.storage.removeItem(this.pendingKey);this.pending=null;this.offline=false;this.message='';
    await this.refresh();
   }catch(e){this.message=(e as Error).message;

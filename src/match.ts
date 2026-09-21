@@ -1,3 +1,4 @@
+import {analyzeShot,createCommentaryMemory} from './shot-commentary';
 import {erneReceptionFeet,kitchenSafeRoute} from './engine/erne';
 import {resolveTarget} from './engine/targeting';
 import {controllersFor,teamOf,playerForTeam,type PlayMode} from './engine/controllers';
@@ -78,6 +79,8 @@ export class Match {
   catch(error){this.restoreCheckpoint(before);throw error}
   finally{this.applyingTurn=false;}
  }
+ private commentaryMemory=createCommentaryMemory();
+ selectionCommentary:{engine:RallyEngine;index:number;text:string}|null=null;
  customPreview:{intent:ShotIntent;note:string;text:string}|null=null;customStatus='';customBusy=false;customDraft='';customCounts=new Map<string,number>();private currentContext:ShotContext|null=null;private customIndex=0;private queuedReceptionIntent:ShotIntent|null=null;private queuedReceptionShot:{shot:RallyShot;text:string}|null=null;
  practice:PatternId|null=null;variation=0;records:PracticeRecord[]=[];pointRecords:PracticeRecord[]=[];replayFrames:ReturnType<RallyEngine['snapshot']>[]=[];replayShots:RallyShot[]=[];replayIndex:number|null=null;replayPlaying=false;private replayClock=0;private replayElapsed=0;private replayAlpha=0;private replayEndHold=0;
  private designedPlayer:DesignedPlayer|null=null;
@@ -324,7 +327,9 @@ export class Match {
  snapshot(){return this.engine.snapshot()}
  reset(){this.requireSolo();this.revision=0;this.committed=null;this.committedPlayback=[];this.frozenRoster=null;this.matchId=playerId();if(this.randomizeSeedOnReset)this.seed=globalThis.crypto.getRandomValues(new Uint32Array(1))[0];this.autoChoices={};this.partnerChoices=[];this.stopReplay();this.gameReplay=[];this.customPreview=null;this.customBusy=false;this.customStatus='';this.queuedReceptionIntent=null;this.queuedReceptionShot=null;this.request?.abort();this.request=null;this.strategy=undefined;this.strategyPoint=-1;this.generation++;this.thinking=false;this.memory=new OpponentMemory();this.observed=0;this.scoring=new DoublesScore({...this.isLocalHuman?LOCAL_TEST_RULES:{...DEFAULT_RULES,target:this.soloTarget},...(this.scoringPreference?{scoring:this.scoringPreference}:{})});this.scoring.serving=this.openingTeam;this.scoring.server=this.openingTeam==='home'?'you':'opponent-left';this.point=0;this.lastResult=null;this.startPoint();this.saveBoundary()}
  nextPoint(){if(this.state.phase!=='complete'||this.scoring.winner)throw new Error('Finish the current point first.');this.point++;this.revision++;this.variation++;this.startPoint();this.saveBoundary()}
- submitIntent(intent:unknown){if(this.isLocalHuman&&!this.applyingTurn){this.submitTurn({decisionId:this.decisionId,playerId:this.currentPlayer!,intent:parseShotIntent(intent)});return;}const checkpoint=this.checkpointsEnabled?this.exportCheckpoint():null;const before=this.snapshot(),actualShotIndex=before.shotIndex;if(this.practice)before.shotIndex+=before.shotHistory.length?2:0;this.engine.submitIntent(intent);if(!this.isLocalHuman&&before.possession==='home'){const selected=this.shot.intent;for(const pattern of this.practice?[this.practice]:recognizePatterns(before)){const assessment=assessChoice(before,selected,pattern);const row={pattern,...assessment,intent:structuredClone(selected),shotIndex:actualShotIndex};this.records.push(row);this.pointRecords.push(row)}this.records=this.records.slice(-500)}if(checkpoint)this.commitFlight(checkpoint)}
+ submitIntent(intent:unknown){if(this.isLocalHuman&&!this.applyingTurn){this.submitTurn({decisionId:this.decisionId,playerId:this.currentPlayer!,intent:parseShotIntent(intent)});return;}const checkpoint=this.checkpointsEnabled?this.exportCheckpoint():null;const before=this.snapshot(),actualShotIndex=before.shotIndex;if(this.practice)before.shotIndex+=before.shotHistory.length?2:0;const commentaryContext=this.currentContext;this.engine.submitIntent(intent);
+ if(before.possession==='home')this.selectionCommentary={engine:this.engine,index:this.state.shotIndex,text:analyzeShot(this.shot.intent,commentaryContext,before.players,`${this.matchId}:${this.point}:${actualShotIndex}`,this.commentaryMemory)};
+ if(!this.isLocalHuman&&before.possession==='home'){const selected=this.shot.intent;for(const pattern of this.practice?[this.practice]:recognizePatterns(before)){const assessment=assessChoice(before,selected,pattern);const row={pattern,...assessment,intent:structuredClone(selected),shotIndex:actualShotIndex};this.records.push(row);this.pointRecords.push(row)}this.records=this.records.slice(-500)}if(checkpoint)this.commitFlight(checkpoint)}
  startPractice(id:PatternId|null){this.requireSolo();this.practice=id;this.variation++;this.reset()}
 
  private gameReplay:{frames:ReturnType<RallyEngine['snapshot']>[];shots:RallyShot[]}[]=[];

@@ -45,3 +45,14 @@ test('notification resume loads completed state and clears cache when access is 
   await denied.refresh();assert.equal(denied.state,null);assert.equal(store.getItem(`pickle-remote:${A}:${s.id}:cache`),null);
  }
 });
+
+test('shot analysis appears only after an accepted turn and is tied to its version',async()=>{
+ const db=new MemoryRepository(),service=new MatchService(db,testers),s=await service.create(A,creation());
+ const request:Transport=async<T>(_token,_path,body)=>body?await service.act(s.id,A,body) as T:await service.get(s.id,A) as T;
+ const client=new RemoteSession(A,s.id,async()=>({owner:A,token:'test'}),request,storage());
+ await client.refresh();assert.equal(client.selectionCommentary,null);
+ await client.submit(client.state!.choices[0]);
+ assert.ok(client.selectionCommentary?.text);
+ assert.equal(client.selectionCommentary?.version,client.state!.version);
+ assert.equal(client.pending,null);
+});

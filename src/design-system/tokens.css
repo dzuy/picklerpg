@@ -70,12 +70,12 @@
   --pb-shot-option: color-mix(in srgb, var(--pb-teal) 84%, var(--pb-cyan));
   --pb-shot-option-hover: color-mix(in srgb, var(--pb-teal) 72%, var(--pb-cyan));
   --pb-shot-text: var(--pb-white);
-  --pb-risk-low: var(--pb-mint);
-  --pb-risk-medium: var(--pb-sunshine);
-  --pb-risk-high: #ff5a6b;
-  --pb-pressure-low: var(--pb-cyan);
-  --pb-pressure-medium: var(--pb-sky);
-  --pb-pressure-high: var(--pb-lavender);
+  --pb-risk-low: #45ffac;
+  --pb-risk-medium: #ffe83d;
+  --pb-risk-high: #ff3858;
+  --pb-pressure-low: #20edff;
+  --pb-pressure-medium: #71baff;
+  --pb-pressure-high: #cc8cff;
   --pb-serve-indicator: #32d45b;
   --pb-team-home: var(--pb-info-ink);
   --pb-team-away: var(--pb-social-ink);
