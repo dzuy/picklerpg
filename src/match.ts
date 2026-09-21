@@ -1,3 +1,4 @@
+import {erneReceptionFeet,kitchenSafeRoute} from './engine/erne';
 import {resolveTarget} from './engine/targeting';
 import {controllersFor,teamOf,playerForTeam,type PlayMode} from './engine/controllers';
 import type {TurnAction} from './engine/turn';
@@ -18,7 +19,7 @@ import {parseShotIntent,sameShotIntent} from './engine/shot-intent';
 import {chooseOpponentShot} from './engine/opponent-policy';
 import {executeShot} from './engine/execution';
 import {interceptFlight,reboundFlight,finishRebound,outBallContinuation} from './engine/trajectory';
-import {planPositions} from './engine/positioning';
+import {planPositions,hitterRecoveryDelay} from './engine/positioning';
 import {DoublesScore,other,isValidTargetScore,DEFAULT_RULES,LOCAL_TEST_RULES,type ScoringMode} from './engine/scoring';
 
 export type TargetServeStyle='flat'|'topspin'|'slice'|'lob'|'shallow';
@@ -226,7 +227,7 @@ export class Match {
  /** Build an unrestricted described attempt from the current contact, never the menu. */
  describedChoice(parsed:ReturnType<typeof validateCommand>,text:string,point:{x:number;z:number}){
   parsed=validateCommand(parsed);
-  const type=parsed.shot==='roll'?'volley':parsed.shot==='lob-serve'?'serve':parsed.shot==='atp'?'drive':parsed.shot;
+  const type=parsed.shot==='roll'?'volley':parsed.shot==='lob-serve'?'serve':parsed.shot==='erne'?'volley':parsed.shot==='atp'?'drive':parsed.shot;
   let timing=this.receptionDecision?(requestsBounce(text)||/\bafter\s+(?:the\s+)?bounce\b/i.test(text)?'bounce':/\bbefore\s+(?:the\s+)?bounce\b|\bout of the air\b/i.test(text)?'air':this.targetReceptionTiming(type)):undefined;
   if(timing&&!this.receptionSetup(timing)&&!requestsBounce(text)&&! /\bbefore\b|\bafter\b|\bout of the air\b/i.test(text))timing=timing==='air'?'bounce':'air';
   const setup=timing?this.receptionSetup(timing):null;
@@ -261,7 +262,7 @@ export class Match {
   const setup=choice.timing?this.receptionSetup(choice.timing):null;
   if(choice.timing&&!setup)throw new Error('That contact is no longer available.');
   const intent:ShotIntent={...structuredClone(choice.intent),target:bodyServe?{kind:'player',playerId:opponent!.id,aim:'body'}:{kind:'point',x:point.x,z:point.z}};
-  return this.plan(intent,'Aim at your selected court target.',setup?.context??this.currentContext!,setup?.players??this.state.players,setup?.index??this.customIndex);
+  return this.plan(intent,'Aim at your selected court target.',{...(setup?.context??this.currentContext!),...(intent.technique==='atp'?{attemptTechnique:true}:{})},setup?.players??this.state.players,setup?.index??this.customIndex);
  }
  playMenuTarget(choice:{intent:ShotIntent;timing?:'air'|'bounce'},point:{x:number;z:number;playerId?:PlayerId}){
   const shot=this.previewMenuTarget(choice,point);
@@ -285,7 +286,7 @@ export class Match {
   finally{if(this.engine===requestEngine&&this.generation===requestGeneration)this.customBusy=false}
   if(this.engine!==requestEngine||this.generation!==requestGeneration)throw new Error('That reception is no longer available.');
   if(!this.receptionDecision)throw new Error('That contact is no longer available.');
-  let wantsBounce=requestsBounce(command),type=parsed.shot==='roll'?'volley':parsed.shot==='lob-serve'?'serve':parsed.shot==='atp'?'drive':parsed.shot;const family=SHOT_FAMILIES[type];const wantsAir=!wantsBounce&&family?.mode==='volley';wantsBounce=wantsBounce||family?.mode==='ground';
+  let wantsBounce=requestsBounce(command),type=parsed.shot==='roll'?'volley':parsed.shot==='lob-serve'?'serve':parsed.shot==='erne'?'volley':parsed.shot==='atp'?'drive':parsed.shot;const family=SHOT_FAMILIES[type];const wantsAir=!wantsBounce&&family?.mode==='volley';wantsBounce=wantsBounce||family?.mode==='ground';
   const choice=wantsAir?'air':wantsBounce?'bounce':this.canTakeAir?'air':'bounce';
   if(choice==='air'&&!this.canTakeAir)throw new Error('This ball cannot be reached before its bounce.');if(choice==='bounce'&&!this.canLetBounce)throw new Error('This ball must be taken out of the air.');
   const setup=this.receptionSetup(choice)!;const preview=commandIntent(parsed,setup.actor,setup.context,setup.players);preview.intent.source=source;if(parsed.shot==='serve'&&/\bflat\b/i.test(command))preview.intent.shape='flat';
@@ -311,7 +312,7 @@ export class Match {
   const soft=['drop','dink','reset','block'].includes(type),high=type==='overhead';
   const intent:ShotIntent={schemaVersion:1,actor,type,target:{kind:'point',x:point.x,z:point.z},pace:soft?'soft':['drive','counter','overhead','flick'].includes(type)?'fast':'medium',shape:high?'descending':soft||['serve','return','lob'].includes(type)?'arc':'flat',intendedNetClearance:type==='lob'?2.5:type==='serve'?.35:soft?.25:.12,tacticalIntent:high?'finish':soft?'neutralize':'pressure',aggression:high?.8:soft?.3:.6,source:'menu',...(type==='flick'?{spin:{side:'none' as const,vertical:'topspin' as const,strength:'medium' as const}}:{})};
   if(serveStyle){if(type!=='serve'||!Object.hasOwn(TARGET_SERVES,serveStyle))throw new Error('Serve styles only apply to serves.');Object.assign(intent,structuredClone(TARGET_SERVES[serveStyle]))}
-  return this.plan(intent,'Aim at your selected court target.',setup?.context??this.currentContext!,setup?.players??this.state.players,setup?.index??this.customIndex);
+  return this.plan(intent,'Aim at your selected court target.',{...(setup?.context??this.currentContext!),...(intent.technique==='atp'?{attemptTechnique:true}:{})},setup?.players??this.state.players,setup?.index??this.customIndex);
  }
  playTargetShot(type:ShotType,point:{x:number;z:number},serveStyle?:TargetServeStyle){
   const shot=this.targetShot(type,point,serveStyle);
@@ -524,14 +525,14 @@ export class Match {
  private nextContact(state:Readonly<ReturnType<RallyEngine['snapshot']>>,shot:Readonly<RallyShot>){
     const r=shot.resolution!;if(shot.actor==='you'||shot.actor==='partner')this.memory.add({intent:shot.intent,lowBackhandError:!!r.result&&r.result.winner==='away'&&!!shot.feedback?.difficulty.includes('Low backhand'),crash:Math.abs(shot.contact.z)-Math.abs(shot.positions[shot.actor].z)>1.2});if(r.result)return {kind:'point-end' as const,result:r.result};
     const actor=state.players.find(p=>p.id===r.receiver)!;
-    const context:ShotContext={contact:{...state.ball.position},feet:{...actor.position},bounced:r.bounced,opening:!this.practice&&state.shotHistory.length===1?'return':'rally',twoBounceSatisfied:state.bounces>=2,timingPressure:r.timingPressure,movementZ:r.movementZ,incomingSpeed:Math.hypot(state.ball.velocity.x,state.ball.velocity.y,state.ball.velocity.z)};
+    const context:ShotContext={erneEligible:r.erneEligible,contact:{...state.ball.position},feet:{...actor.position},bounced:r.bounced,opening:!this.practice&&state.shotHistory.length===1?'return':'rally',twoBounceSatisfied:state.bounces>=2,timingPressure:r.timingPressure,movementZ:r.movementZ,incomingSpeed:Math.hypot(state.ball.velocity.x,state.ball.velocity.y,state.ball.velocity.z)};
     const options=this.options(actor.id,context,state.players,state.shotHistory.length+(this.practice?2:0));
     return options.length?{kind:'contact' as const,contact:{options}}:{kind:'point-end' as const,result:{winner:other(actor.team),reason:'failed-return' as const,playerId:actor.id}};
  }
  private receptionSetup(timing:'air'|'bounce'){
   if(!this.receptionDecision)return null;const branch=timing==='air'?this.shot.receptionChoice?.airborne:this.shot.receptionChoice?.bounced,actor=branch?.resolution.receiver;if(!branch||!actor)return null;
   const leg=branch.legs.at(-1)!;const players=this.state.players.map(player=>({...structuredClone(player),position:{...(branch.positions[player.id]??player.position)}}));const hitter=players.find(player=>player.id===actor)!;
-  const context:ShotContext={contact:{...leg.to},feet:{...hitter.position},bounced:timing==='bounce',opening:'rally',twoBounceSatisfied:true,timingPressure:branch.resolution.timingPressure,movementZ:branch.resolution.movementZ,incomingSpeed:Math.hypot(...Object.values(sampleVelocity(leg,.99)))};
+  const context:ShotContext={erneEligible:branch.resolution.erneEligible,contact:{...leg.to},feet:{...hitter.position},bounced:timing==='bounce',opening:'rally',twoBounceSatisfied:true,timingPressure:branch.resolution.timingPressure,movementZ:branch.resolution.movementZ,incomingSpeed:Math.hypot(...Object.values(sampleVelocity(leg,.99)))};
   return {actor,context,players,index:this.state.shotHistory.length+(this.practice?2:0)};
  }
  private options(actor:PlayerId,c:ShotContext,players:PlayerState[],index:number,serveReceiver?:PlayerId):RallyShot[]{
@@ -554,17 +555,19 @@ export class Match {
     {intent:{...choice.intent,pace:'soft' as const,shape:'arc' as const,spin:{side:'none' as const,vertical:'none' as const,strength:'medium' as const},intendedNetClearance:.65,aggression:.25},reason:'Slow serve changes the pace with a gentle arc.'},
     {intent:{...choice.intent,pace:'soft' as const,shape:'arc' as const,spin:{side:'none' as const,vertical:'none' as const,strength:'medium' as const},intendedNetClearance:5,aggression:.25},reason:'Lob serve sends a high arc deep into the diagonal service box.'},
    ];
+   if(choice.intent.technique)return [choice];
    return [choice,{intent:{...choice.intent,target:{kind:'zone' as const,zone:'wide' as const,depth:['drop','reset','dink','block'].includes(choice.intent.type)?'kitchen' as const:'deep' as const}},reason:choice.reason+' Aim wider to move the defenders.'}];
   });
   if(!choices.some(choice=>choice.intent.type==='serve')){
    const zones=['middle','crosscourt','line','open-court'] as const;
    for(const choice of choices){
+    if(choice.intent.technique)continue;
     const depth=['drop','reset','dink','block'].includes(choice.intent.type)?'kitchen' as const:'deep' as const;
     const currentZone=choice.intent.target.kind==='zone'?choice.intent.target.zone:null;
     for(const zone of zones)if(zone!==currentZone)expanded.push({intent:{...choice.intent,target:{kind:'zone',zone,depth}},reason:`${choice.reason} Target ${zone.replace('-',' ')} for a different look.`});
    }
   }
-    if(index>1){const base=choices.find(o=>['drive','counter','volley','overhead'].includes(o.intent.type));if(base)for(const p of players.filter(p=>p.team!==hitter.team))expanded.push({intent:{...base.intent,target:{kind:'player',playerId:p.id,aim:'feet'}},reason:'Pressure a low contact.'})}
+    if(index>1){const base=choices.find(o=>!o.intent.technique&&['drive','counter','volley','overhead'].includes(o.intent.type));if(base)for(const p of players.filter(p=>p.team!==hitter.team))expanded.push({intent:{...base.intent,target:{kind:'player',playerId:p.id,aim:'feet'}},reason:'Pressure a low contact.'})}
   return expanded.flatMap(({intent,reason})=>{try{return [{...this.plan(intent,reason,c,players,index,serveReceiver),recommendation:actor==='partner'&&intent.type===policy?.intent.type?`Finn prefers ${intent.type}: ${policy.reason}`:undefined}]}catch{return []}});
  }
  private plan(intent:ShotIntent,reason:string,c:ShotContext,players:PlayerState[],index:number,serveReceiver?:PlayerId,balance=1):RallyShot{
@@ -572,7 +575,7 @@ export class Match {
   const execution=executeShot(intent,c,players,{seed:(this.seed+this.point*104729+index*7919)>>>0,balance});
   let legs=[execution.leg],result:PointResult|undefined,receiver:PlayerId|null=null,bounced=false;
   type Candidate={leg:FlightLeg;offset:number;bounce:boolean};
-  type Reception={candidate:Candidate;t:number;receiver:PlayerId;feet:Vec3;overhead:boolean;pressure:number;miss:boolean};
+  type Reception={erneEligible:boolean;jump?:RallyShot['jump'];candidate:Candidate;t:number;receiver:PlayerId;feet:Vec3;overhead:boolean;pressure:number;miss:boolean};
   let receptions:Reception[]=[];
   let dodge:{id:PlayerId;position:Vec3}|undefined;
   const bodyServe=intent.type==='serve'&&intent.target.kind==='player'&&intent.target.aim==='body';
@@ -606,19 +609,22 @@ export class Match {
       const lateral=p.x-player.position.x;
       const rawFeetZ=p.z+side*.3;
       if(!candidate.bounce&&Math.abs(p.z)<COURT.kitchen-1.55)continue;
-      const feet={x:p.x-Math.sign(lateral||side)*Math.min(1,Math.max(.25,Math.abs(lateral)*.35)),y:0,z:candidate.bounce?rawFeetZ:side*Math.max(Math.abs(rawFeetZ),COURT.kitchen+.08)};
+      const erneFeet=!candidate.bounce&&index>=2?erneReceptionFeet(p,player.position):undefined;
+      const feet=erneFeet??{x:p.x-Math.sign(lateral||side)*Math.min(1,Math.max(.25,Math.abs(lateral)*.35)),y:0,z:candidate.bounce?rawFeetZ:side*Math.max(Math.abs(rawFeetZ),COURT.kitchen+.08)};
       // Staying outside the kitchen cannot grant unlimited paddle reach into it.
       // A ball beyond this horizontal reach must be met later or after its bounce.
       if(Math.hypot(p.x-feet.x,p.z-feet.z)>1.2)continue;
       const distance=Math.hypot(feet.x-player.position.x,feet.z-player.position.z);
-      const testContext:ShotContext={contact:p,feet,bounced:candidate.bounce,opening:index===0?'return':'rally',twoBounceSatisfied:index>=1,incomingSpeed:Math.hypot(...Object.values(sampleVelocity(candidate.leg,t)))};
+      const testContext:ShotContext={erneEligible:!!erneFeet,contact:p,feet,bounced:candidate.bounce,opening:index===0?'return':'rally',twoBounceSatisfied:index>=1,incomingSpeed:Math.hypot(...Object.values(sampleVelocity(candidate.leg,t)))};
       const menu=buildDecisionMenu(player.id,testContext,players);if(!menu.length)continue;
       const overhead=menu.some(option=>option.intent.type==='overhead');
       const speed=testContext.incomingSpeed;
       const timing=receptionTiming(player,distance,elapsed,speed,candidate.bounce);
       // A high pop-up may be chased aggressively; movementZ then makes the overhead execution difficult.
       if(!timing.reachable)continue;
-      const reception={candidate,t,receiver:player.id,feet,overhead,pressure:timing.pressure,miss:receptionRoll(execution.seed,player)<swingMissChance(player,timing.pressure,speed)};
+      const jump=erneFeet&&!kitchenSafeRoute(player.position,feet)?{playerId:player.id,from:{...player.position},to:{...feet},start:Math.max(timing.reaction,elapsed-.65),duration:Math.min(.65,elapsed-timing.reaction),height:.65}:undefined;
+      if(jump&&jump.duration<.4)continue;
+      const reception={erneEligible:!!erneFeet,jump,candidate,t,receiver:player.id,feet,overhead,pressure:timing.pressure,miss:receptionRoll(execution.seed,player)<swingMissChance(player,timing.pressure,speed)};
       // Reach is permission to hit, not a command to take the earliest rushed ball.
       // Prefer a prepared contact; keep the least-rushed reachable emergency option.
       // Selection never uses the sampled miss outcome.
@@ -664,8 +670,9 @@ export class Match {
   }
   if(result?.reason==='out')legs.push(...outBallContinuation(legs.at(-1)!));
   const duration=legs.reduce((n,l)=>n+l.duration,0);
+  const recoveryDelay=intent.type==='serve'?0:hitterRecoveryDelay(hitter,c.contact,c.timingPressure);
   const positioningPlayers=this.partnerInstructions.crash&&intent.actor==='you'&&intent.type==='drive'?players.map(p=>p.id==='partner'?{...p,tendencies:{...p.tendencies,kitchenApproach:1}}:p):players;
-  const positions=planPositions({players:positioningPlayers,intent,endpoint:result?.reason==='out'?execution.leg.to:legs.at(-1)!.to,receiver:null,completedShots:index,duration});
+  const positions=planPositions({players:positioningPlayers,intent,endpoint:result?.reason==='out'?execution.leg.to:legs.at(-1)!.to,receiver:null,completedShots:index,duration,recoveryDelay});
   if(bodyServe&&intent.target.kind==='player'){const id=intent.target.playerId;positions[id]={...players.find(p=>p.id===id)!.position}}
   if(dodge)positions[dodge.id]=dodge.position;
   if(receiver&&receiveFeet)positions[receiver]=receiveFeet;
@@ -678,12 +685,12 @@ export class Match {
    const branch=(item:Reception)=>{
     const branchLegs=item.candidate.bounce?[execution.leg,interceptFlight(item.candidate.leg,item.t)]:[interceptFlight(execution.leg,item.t)];
     const branchDuration=branchLegs.reduce((sum,leg)=>sum+leg.duration,0);
-    const branchPositions=planPositions({players:positioningPlayers,intent,endpoint:branchLegs.at(-1)!.to,receiver:null,completedShots:index,duration:branchDuration});
+    const branchPositions=planPositions({players:positioningPlayers,intent,endpoint:branchLegs.at(-1)!.to,receiver:null,completedShots:index,duration:branchDuration,recoveryDelay});
     branchPositions[item.receiver]=item.feet;
-    return {legs:branchLegs,positions:branchPositions,resolution:{timingPressure:item.pressure,receiver:item.receiver,bounced:item.candidate.bounce,movementZ:(branchPositions[item.receiver].z-players.find(player=>player.id===item.receiver)!.position.z)/branchDuration}};
+    return {jump:item.jump,legs:branchLegs,positions:branchPositions,resolution:{erneEligible:item.erneEligible,timingPressure:item.pressure,receiver:item.receiver,bounced:item.candidate.bounce,movementZ:(branchPositions[item.receiver].z-players.find(player=>player.id===item.receiver)!.position.z)/branchDuration}};
    };
    receptionChoice={...(airborne?{airborne:branch(airborne)}:{}),...(afterBounce?{bounced:branch(afterBounce)}:{})};
   }
-  return {...(missed?{missedSwing:{playerId:missed.receiver,time:missed.candidate.offset+missed.t*missed.candidate.leg.duration}}:{}),intent,actor:intent.actor,contact:{...c.contact},aimPoint:execution.intended.aimPoint,legs,positions,title:`${intent.actor==='partner'?'Finn':intent.actor==='you'?'You':'Opponent'} · ${intent.technique==='atp'?'ATP':SHOT_FAMILIES[intent.type].name}`,description:reason,cue:reason,feedback:{skill:execution.skill,quality:execution.quality,difficulty:execution.difficulty,deviation:execution.endpointError,mishit:execution.mishit},resolution:{timingPressure:receptions[0]?.pressure,receiver,bounced,result,movementZ:receiver?(positions[receiver].z-players.find(p=>p.id===receiver)!.position.z)/duration:0},...(receptionChoice?{receptionChoice}:{})};
+  return {jump:(missed??receptions.find(r=>r.receiver===receiver&&r.candidate.bounce===bounced))?.jump,recoveryDelay,...(missed?{missedSwing:{playerId:missed.receiver,time:missed.candidate.offset+missed.t*missed.candidate.leg.duration}}:{}),intent,actor:intent.actor,contact:{...c.contact},aimPoint:execution.intended.aimPoint,legs,positions,title:`${intent.actor==='partner'?'Finn':intent.actor==='you'?'You':'Opponent'} · ${intent.technique==='atp'?'ATP':intent.technique==='erne'?'Erne':SHOT_FAMILIES[intent.type].name}`,description:reason,cue:reason,feedback:{popUp:execution.popUp,skill:execution.skill,quality:execution.quality,difficulty:execution.difficulty,deviation:execution.endpointError,mishit:execution.mishit},resolution:{erneEligible:receptions.find(r=>r.receiver===receiver&&r.candidate.bounce===bounced)?.erneEligible??false,timingPressure:receptions[0]?.pressure,receiver,bounced,result,movementZ:receiver?(positions[receiver].z-players.find(p=>p.id===receiver)!.position.z)/duration:0},...(receptionChoice?{receptionChoice}:{})};
  }
 }

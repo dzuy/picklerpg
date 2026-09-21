@@ -1,8 +1,8 @@
 import {COURT,type PlayerId,type PlayerState,type ShotIntent,type ShotType,type SpinIntent} from './model';
 import type {ShotContext} from './shot-families';
-const commandProperties={loft:{type:'string',enum:['normal','high','very-high']},shot:{type:'string',enum:['serve','return','drive','drop','dink','reset','volley','counter','block','overhead','lob','roll','lob-serve','atp']},target:{type:'string',enum:['selected','middle','wide','line','crosscourt','open-court','far-left','far-right','left','right','jules','rio','you','partner','opponent-left','opponent-right']},aim:{type:'string',enum:['space','body','feet','backhand','behind','sideline']},pace:{type:'string',enum:['soft','medium','fast']},spin:{type:'string',enum:['none','topspin','slice','sidespin']},spinDirection:{type:'string',enum:['none','left','right']},spinStrength:{type:'string',enum:['light','medium','strong']}};
+const commandProperties={loft:{type:'string',enum:['normal','high','very-high']},shot:{type:'string',enum:['serve','return','drive','drop','dink','reset','volley','counter','block','overhead','lob','roll','lob-serve','atp','erne']},target:{type:'string',enum:['selected','middle','wide','line','crosscourt','open-court','far-left','far-right','left','right','jules','rio','you','partner','opponent-left','opponent-right']},aim:{type:'string',enum:['space','body','feet','backhand','behind','sideline']},pace:{type:'string',enum:['soft','medium','fast']},spin:{type:'string',enum:['none','topspin','slice','sidespin']},spinDirection:{type:'string',enum:['none','left','right']},spinStrength:{type:'string',enum:['light','medium','strong']}};
 export const COMMAND_SCHEMA={type:'object',properties:commandProperties,required:Object.keys(commandProperties).filter(key=>key!=='loft'),additionalProperties:false};
-export interface ParsedCommand {loft?:'normal'|'high'|'very-high';shot:ShotType|'roll'|'lob-serve'|'atp';target:string;aim:string;pace:ShotIntent['pace'];spin:'none'|'topspin'|'slice'|'sidespin';spinDirection:SpinIntent['side'];spinStrength:SpinIntent['strength']}
+export interface ParsedCommand {loft?:'normal'|'high'|'very-high';shot:ShotType|'roll'|'lob-serve'|'atp'|'erne';target:string;aim:string;pace:ShotIntent['pace'];spin:'none'|'topspin'|'slice'|'sidespin';spinDirection:SpinIntent['side'];spinStrength:SpinIntent['strength']}
 export function requestsBounce(text:string):boolean{return /\b(?:let|allow|wait(?:\s+for)?)\b.{0,40}\bbounce\b|\bbounce\b.{0,24}\b(?:then|before)\b/i.test(text)}
 export function validateCommand(value:unknown):ParsedCommand{
  if(!value||typeof value!=='object'||Array.isArray(value))throw new Error('Unrecognized command response.');
@@ -21,7 +21,7 @@ export function parseLocalCommand(text:string):ParsedCommand{
  const spin:ParsedCommand['spin']=topspin?'topspin':slice?'slice':genericSpin?'sidespin':'none';
  const spinStrength:ParsedCommand['spinStrength']=spin==='none'?'medium':/\b(strong|heavy|hard|extreme|sharp)\b/.test(t)?'strong':/\b(light|subtle|gentle|slight)\b/.test(t)?'light':'medium';
  const atp=/\batp\b|\baround[ -]the[ -]post\b|\ba[ .-]+t[ .-]+p\b/.test(t),smash=/\bsmash\b/.test(t);
- const shot=atp?'atp':nelson?'serve':/\bserve\b/.test(t)&&/\b(lob|high|lofted)\b/.test(t)?'lob-serve':/\broll\b/.test(t)?'roll':/\blob\b/.test(t)?'lob':/\b(overhead|smash)\b/.test(t)?'overhead':/\bdink\b/.test(t)?'dink':/\bdrop\b/.test(t)?'drop':/\breset\b/.test(t)?'reset':/\bblock\b/.test(t)?'block':/\bcounter\b/.test(t)?'counter':/\bvolley\b/.test(t)?'volley':/\breturn\b/.test(t)?'return':/\bserve\b/.test(t)?'serve':/\b(drive|rip|jam|body bag|speed.?up)\b/.test(t)||spin!=='none'?'drive':null;
+ const shot=/\berne\b/.test(t)?'erne':atp?'atp':nelson?'serve':/\bserve\b/.test(t)&&/\b(lob|high|lofted)\b/.test(t)?'lob-serve':/\broll\b/.test(t)?'roll':/\blob\b/.test(t)?'lob':/\b(overhead|smash)\b/.test(t)?'overhead':/\bdink\b/.test(t)?'dink':/\bdrop\b/.test(t)?'drop':/\breset\b/.test(t)?'reset':/\bblock\b/.test(t)?'block':/\bcounter\b/.test(t)?'counter':/\bvolley\b/.test(t)?'volley':/\breturn\b/.test(t)?'return':/\bserve\b/.test(t)?'serve':/\b(drive|rip|jam|body bag|speed.?up)\b/.test(t)||spin!=='none'?'drive':null;
  if(!shot)throw new Error('Name a shot, such as lob, dink, drive, drop or roll.');
  const directionIsSpin=!!directionalSpin;
  const edge=/\b(?:far|wide)\s+(left|right)\b/.exec(t);
@@ -36,7 +36,7 @@ export function commandIntent(parsed:ParsedCommand,actor:PlayerId,c:ShotContext,
  const slotTarget=['you','partner','opponent-left','opponent-right'].includes(p.target);
  if(slotTarget&&!opponents.some(player=>player.id===p.target))throw new Error('Target must be an opponent in this match.');
  const targetPlayer=slotTarget?opponents.find(player=>player.id===p.target):p.target==='jules'?players.find(p=>p.id==='opponent-left'):p.target==='rio'?players.find(p=>p.id==='opponent-right'):p.target==='left'?opponents[0]:p.target==='right'?opponents[1]:undefined;
- const type:ShotType=p.shot==='atp'?'drive':p.shot==='lob-serve'?'serve':p.shot==='roll'?(c.bounced?'drive':'volley'):p.shot;
+ const type:ShotType=p.shot==='erne'?'volley':p.shot==='atp'?'drive':p.shot==='lob-serve'?'serve':p.shot==='roll'?(c.bounced?'drive':'volley'):p.shot;
  const soft=['drop','dink','reset','block'].includes(type);
  let target:ShotIntent['target']={kind:'zone',zone:p.target as 'middle',depth:soft?'kitchen':'deep'};
  const spin:SpinIntent={side:p.spinDirection,vertical:p.spin==='topspin'?'topspin':p.spin==='slice'?'slice':'none',strength:p.spinStrength};
@@ -55,13 +55,13 @@ export function commandIntent(parsed:ParsedCommand,actor:PlayerId,c:ShotContext,
   target={kind:'point',x:side*(COURT.width/2-.25),z:-Math.sign(c.contact.z)*(soft?1.25:5.6)};
  }
  if(p.shot==='atp')target={kind:'zone',zone:c.contact.x<0?'far-left':'far-right',depth:'deep'};
- return {intent:{schemaVersion:1,actor,type,target,pace:p.pace,shape:type==='serve'&&p.aim==='body'?'flat':type==='overhead'?'descending':soft||type==='lob'||type==='serve'||type==='return'?'arc':'flat',intendedNetClearance:(type==='lob'||type==='serve')&&p.loft==='very-high'?7:(type==='lob'||type==='serve')&&p.loft==='high'?4:p.shot==='lob-serve'?2.5:soft?.25:.12,tacticalIntent:type==='overhead'?'finish':soft?'neutralize':'pressure',aggression:p.pace==='fast'?.8:.4,source:'text',...(p.shot==='atp'?{technique:'atp' as const}:{}),...(spin.side!=='none'||spin.vertical!=='none'?{spin}:{})},note:note.trim()};
+ return {intent:{schemaVersion:1,actor,type,target,pace:p.pace,shape:type==='serve'&&p.aim==='body'?'flat':type==='overhead'?'descending':soft||type==='lob'||type==='serve'||type==='return'?'arc':'flat',intendedNetClearance:(type==='lob'||type==='serve')&&p.loft==='very-high'?7:(type==='lob'||type==='serve')&&p.loft==='high'?4:p.shot==='lob-serve'?2.5:soft?.25:.12,tacticalIntent:type==='overhead'?'finish':soft?'neutralize':'pressure',aggression:p.pace==='fast'?.8:.4,source:'text',...(['atp','erne'].includes(p.shot)?{technique:p.shot as 'atp'|'erne'}:{}),...(spin.side!=='none'||spin.vertical!=='none'?{spin}:{})},note:note.trim()};
 }
 
 /** Only claim instant understanding for the deliberately supported vocabulary. */
 export function canParseInstantly(text:string):boolean{
  const words=text.toLowerCase().replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(Boolean);
- const known=new Set('atp around post t p far super very really extra extremely regular normal standard basic plain default flat nasty nelson side serve high lofted return drive drop dink reset volley counter block overhead smash lob roll rip jam body bag speed up middle wide line crosscourt open court gap left right jules rio feet backhand behind hip hard fast aggressive soft medium the a an at to it ball player opponent with on his her him them please my their deep down over let allow wait for bounce then first before after spin topspin top slice backspin underspin curve curving strong heavy extreme sharp light subtle gentle slight'.split(' '));
+ const known=new Set('erne atp around post t p far super very really extra extremely regular normal standard basic plain default flat nasty nelson side serve high lofted return drive drop dink reset volley counter block overhead smash lob roll rip jam body bag speed up middle wide line crosscourt open court gap left right jules rio feet backhand behind hip hard fast aggressive soft medium the a an at to it ball player opponent with on his her him them please my their deep down over let allow wait for bounce then first before after spin topspin top slice backspin underspin curve curving strong heavy extreme sharp light subtle gentle slight'.split(' '));
  if(words.some(w=>!known.has(w)))return false;
  if(/\b(not|don t|instead|or)\b/i.test(text)||(/\bthen\b/i.test(text)&&!requestsBounce(text)))return false;
  try{parseLocalCommand(text);return true}catch{return false}

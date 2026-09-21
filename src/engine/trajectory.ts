@@ -1,3 +1,4 @@
+import {erneAvailable} from './erne';
 import {COURT,type FlightLeg,type PlayerState,type ShotIntent,type Vec3} from './model';
 import {parseShotIntent} from './shot-intent';
 import {resolveTarget} from './targeting';
@@ -22,10 +23,11 @@ export function generateTrajectory(value:unknown,context:ShotContext,players:Pla
  const intent=parseShotIntent(value),family=SHOT_FAMILIES[intent.type];
  const actor=players.find(p=>p.id===intent.actor);if(!actor)throw new Error('Unknown hitter.');
  const resolved=resolveTarget(intent.target,{actor:intent.actor,contact:context.contact,players,shotType:intent.type});
+ if(intent.technique==='erne'&&(intent.type!=='volley'||!erneAvailable(context)))throw new Error('An Erne needs an airborne sideline ball and a contact outside the kitchen.');
  if(intent.technique==='atp'){
   if(intent.type!=='drive'||context.opening!=='rally'||!context.twoBounceSatisfied)throw new Error('ATP is available during a rally, after the opening bounces.');
   if(!context.attemptTechnique&&Math.abs(context.contact.x)<=COURT.netWidth/2+.08)throw new Error('ATP needs the ball wider than the net post.');
-  if(resolved.kind!=='landing'||resolved.point.x*context.contact.x<=0)throw new Error('Aim the ATP deep on the same side as the contact.');
+  if(resolved.kind!=='landing'||!context.attemptTechnique&&resolved.point.x*context.contact.x<=0)throw new Error('Aim the ATP deep on the same side as the contact.');
   const base=buildFamilyFlight(intent.type,context,resolved.point,resolved.kind);
   const leg:FlightLeg={...base,arc:.06,duration:base.duration/({soft:.7,medium:1,fast:1.3}[intent.pace])};
   const crossing=sampleFlight(leg,context.contact.z/(context.contact.z-resolved.point.z));

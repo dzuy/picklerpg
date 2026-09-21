@@ -35,5 +35,5 @@ export function assessChoice(choice:{intent:ShotIntent;timing?:'air'|'bounce'},p
  const contact=contacts.find(c=>c.actor===choice.intent.actor&&(c.timing??undefined)===choice.timing);
  if(!contact)return;
  const target:ShotIntent['target']=choice.intent.type==='serve'&&point.playerId?{kind:'player',playerId:point.playerId,aim:'body'}:{kind:'point',x:point.x,z:point.z};
- try{return assessShot({...choice.intent,target},contact.context,contact.players)}catch{return;}
+ try{return assessShot({...choice.intent,target},{...contact.context,...(choice.intent.technique==='atp'?{attemptTechnique:true}:{})},contact.players)}catch{return;}
 }

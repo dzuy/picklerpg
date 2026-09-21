@@ -146,6 +146,7 @@ body[data-screen=remote]:has(#remote-lobby:not([hidden])){background:radial-grad
 #remote-lobby .pending-invite-notice:empty { display: none; }
 
 #remote-lobby .lobby-person-record{font-size:.75em;font-weight:500;color:#b6cde8;white-space:nowrap;font-variant-numeric:tabular-nums}
+#remote-lobby .lobby-person-rivalry{margin:0;color:#a9bfd9;font-size:12px;font-weight:400;line-height:1.4;overflow-wrap:break-word}
 
 
 

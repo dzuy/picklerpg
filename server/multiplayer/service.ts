@@ -33,10 +33,10 @@ export function publicMatch(row:StoredMatch,actor:string,names:ReadonlyMap<strin
  const currentTeam=row.status==='active'&&(!row.friend_state||row.friend_state==='accepted')?match.decisionTeam:null;
  const menu=match.targetingMenu;
  const nextHitter=currentTeam?menu[0]?.intent.actor??null:null;
- return {notificationsMuted:!!(viewerTeam==='home'?row.muted_home:row.muted_away),endedEarly:!!row.ended_by,friendState:row.friend_state,invitedName:row.invited_name,archived:!!(viewerTeam==='home'?row.archived_home:row.archived_away),court:row.checkpoint.court??'forest',nextHitter,id:row.id,createdAt:row.created_at,completedAt:row.completed_at??undefined,version:row.version,status:row.status,accountIds:{home:row.home_user_id,away:row.away_user_id},viewerTeam,currentTeam,decisionId:decisionId(row),rules:{...row.checkpoint.rules},score:{...match.scoring.score},serveCall:match.scoring.call,serving:row.status==='active'&&match.targetingMenu.some(c=>c.intent.type==='serve'),server:match.scoring.server,pointIndex:match.point,
+ return {notificationsMuted:!!(viewerTeam==='home'?row.muted_home:row.muted_away),endedEarly:!!row.ended_by,friendState:row.friend_state,invitedName:row.invited_name,archived:!!(viewerTeam==='home'?row.archived_home:row.archived_away),court:row.checkpoint.court??'forest',nextHitter,id:row.id,createdAt:row.created_at,completedAt:row.completed_at??undefined,version:row.version,status:row.status,accountIds:{home:row.home_user_id,away:row.away_user_id},viewerTeam,currentTeam,decisionId:decisionId(row),rules:{...row.checkpoint.rules},score:{...match.scoring.score},serveCall:match.scoring.call,serverNumber:match.scoring.serverNumber,serving:row.status==='active'&&match.targetingMenu.some(c=>c.intent.type==='serve'),server:match.scoring.server,pointIndex:match.point,
   display:{schemaVersion:2,phase:s.phase,stage:s.stage,shotIndex:s.shotIndex,legIndex:0,elapsed:0,simulationTime:0,paused:true,ball:structuredClone(s.ball),players:structuredClone(s.players),shotHistory:[],rallyHistory:[],bounces:s.bounces,score:{...s.score},currentHitter:s.currentHitter,possession:s.possession,result:s.result?{...s.result}:null},
   roster:Object.fromEntries(SLOTS.map(id=>{const f=row.checkpoint.roster[id];return [id,{...f.design!,skills:{...f.skills},handedness:f.handedness}]})) as PublicMatch['roster'],
-  incomingShotLabel:currentTeam?incomingShotLabel(s.shotHistory.at(-1),menu.some(c=>c.intent.type==='serve')):null,
+  incomingShotLabel:currentTeam?incomingShotLabel(s.shotHistory.at(-1),menu.some(c=>c.intent.type==='serve'),!!s.incomingPopUp):null,
   assessmentContacts:currentTeam===viewerTeam?match.shotAssessmentContexts:[],
   choices:currentTeam===viewerTeam&&(!row.friend_state||row.friend_state==='accepted')?structuredClone(menu):[],result:row.last_result,animation:structuredClone(row.animation)};
 }
@@ -53,7 +53,7 @@ function animations(match:Match):TurnAnimation[]{
   for(const leg of shot.legs){boundary+=leg.duration;const relative=boundary-startTime;if(relative>0&&relative<duration)times.push(relative);}
   const pathTimes=[...new Set(times)].sort((a,b)=>a-b);
   const path=pathTimes.map(time=>{let t=startTime+time;for(const l of shot.legs){if(t<=l.duration+1e-9)return sampleLeg(l,Math.max(0,Math.min(1,t/l.duration)));t-=l.duration;}return {...shot.legs.at(-1)!.to};});
-  return {intent:structuredClone(shot.intent),actor:shot.actor,duration,path,pathTimes,from:structuredClone(start.state.players),to:structuredClone(end.state.players)};
+  return {jump:shot.jump?{...structuredClone(shot.jump),start:shot.jump.start-startTime}:undefined,recoveryDelay:Math.max(0,(shot.recoveryDelay??0)-startTime),intent:structuredClone(shot.intent),actor:shot.actor,duration,path,pathTimes,from:structuredClone(start.state.players),to:structuredClone(end.state.players)};
  });
 }
 export class MatchService {

@@ -3,6 +3,8 @@ import type {ShotIntent} from './engine/model';
 import {SHOT_FAMILIES} from './engine/shot-families';
 import {targetLabel} from './engine/shot-intent';
 export function choiceCopy(intent:ShotIntent){
+ if(intent.technique==='erne')return {name:'Erne',detail:'Sideline volley from outside the kitchen'};
+ if(intent.technique==='atp')return {name:'ATP',detail:'Around-the-post attack down the sideline'};
  if(isSpeedUp(intent))return {name:'Speed Up',detail:'Compact topspin attack to change the pace of a dink rally'};
  if(intent.type==='return'){
   if(intent.intendedNetClearance>1)return {name:'Lob',detail:'High, arcing return'};

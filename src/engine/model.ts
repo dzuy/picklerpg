@@ -23,7 +23,7 @@ export interface SpinIntent {side:typeof SPIN_SIDES[number];vertical:typeof VERT
 export interface ShotIntent {
  schemaVersion:1; actor:PlayerId; type:ShotType; target:ShotTarget;
  pace:typeof PACES[number]; shape:typeof SHAPES[number]; intendedNetClearance:number;
- tacticalIntent:typeof TACTICS[number]; aggression:number; source:typeof INPUT_SOURCES[number]; spin?:SpinIntent; technique?:'atp';
+ tacticalIntent:typeof TACTICS[number]; aggression:number; source:typeof INPUT_SOURCES[number]; spin?:SpinIntent; technique?:'atp'|'erne';
 }
 export const SKILLS = ['serve','return','drive','drop','dink','reset','volley','counter','overhead','movement','hands'] as const;
 export type PlayerSkills = Record<typeof SKILLS[number],number>;
@@ -41,9 +41,10 @@ export type RallyEvent =
  | {type:'bounce'; time:number; shotIndex:number; position:Vec3}
  | {type:'point-end'; time:number; result:PointResult};
 export interface FlightLeg { from:Vec3; to:Vec3; duration:number; arc:number; sideCurve?:number; verticalSpin?:number; bounceAtEnd?:boolean }
-export interface ShotResolution {timingPressure?:number;receiver:PlayerId|null; bounced:boolean; movementZ?:number; result?:PointResult}
-export interface ReceptionBranch {legs:FlightLeg[];positions:Record<PlayerId,Vec3>;resolution:ShotResolution}
-export interface RallyShot {missedSwing?:{playerId:PlayerId;time:number}; feedback?:{skill:number;quality:number;difficulty:string[];deviation:number;mishit:boolean};recommendation?:string; resolution?:ShotResolution; receptionChoice?:{airborne?:ReceptionBranch;bounced?:ReceptionBranch}; aimPoint:Vec3; intent:ShotIntent; title:string; description:string; cue:string; actor:PlayerId; contact:Vec3; legs:FlightLeg[]; positions:Record<PlayerId,Vec3> }
+export interface ShotResolution {erneEligible?:boolean;timingPressure?:number;receiver:PlayerId|null; bounced:boolean; movementZ?:number; result?:PointResult}
+export interface PlayerJump {playerId:PlayerId;from:Vec3;to:Vec3;start:number;duration:number;height:number}
+export interface ReceptionBranch {jump?:PlayerJump;legs:FlightLeg[];positions:Record<PlayerId,Vec3>;resolution:ShotResolution}
+export interface RallyShot {jump?:PlayerJump;recoveryDelay?:number;missedSwing?:{playerId:PlayerId;time:number}; feedback?:{popUp?:boolean;skill:number;quality:number;difficulty:string[];deviation:number;mishit:boolean};recommendation?:string; resolution?:ShotResolution; receptionChoice?:{airborne?:ReceptionBranch;bounced?:ReceptionBranch}; aimPoint:Vec3; intent:ShotIntent; title:string; description:string; cue:string; actor:PlayerId; contact:Vec3; legs:FlightLeg[]; positions:Record<PlayerId,Vec3> }
 
 export type Team = 'home' | 'away';
 /** Tactical stage is independent of whether playback is paused or in flight. */
@@ -52,7 +53,7 @@ export interface PointResult { playerId?:PlayerId; winner:Team; reason:'missed-s
 export interface Contact { options:RallyShot[] }
 export interface RallySetup { players:PlayerState[]; contact:Contact }
 export type ContactOutcome = {kind:'contact'; contact:Contact} | {kind:'point-end'; result:PointResult};
-export interface GameState {
+export interface GameState {incomingPopUp?:boolean;
  schemaVersion:2; simulationTime:number;
  phase:'decision'|'flight'|'complete'; stage:RallyStage; shotIndex:number;
  legIndex:number; elapsed:number; ball:BallState; players:PlayerState[];

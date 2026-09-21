@@ -1,3 +1,6 @@
+import {BodyHitReaction} from './body-hit-reaction';
+import {MatchCelebration} from './match-celebration';
+import {AtpCelebration,atpWinner} from './atp-celebration';
 import {ArizonaDesert} from './arizona-desert';
 import {viewerPoint} from './engine/controllers';
 import {ballDisplayScale,bouncePulse,cameraBlend,courtOverlayOffset} from './scene-readability';
@@ -14,6 +17,24 @@ import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {COURT, type GameState, type PlayerId, type RallyShot, type Team} from './engine/model';
 import {sampleLeg} from './engine/rally-engine';
 export class CourtScene {
+ private celebration:AtpCelebration;
+ private bodyHit:BodyHitReaction;
+ private previousHitPhase='';
+ get reactingToHit(){return this.bodyHit.active}
+ reactToHit(player:PlayerId,height:number,time:number){this.bodyHit.start(player,height,time)}
+ observeBodyHit(state:GameState,time:number){
+  this.bodyHit.update(time);
+  if(state.phase==='complete'&&this.previousHitPhase!=='complete'&&state.result?.reason==='body-hit'&&state.result.playerId)this.reactToHit(state.result.playerId,state.ball.position.y,time);
+  this.previousHitPhase=state.phase;
+ }
+
+ private matchCelebration:MatchCelebration;
+ get celebratingMatch(){return this.matchCelebration.active}
+ finishMatch(key:string,score:Record<Team,number>,viewer:Team,opponent:string){return this.matchCelebration.ready(key,score,viewer,opponent)}
+ cancelMatchCelebration(){this.matchCelebration.cancel()}
+ private previousCelebrationPhase='';
+ get celebratingAtp(){return this.celebration.team!==null}
+ celebrateAtp(team:Team,time:number){this.celebration.start(team,time)}
  private viewTeam:Team='home';
  setViewTeam(team:Team){if(this.viewTeam===team)return;this.viewTeam=team;this.lastOpponentShot=null;this.setShotPreview(null);this.customizedView=false;this.updateCamera();}
  onCourtTap:((point:{x:number;z:number;playerId?:PlayerId})=>boolean)|null=null;
@@ -47,6 +68,7 @@ export class CourtScene {
  private controls:OrbitControls;private customizedView=false;
  private players=new Map<PlayerId,THREE.Group>();private ball:THREE.Group;private ballHalo:THREE.Mesh;private shadow:THREE.Mesh;private trail:THREE.Line;private trailDots:THREE.Points;private target:THREE.Group;private labels=new Map<PlayerId,HTMLDivElement>();private cameraDistance=50;private guides=true;private lastShot:RallyShot|null=null;private previewShot:RallyShot|null=null;private lastOpponentShot:RallyShot|null=null;
  constructor(private host:HTMLElement,private selectPlayer:(id:PlayerId)=>void=()=>{}){
+  this.bodyHit=new BodyHitReaction(host);this.celebration=new AtpCelebration(this.scene,host);this.matchCelebration=new MatchCelebration(this.scene,host);
   this.turnArrow.className='turn-arrow';this.turnArrow.hidden=true;this.turnArrow.setAttribute('role','img');host.append(this.turnArrow);
   this.serveBubble.className='serve-bubble';this.serveBubble.hidden=true;this.serveBubble.setAttribute('role','status');host.append(this.serveBubble);
   this.thinkingBubble.className='thinking-bubble';this.thinkingBubble.hidden=true;this.thinkingBubble.setAttribute('role','status');this.thinkingBubble.setAttribute('aria-label','Opponent thinking');
@@ -232,6 +254,11 @@ export class CourtScene {
   const {position,look}=this.cameraPose();this.camera.zoom=1.15;this.camera.position.copy(position);this.controls.target.copy(look);this.camera.lookAt(look);this.camera.updateProjectionMatrix();this.controls.update();
  }
  render(state:GameState,time:number,shot:RallyShot,serveCall:string|null=null,thinkingPlayer:PlayerId|null=null){
+  this.observeBodyHit(state,time);
+  if(!this.celebratingMatch&&state.phase==='complete'&&this.previousCelebrationPhase==='flight'){const winner=atpWinner(shot.intent,state.result,state.players);if(winner)this.celebrateAtp(winner,time)}
+  if(state.phase!=='complete')this.matchCelebration.cancel();
+  this.matchCelebration.update(time);
+  this.previousCelebrationPhase=state.phase;const victoryJump=this.celebration.update(time);
   const renderDt=this.previousRenderTime?Math.max(0,time-this.previousRenderTime):0;this.previousRenderTime=time;
   if(state.simulationTime===0&&state.shotHistory.length===0)this.lastOpponentShot=null;
   const actualShotByOpponent=state.players.find(player=>player.id===shot.actor)?.team!==this.viewTeam;
@@ -267,11 +294,13 @@ export class CourtScene {
    // Retain the last movement flag during a pause for a frozen, reproducible pose.
    const moving=advanced?step>.0001&&step<1:previous?.time===state.simulationTime&&!!mesh.userData.moving;
    mesh.userData.moving=state.simulationTime===0?false:moving;
-   const pose=athletePose(p,state,shot,distance,mesh.userData.moving);animateAthlete(mesh,pose);
+   const pose=athletePose(p,state,shot,distance,mesh.userData.moving);if(p.position.y>.05){pose.crouch=.16;pose.stride=.5;pose.offArm=-1.1;}if(this.celebration.team===p.team){pose.celebrate=true;pose.armX=-2.8;pose.offArm=-2.8;pose.crouch=0;mesh.position.y+=victoryJump;}this.matchCelebration.pose(p,state.players,mesh,pose,this.reducedMotion.matches);this.bodyHit.pose(p.id,pose,time,this.reducedMotion.matches);animateAthlete(mesh,pose);
+   this.bodyHit.speech(p.id,this.projectSpeech(mesh.position));
+   this.matchCelebration.speech(state.players.indexOf(p),this.projectSpeech(mesh.position));
    if(p.id==='you'){const pulse=this.reducedMotion.matches?1:1+Math.sin(time*2.6)*.035;mesh.getObjectByName('ground-ring')?.scale.setScalar(pulse);const halo=mesh.getObjectByName('selection-halo') as THREE.Mesh<THREE.RingGeometry,THREE.MeshBasicMaterial>;halo.material.opacity=this.reducedMotion.matches?.13:.13+Math.sin(time*2.6)*.035;}
    this.motion.set(p.id,{x:p.position.x,z:p.position.z,distance,time:state.simulationTime});
    this.labels.get(p.id)!.dataset.reaction=pose.reaction??'';
-   const projected=new THREE.Vector3(p.position.x,1.8,p.position.z).project(this.camera);const label=this.labels.get(p.id)!;const thinking=this.nextHitter?this.nextHitter===p.id:state.phase==='decision'&&state.currentHitter===p.id;if(thinking&&!label.classList.contains('is-thinking')){label.classList.add('is-thinking');label.setAttribute('aria-label',`View ${label.dataset.name} skills · currently thinking`);label.innerHTML='<i></i><i></i><i></i>'}else if(!thinking&&label.classList.contains('is-thinking')){label.classList.remove('is-thinking');label.setAttribute('aria-label',`View ${label.dataset.name} skills`);label.textContent=label.dataset.name!}label.style.left=`${(projected.x*.5+.5)*this.host.clientWidth}px`;label.style.top=`${(-projected.y*.5+.5)*this.host.clientHeight}px`;
+   const projected=new THREE.Vector3(mesh.position.x,1.8,mesh.position.z).project(this.camera);const label=this.labels.get(p.id)!;const thinking=this.nextHitter?this.nextHitter===p.id:state.phase==='decision'&&state.currentHitter===p.id;if(thinking&&!label.classList.contains('is-thinking')){label.classList.add('is-thinking');label.setAttribute('aria-label',`View ${label.dataset.name} skills · currently thinking`);label.innerHTML='<i></i><i></i><i></i>'}else if(!thinking&&label.classList.contains('is-thinking')){label.classList.remove('is-thinking');label.setAttribute('aria-label',`View ${label.dataset.name} skills`);label.textContent=label.dataset.name!}label.style.left=`${(projected.x*.5+.5)*this.host.clientWidth}px`;label.style.top=`${(-projected.y*.5+.5)*this.host.clientHeight}px`;
   }
   const next=state.players.find(p=>p.id===this.nextHitter);this.turnArrow.hidden=!next;
   if(next){const point=new THREE.Vector3(next.position.x,1.8,next.position.z).project(this.camera);this.turnArrow.hidden=point.z < -1||point.z > 1;this.turnArrow.style.left=`${(point.x*.5+.5)*this.host.clientWidth}px`;this.turnArrow.style.top=`${(-point.y*.5+.5)*this.host.clientHeight-25}px`;this.turnArrow.setAttribute('aria-label',`${this.labels.get(next.id)?.dataset.name??next.id} hits next`);}
@@ -314,6 +343,7 @@ export class CourtScene {
   const pulse=bounce?bouncePulse(state.simulationTime-bounce.time):null;
   this.bounceRing.visible=!!pulse;
   if(pulse&&bounce?.type==='bounce'){this.bounceRing.position.set(bounce.position.x,.065,bounce.position.z);this.bounceRing.scale.setScalar(pulse.radius);this.bounceRing.material.opacity=pulse.opacity}
+  if(this.celebratingMatch){this.ball.visible=false;this.ballHalo.visible=false;this.shadow.visible=false;this.target.visible=false;this.turnArrow.hidden=true;this.pausedBallMarker.hidden=true;}else{this.ball.visible=true;this.ballHalo.visible=true;this.shadow.visible=true;}
   if(this.location==='forest')this.trees.update(this.camera,this.ball.position,[...this.players.values()].map(player=>player.position.clone().add(new THREE.Vector3(0,1,0))));
   else (this.location==='arizona'?this.arizona:this.venice)?.update(this.camera,[this.ball.position,...[...this.players.values()].map(player=>player.position.clone().add(new THREE.Vector3(0,1,0))),...[-1,1].flatMap(x=>[-1,1].map(z=>new THREE.Vector3(x*COURT.width/2,0,z*COURT.length/2)))]);this.renderer.render(this.scene,this.camera);
  }

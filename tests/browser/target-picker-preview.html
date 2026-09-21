@@ -14,7 +14,7 @@ import {interpretShot} from '/src/shot-description.ts';
 const base=new Match().targetingMenu[0].intent;
 const choices=[['reset','air'],['lob','air'],['dink','bounce'],['reset','bounce'],['drive','bounce'],['overhead','air'],['counter','air'],['block','air'],['flick','air']].map(([type,timing])=>({intent:{...base,type},timing}));
 let lastPlay=null,fail=false;
-const source={incoming:'Strong overhead incoming',async describe(text,point,signal){const parsed=await interpretShot(text,{opening:'rally',selectedTarget:point},signal);signal.throwIfAborted();document.querySelector('#played').textContent=`Interpreted: ${parsed.spinStrength} ${parsed.spin}, ${parsed.shot}, ${parsed.target}`;},assess(choice){return {risk:choice.intent.type==='lob'?'High':'Low',pressure:choice.intent.type==='reset'?'Low':'High'};},team:'home',choices,context:{},decision:'test',enabled:true,validate(){},play(choice,point){if(fail)throw Error('That shot is no longer available. Choose another shot.');lastPlay={choice,point};document.querySelector('#played').textContent=`Played ${choice.intent.type}, ${choice.timing}`;}};
+const source={incoming:'Strong overhead smash incoming',async describe(text,point,signal){const parsed=await interpretShot(text,{opening:'rally',selectedTarget:point},signal);signal.throwIfAborted();document.querySelector('#played').textContent=`Interpreted: ${parsed.spinStrength} ${parsed.spin}, ${parsed.shot}, ${parsed.target}`;},assess(choice){return {risk:choice.intent.type==='lob'?'High':'Low',pressure:choice.intent.type==='reset'?'Low':'High'};},team:'home',choices,context:{},decision:'test',enabled:true,validate(){},play(choice,point){if(fail)throw Error('That shot is no longer available. Choose another shot.');lastPlay={choice,point};document.querySelector('#played').textContent=`Played ${choice.intent.type}, ${choice.timing}`;}};
 const scene={onCourtTap:null,setSelectedTarget(){},setShotPreview(){},projectTarget(){return {x:innerWidth/2,y:140}}};
 const picker=new CourtTargetPicker(source,scene),point={x:1,z:-3};
 function open(){picker.sync(true);scene.onCourtTap(point)}
@@ -38,6 +38,12 @@ try{
  source.decision='next';open();assert(document.querySelector('.target-shot-description input').value==='','New decision clears draft');
  document.querySelector('#checks').textContent='Passed: three visible rows, scrollable options, risk and pressure labels, last shot reachable, draft persistence, outside dismissal.';
 }catch(error){document.querySelector('#checks').textContent=`FAILED: ${error.message}`;throw error;}
+if(new URLSearchParams(location.search).has('atp')){
+ picker.clear();choices.push({intent:{...base,type:'drive',technique:'atp'},timing:'bounce'});source.decision='atp';source.assess=()=>({risk:'High',pressure:'High'});open();
+ assert(document.querySelector('.target-shot').classList.contains('target-shot-atp'),'ATP sorted first');
+ assert(document.querySelectorAll('.target-shot-atp').length===1,'One ATP alert');
+ document.querySelector('#checks').textContent='Passed: ATP alert appears first with description and ratings.';
+}
 document.querySelector('#reopen').onclick=open;
 window.addEventListener('resize',()=>picker.sync(true));
 </script>

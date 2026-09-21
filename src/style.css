@@ -609,3 +609,30 @@ body[data-screen=start], .roster-route-loading { background: var(--page-blue-gra
 @media(prefers-reduced-motion:reduce){.thinking-dots i{animation:none;opacity:1}}
 
 .thinking-bubble[data-side=left]>svg{transform:scaleX(-1)}
+
+/* A rare court opportunity gets a distinct, compact treatment. */
+.target-wheel .target-shot-atp{border:2px solid #ffcf55;background:linear-gradient(125deg,#493778,#192c55);box-shadow:inset 3px 0 #ffcf55}
+.target-shot-atp .target-shot-label{color:#ffe287}
+.target-atp-description{display:block;font-size:12px;line-height:1.4;font-weight:500;color:#e5e9fa;margin:3px 0 5px}
+.atp-celebration{position:absolute;z-index:45;top:30%;left:50%;transform:translate(-50%,-50%) rotate(-4deg);width:max-content;max-width:90%;pointer-events:none;text-align:center;color:#fff5ae;filter:drop-shadow(0 4px 0 #132553) drop-shadow(0 0 18px #ffb30066)}
+.atp-celebration[hidden]{display:none}.atp-celebration span,.atp-celebration small{display:block;font-weight:800;font-size:14px;letter-spacing:1px}.atp-celebration strong{display:block;font-size:clamp(34px,7vw,72px);font-weight:1000;line-height:1.1;margin:8px 0;color:#ffe24f}.atp-celebration small{font-size:13px;color:#fff}
+@media(prefers-reduced-motion:no-preference){.atp-celebration{animation:atp-victory-pop .38s cubic-bezier(.18,.9,.3,1.3)}@keyframes atp-victory-pop{from{transform:translate(-50%,-50%) rotate(-4deg) scale(.45);opacity:0}to{transform:translate(-50%,-50%) rotate(-4deg) scale(1);opacity:1}}}
+
+.target-wheel .target-shot-erne{border:2px solid #64f4df;background:linear-gradient(125deg,#214f68,#222d60);box-shadow:inset 3px 0 #64f4df}
+.target-shot-erne .target-shot-label{color:#92ffe9}
+
+.match-celebration{position:absolute;z-index:35;top:23%;left:50%;transform:translateX(-50%);width:max-content;max-width:90%;padding:16px 24px;border:3px solid #f7ffe0;border-radius:20px;background:#203b42;color:#eaff78;text-align:center;font-size:clamp(24px,5vw,44px);font-weight:950;line-height:1.15;box-shadow:0 8px 0 #10232a55,0 0 45px #caff6655;pointer-events:none}
+.match-good-game{position:absolute;z-index:34;transform:translate(-50%,-100%);padding:8px 12px;border:2px solid #203b42;border-radius:14px;background:#fffde9;color:#203b42;font-size:clamp(12px,2.5vw,16px);font-weight:850;white-space:nowrap;box-shadow:0 3px 0 #203b4233;pointer-events:none}
+.match-good-game::after{content:'';position:absolute;bottom:-8px;left:45%;border-left:7px solid transparent;border-right:7px solid transparent;border-top:8px solid #203b42}
+.match-celebration[hidden],.match-good-game[hidden]{display:none}
+.atp-celebration.match-fireworks{top:12%;transform:translate(-50%,-50%);animation:none}
+.atp-celebration.match-fireworks strong{font-size:clamp(28px,5vw,52px)}
+.atp-celebration.match-fireworks small{display:none}
+.body-hit-bubble{position:absolute;z-index:48;transform:translate(-50%,-100%) rotate(-8deg);padding:10px 16px;border:3px solid #64242e;border-radius:16px;background:#fff4ba;color:#b9273d;font-size:clamp(24px,4vw,36px);font-weight:950;line-height:1.1;box-shadow:3px 4px 0 #64242e55;pointer-events:none;white-space:nowrap}
+.body-hit-bubble::after{content:'';position:absolute;bottom:-12px;left:44%;border-left:9px solid transparent;border-right:9px solid transparent;border-top:12px solid #64242e}
+.body-hit-bubble[hidden]{display:none}
+@media(prefers-reduced-motion:no-preference){.body-hit-bubble{animation:body-hit-pop .2s ease-out}@keyframes body-hit-pop{from{transform:translate(-50%,-100%) rotate(8deg) scale(.6)}to{transform:translate(-50%,-100%) rotate(-8deg) scale(1)}}}
+
+/* Service dots stay beside the serving team's name throughout the rally. */
+.score-row[data-server="1"]>span::after,.score-row[data-server="2"]>span::after{content:"";display:inline-block;width:8px;height:8px;margin-left:8px;margin-right:11px;border-radius:50%;background:#35f36c;vertical-align:middle;box-shadow:0 0 0 1px #123c29}
+.score-row[data-server="2"]>span::after{box-shadow:0 0 0 1px #123c29,11px 0 0 0 #35f36c,11px 0 0 1px #123c29}

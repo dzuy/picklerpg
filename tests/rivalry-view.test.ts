@@ -1,10 +1,23 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {rivalryHeadline,seriesLine,rivalryData} from '../src/multiplayer/rivalry-view';
+import {rivalryHeadline,seriesLine,rivalryData,rivalryCardStory} from '../src/multiplayer/rivalry-view';
 import type {RivalrySummary} from '../src/multiplayer/rivalry';
 import {RematchFlow} from '../src/multiplayer/rematch-flow';
 import {A,B} from './helpers/remote';
 function summary(wins:number,losses:number,won=true,streak=1,previous?:{owner:'you'|'opponent';length:number}):RivalrySummary{return {definitionVersion:1,games:wins+losses,wins,losses,streak:{owner:won?'you':'opponent',length:streak},previousStreak:previous??null,bestStreak:{you:streak,opponent:streak},recent:[{matchId:A,completedAt:'2026-09-18T00:00:00Z',result:won?'win':'loss',score:{you:won?3:1,opponent:won?1:3},rules:{target:3,winBy:1,scoring:'rally-doubles'}}],closest:null as any,milestones:[2,3,5,10,25,100].filter(n=>n<=wins+losses)};}
+test('friend cards tell a concise story using the current head-to-head history',()=>{
+ const story=(s:RivalrySummary)=>rivalryCardStory({current:s,atCompletion:null});
+ assert.equal(story(summary(6,0,true,6)),'You’ve dominated this rivalry 6–0.');
+ assert.equal(story(summary(0,6,false,6)),'They lead 6–0. Time for a comeback.');
+ assert.equal(story(summary(5,4,false,3)),'They’re on a 3-game win streak against you.');
+ assert.equal(story(summary(4,5,true,3)),'You’re on a 3-game win streak against them.');
+ assert.match(story(summary(2,2)),/All square at 2–2/);
+ assert.match(story(summary(1,0)),/You took the first game/);
+ assert.match(story(summary(0,1,false)),/They took the first game/);
+ assert.match(story(summary(2,4,false)),/They’re ahead 4–2/);
+ assert.equal(rivalryCardStory(undefined),'');
+ assert.match(rivalryCardStory({current:null,atCompletion:null}),/starts with the first game/);
+});
 test('one rivalry headline follows evidence priority and reverses viewpoint',()=>{
  assert.equal(rivalryHeadline(summary(3,3,true,1,{owner:'opponent',length:3}),'Ryan').key,'streak_broken');
  assert.match(rivalryHeadline(summary(3,3,false,1,{owner:'you',length:3}),'Ryan').text,/ended your/);

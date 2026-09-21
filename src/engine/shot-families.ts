@@ -1,5 +1,5 @@
 import {COURT,type FlightLeg,type ShotType,type Vec3} from './model';
-export interface ShotContext {attemptTechnique?:boolean;timingPressure?:number;movementZ?:number;allowRisky?:boolean;contact:Vec3; feet:Vec3; bounced:boolean; opening:'serve'|'return'|'rally'; twoBounceSatisfied:boolean; incomingSpeed:number}
+export interface ShotContext {erneEligible?:boolean;attemptTechnique?:boolean;timingPressure?:number;movementZ?:number;allowRisky?:boolean;contact:Vec3; feet:Vec3; bounced:boolean; opening:'serve'|'return'|'rally'; twoBounceSatisfied:boolean; incomingSpeed:number}
 export interface ShotFamily {name:string; description:string; speed:number; lift:number; mode:'ground'|'volley'|'either'; minHeight:number; maxHeight:number}
 /** Deliberately tuned for readable scripted play, not measured biomechanics. */
 export const SHOT_FAMILIES:Record<ShotType,ShotFamily>={
@@ -12,7 +12,7 @@ export const SHOT_FAMILIES:Record<ShotType,ShotFamily>={
  volley:{name:'Volley',description:'Take the ball out of the air with a compact punch.',speed:10,lift:.25,mode:'volley',minHeight:.45,maxHeight:1.9},
  reset:{name:'Reset',description:'Absorb pressure and lift a low ball softly into the kitchen.',speed:4.5,lift:1.5,mode:'either',minHeight:.08,maxHeight:1.5},
  lob:{name:'Lob',description:'A high, deep arc over the opponents’ reach.',speed:4.5,lift:4,mode:'either',minHeight:.08,maxHeight:3.2},
- overhead:{name:'Overhead',description:'Strike a high contact down into open court.',speed:17,lift:.04,mode:'volley',minHeight:1.45,maxHeight:3.2},
+ overhead:{name:'Overhead Smash',description:'Strike a high contact down into open court.',speed:17,lift:.04,mode:'volley',minHeight:1.45,maxHeight:3.2},
  counter:{name:'Counter',description:'Redirect an incoming attack with a short, firm response.',speed:15,lift:.25,mode:'volley',minHeight:.65,maxHeight:1.8},
  block:{name:'Block',description:'Take pace off an incoming attack with a quiet paddle.',speed:5,lift:.9,mode:'volley',minHeight:.3,maxHeight:1.8},
 };

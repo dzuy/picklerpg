@@ -1,5 +1,14 @@
+import {kitchenSafeRoute} from './erne';
 import {COURT,type PlayerId,type PlayerState,type RallyShot,type ShotIntent,type Vec3} from './model';
-export interface PositioningContext {players:PlayerState[];intent:ShotIntent;endpoint:Vec3;receiver:PlayerId|null;completedShots:number;duration:number}
+export interface PositioningContext {players:PlayerState[];intent:ShotIntent;endpoint:Vec3;receiver:PlayerId|null;completedShots:number;duration:number;recoveryDelay?:number}
+/** Seconds spent regaining balance after striking; only simulation flight time counts. */
+export function hitterRecoveryDelay(player:PlayerState,contact:Vec3,timingPressure=0){
+ const skill=Math.max(0,Math.min(100,player.skills.movement))/100;
+ const reach=Math.hypot(contact.x-player.position.x,contact.z-player.position.z);
+ const stretch=Math.max(0,Math.min(1,(reach-.6)/1.2));
+ const wide=Math.max(0,Math.min(1,(Math.abs(player.position.x)-(COURT.width/2-.7))/1.2));
+ return .04+.5*(1-skill)**2+(Math.max(stretch,wide)*.45+Math.max(0,Math.min(1,timingPressure))*.2)*(1-.65*skill);
+}
 const bound=(v:number,min:number,max:number)=>Math.max(min,Math.min(max,v));
 /** Tactical destinations, independent of a scenario's stored movement templates.
  * Contact receiver has priority; other players recover within their movement budget. */
@@ -24,8 +33,11 @@ export function planPositions(c:PositioningContext):RallyShot['positions']{
    // Volley preparation stays outside the non-volley zone; ground contacts may enter.
    if(c.endpoint.y>=.9)destination.z=side*Math.max(COURT.kitchen+.2,Math.abs(destination.z));
   }else{
+   // A sideline volley must recover outside the kitchen before cutting inward.
+   if(Math.abs(player.position.x)>COURT.width/2&&Math.abs(player.position.z)<COURT.kitchen+.3&&!kitchenSafeRoute(player.position,destination))destination.x=player.position.x;
    const distance=Math.hypot(destination.x-player.position.x,destination.z-player.position.z);
-   const budget=(1.8+player.skills.movement/100*2)*c.duration;
+   const movingTime=Math.max(0,c.duration-(player.id===c.intent.actor?(c.recoveryDelay??0):0));
+   const budget=(1.8+player.skills.movement/100*2)*movingTime;
    const fraction=distance===0?1:Math.min(1,budget/distance);
    destination={x:player.position.x+(destination.x-player.position.x)*fraction,y:0,z:player.position.z+(destination.z-player.position.z)*fraction};
   }

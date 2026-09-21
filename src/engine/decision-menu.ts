@@ -1,3 +1,4 @@
+import {erneAvailable} from './erne';
 import {COURT,type PlayerId,type PlayerState,type ShotIntent,type ShotType} from './model';
 import {contactIssue,type ShotContext,SHOT_FAMILIES} from './shot-families';
 import {generateTrajectory} from './trajectory';
@@ -33,6 +34,15 @@ export function buildDecisionMenu(actor:PlayerId,c:ShotContext,players:PlayerSta
    ];
    for(const {label,changes} of variants){const intent={...structuredClone(base.intent),...changes};try{generateTrajectory(intent,c,players);options.push({intent,label,reason:label+' after the serve bounces.'})}catch{}}
   }
+ }
+ // Only advertise an ATP when the actual contact and route clear the net post.
+ if(c.opening==='rally'&&c.twoBounceSatisfied&&c.bounced){
+  const intent:ShotIntent={schemaVersion:1,actor,type:'drive',technique:'atp',target:{kind:'zone',zone:c.contact.x<0?'far-left':'far-right',depth:'deep'},pace:'fast',shape:'flat',intendedNetClearance:.12,tacticalIntent:'finish',aggression:.85,source:'menu'};
+  try{generateTrajectory(intent,c,players);options.unshift({intent,label:'ATP',reason:'Around the post: a risky attack down the sideline.'})}catch{}
+ }
+ if(erneAvailable(c)){
+  const intent:ShotIntent={schemaVersion:1,actor,type:'volley',technique:'erne',target:{kind:'zone',zone:'middle',depth:'deep'},pace:'fast',shape:'flat',intendedNetClearance:.12,tacticalIntent:'finish',aggression:.85,source:'menu'};
+  try{generateTrajectory(intent,c,players);options.unshift({intent,label:'Erne',reason:'Attack from outside the kitchen. A tight angle with little time for a return.'})}catch{}
  }
  return options;
 }

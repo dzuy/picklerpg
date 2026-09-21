@@ -75,8 +75,9 @@ export function parseCheckpoint(value:unknown):MatchCheckpoint {
  const tendencies=(v:any)=>{object(v);for(const k of ['aggression','middlePreference','kitchenApproach'])number(v[k],0,1);if(v.lobPreference!==undefined)number(v.lobPreference,0,1);};
  const result=(r:any)=>{object(r);team(r.winner);if(!['missed-swing','body-hit','winner','net','out','double-bounce','failed-return','unreturned-attack'].includes(r.reason))fail();if(r.playerId!==undefined)slot(r.playerId);};
  const legs=(ls:any)=>{boundedArray(ls,100);if(!ls.length)fail();for(const [i,l] of ls.entries()){object(l);vec(l.from);vec(l.to);number(l.duration,1e-9);number(l.arc);for(const k of ['sideCurve','verticalSpin'])if(l[k]!==undefined)number(l[k]);if(l.bounceAtEnd!==undefined)bool(l.bounceAtEnd);if(i&&Math.hypot(l.from.x-ls[i-1].to.x,l.from.y-ls[i-1].to.y,l.from.z-ls[i-1].to.z)>1e-7)fail();}};
- const resolution=(r:any)=>{object(r);if(r.receiver!==null)slot(r.receiver);bool(r.bounced);if(r.result)result(r.result);if(!r.result&&r.receiver===null)fail();for(const k of ['timingPressure','movementZ'])if(r[k]!==undefined)number(r[k]);};
- const shot=(s:any)=>{object(s);parseShotIntent(s.intent);slot(s.actor);if(s.actor!==s.intent.actor)fail();vec(s.contact);vec(s.aimPoint);legs(s.legs);positions(s.positions);resolution(s.resolution);if(Math.hypot(s.contact.x-s.legs[0].from.x,s.contact.y-s.legs[0].from.y,s.contact.z-s.legs[0].from.z)>1e-7)fail();if(s.receptionChoice){object(s.receptionChoice);for(const b of Object.values(s.receptionChoice) as any[]){object(b);legs(b.legs);positions(b.positions);resolution(b.resolution);}}};
+ const resolution=(r:any)=>{object(r);if(r.erneEligible!==undefined)bool(r.erneEligible);if(r.receiver!==null)slot(r.receiver);bool(r.bounced);if(r.result)result(r.result);if(!r.result&&r.receiver===null)fail();for(const k of ['timingPressure','movementZ'])if(r[k]!==undefined)number(r[k]);};
+ const jump=(j:any)=>{if(j===undefined)return;object(j);slot(j.playerId);vec(j.from);vec(j.to);number(j.start,0,60);number(j.duration,.01,2);number(j.height,0,2);};
+ const shot=(s:any)=>{object(s);jump(s.jump);parseShotIntent(s.intent);if(s.recoveryDelay!==undefined)number(s.recoveryDelay,0,2);slot(s.actor);if(s.actor!==s.intent.actor)fail();vec(s.contact);vec(s.aimPoint);legs(s.legs);positions(s.positions);resolution(s.resolution);if(Math.hypot(s.contact.x-s.legs[0].from.x,s.contact.y-s.legs[0].from.y,s.contact.z-s.legs[0].from.z)>1e-7)fail();if(s.receptionChoice){object(s.receptionChoice);for(const b of Object.values(s.receptionChoice) as any[]){object(b);jump(b.jump);legs(b.legs);positions(b.positions);resolution(b.resolution);}}};
  try{
   // Also reject NaN/Infinity anywhere in optional diagnostics, and excessive payloads.
   const inspect=(v:any):void=>{if(typeof v==='number')number(v);else if(v&&typeof v==='object')for(const child of Object.values(v))inspect(child);};
@@ -96,7 +97,7 @@ export function parseCheckpoint(value:unknown):MatchCheckpoint {
   const winner=score.score.home>=c.rules.target&&score.score.home-score.score.away>=c.rules.winBy?'home':score.score.away>=c.rules.target&&score.score.away-score.score.home>=c.rules.winBy?'away':null;
   if(score.winner!==winner)fail();
   object(c.roster);for(const id of SLOTS){const a=c.roster[id];object(a);skills(a.skills);tendencies(a.tendencies);if(!['left','right'].includes(a.handedness))fail();if(a.design!==null)validatePlayer(a.design);}
-  object(c.rally);const r=c.rally,s=r.state;object(s);if(!['contact','reception','point-end'].includes(r.kind))fail();
+  object(c.rally);const r=c.rally,s=r.state;object(s);if(s.incomingPopUp!==undefined)bool(s.incomingPopUp);if(!['contact','reception','point-end'].includes(r.kind))fail();
   if(s.phase!==({contact:'decision',reception:'flight','point-end':'complete'} as any)[r.kind])fail();
   integer(s.shotIndex);integer(s.bounces);if(!['serve','return','third','fourth','transition','kitchen-exchange','attack','counter','reset','point-end'].includes(s.stage))fail();
   object(s.ball);vec(s.ball.position);vec(s.ball.velocity);boundedArray(s.players,4);if(s.players.length!==4||new Set(s.players.map((p:any)=>p.id)).size!==4)fail();

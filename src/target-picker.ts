@@ -8,6 +8,7 @@ import {COURT,type PlayerId,type Team,type ShotIntent} from './engine/model';
 import {shotIcon} from './shot-illustration';
 import type {Match} from './match';
 import {choiceCopy} from './shot-choice';
+import {visibleViewport} from './visible-viewport';
 import {SHOT_FAMILIES} from './engine/shot-families';
 import type {CourtScene} from './scene';
 export type TargetPoint={x:number;z:number;playerId?:PlayerId};
@@ -65,6 +66,18 @@ export class CourtTargetPicker {
   if(this.point&&((!this.enabled&&!this.interpretation)||this.context!==this.source.context||this.decision!==this.source.decision)){this.clear();return}
   this.panel.hidden=!this.point||(!this.enabled&&!this.interpretation);
   if(this.point&&!this.panel.hidden){
+   const editing=matchMedia('(pointer: coarse)').matches&&!!this.panel.querySelector('.target-shot-description:focus-within');
+   this.panel.classList.toggle('is-typing',editing);
+   if(editing){
+    // iOS pans the visual viewport independently of the layout viewport. In a
+    // game iframe the keyboard dimensions belong to the parent window.
+    const viewport=visibleViewport();
+    this.panel.style.width=`${Math.max(0,viewport.width-16)}px`;
+    this.panel.style.left=`${viewport.left+8}px`;
+    this.panel.style.top=`${Math.max(viewport.top,viewport.top+viewport.height-this.panel.offsetHeight-4)}px`;
+    return;
+   }
+   this.panel.style.removeProperty('width');
    const p=this.scene.projectTarget(this.point),width=this.panel.offsetWidth,height=this.panel.offsetHeight;
    const left=Math.max(8,Math.min(innerWidth-width-8,p.x-width/2));
    // Prefer space below or above the landing point so the court marker stays visible.
@@ -82,9 +95,10 @@ export class CourtTargetPicker {
    // Reception choices are air-first. Keep one playable Lob, with a bounced fallback.
    const key=choice.intent.type==='lob'?'lob':JSON.stringify({...choice.intent,target:undefined,source:undefined,timing:choice.timing});
    if(seen.has(key))return [];seen.add(key);
-   const label=isSpeedUp(choice.intent)?'Speed Up':['serve','return'].includes(choice.intent.type)?choiceCopy(choice.intent).name:SHOT_FAMILIES[choice.intent.type].name;
+   const label=choice.intent.technique?choiceCopy(choice.intent).name:isSpeedUp(choice.intent)?'Speed Up':['serve','return'].includes(choice.intent.type)?choiceCopy(choice.intent).name:SHOT_FAMILIES[choice.intent.type].name;
    return [{...choice,label}];
   });
+  choices.sort((a,b)=>Number(!!b.intent.technique)-Number(!!a.intent.technique));
   if(!choices.length){this.clear();return}
   const meter=(label:'Risk'|'Pressure',level:ShotAssessment['risk']|undefined)=>{
    const count=level==='High'?3:level==='Medium'?2:level==='Low'?1:0;
@@ -95,7 +109,7 @@ export class CourtTargetPicker {
   const tile=(choice:typeof choices[number],index:number)=>{
    const timing=choice.timing?(choice.timing==='air'?'Before bounce':'After bounce'):'';
    const rating=this.source.assess?.(choice,this.point!);
-   return `<button type="button" class="target-shot" data-type="${choice.intent.type}" data-choice="${index}">${shotIcon(choice.intent,index,'wheel')}<span class="target-shot-copy"><span class="target-shot-label">${choice.label}</span>${timing?`<span class="target-shot-timing" data-timing="${choice.timing}">${timing}</span>`:''}<span class="target-shot-ratings">${meter('Risk',rating?.risk)}${meter('Pressure',rating?.pressure)}</span></span></button>`;
+   return `<button type="button" class="target-shot ${choice.intent.technique==='atp'?'target-shot-atp':choice.intent.technique==='erne'?'target-shot-erne':''}" data-type="${choice.intent.type}" data-choice="${index}">${shotIcon(choice.intent,index,'wheel')}<span class="target-shot-copy"><span class="target-shot-label">${choice.intent.technique==='atp'?'ATP Alert!':choice.intent.technique==='erne'?'Erne Alert!':choice.label}</span>${choice.intent.technique==='atp'?'<span class="target-atp-description">Around the post. Very risky, hard to defend. Highlight-reel stuff… if you hit it!</span><span class="target-shot-timing">Aim carefully around the post</span>':choice.intent.technique==='erne'?'<span class="target-atp-description">Attack from outside the kitchen. Risky timing. Steal time from their return.</span>':''}${timing?`<span class="target-shot-timing" data-timing="${choice.timing}">${timing}</span>`:''}<span class="target-shot-ratings">${meter('Risk',rating?.risk)}${meter('Pressure',rating?.pressure)}</span></span></button>`;
   };
   this.panel.innerHTML=`<div class="target-wheel" role="group" aria-label="Shot type"><div class="target-shots" role="group" aria-label="Shot options. Scroll for more shots.">${choices.map(tile).join('')}</div><form class="target-shot-description"><label><span class="sr-only">Describe your shot</span><input type="text" placeholder="Describe your shot…" maxlength="240" enterkeyhint="go" autocomplete="off" required></label><button type="submit" aria-label="Play described shot">Go</button></form><span class="target-picker-status" role="status"></span></div>`;
   if(this.source.incoming){
@@ -105,6 +119,11 @@ export class CourtTargetPicker {
   const description=this.panel.querySelector<HTMLInputElement>('.target-shot-description input')!;
   description.value=this.shotDescription;
   description.addEventListener('input',()=>{this.shotDescription=description.value});
+  description.addEventListener('focus',()=>this.sync(this.enabled));
+  // Keep Safari from blurring and moving the dock before the Go click lands.
+  this.panel.querySelector('.target-shot-description button')!.addEventListener('pointerdown',event=>{
+   if(document.activeElement===description)event.preventDefault();
+  });
   this.panel.querySelector<HTMLFormElement>('.target-shot-description')!.addEventListener('submit',async event=>{
    event.preventDefault();
    if(this.interpretation)return;
@@ -141,7 +160,7 @@ export class CourtTargetPicker {
 export class TargetPicker extends CourtTargetPicker {
  constructor(match:Match,scene:CourtScene){
   super({
-   get incoming(){return incomingShotLabel(match.state.shotHistory.at(-1),match.targetingMenu.some(c=>c.intent.type==='serve'))},
+   get incoming(){return incomingShotLabel(match.state.shotHistory.at(-1),match.targetingMenu.some(c=>c.intent.type==='serve'),!!match.state.incomingPopUp)},
    get team(){return match.decisionTeam},
    get choices(){return match.targetingMenu},
    get context(){return match.engine},

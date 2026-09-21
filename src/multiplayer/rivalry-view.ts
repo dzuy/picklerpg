@@ -2,6 +2,18 @@ import {parseMatchRivalry,type MatchRivalry,type RivalrySummary} from './rivalry
 
 export function rivalryData(value:unknown):MatchRivalry|undefined{try{return parseMatchRivalry(value);}catch{return undefined;}}
 export function seriesLine(s:RivalrySummary){return s.wins===s.losses?`Series tied ${s.wins}–${s.losses}`:s.wins>s.losses?`You lead ${s.wins}–${s.losses}`:`You trail ${s.wins}–${s.losses}`;}
+/** A compact, viewer-relative story for friend cards, based only on known history. */
+export function rivalryCardStory(data:MatchRivalry|undefined):string{
+ if(!data)return '';
+ const s=data.current;
+ if(!s)return 'Your rivalry starts with the first game.';
+ if(s.games>=3&&s.losses===0)return `You’ve dominated this rivalry ${s.wins}–0.`;
+ if(s.games>=3&&s.wins===0)return `They lead ${s.losses}–0. Time for a comeback.`;
+ if(s.streak.length>=3)return s.streak.owner==='you'?`You’re on a ${s.streak.length}-game win streak against them.`:`They’re on a ${s.streak.length}-game win streak against you.`;
+ if(s.wins===s.losses)return `All square at ${s.wins}–${s.losses}. Who takes the lead?`;
+ if(s.games===1)return s.wins?'You took the first game. Keep it going.':'They took the first game. Your rematch awaits.';
+ return s.wins>s.losses?`You’re ahead ${s.wins}–${s.losses}. Keep the edge.`:`They’re ahead ${s.losses}–${s.wins}. Close the gap.`;
+}
 /** One deterministic observation; no tactical or causal inference. */
 export function rivalryHeadline(s:RivalrySummary,opponent:string):{key:string;text:string}{
  const won=s.recent[0].result==='win',previousWins=s.wins-(won?1:0),previousLosses=s.losses-(won?0:1);

@@ -6,7 +6,7 @@ import {MatchService} from '../server/multiplayer/service';
 import {A,B,testers,creation,action,MemoryRepository} from './helpers/remote';
 test('incoming descriptions distinguish pace, lob and spin without claiming outcomes',()=>{
  const base=new Match().targetingMenu[0].intent;
- assert.equal(incomingShotLabel({...base,type:'overhead',pace:'fast'}),'Strong overhead incoming');
+ assert.equal(incomingShotLabel({...base,type:'overhead',pace:'fast'}),'Strong overhead smash incoming');
  assert.equal(incomingShotLabel({...base,type:'lob'}),'High lob incoming');
  assert.equal(incomingShotLabel({...base,type:'drive',spin:{vertical:'slice',side:'none',strength:'strong'}}),'Sliced drive incoming');
  assert.equal(incomingShotLabel(undefined),null);

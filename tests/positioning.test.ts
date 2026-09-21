@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {planPositions,type PositioningContext} from '../src/engine/positioning';
+import {planPositions,hitterRecoveryDelay,type PositioningContext} from '../src/engine/positioning';
 import {COURT} from '../src/engine/model';
 import {RallyEngine} from '../src/engine/rally-engine';
 import {pressureMiddle} from './helpers/pressure-middle';
@@ -27,4 +27,21 @@ test('volley receiver stays behind kitchen on either side',()=>{
  const c=setup();c.endpoint={x:1,y:1.3,z:-2};const away=planPositions(c);assert.ok(away['opponent-left'].z<=-COURT.kitchen-.2);
  c.intent.actor='opponent-left';c.receiver='you';c.endpoint.z=2;assert.ok(planPositions(c).you.z>=COURT.kitchen+.2);
  assert.throws(()=>planPositions({...c,receiver:'opponent-right'}));
+});
+
+test('wide stretched hitters recover later at low skill; slower replies buy recovery time',()=>{
+ const c=setup();c.intent={...c.intent,type:'dink'};c.completedShots=5;c.receiver=null;
+ const hitter=c.players.find(p=>p.id===c.intent.actor)!;hitter.position={x:3.7,y:0,z:2.8};
+ const contact={x:4.4,y:.4,z:2.2};
+ hitter.skills.movement=30;const lowDelay=hitterRecoveryDelay(hitter,contact,.6);
+ const low=planPositions({...c,duration:.5,recoveryDelay:lowDelay});
+ assert.deepEqual(low.you,hitter.position,'weak mover is still recovering during quick reply');
+ const slow=planPositions({...c,duration:1.5,recoveryDelay:lowDelay});
+ assert.ok(slow.you.x<low.you.x,'slower shot buys time to recover');
+ hitter.skills.movement=95;const highDelay=hitterRecoveryDelay(hitter,contact,.6);
+ assert.ok(highDelay<lowDelay);
+ const high=planPositions({...c,duration:.5,recoveryDelay:highDelay});assert.ok(high.you.x<low.you.x);
+ assert.deepEqual(high.partner,low.partner,'delay only affects the hitter');
+ const comfortable={...hitter,position:{x:1,y:0,z:2.8}};
+ assert.ok(hitterRecoveryDelay(comfortable,{x:1.2,y:1,z:2.5})<highDelay);
 });

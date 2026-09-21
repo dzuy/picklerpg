@@ -22,7 +22,7 @@ export interface PublicMatch {
  accountIds?:Record<Team,string|null>;
  createdAt?:string;completedAt?:string;
  id:string;version:number;status:'active'|'completed';viewerTeam:Team;currentTeam:Team|null;decisionId:string;
- rules:ScoringRules;score:Record<Team,number>;serveCall:string;serving?:boolean;server:PlayerId;pointIndex:number;
+ rules:ScoringRules;score:Record<Team,number>;serveCall:string;serverNumber?:1|2;serving?:boolean;server:PlayerId;pointIndex:number;
  nextHitter?:PlayerId|null;
  display:GameState;roster:Record<PlayerId,DesignedPlayer>;
  incomingShotLabel?:string|null;
@@ -30,6 +30,6 @@ export interface PublicMatch {
  choices:Array<{intent:ShotIntent;timing?:'air'|'bounce'}>;result:PointResult|null;
  animation:TurnAnimation[];
 }
-export interface TurnAnimation {intent:ShotIntent;actor:PlayerId;duration:number;path:Vec3[];pathTimes?:number[];from:GameState['players'];to:GameState['players']}
+export interface TurnAnimation {jump?:import('../engine/model').PlayerJump;recoveryDelay?:number;intent:ShotIntent;actor:PlayerId;duration:number;path:Vec3[];pathTimes?:number[];from:GameState['players'];to:GameState['players']}
 export interface ActionReceipt {actionId:string;fromVersion:number;toVersion:number;state:PublicMatch}
 export interface RemoteConfig {selfId:string;selfName?:string;creationEnabled:boolean;testers:Array<{id:string;name:string}>}

@@ -5,7 +5,7 @@ const enumSchema=(values:readonly string[])=>({type:'string',enum:values});
 const objectSchema=(properties:Record<string,unknown>)=>({type:'object',properties,required:Object.keys(properties),additionalProperties:false});
 /** Shared public contract for browser tools and future structured model output. */
 const intentProperties={
- technique:enumSchema(['atp']),
+ technique:enumSchema(['atp','erne']),
  schemaVersion:{type:'integer',const:1},actor:enumSchema(players),type:enumSchema(SHOT_TYPES),
  target:{oneOf:[objectSchema({kind:{const:'point'},x:{type:'number',minimum:-100,maximum:100},z:{type:'number',minimum:-100,maximum:100}}),objectSchema({kind:{const:'zone'},zone:enumSchema(TARGET_ZONES),depth:enumSchema(TARGET_DEPTHS)}),objectSchema({kind:{const:'player'},playerId:enumSchema(players),aim:enumSchema(PLAYER_AIMS)})]},
  pace:enumSchema(PACES),shape:enumSchema(SHAPES),intendedNetClearance:{type:'number',minimum:0},
@@ -50,7 +50,7 @@ export function parseShotIntent(value:unknown):ShotIntent{
  if(v.spin!==undefined){const s=object(v.spin,['side','vertical','strength'],'Spin');spin={side:member(s.side,SPIN_SIDES,'spin side'),vertical:member(s.vertical,VERTICAL_SPINS,'vertical spin'),strength:member(s.strength,SPIN_STRENGTHS,'spin strength')}}
  return {schemaVersion:1,actor:member(v.actor,players,'actor'),type:member(v.type,SHOT_TYPES,'shot type'),target,
   pace:member(v.pace,PACES,'pace'),shape:member(v.shape,SHAPES,'shape'),intendedNetClearance:number(v.intendedNetClearance,0,Infinity,'net clearance'),
-  tacticalIntent:member(v.tacticalIntent,TACTICS,'tactical intent'),aggression:number(v.aggression,0,1,'aggression'),source:member(v.source,INPUT_SOURCES,'input source'),...(spin?{spin}:{}),...(v.technique!==undefined?{technique:member(v.technique,['atp'] as const,'technique')}:{})};
+  tacticalIntent:member(v.tacticalIntent,TACTICS,'tactical intent'),aggression:number(v.aggression,0,1,'aggression'),source:member(v.source,INPUT_SOURCES,'input source'),...(spin?{spin}:{}),...(v.technique!==undefined?{technique:member(v.technique,['atp','erne'] as const,'technique')}:{})};
 }
 /** Compare normalized intent semantics; input provenance cannot change execution. */
 export function sameShotIntent(a:ShotIntent,b:ShotIntent):boolean{

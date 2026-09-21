@@ -1,3 +1,4 @@
+import {samplePlayerJump} from './erne';
 import {parseShotIntent,sameShotIntent} from './shot-intent';
 import {sampleFlight,sampleFlightVelocity} from './trajectory';
 import {COURT, SKILLS, type Contact, type GameState, type PlayerId, type RallyProvider, type RallyShot, type RallyStage, type ShotIntent, type Vec3, type FlightLeg} from './model';
@@ -19,7 +20,7 @@ export function sampleVelocity(leg:FlightLeg,t:number):Vec3 {
 /** Pause three quarters of the way to the earliest available receiving contact. */
 export function receptionPauseTime(shot:RallyShot){
  const duration=(legs:FlightLeg[])=>legs.reduce((sum,leg)=>sum+leg.duration,0);
- return .75*Math.min(duration(shot.legs),...Object.values(shot.receptionChoice??{}).map(branch=>duration(branch.legs)));
+ return Math.min(.75*Math.min(duration(shot.legs),...Object.values(shot.receptionChoice??{}).map(branch=>duration(branch.legs))),...Object.values(shot.receptionChoice??{}).flatMap(branch=>branch.jump?[branch.jump.start]:[]));
 }
 export function flightCursor(legs:FlightLeg[],time:number){
  let legIndex=0,elapsed=time;
@@ -93,7 +94,7 @@ export class RallyEngine {
   const v=parseShotIntent(value);
   const shot=this.options.find(({intent})=>sameShotIntent(v,intent));
   if(!shot)throw new Error('Choose an available shot intent for this contact.');
-  this.activeShot=structuredClone(shot);
+  this.activeShot=structuredClone(shot);this.state.incomingPopUp=!!shot.feedback?.popUp;
   this.receptionPrompt=false;
   this.state.stage=classifyStage(this.state.shotHistory.length,shot.intent,this.state.players);
   this.state.shotHistory.push({...structuredClone(shot.intent),source:v.source});
@@ -110,7 +111,7 @@ export class RallyEngine {
   const branch=structuredClone(selected);
   if(this.shotElapsed>=branch.legs.reduce((sum,leg)=>sum+leg.duration,0))throw new Error('The reception choice is no longer available.');
   Object.assign(this.state,flightCursor(branch.legs,this.shotElapsed));
-  this.activeShot.legs=branch.legs;this.activeShot.positions=branch.positions;this.activeShot.resolution=branch.resolution;delete this.activeShot.receptionChoice;
+  this.activeShot.jump=branch.jump;this.activeShot.legs=branch.legs;this.activeShot.positions=branch.positions;this.activeShot.resolution=branch.resolution;delete this.activeShot.receptionChoice;
   this.receptionPrompt=false;this.state.paused=false;
  }
 
@@ -180,7 +181,7 @@ export class RallyEngine {
    this.state.ball.velocity=sampleVelocity(leg,this.state.elapsed/leg.duration);
    const total=this.shot.legs.reduce((sum,l)=>sum+l.duration,0);
    const alpha=Math.min(1,this.shotElapsed/total),smooth=alpha*alpha*(3-2*alpha);
-   for(const player of this.state.players){const from=this.movementStart[player.id],to=this.shot.positions[player.id];player.position={x:from.x+(to.x-from.x)*smooth,y:0,z:from.z+(to.z-from.z)*smooth}}
+   for(const player of this.state.players){const delay=player.id===this.shot.actor?(this.shot.recoveryDelay??0):0;const progress=delay?Math.max(0,Math.min(1,(this.shotElapsed-delay)/Math.max(.001,total-delay))):alpha;const movement=delay?progress*progress*(3-2*progress):smooth;const from=this.movementStart[player.id],to=this.shot.positions[player.id];player.position=this.shot.jump?.playerId===player.id?samplePlayerJump(this.shot.jump,this.shotElapsed):{x:from.x+(to.x-from.x)*movement,y:0,z:from.z+(to.z-from.z)*movement}}
    if(pauseForReception&&this.acceptCommittedBoundary())return;
    if(pauseForReception){
     // A pause exactly at a bounce owns that boundary before either branch resumes.

@@ -1,3 +1,6 @@
+import {serveDotCount,updateServeIndicator} from '../serve-indicator';
+import {atpWinner} from '../atp-celebration';
+import {openPlayerDetails} from '../player-details';
 import {thinkingOpponent} from './thinking';
 import {AvatarThumbnails} from '../avatar-preview';
 import {FriendSearch} from './friend-search';
@@ -129,10 +132,12 @@ leaveGame.onclick=()=>{
 const GAME_END_PAUSE_MS=2500;
 let gameEndReadyAt:number|null=null;
 function syncGameEnd(){const s=session?.state;
+ if(scene?.celebratingAtp||scene?.reactingToHit)return;
  if(gameEnd.open){if(s)renderCompletion(s);return;}
  // Preserve replay-first return: the final landing and pause finish before the result.
- if(replayActive()||!s||s.status!=='completed'||animation.length||session?.busy||session?.pending||el('remote-game').hidden||document.hidden||settings.open){gameEndReadyAt=null;return;}
- gameEndReadyAt??=performance.now()+GAME_END_PAUSE_MS;
+ if(replayActive()||!s||s.status!=='completed'||animation.length||session?.busy||session?.pending||el('remote-game').hidden||document.hidden||settings.open){gameEndReadyAt=null;if(replayActive()||!s||s.status!=='completed'||el('remote-game').hidden)scene?.cancelMatchCelebration();return;}
+ if(!s.endedEarly&&scene&&!scene.finishMatch(s.id,s.score,s.viewerTeam,opponentLabel(s)))return;
+ gameEndReadyAt??=performance.now()+(s.endedEarly?GAME_END_PAUSE_MS:0);
  if(performance.now()<gameEndReadyAt)return;
  renderCompletion(s);clearTarget();settings.close();gameEnd.showModal();
  rematchFlow.reset(s.id,session!.owner);void rematchFlow.refresh();rematch.focus();
@@ -248,6 +253,9 @@ function render(){
  el('remote-score-format').textContent=`${s.rules.scoring==='rally-doubles'?'Rally':'Side-out'} to ${s.rules.target}`;
  el('remote-home-names').textContent=own.map(id=>s.roster[id].name).join(' & ');el('remote-away-names').textContent=other.map(id=>s.roster[id].name).join(' & ');
  el('remote-home-score').textContent=String(s.score[s.viewerTeam]);el('remote-away-score').textContent=String(s.score[s.viewerTeam==='home'?'away':'home']);
+ const serverNumber=s.rules.scoring==='rally-doubles'?1:s.serverNumber??(/[-–]2$/.test(s.serveCall)?2:1);
+ updateServeIndicator(el('remote-home-score').closest<HTMLElement>('.score-row')!,serveDotCount(s.viewerTeam,s.server,serverNumber,s.status==='completed'));
+ updateServeIndicator(el('remote-away-score').closest<HTMLElement>('.score-row')!,serveDotCount(s.viewerTeam==='home'?'away':'home',s.server,serverNumber,s.status==='completed'));
  const lastActor=s.animation.at(-1)?.actor;
  const ownMove=!!lastActor&&s.display.players.find(p=>p.id===lastActor)?.team===s.viewerTeam;
  const hideCommentary=session.busy||!!session.pending||(ownMove&&!s.result);
@@ -271,7 +279,7 @@ async function open(id:string){rematchFlow.reset();completionKey='';gameEnd.clos
  const credentials=await matchCredentials();if(account&&credentials.owner!==account)throw new Error('Account changed. Reload remote play.');account=credentials.owner;guestPlayer=!!(await authClient()?.auth.getSession())?.data.session?.user.is_anonymous;config=await remoteRequest<RemoteConfig>(credentials.token,'/api/multiplayer/config');el('remote-account').textContent=`Signed in as ${accountLabel()}`;el('remote-login').hidden=true;el('remote-sign-out').hidden=false;
  el('remote-setup').hidden=true;el('remote-lobby').hidden=true;el('remote-game').hidden=false;document.body.classList.add('remote-playing');
  const url=new URL(location.href);url.searchParams.delete('invite');url.searchParams.set('match',id);history.replaceState(null,'',url);
- if(!scene){await preloadAthletes();scene=new CourtScene(el('remote-court'),()=>{});scene.setGuides(flightGuides);scene.setPlayerNames(playerNames);targetPicker=new CourtTargetPicker(remoteTargeting(()=>session,skip,status,()=>!pointCelebrating()&&!replayActive()&&(!guestStep(session?.state??null,guestPlayer)||!animation.length),point=>!session?.state||guestTargetAllowed(session.state,guestStep(session.state,guestPlayer),point)),scene);}
+ if(!scene){await preloadAthletes();scene=new CourtScene(el('remote-court'),id=>{const state=session?.state,player=state?.roster[id];if(!state||!player)return;clearTarget();const team=state.display.players.find(p=>p.id===id)?.team;openPlayerDetails(player,team===state.viewerTeam?'Your team':'Opponent','',document.activeElement instanceof HTMLElement?document.activeElement:undefined);});scene.setGuides(flightGuides);scene.setPlayerNames(playerNames);targetPicker=new CourtTargetPicker(remoteTargeting(()=>session,skip,status,()=>!pointCelebrating()&&!replayActive()&&(!guestStep(session?.state??null,guestPlayer)||!animation.length),point=>!session?.state||guestTargetAllowed(session.state,guestStep(session.state,guestPlayer),point)),scene);}
 
  session=new RemoteSession(account,id,matchCredentials,remoteRequest,browserStorage,render);render();await session.refresh();if(session.state&&!session.offline)browserStorage.setItem(`pickle-remote:${account}:${id}:opened`,'1');if(session.pending)await session.retry();
 }
@@ -452,7 +460,7 @@ function frame(now:number){
   else if(animation.length){playbackElapsed+=Math.max(0,Math.min(now-lastFrame,100))*playbackSpeed;const segment=animation[0],sample=samplePlayback(segment,playbackElapsed),progress=sample.progress;
    playbackSounds.update(segment,progress,cue=>sounds.play(cue));
    display.ball.position=sample.position;display.players=sample.players;display.elapsed=progress*segment.duration;display.phase='flight';display.paused=false;display.simulationTime=now/1000;shot=animationShot(segment,display);
-   if(progress===1){animation.shift();animationStart=now;playbackElapsed=0;if(!animation.length){const result=session?.state?.result;if(result){if(result.reason==='net')sounds.play('net');sounds.play(result.winner===session!.state!.viewerTeam?(session!.state!.status==='completed'?'match-win':'point-win'):'point-loss');}if(session?.state?.result&&session.state.status==='active'){pointPauseRemaining=3000;display.paused=true;clearTarget();}else skip();}}
+   if(progress===1){animation.shift();animationStart=now;playbackElapsed=0;if(!animation.length){const result=session?.state?.result;const atpTeam=atpWinner(segment.intent,result,display.players);if(atpTeam)scene.celebrateAtp(atpTeam,now/1000);if(result){if(result.reason==='body-hit'&&result.playerId)scene.reactToHit(result.playerId,sample.position.y,now/1000);if(result.reason==='net')sounds.play('net');sounds.play(result.winner===session!.state!.viewerTeam?(session!.state!.status==='completed'?'match-win':'point-win'):'point-loss');}if(session?.state?.result&&session.state.status==='active'){pointPauseRemaining=3000;display.paused=true;clearTarget();}else skip();}}
   }
   scene.setNextHitter(session?.state?.status==='active'&&!pointCelebrating()&&!replayActive()?session.state.nextHitter??null:null);
   scene.render(display,now/1000,shot,session?.state?.status==='active'&&!replayActive()&&!pointCelebrating()?session.state.serveCall:null,thinkingOpponent(session?.state??null,!!animation.length||replayActive()||pointCelebrating()||settings.open||gameEnd.open||trashTalk.isOpen));document.getElementById('match-loading')?.remove();trashTalk.frame(scene,display,replayActive()?replayTime:null,!el('remote-game').hidden&&!settings.open&&!gameEnd.open);targetPicker?.sync(!el('remote-game').hidden&&!settings.open&&!trashTalk.isOpen&&!gameEnd.open&&!pointCelebrating()&&!replayActive());
