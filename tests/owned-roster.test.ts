@@ -5,7 +5,7 @@ import {build} from 'esbuild';
 test('owned roster removal preserves designs, persists across reload, and failed saves do not remove players',async()=>{
  const result=await build({entryPoints:['src/roster-membership.ts'],bundle:true,write:false,format:'iife',globalName:'Roster',plugins:[{name:'boundaries',setup(b){
   b.onResolve({filter:/.*/},a=>a.kind==='entry-point'?undefined:{path:a.path,namespace:'mock'});
-  b.onLoad({filter:/.*/,namespace:'mock'},({path})=>({contents:path.includes('auth-session')?'export const authClient=()=>globalThis.client;':path.includes('player-looks')?'export const LOOKS=[];':path.includes('browser-storage')?'export const browserStorage=globalThis.storage;':'export const newPlayer=id=>({id});'}));
+  b.onLoad({filter:/.*/,namespace:'mock'},({path})=>({contents:path.includes('auth-session')?'export const authClient=()=>globalThis.client;':path.includes('skill-budget')?'export const normalizeSkillBudget=skills=>skills;':path.includes('player-looks')?'export const LOOKS=[];':path.includes('browser-storage')?'export const browserStorage=globalThis.storage;':'export const newPlayer=id=>({id});'}));
  }}]});
  const metadata:any={},values=new Map<string,string>();let fail=false;
  const client={auth:{getSession:async()=>({data:{session:{user:{id:'owner',user_metadata:metadata}}}}),updateUser:async({data}:any)=>{if(fail)return {error:Error('offline')};Object.assign(metadata,data);return {error:null}}}};

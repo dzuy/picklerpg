@@ -19,7 +19,7 @@ async function client({installed=true,permission='default',result='granted',supp
  if(existing)storage.set('pickle-push-owner','account-a');
  const context:any={console,URL,Uint8Array,atob,btoa,isSecureContext:true,navigator:{userAgent:ios?'iPhone':'Chrome',platform:'',maxTouchPoints:0,serviceWorker:{register:async()=>reg,ready:Promise.resolve(reg)}},matchMedia:()=>({matches:installed,addEventListener(){}}),setTimeout,setInterval(){},fetch:async(...args:any[])=>{requests.push(args);return {}},credentials:{owner:'account-a',token:'token'},auth:{auth:{onAuthStateChange:(callback:any)=>authCallback=callback}},storage:{getItem:(k:string)=>storage.get(k)??null,setItem:(k:string,v:string)=>storage.set(k,v),removeItem:(k:string)=>storage.delete(k)},request:async(...args:any[])=>{requests.push(args);if(configFails)throw Error('offline');return {publicKey:btoa('test-key')}}};
  const session=new Map();context.sessionStorage={getItem:(k:string)=>session.get(k)??null,setItem:(k:string,v:string)=>session.set(k,v)};
- context.window=context;context.addEventListener=(name:string,callback:any)=>handlers[name]=callback;
+ context.window=context;context.parent=context;context.addEventListener=(name:string,callback:any)=>handlers[name]=callback;
  context.document={createElement:()=>new Element(),body:new Element(),visibilityState:'visible',hasFocus:()=>true,addEventListener:(name:string,cb:any)=>handlers[name]=cb};
  if(supported){context.PushManager={};context.Notification={permission,requestPermission:async()=>{permissionCalls++;context.Notification.permission=result;return result}};}
  vm.runInNewContext(await compiled,vm.createContext(context));

@@ -646,3 +646,6 @@ body[data-screen=start], .roster-route-loading { background: var(--pb-bg); backg
 .target-wheel .target-atp-description{color:var(--pb-shot-text)}
 
 #local-turn-banner:not([hidden]){text-align:left;border-radius:10px;font-style:italic;font-synthesis:style;background:var(--pb-teal);color:var(--pb-white);border-color:var(--pb-teal)}
+
+/* Keep storage guidance clear of the Games/Profile navigation. */
+body:has(#remote-lobby:not([hidden])) .browser-storage-warning,body:has(#player-creator[open]) .browser-storage-warning{bottom:calc(90px + env(safe-area-inset-bottom));}

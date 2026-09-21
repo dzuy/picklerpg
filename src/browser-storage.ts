@@ -1,4 +1,4 @@
-export const STORAGE_UNAVAILABLE_MESSAGE='Browser storage is blocked. You can play, but progress and sign-in will not persist after closing this tab.';
+export const STORAGE_UNAVAILABLE_MESSAGE='Browser storage is blocked. Keep this page open: refreshing or closing it may sign you out. Open the invitation in a regular browser tab to save your sign-in.';
 
 class MemoryStorage implements Storage {
  private values=new Map<string,string>();

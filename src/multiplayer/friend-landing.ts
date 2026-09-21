@@ -10,6 +10,7 @@ import {authClient} from '../auth-session';
 import {browserStorage} from '../browser-storage';
 import {remoteRequest,RemoteError} from './api';
 import {challengeToken} from './challenge-link';
+import {openChallengeGame} from './open-challenge-game';
 import {challengeIdentity,type ChallengeUser} from './challenge-identity';
 const root=document.querySelector<HTMLDivElement>('#app')!;root.className='remote-app friend-page';document.body.dataset.screen='remote';
 root.innerHTML=`<section class="remote-new-game friend-panel"><p class="remote-eyebrow">PICKLEBASH CHALLENGE</p><h1>Opening your challenge…</h1><p id="challenge-copy"></p><h2 id="challenge-matchup"></h2><section id="challenge-team" class="friend-team-dialog" hidden><h2>Your team</h2><div id="challenge-team-cards"></div></section><button id="challenge-accept" class="remote-primary" hidden>Accept Challenge</button><p id="challenge-identity" hidden></p><button id="challenge-switch-player" class="remote-quiet" hidden></button><button id="challenge-sign-in" class="remote-quiet" hidden>Sign in to return</button><form id="challenge-login" hidden aria-label="Sign in to your game"><p>Sign in with the account you saved while playing.</p><label>Email<input id="challenge-email" type="email" autocomplete="username" required></label><label>Password<input id="challenge-password" type="password" autocomplete="current-password" required></label><button class="remote-primary" type="submit">Sign in & return to game</button><button id="challenge-login-back" class="remote-quiet" type="button">Back to challenge</button></form><p role="status" id="challenge-status"></p><a id="challenge-home" href="/?multiplayer=1" hidden>Start a new game</a></section>`;
@@ -52,7 +53,7 @@ async function prepareJoin(session:Session,acceptAs?:string){
  }
  return join(session.access_token,acceptAs);
 }
-function openGame(game:{matchId:string}){location.href=`/?multiplayer=1&match=${game.matchId}`;}
+async function openGame(game:{matchId:string}){await openChallengeGame(game.matchId,()=>import('./remote-main'));}
 form.onsubmit=event=>{event.preventDefault();const submit=form.querySelector<HTMLButtonElement>('[type=submit]')!;if(submit.disabled)return;submit.disabled=true;message.textContent='Returning to your game…';void(async()=>{
  const client=authClient();if(!client)throw Error('The court is temporarily unavailable. Please try again.');
  const {data,error}=await client.auth.signInWithPassword({email:email.value.trim(),password:password.value});
@@ -60,7 +61,7 @@ form.onsubmit=event=>{event.preventDefault();const submit=form.querySelector<HTM
  password.value='';
  // The server validates ownership of the claimed slot before returning the match.
  if(!accepted&&challengeIdentity(data.session.user,invitedName).needsChoice){form.hidden=true;button.hidden=false;showIdentity(data.session.user);message.textContent='';return;}
- form.hidden=true;button.hidden=false;showIdentity(data.session.user);const game=await prepareJoin(data.session);if(game)openGame(game);
+ form.hidden=true;button.hidden=false;showIdentity(data.session.user);const game=await prepareJoin(data.session);if(game)await openGame(game);
  })().catch(e=>{message.textContent=e instanceof RemoteError&&e.status===409?'This account did not accept this challenge. Sign in with the account you used for this game.':e.message;}).finally(()=>{submit.disabled=false;});};
 async function enter(){
  if(!token)throw new RemoteError(404,'challenge','This challenge link is incomplete. Copy Link from the original challenge and try again.');
@@ -71,7 +72,7 @@ async function enter(){
  document.querySelector('#challenge-matchup')!.textContent=`${i.inviterName} vs. ${i.invitedName}`;
  button.hidden=i.status==='cancelled';button.textContent=accepted?'Return to game':'Accept Challenge';signIn.hidden=!accepted;document.querySelector<HTMLElement>('#challenge-home')!.hidden=i.status==='pending';
  if(i.status==='pending'){try{const current=await authClient()?.auth.getSession();showIdentity(current?.data.session?.user??null);}catch{showIdentity(null);}}
- switchPlayer.onclick=()=>{switchPlayer.disabled=true;button.disabled=true;void(async()=>{const client=authClient();if(!client)throw Error('Please try again.');const current=await client.auth.getSession();if(current.data.session?.user.id!==displayedActor||current.data.session.user.is_anonymous){showIdentity(current.data.session?.user??null);throw Error('Your session changed. Please choose your player again.');}const {error}=await client.auth.signOut({scope:'local'});if(error)throw error;showIdentity(null);const fresh=await client.auth.signInAnonymously();if(fresh.error||!fresh.data.session)throw Error('Could not enter the court. Please try Accept Challenge again.');showIdentity(fresh.data.session.user);const game=await join(fresh.data.session.access_token);await client.auth.refreshSession();openGame(game);})().catch(e=>{message.textContent=e.message;}).finally(()=>{switchPlayer.disabled=false;button.disabled=false;});};
+ switchPlayer.onclick=()=>{switchPlayer.disabled=true;button.disabled=true;void(async()=>{const client=authClient();if(!client)throw Error('Please try again.');const current=await client.auth.getSession();if(current.data.session?.user.id!==displayedActor||current.data.session.user.is_anonymous){showIdentity(current.data.session?.user??null);throw Error('Your session changed. Please choose your player again.');}const {error}=await client.auth.signOut({scope:'local'});if(error)throw error;showIdentity(null);const fresh=await client.auth.signInAnonymously();if(fresh.error||!fresh.data.session)throw Error('Could not enter the court. Please try Accept Challenge again.');showIdentity(fresh.data.session.user);const game=await join(fresh.data.session.access_token);await client.auth.refreshSession();await openGame(game);})().catch(e=>{message.textContent=e.message;}).finally(()=>{switchPlayer.disabled=false;button.disabled=false;});};
  if(accepted){try{const current=await authClient()?.auth.getSession();needsSignIn=!current?.data.session||!!current.error;}catch{needsSignIn=true;}if(needsSignIn){button.textContent='Sign in to return';signIn.hidden=true;}}
  button.onclick=()=>{if(needsSignIn){showSignIn();return;}button.disabled=true;void(async()=>{
  const client=authClient();if(!client)throw Error('The court is temporarily unavailable. Please try again.');
@@ -81,7 +82,7 @@ async function enter(){
  if(!accepted&&challengeIdentity(session.user,invitedName).needsChoice&&displayedActor!==session.user.id){showIdentity(session.user);return;}
  const game=await prepareJoin(session,!accepted&&displayedActor===session.user.id?session.user.id:undefined);if(!game)return;
  if(session.user.is_anonymous){const {error}=await client.auth.refreshSession();if(error){showSignIn('Your session expired. Sign in if you saved your player.');return;}}
- openGame(game);
+ await openGame(game);
  })().catch(async e=>{if(e instanceof RemoteError&&e.status===401){needsSignIn=true;showSignIn('Your session expired. Sign in to return to this match.');}else if(e instanceof RemoteError&&e.code==='identity_choice'){const current=await authClient()?.auth.getSession();showIdentity(current?.data.session?.user??null);message.textContent=e.message;}else message.textContent=e.message;}).finally(()=>{button.disabled=false;});};
 }
 void enter().catch(e=>{root.querySelector('h1')!.textContent=e instanceof RemoteError&&e.status===404?'This challenge is no longer available.':'Could not open your challenge.';message.textContent=e.message;document.querySelector<HTMLElement>('#challenge-home')!.hidden=false;});

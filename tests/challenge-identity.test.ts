@@ -11,7 +11,7 @@ test('fresh guests enter as the invited friend, while different named sessions n
 });
 function fixture(anonymous=false,name:string|undefined='Ryan',status='pending'){
  const calls:any[]=[],user={id:actor,is_anonymous:anonymous,user_metadata:{player_name:name},app_metadata:{}};
- const client:any={from:()=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:{invited_name:'Max',status}})})})}),auth:{admin:{getUserById:async()=>({data:{user}}),updateUserById:async(_id:string,value:any)=>{calls.push({metadata:value});return {};}}},rpc:async(_rpc:string,input:any)=>{calls.push(input);return {data:{match_id:'same-match'}};}};
+ const client:any={from:()=>({select:()=>({eq:()=>({maybeSingle:async()=>({data:{invited_name:'Max',status}})})})}),auth:{admin:{getUserById:async()=>({data:{user}}),updateUserById:async(_id:string,value:any)=>{calls.push({metadata:value});return {};}}},rpc:async(rpc:string,input:any)=>{if(rpc==='account_skill_budget')return {data:35,error:null};assert.equal(rpc,'claim_friend_challenge');calls.push(input);return {data:{match_id:'same-match'}};}};
  return {service:new FriendService(client,{friendOpening:async()=>({openingTeam:'away'})} as any),calls};
 }
 test('server refuses silent Ryan acceptance and permits only confirmation for the authenticated identity',async()=>{
