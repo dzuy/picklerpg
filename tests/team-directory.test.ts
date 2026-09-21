@@ -47,3 +47,10 @@ test('community identity uses unique usernames instead of duplicate display name
  const bot=lobbyTeam('bot','Luna',{username:'luna_lobs',player_name:'Luna'});
  assert.equal(first.manager,'luna');assert.equal(bot.manager,'luna_lobs');assert.notEqual(first.name,bot.name);
 });
+
+ test('accepted anonymous guests stay out of the account directory until registration',async()=>{
+ const self={id:'self',user_metadata:{}},guest={id:'guest',is_anonymous:true,user_metadata:{player_name:'Maeling'},app_metadata:{multiplayer_playtest:true,friend_guest:true}},registered={...guest,id:'registered',is_anonymous:false,user_metadata:{username:'maeling'}};
+ const client={auth:{admin:{getUserById:async()=>({data:{user:self},error:null}),listUsers:async()=>({data:{users:[self,guest,registered]},error:null})}}} as unknown as SupabaseClient;
+ const result=await new TeamDirectoryService(client,new Map([['guest','Maeling'],['registered','maeling']])).list('self');
+ assert.deepEqual(result.teams.map(t=>t.id),['registered']);
+ });

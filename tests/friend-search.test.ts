@@ -30,6 +30,6 @@ test('keyboard and pointer selection retain account ID; edits and new names clea
   input.value='pet';input.fire('input');const scrollOption=list.children[0];scrollOption.fire('pointerdown',touch);scrollOption.fire('pointermove',{...touch,clientY:80});scrollOption.fire('pointerup',{...touch,clientY:80});scrollOption.fire('click');assert.equal(selected,null,'scrolling must not select a friend');
   input.fire('input');const cancelled=list.children[0];cancelled.fire('pointerdown',touch);cancelled.fire('pointercancel');cancelled.fire('click');assert.equal(selected,null,'cancelled touch must not select a friend');
   input.value='New friend';input.fire('input');assert.equal(selected,null);assert.equal(host.children[1].hidden,true);
-  search.reset(teams[2]);assert.equal((selected as LobbyTeam|null)?.id,'3');search.reset();assert.equal(selected,null);assert.equal(input.value,'');
+  search.reset(teams[2]);assert.equal((selected as LobbyTeam|null)?.id,'3');host.children[2].fire('click');assert.equal(selected,null,'explicit link invitation must clear the selected account');assert.equal(input.value,'rocket','guest invite keeps the entered name');assert.match(hint.textContent,/without registering/);search.reset();assert.equal(selected,null);assert.equal(input.value,'');
  }finally{if(previous)Object.defineProperty(globalThis,'document',previous);else Reflect.deleteProperty(globalThis,'document');}
 });
