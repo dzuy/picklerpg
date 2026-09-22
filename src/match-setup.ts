@@ -1,21 +1,18 @@
+import {fillSetupPlayerCard} from './setup-player-card';
+import {courtSelector} from './court-selector';
 import {COURT_LOCATIONS,type CourtLocation} from './locations';
 import {rosterStarters} from './roster-membership';
 import {CommunitySection} from './community-section';
 import {refreshCommunityDesigns} from './community-players';
 import {DEFAULT_RULES,isValidTargetScore,type ScoringMode} from './engine/scoring';
 import {type PlayMode} from './engine/controllers';
-import {AvatarThumbnails} from './avatar-preview';
-import {LOOKS} from './player-looks';
 import type {DesignedPlayer} from './player-design';
-import {summarizeSkills} from './player-skill-summary';
 import {cyclePlayer,setupLineup,shufflePlayers,validLineup} from './match-setup-state';
 import type {PlayerId} from './engine/model';
 import './match-setup.css';
 const slots:PlayerId[]=['you','partner','opponent-left','opponent-right'];
 const labels=['Your player','Your partner','Opponent 1','Opponent 2'];
-const assets='/assets/picklebash-select';
 const graphics='/assets/picklebash-ui';
-const escape=(text:string)=>text.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
 const courts=COURT_LOCATIONS.map(c=>({...c,playable:true}));
 export class MatchSetup {
  readonly element=document.createElement('main');
@@ -27,7 +24,6 @@ export class MatchSetup {
  private starting=false;
  private async startSelected(){if(this.starting||!this.canStart())return;this.starting=true;const button=this.element.querySelector<HTMLButtonElement>('[data-action=start]')!;button.disabled=true;const selection=this.selected.join('|'),mode=this.mode,court=this.court,target=this.target;try{const players=await refreshCommunityDesigns(this.selected.map(id=>this.players.find(p=>p.id===id)!));if(this.element.hidden||this.selected.join('|')!==selection||this.mode!==mode||this.court!==court||this.target!==target)return;this.start(Object.fromEntries(slots.map((slot,i)=>[slot,players[i]])) as Record<PlayerId,DesignedPlayer>,mode,court,target);}catch(e){const status=this.element.querySelector<HTMLElement>('[role=status]')!;status.className='setup-community-error';status.textContent=(e as Error).message;}finally{this.starting=false;button.disabled=!this.canStart();}}
  private selected:string[]=[];
- private portraits:AvatarThumbnails|undefined;
  private court:CourtLocation='venice';
  private mode:PlayMode='solo';
  private scoring:ScoringMode='rally-doubles';
@@ -91,24 +87,21 @@ export class MatchSetup {
  private render(){
   const labels=['Team A athlete 1','Team A athlete 2','Team B athlete 1','Team B athlete 2'];
   const chosen=this.selected.map(id=>this.players.find(p=>p.id===id)!);
-  const card=(i:number)=>{
-   const player=chosen[i],look=LOOKS.find(p=>p.name===player.name),rating=summarizeSkills(player.skills).estimatedDupr.toFixed(2);
-   const preset=LOOKS.findIndex((p,index)=>player.id===`preset-${index}`&&JSON.stringify(p.appearance)===JSON.stringify(player.appearance));
-   let image=preset>=0&&preset<4?`${assets}/players/${['ema','leo','maya','jax'][preset]}-card-art.jpg`:'';
-   const illustrated=Boolean(image);
-   if(!image)try{this.portraits??=new AvatarThumbnails(512);image=this.portraits.get(player.appearance,`hand-${player.handedness}`)}catch{}
-   return `<article class="setup-player ${i===0?'setup-you':''}" data-card-slot="${i}" aria-label="${labels[i]}: ${escape(player.name)}" style="--player-color:${escape(player.appearance.jersey)};--card-accent:${['#FF3D7D','#12E1F3','#FFD43B','#FF4F63'][i]}">
+  const card=(i:number)=>`<article data-card-slot="${i}"></article>`;
 
-    <div class="setup-portrait ${illustrated?'setup-illustrated':''}">${image?`<img src="${image}" alt="${escape(player.name)} holding a pickleball paddle" draggable="false">`:`<span class="setup-portrait-fallback" aria-hidden="true">${escape(player.name.slice(0,1))}</span>`}</div>
-    <div class="setup-player-meta"><h2>${escape(player.name)}</h2><p class="setup-role">${escape(look?.role??'Custom player')}</p><p class="setup-rating" title="Game skill estimate, not an official DUPR rating"><span>DUPR</span> <strong>${rating}</strong></p></div>
-    <div class="setup-picker"><button type="button" data-slot="${i}" data-step="-1" aria-label="Previous ${labels[i].toLowerCase()}">‹</button><button type="button" data-slot="${i}" data-step="1" aria-label="Next ${labels[i].toLowerCase()}">›</button></div>
-   </article>`;
-  };
-  const lock='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2" fill="currentColor"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><path d="M12 14v3" stroke="#061A42"/></svg>';
-  this.element.innerHTML=`<div class="setup-shell"><nav class="setup-navigation" aria-label="Game setup navigation"><button type="button" data-action="back"><span aria-hidden="true">←</span> Back</button></nav><header class="setup-top"><p class="setup-motto">Rally friends.<br>Bash hard<span>✧</span></p><img class="setup-logo" src="${assets}/brand/picklebash-logo.png" alt="PickleBash — a pickleball strategy game"><p class="setup-tagline">Small court.<br>Big energy.<span></span></p><h1 id="setup-title" class="setup-sr-only">Open Play · Start a Game</h1></header>
-   <section class="setup-mode" aria-label="Open Play"><h2>Start a Game</h2><p>You manage Team A. Choose your athletes or play the ready matchup.</p></section>
-   <label class="setup-scoring" for="setup-scoring">Scoring rules <select id="setup-scoring"><option value="rally-doubles" ${this.scoring==='rally-doubles'?'selected':''}>Rally · point for every rally</option><option value="side-out-doubles" ${this.scoring==='side-out-doubles'?'selected':''}>Side-out · serving team scores</option></select></label><label class="setup-scoring" for="setup-target">Play to <input id="setup-target" type="number" inputmode="numeric" min="1" max="99" step="1" required value="${Number.isFinite(this.target)?this.target:''}" aria-describedby="setup-win-by"><span id="setup-win-by">points · win by 2</span></label><div class="setup-matchup"><section class="setup-team setup-home" aria-label="${this.mode==='solo'?'Your team':'Player A team'}"><h2 class="setup-team-title">Team A</h2><p class="setup-manager">Managed by you · You choose both athletes’ shots</p><div class="setup-team-players">${card(0)}${card(1)}</div></section><div class="setup-versus" aria-hidden="true"><img src="${graphics}/badges/picklebash-badge-vs.png" alt="" draggable="false"></div><section class="setup-team setup-away" aria-label="${this.mode==='solo'?'Opponent team':'Player B team'}"><h2 class="setup-team-title">Team B</h2><p class="setup-manager">Computer managed · Ready to play</p><div class="setup-team-players">${card(2)}${card(3)}</div></section></div>
-   <div class="setup-lower"><section class="setup-locations" aria-labelledby="setup-location-title"><h2 id="setup-location-title">Choose a location</h2><div class="setup-courts">${courts.map(c=>`<button type="button" data-court="${c.id}" class="setup-court ${c.playable?'setup-playable':'setup-locked'}" ${c.playable?`aria-pressed="${this.court===c.id}"`:'disabled'} aria-label="${c.name}${c.playable?', playable':', locked, coming soon'}"><img src="${c.image}" alt="" draggable="false">${c.playable?'<span class="setup-court-check" aria-hidden="true">✓</span>':`<span class="setup-coming">Coming soon</span><span class="setup-lock">${lock}</span>`}<strong>${c.name}</strong><small>${c.description}</small></button>`).join('')}</div></section><button type="button" class="setup-start" data-action="start" aria-label="Start Match" ${this.canStart()?'':'disabled'}><span>Start Match</span><span aria-hidden="true">↗</span></button></div>
-   <footer class="setup-footer"><button type="button" data-action="random"><span aria-hidden="true">⤨</span> Shuffle matchup</button><p>Choose any player, then let’s play.</p></footer><p class="setup-sr-only" role="status" aria-live="polite" aria-atomic="true"></p></div>`;
+  this.element.innerHTML=`<div class="setup-shell"><header class="setup-page-header"><nav class="setup-navigation" aria-label="Game setup navigation"><button type="button" data-action="back"><span aria-hidden="true">←</span> Back to Play Menu</button></nav><h1 id="setup-title">Play Solo</h1></header>
+   <div class="setup-rules">
+   <label class="setup-scoring" for="setup-scoring">Scoring <select id="setup-scoring"><option value="rally-doubles" ${this.scoring==='rally-doubles'?'selected':''}>Rally scoring</option><option value="side-out-doubles" ${this.scoring==='side-out-doubles'?'selected':''}>Side-out scoring</option></select></label><label class="setup-scoring" for="setup-target">Points limit <input id="setup-target" type="number" inputmode="numeric" min="1" max="99" step="1" required value="${Number.isFinite(this.target)?this.target:''}" aria-describedby="setup-win-by"><span id="setup-win-by">Win by 2</span></label></div><div class="setup-matchup"><section class="setup-team setup-home" aria-label="${this.mode==='solo'?'Your team':'Player A team'}"><h2 class="setup-team-title">Choose Your Players</h2><p class="setup-manager">Managed by you · You choose both athletes’ shots</p><div class="setup-team-players">${card(0)}${card(1)}</div></section><div class="setup-versus" aria-hidden="true"><img src="${graphics}/badges/picklebash-badge-vs.png" alt="" draggable="false"></div><section class="setup-team setup-away" aria-label="${this.mode==='solo'?'Opponent team':'Player B team'}"><div class="setup-opponents-heading"><h2 class="setup-team-title">Choose Your Opponents</h2><button type="button" class="setup-shuffle" data-action="random" aria-label="Shuffle matchup" title="Shuffle matchup"><span aria-hidden="true">⤨</span></button></div><p class="setup-manager">Computer managed · Ready to play</p><div class="setup-team-players">${card(2)}${card(3)}</div></section></div>
+   <div class="setup-lower"><section class="setup-locations" aria-labelledby="setup-location-title"><h2 id="setup-location-title">Choose your court</h2><div class="setup-courts court-selector">${courtSelector(this.court,'data-court')}</div></section><button type="button" class="setup-start" data-action="start" aria-label="Start Game" ${this.canStart()?'':'disabled'}><span>Start Game</span><span aria-hidden="true">↗</span></button></div>
+   <p class="setup-sr-only" role="status" aria-live="polite" aria-atomic="true"></p></div>`;
+  chosen.forEach((player,i)=>{
+   const article=this.element.querySelector<HTMLElement>(`[data-card-slot="${i}"]`)!;
+   const credit=player.id.startsWith('preset-')?'Starting Lineup':player.id.startsWith('community-')?'Community player':this.owned.some(p=>p.id===player.id)?'Your player':'Community player';
+   fillSetupPlayerCard(article,player,credit);
+   const controls=document.createElement('div');controls.className='roster-card-actions';
+   for(const step of [-1,1]){const button=document.createElement('button');button.type='button';button.dataset.slot=String(i);button.dataset.step=String(step);button.textContent=step<0?'‹':'›';button.setAttribute('aria-label',`${step<0?'Previous':'Next'} ${labels[i].toLowerCase()}`);controls.append(button);}
+   article.append(controls);
+  });
+
  }
 }

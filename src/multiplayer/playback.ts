@@ -1,8 +1,16 @@
 import {samplePlayerJump} from '../engine/erne';
-import type {Vec3} from '../engine/model';
+import type {PointResult,Vec3} from '../engine/model';
+import {BODY_HIT_REACTION_SECONDS,type ReplayBodyHit} from '../body-hit-reaction';
 import type {TurnAnimation} from './protocol';
 function lerp(a:Vec3,b:Vec3,t:number):Vec3{if(t===0)return {...a};if(t===1)return {...b};return {x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t,z:a.z+(b.z-a.z)*t};}
 export function playbackDuration(segment:TurnAnimation){return segment.duration}
+export function replayOutcome(segments:TurnAnimation[],result:PointResult|null,time:number){
+ const contact=segments.reduce((sum,segment)=>sum+playbackDuration(segment),0);
+ const last=segments.at(-1),hit=!!last&&result?.reason==='body-hit'&&!!result.playerId;
+ const age=time-contact;
+ const bodyHit:ReplayBodyHit|null=hit&&age>=0&&age<BODY_HIT_REACTION_SECONDS?{player:result.playerId!,height:last!.path.at(-1)!.y,age}:null;
+ return {duration:contact+(hit?BODY_HIT_REACTION_SECONDS:0),bodyHit};
+}
 /** A network receipt can arrive after the timestamp of an already scheduled frame. */
 export function samplePlayback(segment:TurnAnimation,elapsedMs:number){
  const progress=Math.max(0,Math.min(1,elapsedMs/(playbackDuration(segment)*1000))),i=progress*(segment.path.length-1),index=Math.min(segment.path.length-2,Math.floor(i));

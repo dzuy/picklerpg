@@ -19,9 +19,10 @@ test('empty roster exposes roster choices and can recover to an acceptable two-p
  path.includes('browser-storage')?'export const browserStorage={getItem:()=>null};':
  path.includes('athlete')?'export const preloadAthletes=async()=>{};':
  path.includes('avatar-preview')?'export class AvatarThumbnails {get(){return ""}}':
+ path.includes('setup-player-card')?'export const fillSetupPlayerCard=()=>{};':
  path.includes('player-card')?'export const fillPlayerCard=()=>{};':
  path.includes('player-details')?'export const attachPlayerDetails=()=>{};':
- 'export const cyclePlayer=()=>[];'
+ 'export const cyclePlayer=()=>[];export const shufflePlayers=p=>[...p].reverse();'
 }));}}]});
  const context:any={document:{createElement:()=>new Element()},structuredClone};vm.runInNewContext(result.outputFiles[0].text,vm.createContext(context));
  const host=new Element(),picker=new context.Picker.TeamPicker(host);await assert.rejects(picker.freshTeam(),/Add a player/);
@@ -30,4 +31,5 @@ test('empty roster exposes roster choices and can recover to an acceptable two-p
  const seeded=new context.Picker.TeamPicker(new Element(),undefined,[{id:'saved',appearance:{}},{id:'saved',appearance:{}}]);assert.deepEqual(Array.from(await seeded.freshTeam(),(p:any)=>p.id),['saved','saved']);
  context.addRosterPlayers=(players:any[])=>picker.setCommunity(players);
  context.addRosterPlayers([{id:'one',appearance:{}},{id:'two',appearance:{}}]);assert.equal(host.children.includes(picker.community.element),false);assert.deepEqual(Array.from(await picker.freshTeam(),(p:any)=>p.id),['one','one']);
+ await picker.shuffle();assert.deepEqual(Array.from(await picker.freshTeam(),(p:any)=>p.id),['two','one']);
 });

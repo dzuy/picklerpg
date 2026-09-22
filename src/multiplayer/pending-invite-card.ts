@@ -1,3 +1,4 @@
+import {shareIcon} from './share-icon';
 export async function copyInviteLink(value:string){
  if(navigator.clipboard)try{await navigator.clipboard.writeText(value);return;}catch{/* Use the selection fallback on local HTTP previews. */}
  const previous=document.activeElement as HTMLElement|null;
@@ -20,9 +21,8 @@ export function pendingInviteCard(card:HTMLButtonElement,link:()=>Promise<string
   accept.onclick=()=>void respond(incoming.accept);decline.onclick=()=>void respond(incoming.decline);card.onclick=()=>void respond(incoming.accept);
   controls.classList.add('pending-invite-response');controls.append(decline,accept);row.append(card,controls,notice);return row;
  }
- const copy=document.createElement('button');copy.type='button';copy.textContent='Copy Link';
+ const send=document.createElement('button');send.type='button';send.className='pending-invite-share';send.innerHTML=shareIcon;send.setAttribute('aria-label',`Share game with ${_recipient}`);send.title='Share game';
  async function run(button:HTMLButtonElement,action:()=>Promise<void>){button.disabled=true;notice.textContent='';try{await action()}catch(error){if((error as Error).name!=='AbortError')notice.textContent=(error as Error).message||'Please try again.';}finally{button.disabled=false;}}
- copy.onclick=()=>void run(copy,async()=>{await copyInviteLink(await link());notice.textContent='Link copied';});
- if(share){const send=document.createElement('button');send.type='button';send.textContent='Share game';send.onclick=()=>void run(send,async()=>{await share();});controls.append(send);}
- controls.append(copy);row.append(card,controls,notice);return row;
+ send.onclick=()=>void run(send,async()=>{if(share)await share();else{await copyInviteLink(await link());notice.textContent='Link copied';}});
+ controls.append(send);row.append(card,controls,notice);return row;
 }

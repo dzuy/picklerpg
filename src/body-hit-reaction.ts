@@ -1,6 +1,7 @@
 import type {AthletePose} from './athlete-motion';
 import type {PlayerId} from './engine/model';
 export const BODY_HIT_REACTION_SECONDS=1.9;
+export interface ReplayBodyHit {player:PlayerId;height:number;age:number}
 export function bodyHitPose(pose:AthletePose,age:number,headshot:boolean,reduced=false){
  if(age<0||age>=BODY_HIT_REACTION_SECONDS)return;
  const fade=Math.min(1,(BODY_HIT_REACTION_SECONDS-age)/.55);
@@ -28,6 +29,10 @@ export class BodyHitReaction {
   this.bubble.setAttribute('aria-label',this.headshot?'Ouch! Hit in the head!':'Ouch! Hit by the ball!');
  }
  update(time:number){if(time-this.started>=BODY_HIT_REACTION_SECONDS)this.clear()}
+ seek(hit:ReplayBodyHit|null,time:number){
+  this.clear();
+  if(hit&&hit.age>=0&&hit.age<BODY_HIT_REACTION_SECONDS){this.start(hit.player,hit.height,time-hit.age)}
+ }
  clear(){this.player=null;this.bubble.hidden=true}
  pose(id:PlayerId,pose:AthletePose,time:number,reduced:boolean){if(id===this.player)bodyHitPose(pose,time-this.started,this.headshot,reduced)}
  speech(id:PlayerId,point:{x:number;y:number;visible:boolean}){

@@ -1,4 +1,4 @@
-import {BodyHitReaction} from './body-hit-reaction';
+import {BodyHitReaction,type ReplayBodyHit} from './body-hit-reaction';
 import {MatchCelebration} from './match-celebration';
 import {AtpCelebration,atpWinner} from './atp-celebration';
 import {ArizonaDesert} from './arizona-desert';
@@ -20,9 +20,12 @@ export class CourtScene {
  private celebration:AtpCelebration;
  private bodyHit:BodyHitReaction;
  private previousHitPhase='';
+ private replayBodyHit:ReplayBodyHit|null|undefined;
+ setReplayBodyHit(hit:ReplayBodyHit|null|undefined){if(hit===undefined&&this.replayBodyHit!==undefined)this.bodyHit.clear();this.replayBodyHit=hit}
  get reactingToHit(){return this.bodyHit.active}
  reactToHit(player:PlayerId,height:number,time:number){this.bodyHit.start(player,height,time)}
  observeBodyHit(state:GameState,time:number){
+  if(this.replayBodyHit!==undefined){this.bodyHit.seek(this.replayBodyHit,time);this.previousHitPhase=state.phase;return}
   this.bodyHit.update(time);
   if(state.phase==='complete'&&this.previousHitPhase!=='complete'&&state.result?.reason==='body-hit'&&state.result.playerId)this.reactToHit(state.result.playerId,state.ball.position.y,time);
   this.previousHitPhase=state.phase;

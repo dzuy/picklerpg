@@ -1,3 +1,4 @@
+import {fillSetupPlayerCard} from '../setup-player-card';
 import {authClient} from '../auth-session';
 import {playerFromRow} from '../cloud-players';
 import {defaultLineup} from './default-lineup';
@@ -5,7 +6,7 @@ import {rosterStarters,ownedRosterPlayers} from '../roster-membership';
 import {CommunitySection} from '../community-section';
 import {refreshCommunityDesigns} from '../community-players';
 import type {DesignedPlayer} from '../player-design';
-import {cyclePlayer} from '../match-setup-state';
+import {shufflePlayers,cyclePlayer} from '../match-setup-state';
 import {parseLibrary,PLAYER_STORAGE_KEY} from '../player-design';
 import {preloadAthletes} from '../athlete';
 import {AvatarThumbnails} from '../avatar-preview';
@@ -39,14 +40,15 @@ export class TeamPicker {
   }finally{this.host.inert=false;this.host.removeAttribute('aria-busy');}
  }
  get team():TeamSelection{return this.lineup.selected.slice(0,2).map(id=>structuredClone(this.lineup.players.find(p=>p.id===id)!)) as TeamSelection}
+ async shuffle(){await this.ready;const ids=shufflePlayers(this.lineup.players.map(p=>p.id));if(ids.length)this.lineup.selected=[ids[0],ids[1]??ids[0]];this.draw();}
  private draw(){
   this.host.replaceChildren();this.host.className='remote-team-picker roster-grid';
-  const gameSetup=this.host.id==='remote-create-team';
+  const gameSetup=this.host.id==='remote-create-team'||this.host.id==='remote-solo-opponents';
   this.team.forEach((p,i)=>{
    const role=i?'Athlete 2':'Athlete 1',card=document.createElement('article');card.className='roster-card remote-team-card';
-   let portrait='';try{TeamPicker.portraits??=new AvatarThumbnails(384);portrait=TeamPicker.portraits.get(p.appearance,'roster')}catch{}
+   let portrait='';if(!gameSetup)try{TeamPicker.portraits??=new AvatarThumbnails(384);portrait=TeamPicker.portraits.get(p.appearance,'roster')}catch{}
    const credit=gameSetup?(p.id.startsWith('preset-')?'Starting Lineup':p.id.startsWith('community-')?'Community player':this.defaultUsername?`By ${this.defaultUsername}`:'Your player'):role;
-   fillPlayerCard(card,p,credit,portrait);attachPlayerDetails(card,p,gameSetup?'':role,portrait);
+   if(gameSetup)fillSetupPlayerCard(card,p,credit);else{fillPlayerCard(card,p,credit,portrait);attachPlayerDetails(card,p,role,portrait);}
    const controls=document.createElement('div');controls.className='roster-card-actions remote-team-controls';for(const step of [-1,1]){const button=document.createElement('button');button.type='button';button.dataset.teamSlot=String(i);button.dataset.teamStep=String(step);button.textContent=gameSetup?(step<0?'‹':'›'):(step<0?'‹ Previous':'Next ›');button.setAttribute('aria-label',`${step<0?'Previous':'Next'} ${i?'partner':'player'}`);button.onclick=()=>{this.lineup.selected=cyclePlayer(this.lineup.players.map(p=>p.id),this.lineup.selected.slice(0,2),i,step);this.draw();this.host.querySelector<HTMLButtonElement>(`[data-team-slot="${i}"][data-team-step="${step}"]`)?.focus()};controls.append(button)}
    card.append(controls);this.host.append(card);
   });

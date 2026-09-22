@@ -2,7 +2,6 @@ import {rivalryProfile,rivalryCardStory} from './rivalry-view';
 import type {MatchRivalry} from './rivalry';
 import './rivalry.css';
 import type {ActivityRewards} from '../activity-rewards';
-import {openGameSurface} from '../game-surface';
 import {appNavigation,initialLobbyPage,type LobbyPage} from '../app-navigation';
 import {profilePanel} from './profile';
 import {AvatarThumbnails} from '../avatar-preview';
@@ -12,8 +11,6 @@ import {remoteRequest} from './api';
 import type {profileRecord} from '../profile-record';
 import type {LobbyTeam,TeamDirectory} from './team-directory';
 import './team-lobby.css';
-const friendsPlayIcon='<rect x="9" y="8" width="21" height="29" rx="6" transform="rotate(-20 20 22)"/><path d="m25 37 6 17"/><rect x="49" y="8" width="21" height="29" rx="6" transform="rotate(20 60 22)"/><path d="m55 37-6 17"/><circle cx="40" cy="13" r="4"/>';
-const soloPlayIcon='<rect x="24" y="6" width="25" height="32" rx="7" transform="rotate(20 36 22)"/><path d="m31 38-6 17"/><circle cx="59" cy="43" r="6"/>';
 function node<K extends keyof HTMLElementTagNameMap>(tag:K,cls:string,text=''){const e=document.createElement(tag);e.className=cls;e.textContent=text;return e;}
 export class TeamLobby {
  readonly element=node('section','team-lobby');
@@ -80,27 +77,8 @@ export class TeamLobby {
   }
   if(this.tab==='profile')directory.append(profilePanel(this.portraits,this.actions.authenticate,this.actions.signOut));
   const aside=node('div','team-lobby-header-actions');
-  const solo=this.button('Play Solo',()=>openGameSurface(),'team-lobby-primary team-lobby-create lobby-play-solo');
-  const create=this.button('Play With Friends',this.actions.create,'team-lobby-primary team-lobby-create');
-  for(const [button,icon] of [[create,friendsPlayIcon],[solo,soloPlayIcon]] as const){
-   const label=node('span','lobby-play-label',button.textContent??'');
-   const art=node('span','lobby-play-icon');art.setAttribute('aria-hidden','true');art.innerHTML=`<svg viewBox="0 0 80 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>`;
-   const arrow=node('span','lobby-play-arrow','↗');arrow.setAttribute('aria-hidden','true');button.replaceChildren(art,label,arrow);
-  }
-  aside.append(create,solo);
-  if(this.tab==='games'){
-   const start=node('section','play-start');start.setAttribute('aria-label','Start playing');
-   const intro=node('div','play-start-intro');intro.append(node('h2','','How do you want to play?'));
-   const choices=node('div','play-start-choices');
-   const choice=(title:string,description:string,tag:string,icon:string,action:()=>void,kind:string)=>{
-    const card=this.button('',action,`play-start-choice ${kind}`);
-    const art=node('span','play-start-art');art.setAttribute('aria-hidden','true');art.innerHTML=`<svg viewBox="0 0 80 64" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>`;
-    const text=node('span','play-start-text');text.append(node('span','play-start-tag',tag),node('strong','',title),node('span','play-start-description',description));
-    const arrow=node('span','play-start-arrow','↗');arrow.setAttribute('aria-hidden','true');card.append(art,text,arrow);return card;
-   };
-   choices.append(choice('Play With Friends','Invite a friend. Take turns strategizing your shots. Build your rivalry.','BETTER WITH FRIENDS',friendsPlayIcon,this.actions.create,'play-start-social'),choice('Play Solo','Take down the bots. Learn patterns and shot types at your own pace.','READY WHEN YOU ARE',soloPlayIcon,()=>openGameSurface(),'play-start-solo'));
-   start.append(intro,choices);directory.append(start);
-  }
+  const create=this.button('Create a Game',this.actions.create,'team-lobby-primary team-lobby-create');aside.append(create);
+
   grid.append(directory);if(this.tab==='games')heading.append(aside);this.element.append(heading,grid,nav);
   const status=node('p','team-lobby-status',this.message);status.setAttribute('role','status');this.element.append(status);
  }

@@ -1,3 +1,4 @@
+import {parseSoloLaunch} from './solo-launch';
 import {serveDotCount,updateServeIndicator} from './serve-indicator';
 import {closeGameSurface} from './game-surface';
 import {hudButtonIcon} from './hud-button';
@@ -43,7 +44,7 @@ const directGame=rosterRoute.has('game')||rosterRoute.get('newgame')==='1';
 let onStartScreen=true;
 document.body.dataset.screen='start';
 const startScreen=document.createElement('main');startScreen.id='start-screen';startScreen.setAttribute('aria-labelledby','start-title');
-startScreen.innerHTML=`<h1 id="start-title" class="start-accessible-title">PickleBash</h1><div class="start-stage"><img class="start-background" src="/images/start/background.png" alt="" fetchpriority="high"><nav class="start-actions" aria-label="Main menu"><button id="start-multiplayer" aria-label="Open Play"><span>Open Play</span><span aria-hidden="true">↗</span></button><button id="start-roster" aria-label="Roster" disabled><span>Roster</span><span aria-hidden="true">→</span></button></nav><p class="start-loading" role="status">Getting the court ready…</p></div>`;
+startScreen.innerHTML=`<h1 id="start-title" class="start-accessible-title">PickleBash</h1><div class="start-stage"><img class="start-background" src="/images/start/background.png" alt="" fetchpriority="high"><nav class="start-actions" aria-label="Main menu"><button id="start-multiplayer" aria-label="Let's Play!"><span>Let's Play!</span><span aria-hidden="true">↗</span></button></nav><p class="start-loading" role="status">Getting the court ready…</p></div>`;
 startScreen.hidden=directRoster||directGame;
 document.body.append(startScreen);
 const rosterLoading=document.createElement('div');
@@ -166,7 +167,7 @@ creator=new PlayerCreator(player=>{
  if(match.isLocalHuman)return;
  match.practice=null;match.setPlayerDesign(player);scene.setPlayerDesign(player);
  syncRosterNames();
- if(onStartScreen)showMatchSetup();
+ if(onStartScreen){location.assign('/?openplay=1&setup=1');return;}
  lastUI='';updateUI();
 },id=>{if(match.isLocalHuman)return;for(const slot of courtSlots)if(match.getPlayerDesign(slot)?.id===id){match.substitutePlayer(slot,null);scene.substitutePlayer(slot,null)}syncRosterNames()},(library,change)=>cloudPlayers.save(library,change));
 // Shot selection lives on the court through the targeting wheel.
@@ -476,7 +477,7 @@ function syncPointResult(dt:number){
 }
 
 let setupReturnsToCourt=false;
-const matchup=new MatchSetup((players,mode,court,target)=>{
+const startConfiguredMatch:ConstructorParameters<typeof MatchSetup>[0]=(players,mode,court,target)=>{
  const save=match.onCheckpoint;match.onCheckpoint=null;
  try{
   applyCourtLocation(court);
@@ -493,7 +494,8 @@ const matchup=new MatchSetup((players,mode,court,target)=>{
  for(const [id,value] of [['partner-autonomy',match.partnerAutonomy],['player-autonomy',match.playerAutonomy]] as const){(byId(id) as HTMLInputElement).checked=value;byId(id+'-state').textContent=value?'On':'Off';}
  matchup.hide();enterCourt(false);
  history.replaceState(null,'',`/?game=${encodeURIComponent(match.matchId)}`);
-},()=>closeGameSurface(),setScoringPreference);
+};
+const matchup=new MatchSetup(startConfiguredMatch,()=>closeGameSurface(),setScoringPreference);
 function showMatchSetup(returnToCourt=false){
  setupReturnsToCourt=returnToCourt;
  voice.stop();voiceHandsFree=false;voiceHandsFreeInput.checked=false;match.stopReplay();
@@ -509,8 +511,7 @@ function enterCourt(fresh=true){
  if(fresh){match.practice=null;reset()}
  onStartScreen=false;document.body.dataset.screen='court';app.inert=false;startScreen.hidden=true;showPanel('play');lastUI='';updateUI();byId('open-settings').focus();
 }
-byId('start-multiplayer').addEventListener('click',()=>location.assign('/?openplay=1'));
-byId('start-roster').addEventListener('click',()=>creator.open());
+byId('start-multiplayer').addEventListener('click',()=>location.assign('/?openplay=1&setup=1'));
 byId('back-to-lobby').addEventListener('click',()=>{if(settingsCloseTimer)window.clearTimeout(settingsCloseTimer);settingsDialog.close();settingsDialog.classList.remove('is-closing');closeGameSurface()});
 document.querySelector('.brand')!.addEventListener('click',event=>{event.preventDefault();showStartScreen()});
 const saveStatus=document.createElement('p');saveStatus.id='local-save-status';saveStatus.setAttribute('role','status');saveStatus.hidden=true;document.body.append(saveStatus);
@@ -536,11 +537,16 @@ function initializeResume(owner:string){
    byId('player-autonomy-state').textContent=match.playerAutonomy?'On':'Off';
    if(requestedGame&&!directRoster)enterCourt(false);
   }
-  if(launchParams.get('newgame')==='1')showMatchSetup();
+  if(launchParams.get('newgame')==='1'&&!launchParams.has('configured'))showMatchSetup();
  }catch(error){showStartScreen();reportSaveError(error);match.onCheckpoint=()=>{throw new Error('Your saved games could not be read. Reload before starting another game.')}}
  finally{if(!directRoster)rosterLoading.hidden=true;resumeReady=true;startScreen.querySelectorAll<HTMLButtonElement>('button').forEach(button=>button.disabled=false);}
 }
-void cloudReady.then(()=>initializeResume(cloudPlayers.accountId??browserStorage.getItem('pickle-rpg-cloud-owner-v1')??'local'));
+void cloudReady.then(()=>{initializeResume(cloudPlayers.accountId??browserStorage.getItem('pickle-rpg-cloud-owner-v1')??'local');
+ if(new URLSearchParams(location.search).has('configured')&&window.parent!==window){
+  const receive=(event:MessageEvent)=>{if(event.origin!==location.origin||event.source!==window.parent||event.data?.type!=='picklebash:start-solo')return;try{const setup=parseSoloLaunch(event.data.setup);setScoringPreference(setup.scoring);startConfiguredMatch(setup.players,'solo',setup.court,setup.target);window.removeEventListener('message',receive);}catch(error){reportSaveError(error);}};
+  window.addEventListener('message',receive);window.parent.postMessage('picklebash:solo-ready',location.origin);
+ }
+});
 // Open roster directly, and return multiplayer visitors to their saved game on close.
 if(directRoster)void cloudReady.then(()=>{
  creator.open();rosterLoading.hidden=true;

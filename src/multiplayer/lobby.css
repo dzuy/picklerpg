@@ -381,7 +381,37 @@ body[data-screen=remote]:has(.friend-page){background:var(--pb-bg,var(--pb-surfa
 #remote-setup #remote-create-team .remote-team-card{background:var(--pb-surface);grid-template-rows:auto auto auto auto;align-content:start;padding:4px;border-color:var(--pb-border)}
 #remote-setup #remote-create-team .roster-card-identity{padding:0}
 #remote-setup #remote-create-team .roster-card-identity .roster-role{font-size:10px;line-height:1.3}
-#remote-setup #remote-create-team .roster-banner{--portrait-height:210px;grid-row:3;height:210px;padding-top:0}
-#remote-setup #remote-create-team .roster-banner img{width:240px;height:240px;left:calc(50% - 120px);bottom:-4px}
 #remote-setup #remote-create-team .remote-team-controls{grid-row:4;margin:10px 6px 6px;gap:8px}
 #remote-setup #remote-create-team .remote-team-controls button{display:grid;place-items:center;min-height:40px;padding:0;font-size:26px;line-height:1;box-shadow:none}
+
+#remote-setup .remote-setup-header{margin:-32px -32px 0;padding:8px 32px;border-radius:0;background:#e4eef2;box-shadow:none;}
+#remote-setup .remote-setup-header h1,#remote-setup .remote-setup-header #remote-cancel-setup{color:var(--pb-text);}
+#remote-setup .remote-setup-header .remote-setup-heading{border-bottom:0;}
+@media(max-width:600px){#remote-setup .remote-setup-header{margin:-20px -16px 0;padding:8px 16px;}}
+
+#remote-setup .remote-setup-header .remote-setup-heading{padding:0;}
+#remote-setup .remote-setup-header h1{margin:0;line-height:1.15;}
+#remote-setup .unified-opponents-heading{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+#remote-setup .unified-opponents-heading h2{margin:0;}
+#remote-setup #setup-shuffle{width:44px;height:44px;padding:0;font-size:25px;background:var(--pb-surface-inset);color:var(--pb-text);border:1px solid var(--pb-border);border-radius:var(--pb-radius-button);}
+#remote-setup .unified-settings-heading{font-size:21px;margin:26px 0 0;}
+#remote-setup #remote-solo-opponents{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin:0;}
+#remote-setup #remote-solo-opponents .remote-team-stat-note{display:none;}
+#remote-setup .unified-opponents #remote-friend-name-field label{margin:0;font-size:13px;font-weight:700;}
+.unified-create-game{width:100%;min-height:60px;}
+
+/* Separate the setup decisions; pink is reserved for the header and primary action. */
+#remote-setup .setup-section-card{margin:20px 0 0;padding:22px;border:1px solid var(--pb-border);border-radius:20px;background:var(--pb-white);box-shadow:0 2px 8px rgba(18,65,85,.035);}
+#remote-setup .setup-section-card>h2{margin:0 0 18px;font-size:21px;letter-spacing:-.5px;}
+#remote-setup .unified-settings-card>.remote-setup-section{padding:0 0 22px;border:0;}
+#remote-setup .unified-settings-card h3{font-size:14px;font-weight:700;margin:0;letter-spacing:0;}
+#remote-setup .unified-settings-card .court-selector{margin-top:12px;}
+#remote-setup .unified-settings-card .remote-setup-fields{padding:22px 0 0;border-top:1px solid var(--pb-border);}
+@media(max-width:600px){#remote-setup .setup-section-card{padding:16px 12px;margin-top:16px;border-radius:16px;}#remote-setup #remote-solo-opponents{gap:10px;}}
+/* Gentle section tints make the three setup decisions easier to scan. */
+#remote-setup .setup-section-card:has(#remote-create-team){background:#f0faff;}
+#remote-setup .setup-section-card.unified-opponents{background:#f5f2ff;}
+#remote-setup .setup-section-card.unified-settings-card{background:#fff9ec;}
+
+#remote-setup .setup-solo-toggle{display:flex;align-items:center;gap:10px;width:fit-content;min-height:44px;margin:0 0 0 auto;flex-shrink:0;cursor:pointer;font-size:14px;font-weight:600;color:var(--pb-text);}
+#remote-setup .setup-solo-toggle input{width:18px;height:18px;min-height:0;margin:0;padding:0;flex:0 0 18px;accent-color:var(--pb-text);cursor:pointer;}

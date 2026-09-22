@@ -24,7 +24,7 @@ export function shareChallenge(i:FriendChallenge,openShare=false){
  const close=d.querySelector('button')!;close.className='friend-share-close';close.setAttribute('aria-label','Close');close.title='Close';close.innerHTML=hudButtonIcon('close');
  const intro=document.createElement('p');intro.className='friend-share-intro';intro.textContent='Share the game link with your friends to start playing.';
  const url=new URL(`/challenge/${i.token}`,location.origin).href,link=document.createElement('input');link.value=url;link.readOnly=true;link.setAttribute('aria-label','Challenge link');link.onclick=()=>link.select();
- const send=button('Send Challenge',true),copy=button('Copy Link'),message=document.createElement('p');message.setAttribute('role','status');
+ const send=button(`Text ${i.invitedName} a link`,true),copy=button('Copy Link'),message=document.createElement('p');message.setAttribute('role','status');
  async function copyLink(){try{await copyInviteLink(url);message.textContent='Link copied.';track('invite_link_copied',i.token);}catch{link.focus();link.select();message.textContent='Select and copy the link above.';}}
  const nativeShare=()=>navigator.share({title:'PickleBash challenge',text:`${i.inviterName} challenged you to PickleBash. Think you can outplay them?`,url});
  send.onclick=()=>{track('invite_share_opened',i.token);if(typeof navigator.share==='function')void nativeShare().catch(e=>{if(e.name!=='AbortError')void copyLink();});else void copyLink();};copy.onclick=()=>void copyLink();

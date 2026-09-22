@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {LOOKS} from '../src/player-looks';
+import {newPlayer} from '../src/player-design';
 import {FriendService} from '../server/multiplayer/friends';
 import {A,B,C} from './helpers/remote';
 test('registration upgrades the authenticated identity, preserves metadata and never creates a replacement user',async()=>{
@@ -22,6 +24,7 @@ test('creating a named challenge never creates or updates a recipient account',a
   if(name==='account_skill_budget')return {data:35};
   assert.equal(name,'create_friend_challenge');created=true;
   assert.equal(input.p_invite.invited_name,'maeling');
+  for(const slot of ['opponent-left','opponent-right']){const design=input.p_match.checkpoint.roster[slot].design;assert.ok(LOOKS.some(look=>Object.entries(look.appearance).every(([key,value])=>design.appearance[key]===value)),'guest appearance comes from a randomized look');assert.deepEqual(design.skills,newPlayer().skills,'appearance selection must not change guest skill levels');}
   return {data:{...input.p_invite,match_id:input.p_match.id,status:'pending'}};
  }};
  const result=await new FriendService(client,matches).create(A,{name:'maeling',requestId:randomUUID(),team:[roster.you,roster.partner]});
