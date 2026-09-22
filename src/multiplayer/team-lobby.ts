@@ -14,6 +14,7 @@ import './team-lobby.css';
 function node<K extends keyof HTMLElementTagNameMap>(tag:K,cls:string,text=''){const e=document.createElement(tag);e.className=cls;e.textContent=text;return e;}
 export class TeamLobby {
  readonly element=node('section','team-lobby');
+ navigation!:HTMLElement;
  private static activeTab:'games'|'friends'|'community'|'roster'|'profile'=initialLobbyPage()==='friends'&&new URLSearchParams(location.search).get('view')==='community'?'community':initialLobbyPage();private get tab(){return TeamLobby.activeTab}private set tab(value:'games'|'friends'|'community'|'roster'|'profile'){TeamLobby.activeTab=value}private static portraits:AvatarThumbnails|undefined;private get portraits(){return TeamLobby.portraits;}
  private static records=new Map<string,{expires:number;value:Promise<(ReturnType<typeof profileRecord>&{activity?:ActivityRewards})>}>();
  private record(person:LobbyTeam){
@@ -79,7 +80,9 @@ export class TeamLobby {
   const aside=node('div','team-lobby-header-actions');
   const create=this.button('Create a Game',this.actions.create,'team-lobby-primary team-lobby-create');aside.append(create);
 
-  grid.append(directory);if(this.tab==='games')heading.append(aside);this.element.append(heading,grid,nav);
+  if(this.navigation?.isConnected)this.navigation.replaceWith(nav);
+  this.navigation=nav;
+  grid.append(directory);if(this.tab==='games')heading.append(aside);this.element.append(heading,grid);
   const status=node('p','team-lobby-status',this.message);status.setAttribute('role','status');this.element.append(status);
  }
  private openFriendProfile(person:LobbyTeam){
