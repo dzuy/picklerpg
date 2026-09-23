@@ -10,7 +10,7 @@ import {authClient} from '../auth-session';
 import {browserStorage} from '../browser-storage';
 import {remoteRequest,RemoteError} from './api';
 import {challengeToken} from './challenge-link';
-import {openChallengeGame} from './open-challenge-game';
+import {openChallengeGame,openChallengeLobby} from './open-challenge-game';
 import {challengeIdentity,type ChallengeUser} from './challenge-identity';
 const root=document.querySelector<HTMLDivElement>('#app')!;root.className='remote-app friend-page';document.body.dataset.screen='remote';
 root.innerHTML=`<section class="remote-new-game friend-panel"><p class="remote-eyebrow">PICKLEBASH CHALLENGE</p><h1>Opening your challenge…</h1><p id="challenge-copy"></p><h2 id="challenge-matchup"></h2><section id="challenge-team" class="friend-team-dialog" hidden><h2>Your team</h2><div id="challenge-team-cards"></div></section><button id="challenge-accept" class="remote-primary" hidden>Accept Challenge</button><p id="challenge-identity" hidden></p><button id="challenge-switch-player" class="remote-quiet" hidden></button><button id="challenge-sign-in" class="remote-quiet" hidden>Sign in to return</button><form id="challenge-register" hidden aria-label="Create your account"><h2>Create your account</h2><p>Save this game so you can come back on any device.</p><label>Player name<input id="challenge-player-name" autocomplete="nickname" maxlength="32" required></label><label>Username<input id="challenge-username" autocomplete="username" minlength="3" maxlength="24" pattern="[A-Za-z0-9_]{3,24}" placeholder="e.g. lunaplays" required><small>Unique · 3–24 letters, numbers, or underscores.</small></label><label>Email<input id="challenge-register-email" type="email" autocomplete="email" required></label><label>Password<input id="challenge-register-password" type="password" autocomplete="new-password" minlength="6" maxlength="128" required></label><button class="remote-primary" type="submit">Create account & play</button><button id="challenge-existing-account" class="friend-auth-switch" type="button">Already have an account? Sign in</button></form><form id="challenge-login" hidden aria-label="Sign in to your game"><h2>Welcome back</h2><p>Sign in with the account you use for PickleBash.</p><label>Email<input id="challenge-email" type="email" autocomplete="username" required></label><label>Password<input id="challenge-password" type="password" autocomplete="current-password" required></label><button class="remote-primary" type="submit">Sign in & continue</button><button id="challenge-login-back" class="friend-auth-switch" type="button">New here? Create an account</button></form><p role="status" id="challenge-status"></p><a id="challenge-home" href="/?multiplayer=1" hidden>Start a new game</a></section>`;
@@ -86,7 +86,20 @@ async function enter(){
  document.querySelector('#challenge-copy')!.textContent=accepted?'This challenge has already been accepted. Return to your game, or sign in if you saved your player.':i.status==='cancelled'?'Start a new game and challenge a friend.':'Think you can outplay them?';
  document.querySelector('#challenge-matchup')!.textContent=`${i.inviterName} vs. ${i.invitedName}`;
  button.hidden=i.status==='cancelled';button.textContent=accepted?'Return to game':'Accept Challenge';signIn.hidden=!accepted;document.querySelector<HTMLElement>('#challenge-home')!.hidden=i.status==='pending';
- if(i.status==='pending'){try{const current=await authClient()?.auth.getSession();if(current?.data.session)showIdentity(current.data.session.user);else showCreateAccount();}catch{showCreateAccount();}}
+ if(i.status==='pending'){
+  const client=authClient();if(!client)throw Error('The court is temporarily unavailable. Please try again.');
+  const current=await client.auth.getSession();if(current.error)throw current.error;
+  let session=current.data.session;
+  if(!session||(session.user.is_anonymous&&!challengeIdentity(session.user,invitedName).needsChoice)){
+   button.hidden=true;message.textContent='Adding your game…';
+   if(!session){const fresh=await client.auth.signInAnonymously();if(fresh.error)throw fresh.error;session=fresh.data.session;}
+   if(!session)throw Error('Could not enter the court. Please reopen your invitation and try again.');
+   await join(session.access_token);
+   const refreshed=await client.auth.refreshSession();if(refreshed.error)throw refreshed.error;
+   await openChallengeLobby(()=>import('./remote-main'));return;
+  }
+  showIdentity(session.user);
+ }
  switchPlayer.onclick=()=>{switchPlayer.disabled=true;button.disabled=true;void(async()=>{const client=authClient();if(!client)throw Error('Please try again.');const current=await client.auth.getSession();if(current.data.session?.user.id!==displayedActor||current.data.session.user.is_anonymous){showIdentity(current.data.session?.user??null);throw Error('Your session changed. Please choose your player again.');}const {error}=await client.auth.signOut({scope:'local'});if(error)throw error;showIdentity(null);const fresh=await client.auth.signInAnonymously();if(fresh.error||!fresh.data.session)throw Error('Could not enter the court. Please try Accept Challenge again.');showIdentity(fresh.data.session.user);const game=await join(fresh.data.session.access_token);await client.auth.refreshSession();await openGame(game);})().catch(e=>{message.textContent=e.message;}).finally(()=>{switchPlayer.disabled=false;button.disabled=false;});};
  if(accepted){try{const current=await authClient()?.auth.getSession();needsSignIn=!current?.data.session||!!current.error;}catch{needsSignIn=true;}if(needsSignIn){button.textContent='Sign in to return';signIn.hidden=true;}}
  button.onclick=()=>{if(needsSignIn){showSignIn();return;}button.disabled=true;void(async()=>{

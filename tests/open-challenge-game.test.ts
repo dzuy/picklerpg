@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {createSafeStorage} from '../src/browser-storage';
-import {openChallengeGame} from '../src/multiplayer/open-challenge-game';
+import {openChallengeGame,openChallengeLobby} from '../src/multiplayer/open-challenge-game';
 
 test('accepted challenges mount the court with the existing memory-only sign-in',async()=>{
  const {storage}=createSafeStorage(()=>{throw new DOMException('Blocked','SecurityError')});
@@ -17,4 +17,14 @@ test('accepted challenges mount the court with the existing memory-only sign-in'
 
 test('court loading failures are returned to invitation error handling',async()=>{
  await assert.rejects(openChallengeGame('match-id',async()=>{throw Error('Offline')},{replaceState:()=>{}}),/Offline/);
+});
+
+test('guest invitations open Games without reloading or losing the guest session',async()=>{
+ const {storage}=createSafeStorage(()=>{throw new DOMException('Blocked','SecurityError')});
+ storage.setItem('auth','guest-session');
+ let route='';
+ await openChallengeLobby(async()=>{
+  assert.equal(route,'/?openplay=1');
+  assert.equal(storage.getItem('auth'),'guest-session');
+ },{replaceState:(_data,_unused,url)=>{route=String(url)}});
 });
