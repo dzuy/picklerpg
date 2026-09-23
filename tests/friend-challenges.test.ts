@@ -25,11 +25,32 @@ test('friend slot exists before account claim; retries, races, cancellation, aut
  let playing=await service.get(i.match_id,changed.current_action_user_id!);for(let turn=0;turn<600&&playing.status!=='completed';turn++){const actor=playing.currentTeam==='home'?A:winner;playing=await service.get(i.match_id,actor);playing=(await service.act(i.match_id,actor,action(playing,turn))).state;}assert.equal(playing.status,'completed');
  const events=(await db.pool.query('select event from public.invite_events where invite_id=$1',[i.id])).rows.map(r=>r.event);for(const event of ['invite_created','invite_accepted','guest_first_turn_completed','guest_character_created','guest_game_completed'])assert.ok(events.includes(event),event);
  const onward=await make(winner);assert.equal((await db.pool.query("select count(*) from public.invite_events where actor_id=$1 and event='guest_sent_first_invite'",[winner])).rows[0].count,1);assert.ok(onward.match_id!==i.match_id);
+
+ // A private invitation restores a lost guest seat without resetting the game.
+ const replacement=winner===B?C:B;
+ const recover=(actor:string,token=i.token)=>repo.query('select public.recover_guest_challenge($1,$2) as value',[token,actor]);
+ await assert.rejects(recover(replacement),/Sign in/);
+ await db.pool.query('update auth.users set is_anonymous=true where id=$1',[winner]);
+ await assert.rejects(recover(replacement),/Sign in/);
+ await db.pool.query('update auth.users set is_anonymous=true where id=$1',[replacement]);
+ await assert.rejects(recover(A),/unavailable/);
+ await assert.rejects(recover(replacement,'invalid-token'),/unavailable/);
+ const completed=(await repo.get(i.match_id,winner))!;
+ await recover(replacement);
+ const restored=(await repo.get(i.match_id,replacement))!;
+ assert.deepEqual(restored.checkpoint,completed.checkpoint);
+ assert.equal(restored.version,completed.version);
+ assert.equal(restored.status,completed.status);
+ assert.equal(await repo.get(i.match_id,winner),null);
+ await recover(replacement);
+ // Registering the recovered player revokes link-only recovery.
+ await db.pool.query('update auth.users set is_anonymous=false where id=$1',[replacement]);
+ await assert.rejects(recover(winner),/Sign in/);
  const cancelled=await make();await claim(A,cancelled.token,true);await assert.rejects(claim(B,cancelled.token));
  assert.equal((await repo.get(cancelled.match_id,A))!.friend_state,'cancelled');
  assert.ok(!(await service.list(A)).some(game=>game.id===cancelled.match_id),'cancelled invitations must leave the game list');
  await assert.rejects(service.get(cancelled.match_id,A),/invitation has been cancelled/);
  await assert.rejects(service.act(cancelled.match_id,A,action(publicMatch({...before,friend_state:undefined},A))),/not ready/);
- for(const role of ['anon','authenticated']){const c=await db.pool.connect();try{await c.query(`set role ${role}`);await assert.rejects(c.query('select * from public.friend_challenges'),/permission denied/);await assert.rejects(c.query('select public.claim_friend_challenge($1,$2,$3,false)',[i.token,B,'Ryan']),/permission denied/);}finally{await c.query('reset role');c.release();}}
+ for(const role of ['anon','authenticated']){const c=await db.pool.connect();try{await c.query(`set role ${role}`);await assert.rejects(c.query('select * from public.friend_challenges'),/permission denied/);await assert.rejects(c.query('select public.recover_guest_challenge($1,$2)',[i.token,B]),/permission denied/);await assert.rejects(c.query('select public.claim_friend_challenge($1,$2,$3,false)',[i.token,B,'Ryan']),/permission denied/);}finally{await c.query('reset role');c.release();}}
  }finally{await db.close();}
 });

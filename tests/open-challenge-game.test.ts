@@ -28,3 +28,9 @@ test('guest invitations open Games without reloading or losing the guest session
   assert.equal(storage.getItem('auth'),'guest-session');
  },{replaceState:(_data,_unused,url)=>{route=String(url)}});
 });
+
+test('guest Games URL retains the private recovery link across refresh',async()=>{
+ let route='';
+ await openChallengeLobby(async()=>{}, {replaceState:(_data,_unused,url)=>{route=String(url)}},'guest-token');
+ assert.equal(route,'/?openplay=1#guestChallenge=guest-token');
+});

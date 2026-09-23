@@ -86,17 +86,20 @@ async function enter(){
  document.querySelector('#challenge-copy')!.textContent=accepted?'This challenge has already been accepted. Return to your game, or sign in if you saved your player.':i.status==='cancelled'?'Start a new game and challenge a friend.':'Think you can outplay them?';
  document.querySelector('#challenge-matchup')!.textContent=`${i.inviterName} vs. ${i.invitedName}`;
  button.hidden=i.status==='cancelled';button.textContent=accepted?'Return to game':'Accept Challenge';signIn.hidden=!accepted;document.querySelector<HTMLElement>('#challenge-home')!.hidden=i.status==='pending';
- if(i.status==='pending'){
+ if(i.status==='pending'||i.status==='accepted'){
   const client=authClient();if(!client)throw Error('The court is temporarily unavailable. Please try again.');
   const current=await client.auth.getSession();if(current.error)throw current.error;
   let session=current.data.session;
-  if(!session||(session.user.is_anonymous&&!challengeIdentity(session.user,invitedName).needsChoice)){
+  if(!session||(session.user.is_anonymous&&(accepted||!challengeIdentity(session.user,invitedName).needsChoice))){
    button.hidden=true;message.textContent='Adding your game…';
    if(!session){const fresh=await client.auth.signInAnonymously();if(fresh.error)throw fresh.error;session=fresh.data.session;}
    if(!session)throw Error('Could not enter the court. Please reopen your invitation and try again.');
-   await join(session.access_token);
+   try{await join(session.access_token);}catch(error){
+    if(accepted&&error instanceof RemoteError&&error.status===409){needsSignIn=true;showSignIn('This game belongs to a saved player. Sign in with that account to return.');return;}
+    throw error;
+   }
    const refreshed=await client.auth.refreshSession();if(refreshed.error)throw refreshed.error;
-   await openChallengeLobby(()=>import('./remote-main'));return;
+   await openChallengeLobby(()=>import('./remote-main'),history,token);return;
   }
   showIdentity(session.user);
  }

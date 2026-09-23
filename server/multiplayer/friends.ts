@@ -40,7 +40,8 @@ export class FriendService {
   const team=!cancel&&i.status==='pending'&&selectedTeam!==undefined?await resolvePublicTeam(this.client,parseTeam(selectedTeam),actor):undefined;
   if(team&&user.is_anonymous)throw new ApiError(400,'team','Guest challenges start with an assigned team.');
   const opening=!cancel&&i.status==='pending'?await this.matches.friendOpening(i.match_id,i.inviter_id,team):null;
-  const {data,error:claimError}=await this.client.rpc('claim_friend_challenge',{p_token:token,p_actor:actor,p_name:name.slice(0,24),p_cancel:cancel,p_guest:!!user.is_anonymous,p_opening_checkpoint:opening,p_selected_team:!!team});this.check(claimError);
+  const recovering=!cancel&&i.status==='accepted'&&i.claimed_user_id!==actor&&user.is_anonymous;
+  const {data,error:claimError}=recovering?await this.client.rpc('recover_guest_challenge',{p_token:token,p_actor:actor}):await this.client.rpc('claim_friend_challenge',{p_token:token,p_actor:actor,p_name:name.slice(0,24),p_cancel:cancel,p_guest:!!user.is_anonymous,p_opening_checkpoint:opening,p_selected_team:!!team});this.check(claimError);
   if(user.is_anonymous&&!cancel){const {error:updateError}=await this.client.auth.admin.updateUserById(actor,{user_metadata:{...user.user_metadata,player_name:name},app_metadata:{...user.app_metadata,multiplayer_playtest:true,friend_guest:true}});this.check(updateError);}
   return {matchId:data.match_id};
  }

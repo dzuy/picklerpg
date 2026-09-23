@@ -122,3 +122,7 @@ Migration `202609140006_community_creator_names.sql` uses the creator's signup p
 ## Current Phase 3 verification
 
 A fresh verification confirmed HTTP 200 from the deployed health endpoint and HTTP 401 from the multiplayer match endpoint without credentials. All 16 focused remote engine/session/playback/targeting, disposable PostgreSQL, and emitted-server HTTP tests passed. This check did not deploy or alter live match data. The user subsequently confirmed successful two-physical-device play and creating/joining friends’ matches. Earlier real-login browser acceptance is documented above.
+
+### Guest invitation recovery (September 23, 2026)
+
+`supabase/migrations/202609230001_recover_guest_challenge.sql` was applied to the shared Supabase database on September 23, 2026. Verified execution access: anon false, authenticated false, service_role true. The private invitation link can recover an accepted guest seat into a fresh anonymous session, preserving the match checkpoint and score. Both the previous and replacement users must still be anonymous; registering the player disables link-only recovery. The client keeps the invitation capability in the URL fragment while in Games so refresh can recover even when browser storage was lost. Treat guest invitation links as private access links.
