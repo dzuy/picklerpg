@@ -11,7 +11,7 @@ export async function communityPlayers(ids?:string[]):Promise<CommunityPlayer[]>
 }
 export async function setCommunityAdded(id:string,added:boolean){
  const client=authClient();if(!client)throw Error('Sign in to add Community Players.');
- const {data:{session}}=await client.auth.getSession();if(!session)throw Error('Sign in to add Community Players.');
+ const {data:{session}}=await client.auth.getSession();if(!session||(added&&session.user.is_anonymous))throw Error('Sign in to add Community Players.');
  const query=client.from('community_player_selections');
  const {error}=added?await query.insert({owner_id:session.user.id,public_id:id}):await query.delete().eq('owner_id',session.user.id).eq('public_id',id);
  if(error&&error.code!=='23505')throw Error('Could not update your Community Players. Please try again.');

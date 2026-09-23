@@ -45,6 +45,10 @@ export class Match {
  get controllers(){return controllersFor(this.mode,this.playerAutonomy,this.partnerAutonomy)}
  private isHuman(actor:PlayerId){return this.controllers[actor].kind==='human'}
  get humanContact(){return this.state.phase==='decision'&&this.state.currentHitter!==null&&this.isHuman(this.state.currentHitter)}
+ get activeHitter(){
+  if(this.receptionDecision)return this.shot.receptionChoice?.airborne?.resolution.receiver??this.shot.receptionChoice?.bounced?.resolution.receiver??null;
+  return this.state.phase==='decision'?this.state.currentHitter:null;
+ }
  get decisionTeam(){
   if(this.receptionDecision){const receiver=this.shot.receptionChoice?.airborne?.resolution.receiver??this.shot.receptionChoice?.bounced?.resolution.receiver;return receiver?teamOf(receiver):null;}
   return this.state.phase==='decision'?this.state.possession:null;
@@ -339,6 +343,18 @@ export class Match {
  private replayPoint:number|null=null;
  get replayScope(){return this.replayKind}
  get replayPointIndex(){return this.replayPoint??this.point}
+ get gameShotHistory(){
+  const history:ShotIntent[]=[];
+  for(const point of this.gameReplay){
+   const seen=new Set<number>();
+   for(let i=0;i<point.frames.length;i++){
+    const frame=point.frames[i],shot=point.shots[i];
+    if(frame.phase!=='flight'||seen.has(frame.shotIndex)||!shot)continue;
+    seen.add(frame.shotIndex);history.push(structuredClone(shot.intent));
+   }
+  }
+  return history;
+ }
  get canReplay(){return !this.thinking&&!this.customBusy&&(this.replayFrames.some(f=>f.phase==='flight')||this.gameReplay.some(p=>p.frames.length>1))}
  startRecentReplay(){
   if(!this.canReplay||this.replayIndex!==null)return;

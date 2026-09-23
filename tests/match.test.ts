@@ -136,6 +136,7 @@ test('game replay includes every point, preserves final state, and clears on New
   if(m.state.phase==='complete'){points++;frames+=m.replayFrames.length;if(!m.scoring.winner)m.nextPoint()}
  }
  assert.ok(m.scoring.winner);assert.equal(m.recordedPoints,points);
+ const shots=m.gameShotHistory;assert.ok(shots.length>0);assert.ok(new Set(shots.map(shot=>shot.actor)).size>1);assert.ok(shots.every(shot=>shot.schemaVersion===1));
  const final=m.snapshot(),pointFrames=m.replayFrames;const names=m.state.players.map(p=>p.name);
  m.startGameReplay();assert.equal(m.replayScope,'game');assert.equal(m.replayFrames.length,frames);assert.ok(frames>pointFrames.length);
  assert.ok(m.replayFrames.every((f,i)=>i===0||f.simulationTime>=m.replayFrames[i-1].simulationTime));
@@ -143,5 +144,5 @@ test('game replay includes every point, preserves final state, and clears on New
  m.pauseReplay();m.scrubReplayTime(0);m.resumeReplay();m.update(.1);assert.ok(m.replayPosition>0);
  m.scrubReplayTime(1e9);assert.equal(m.replayIndex,frames-1);assert.deepEqual(m.snapshot(),final);
  m.stopReplay();assert.equal(m.replayScope,'point');assert.equal(m.replayFrames,pointFrames);assert.deepEqual(m.snapshot(),final);
- m.reset();assert.equal(m.scoring.winner,null);assert.deepEqual(m.scoring.score,{home:0,away:0});assert.equal(m.recordedPoints,0);assert.equal(m.replayIndex,null);assert.deepEqual(m.state.players.map(p=>p.name),names);
+ m.reset();assert.equal(m.scoring.winner,null);assert.deepEqual(m.scoring.score,{home:0,away:0});assert.equal(m.recordedPoints,0);assert.deepEqual(m.gameShotHistory,[]);assert.equal(m.replayIndex,null);assert.deepEqual(m.state.players.map(p=>p.name),names);
 });

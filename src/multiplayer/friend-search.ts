@@ -29,7 +29,7 @@ export class FriendSearch {
    }else if(event.key==='Enter'&&!this.list.hidden&&this.active>=0){event.preventDefault();this.choose(this.matches[this.active]);}
   });
  }
- reset(team?:LobbyTeam){this.input.value=team?.manager??'';this.select(team??null);this.hint.textContent=team?`${team.manager} must sign in to this account to accept.`:'';this.close();}
+ reset(team?:LobbyTeam){this.input.value=team?.manager??'';this.select(team??null);this.hint.textContent='';this.close();}
  private search(){
   this.matches=matchingFriends(this.teams(),this.input.value);this.active=-1;this.list.replaceChildren();this.input.removeAttribute('aria-activedescendant');
   for(const [index,team] of this.matches.entries()){
@@ -56,6 +56,6 @@ export class FriendSearch {
   this.hint.textContent=this.matches.length?'Select an account to invite that player.':'';
  }
  private highlight(){Array.from(this.list.children).forEach((option,index)=>option.setAttribute('aria-selected',String(index===this.active)));this.input.setAttribute('aria-activedescendant',`friend-search-option-${this.active}`);}
- private choose(team:LobbyTeam){this.input.value=team.manager;this.select(team);this.close();this.hint.textContent=`${team.manager} must sign in to this account to accept.`;}
+ private choose(team:LobbyTeam){this.input.value=team.manager;this.select(team);this.close();this.hint.textContent='';}
  private close(){this.list.hidden=true;this.active=-1;this.input.setAttribute('aria-expanded','false');this.input.removeAttribute('aria-activedescendant');}
 }

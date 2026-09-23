@@ -1,3 +1,4 @@
+import {showViewDialog} from './view-focus';
 import {pushActivityState} from './push-activity';
 import {authClient,matchCredentials} from './auth-session';
 import {remoteRequest} from './multiplayer/api';
@@ -21,7 +22,17 @@ let restoringNotifications=true;
 const supported=()=> 'Notification' in window&&'PushManager' in window&&'serviceWorker' in navigator;
 const notificationDismissed=()=>!!owner&&browserSessionStorage.getItem(`pickle-notifications-dismissed:${owner}`)==='1';
 const dismissed=()=>browserStorage.getItem('pickle-install-dismissed')==='1';
-export function showTurnPromptAfterInvite(){eligible=true;render();}
+export function showTurnPromptAfterInvite(){
+ if(!standalone()){showHomeScreenInstructions();return;}
+ eligible=true;render();
+}
+function showHomeScreenInstructions(){
+ const dialog=document.createElement('dialog');dialog.className='turn-install turn-invite-instructions';
+ dialog.setAttribute('aria-labelledby','turn-install-title');
+ dialog.innerHTML='<button type="button" class="turn-install-close" aria-label="Close notification instructions">×</button><h2 id="turn-install-title">Know when it’s your turn</h2><p>Add PickleBash to your Home Screen to get turn notifications.</p><ol><li>Tap <strong>Share</strong> in your phone’s browser.</li><li>Choose <strong>Add to Home Screen</strong>, then tap <strong>Add</strong>.</li><li>Open PickleBash from your Home Screen and enable notifications.</li></ol><p class="turn-install-tip">On Android, look in your browser’s menu for Add to Home Screen or Install app.</p><form method="dialog"><button class="turn-install-done">Got it</button></form>';
+ dialog.querySelector<HTMLButtonElement>('.turn-install-close')!.onclick=()=>dialog.close();
+ document.body.append(dialog);dialog.addEventListener('close',()=>dialog.remove(),{once:true});showViewDialog(dialog);
+}
 export function mountTurnPrompt(host:HTMLElement){
  const dialog=document.createElement('dialog');dialog.className='turn-notification-modal';dialog.setAttribute('aria-labelledby','turn-prompt-title');dialog.setAttribute('aria-describedby','turn-prompt-copy');
  const card=document.createElement('section');card.className='turn-prompt';dialog.append(card);host.append(dialog);
@@ -53,13 +64,13 @@ export function mountTurnPrompt(host:HTMLElement){
    const later=document.createElement('a');later.href='#';later.className='turn-later';later.textContent='Not right now';later.onclick=event=>{event.preventDefault();if(owner)browserSessionStorage.setItem(`pickle-notifications-dismissed:${owner}`,'1');render();};actions.append(later);
   }
   const status=document.createElement('p');status.setAttribute('role','status');status.textContent=message;
-  actions.prepend(button);content.append(title,copy,actions,status);card.append(icon,content);if(!dialog.open)dialog.showModal();
+  actions.prepend(button);content.append(title,copy,actions,status);card.append(icon,content);if(!dialog.open)showViewDialog(dialog);
  };
  render();
 }
 async function install(){
  if(installPrompt){const prompt=installPrompt;installPrompt=null;await prompt.prompt();const choice=await prompt.userChoice;if(choice.outcome==='dismissed')browserStorage.setItem('pickle-install-dismissed','1');render();return;}
- if(ios){const dialog=document.createElement('dialog');dialog.className='turn-install';dialog.innerHTML='<h2>Add PickleBash</h2><ol><li>Tap Share</li><li>Tap Add to Home Screen</li><li>Tap Add</li></ol><form method="dialog"><button>Got it</button></form>';document.body.append(dialog);dialog.addEventListener('close',()=>dialog.remove(),{once:true});dialog.showModal();}
+ if(ios){const dialog=document.createElement('dialog');dialog.className='turn-install';dialog.innerHTML='<h2>Add PickleBash</h2><ol><li>Tap Share</li><li>Tap Add to Home Screen</li><li>Tap Add</li></ol><form method="dialog"><button>Got it</button></form>';document.body.append(dialog);dialog.addEventListener('close',()=>dialog.remove(),{once:true});showViewDialog(dialog);}
 }
 async function enable(){
  if(!supported()||busy)return;busy=true;message='';

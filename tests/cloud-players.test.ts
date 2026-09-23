@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {accountStateForUser,mergePlayerLibraries,playerFromRow} from '../src/cloud-players';
+import {accountPlayerRow,accountStateForUser,mergePlayerLibraries,playerFromRow} from '../src/cloud-players';
 import {newPlayer,type PlayerLibrary} from '../src/player-design';
 
 test('cloud merge retains cloud-only players and gives local edits precedence',()=>{
@@ -30,4 +30,10 @@ test('saved roster players normalize empty database catchphrases before validati
  for(const catchphrase of [null,'']){const player=playerFromRow({...row,catchphrase});assert.equal(player.name,'Ryan');assert.equal(player.catchphrase,undefined);}
  assert.equal(playerFromRow({...row,catchphrase:'Nice shot!'}).catchphrase,'Nice shot!');
  assert.throws(()=>playerFromRow({...row,catchphrase:'x'.repeat(31)}),/catchphrase/);
+});
+
+test('a player transferred after sign-in is added without replacing the existing active player',()=>{
+ const player={...newPlayer('new-roster-player'),name:'Dink Ninja'};
+ const row=accountPlayerRow('existing-account',player);
+ assert.equal(row.owner_id,'existing-account');assert.equal(row.id,player.id);assert.equal(row.name,'Dink Ninja');assert.equal(row.is_active,false);
 });

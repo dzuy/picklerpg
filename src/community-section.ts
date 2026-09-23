@@ -1,4 +1,5 @@
 import {attachPlayerDetails} from './player-details';
+import {canAddToRoster} from './roster-account';
 import {rosterStarters,loadRosterStarters,setStarterAdded} from './roster-membership';
 import {communityPlayers,setCommunityAdded,type CommunityPlayer} from './community-players';
 import {fillPlayerCard,playerRecord} from './player-card';
@@ -25,15 +26,15 @@ export class CommunitySection {
  }
  private card(player:DesignedPlayer,inRoster:boolean){
   const row=this.rows.find(r=>r.player.id===player.id),added=row?.added??rosterStarters().some(p=>p.id===player.id);
-  const article=document.createElement('article');article.className='roster-card community-card';
+  const article=document.createElement('article');article.className='roster-card community-card';if(!inRoster)article.classList.add('roster-card-short');
   let portrait='';try{portraits??=new AvatarThumbnails(384);portrait=portraits.get(player.appearance,'roster',player.handedness)}catch{}
-  const change=async()=>{await (row?setCommunityAdded(row.public_id,!added):setStarterAdded(player.id,!added));await this.load();};
+  const change=async()=>{if(!added&&!await canAddToRoster())return false;await (row?setCommunityAdded(row.public_id,!added):setStarterAdded(player.id,!added));await this.load();};
   fillPlayerCard(article,player,row?`By ${row.creator_name}`:'Starting Lineup',portrait);
-  attachPlayerDetails(article,player,row?`By ${row.creator_name}`:'Starting Lineup',portrait,row&&added&&this.editSkills?()=>this.editSkills!(player):undefined,added?{label:'Remove from roster',change}:undefined);
+  attachPlayerDetails(article,player,row?`By ${row.creator_name}`:'Starting Lineup',portrait,row&&added&&this.editSkills?()=>this.editSkills!(player):undefined,{label:added?'Remove from roster':'Add to Roster',primary:!added,change});
   if(inRoster)return article;
   const actions=document.createElement('div');actions.className='roster-card-actions';
   const button=document.createElement('button');button.type='button';button.className='roster-play';button.textContent=added?(inRoster?'Remove from roster':'In Your Roster'):'Add to roster';button.disabled=added&&!inRoster;button.setAttribute('aria-label',added&&!inRoster?`${player.name} is in Your Roster`:`${added?'Remove':'Add'} ${player.name} ${added?'from':'to'} Your Roster`);
-  button.onclick=()=>{button.disabled=true;void (row?setCommunityAdded(row.public_id,!added):setStarterAdded(player.id,!added)).then(()=>this.load()).catch(e=>{this.element.querySelector('[data-community-status]')!.textContent=e.message;button.disabled=false;});};actions.append(button);article.append(actions);return article;
+  button.onclick=()=>{button.disabled=true;void change().catch(e=>{this.element.querySelector('[data-community-status]')!.textContent=e.message;}).finally(()=>{button.disabled=false;});};actions.append(button);article.append(actions);return article;
  }
  private draw(){
   const added=new Set(this.addedPlayers.map(player=>player.id));

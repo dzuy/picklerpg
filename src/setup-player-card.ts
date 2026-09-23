@@ -6,7 +6,10 @@ import './roster.css';
 import './setup-player-card.css';
 let portraits:AvatarThumbnails|undefined;
 export function fillSetupPlayerCard(card:HTMLElement,player:DesignedPlayer,credit:string){
- card.classList.add('roster-card','setup-lineup-card');
+ card.classList.add('roster-card','setup-lineup-card','roster-card-short');
  let portrait='';try{portraits??=new AvatarThumbnails(384);portrait=portraits.get(player.appearance,'profile')}catch{}
- fillPlayerCard(card,player,credit,portrait);attachPlayerDetails(card,player,'',portrait);
+ const visibleCredit=credit.startsWith('By ')?'':credit;
+ fillPlayerCard(card,player,visibleCredit,portrait);
+ if(!visibleCredit)card.querySelector('.roster-role')?.remove();
+ attachPlayerDetails(card,player,'',portrait);
 }

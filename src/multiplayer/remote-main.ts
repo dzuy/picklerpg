@@ -1,3 +1,4 @@
+import {focusView,showViewDialog} from '../view-focus';
 import {parseSoloLaunch} from '../solo-launch';
 import {courtSelector} from '../court-selector';
 import {shareIcon} from './share-icon';
@@ -17,7 +18,8 @@ import {signInDialog} from './sign-in-dialog';
 import {pendingInviteCard} from './pending-invite-card';
 import {gameCardLineup} from '../game-card-lineup';
 import {PlayerCreator} from '../player-creator';
-import {CloudPlayerSync} from '../cloud-players';
+import {addPlayerToSignedInAccount,CloudPlayerSync,PENDING_ACCOUNT_PLAYER_KEY} from '../cloud-players';
+import {friendActionNeedsAccount,setupModeForAccount} from './guest-access';
 import {initialLobbyPage} from '../app-navigation';
 import {openGameSurface} from '../game-surface';
 import '../game-surface.css';
@@ -60,12 +62,12 @@ import {browserSessionStorage,browserStorage} from '../browser-storage';
 document.body.dataset.screen='remote';
 const root=document.querySelector<HTMLDivElement>('#app')!;
 root.className='remote-app';
-root.innerHTML=`<header class="remote-nav"><a id="remote-solo" class="remote-home-link" href="/?home=1" aria-label="Home" title="Home"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7M5 9v12h5v-7h4v7h5V9"/></svg></a><span class="open-play-nav-title">Open Play</span><a id="remote-lobby-roster" href="/?roster=1&amp;from=multiplayer">Roster ↗</a></header><div class="remote-meta"><p id="remote-status" role="status" aria-live="polite"></p></div><section id="remote-login" class="remote-new-game" hidden><p class="remote-eyebrow">WELCOME TO THE COURT</p><h1>Create your account</h1><p id="remote-auth-copy">Use a different email on each device and choose a password of at least 6 characters. No confirmation email is needed for this playtest.</p><form id="remote-login-form"><label id="remote-name-label">Player name<input id="remote-player-name" autocomplete="nickname" maxlength="32" required></label><label id="remote-username-label">Username<input id="remote-username" autocomplete="username" minlength="3" maxlength="24" pattern="[A-Za-z0-9_]{3,24}" placeholder="e.g. bobsmith" required><small>Unique · 3–24 letters, numbers, or underscores.</small></label><label>Email<input id="remote-email" type="email" autocomplete="username" required></label><label>Password<input id="remote-password" type="password" autocomplete="new-password" minlength="6" maxlength="128" required></label><button class="remote-primary" id="remote-sign-in">Create account ↗</button></form><button id="remote-auth-mode" class="remote-quiet">Already registered? Sign in</button></section><section id="remote-name-setup" class="remote-new-game" hidden><h1>What should we call you?</h1><p>Your player name appears in games and the opponent list.</p><form id="remote-name-form"><label>Player name<input id="remote-existing-name" autocomplete="nickname" maxlength="32" required></label><button class="remote-primary">Save player name ↗</button></form></section><section id="remote-password-reset" class="remote-new-game" hidden><h1>Choose a new password</h1><p id="remote-reset-account"></p><p>For this playtest, use 6–128 characters. No capitals, numbers, or symbols required.</p><form id="remote-reset-form"><label>New password<input id="remote-new-password" type="password" autocomplete="new-password" minlength="6" maxlength="128" required></label><button class="remote-primary">Save password and play ↗</button></form></section><section id="remote-lobby" data-games-state="loading" hidden><div class="remote-lobby-layout"><section class="remote-match-list" aria-busy="true"><div class="remote-games-loading" role="status"><span>Loading your games…</span><button type="button" id="remote-games-retry" hidden>Try again</button></div><div class="remote-section-heading"><p class="remote-eyebrow">OPEN PLAY</p><h2>Your games</h2></div><div class="remote-filters" role="group" aria-label="Filter games"><button data-filter="active" aria-pressed="true">In play</button><button data-filter="turn" aria-pressed="false">Your turn</button><button data-filter="completed" aria-pressed="false">Finished</button><button data-filter="archived" aria-pressed="false">Archived</button></div><div id="remote-invitations"></div><div id="remote-games"></div><section id="remote-waiting" aria-label="Waiting invitations"><hr><div id="remote-waiting-games"></div><div id="remote-waiting-invitations"></div></section></section><section class="remote-new-game remote-start-card"><div class="remote-lobby-court" aria-hidden="true"><span></span></div><h2>There’s always a game.</h2><p>A fresh matchup. Your team. Let’s play.</p><a class="remote-primary open-play-start" href="/?newgame=1">Start a Game <span aria-hidden="true">↗</span></a><div class="open-play-private"><h3>Meet a friend on court</h3><p>Create a private match. Each of you manages a team.</p><button id="remote-start-setup" class="remote-primary">Invite a Friend</button></div></section></div></section><section id="remote-setup" class="remote-new-game" aria-label="Set up a game" hidden><header class="remote-setup-header"><a id="remote-cancel-setup" href="/?openplay=1">← Back to Play Menu</a><div class="remote-setup-heading"><h1>Play with a Friend</h1></div></header><div class="remote-setup-fields"><div id="remote-friend-name-field"><label for="remote-friend-name">Friend’s name</label><input id="remote-friend-name" autocomplete="off" maxlength="24" required placeholder="e.g. Bob"><small>No account needed. Share the game link with them.</small></div><label id="remote-opponent-field">Choose a friend<select id="remote-opponent"></select></label><label>Scoring<select id="remote-scoring"><option value="rally-doubles">Rally scoring</option><option value="side-out-doubles" selected>Side-out scoring</option></select></label><label>Points limit<select id="remote-target" required><option value="3">3</option><option value="4">4</option><option value="5" selected>5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option></select></label></div><section class="remote-setup-section"><h2>Choose Your Players</h2><div id="remote-create-team"></div></section><section class="remote-setup-section"><h2>Choose your court</h2><div class="court-selector">${courtSelector('forest','data-remote-court')}</div></section><div class="remote-setup-footer"><button id="remote-create" class="remote-primary">Start Game</button></div></section><section id="remote-invite" class="remote-new-game" hidden><button id="remote-invite-back" class="remote-quiet" aria-label="Close invitation">✕ Close</button><div class="remote-invite-heading"><p class="remote-eyebrow">GAME INVITATION</p><h1 id="remote-invite-title"></h1><p id="remote-invite-copy"></p></div><div id="remote-invite-preview"></div><h2 id="remote-accept-team-title">Choose your team</h2><div id="remote-accept-team"></div><div class="remote-invite-actions"><button id="remote-accept" class="remote-primary">Accept & start game ↗</button><button id="remote-decline" class="remote-quiet" hidden>Decline game</button><button id="remote-cancel-invite" class="remote-quiet" hidden>Cancel invitation</button><button id="remote-delete-invite" class="remote-quiet" hidden>Delete invitation</button></div></section><section id="remote-game" hidden><div id="remote-court"></div><div class="court-top"><div class="score" aria-label="Match score"><header class="remote-score-heading"><strong id="remote-score-matchup"></strong><span id="remote-score-format"></span></header><div class="score-row"><span id="remote-home-names"></span><b id="remote-home-score">0</b></div><div class="score-row score-row-away"><span id="remote-away-names"></span><b id="remote-away-score">0</b></div></div></div><nav class="remote-court-actions" aria-label="Match controls"><button id="remote-open-settings" class="gameplay-settings" aria-label="Game settings">${hudButtonIcon('settings')}</button><button id="remote-back" aria-label="Close game" title="Close game">${hudButtonIcon('close')}</button><button id="remote-replay" class="remote-replay" aria-label="Replay last move" title="Replay last move" disabled>${hudButtonIcon('replay')}</button></nav><div class="remote-move-banner" role="status" aria-live="polite"><p id="remote-move"></p><small id="remote-live-status"></small><button id="remote-retry" hidden>Retry saved turn</button></div><dialog id="game-settings" aria-labelledby="settings-title"><div class="settings-heading"><div><h2 id="settings-title">Game settings</h2><p id="remote-rules"></p></div><button id="close-settings" aria-label="Close settings">✕</button></div><label class="settings-toggle"><span>Game notifications<small>Notify me when it’s my turn in this game.</small></span><input id="remote-game-notifications" type="checkbox" role="switch" checked></label><p id="remote-notification-status" role="status"></p><label class="settings-toggle"><span>Flight guide<small>Show the ball path.</small></span><input id="remote-guides" type="checkbox" role="switch"></label><label class="settings-toggle"><span>Player names<small>Show names above players.</small></span><input id="remote-names" type="checkbox" role="switch" checked></label><label class="settings-toggle"><span>Playback speed<small>Animation speed on this device.</small></span><select id="remote-speed"><option value="1">1× · Normal</option><option value="2">2×</option><option value="3">3×</option></select></label></dialog></section><footer class="remote-account-footer"><p id="remote-account"></p><a id="remote-sign-out" href="/?multiplayer=1" hidden>Sign out</a></footer>`;
+root.innerHTML=`<header class="remote-nav"><a id="remote-solo" class="remote-home-link" href="/?home=1" aria-label="Home" title="Home"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7M5 9v12h5v-7h4v7h5V9"/></svg></a><span class="open-play-nav-title">Open Play</span><a id="remote-lobby-roster" href="/?roster=1&amp;from=multiplayer">Roster ↗</a></header><section id="remote-login" class="remote-new-game" hidden><p class="remote-eyebrow">WELCOME TO THE COURT</p><h1>Create your account</h1><p id="remote-status" role="status" aria-live="polite" hidden></p><p id="remote-auth-copy">Use a different email on each device and choose a password of at least 6 characters. No confirmation email is needed for this playtest.</p><form id="remote-login-form"><label id="remote-name-label">Player name<input id="remote-player-name" autocomplete="nickname" maxlength="32" required></label><label id="remote-username-label">Username<input id="remote-username" autocomplete="username" minlength="3" maxlength="24" pattern="[A-Za-z0-9_]{3,24}" placeholder="e.g. bobsmith" required><small>Unique · 3–24 letters, numbers, or underscores.</small></label><label>Email<input id="remote-email" type="email" autocomplete="username" required></label><label>Password<input id="remote-password" type="password" autocomplete="new-password" minlength="6" maxlength="128" required></label><button class="remote-primary" id="remote-sign-in">Create account ↗</button></form><button id="remote-auth-mode" class="remote-quiet">Already registered? Sign in</button></section><section id="remote-name-setup" class="remote-new-game" hidden><h1>What should we call you?</h1><p>Your player name appears in games and the opponent list.</p><form id="remote-name-form"><label>Player name<input id="remote-existing-name" autocomplete="nickname" maxlength="32" required></label><button class="remote-primary">Save player name ↗</button></form></section><section id="remote-password-reset" class="remote-new-game" hidden><h1>Choose a new password</h1><p id="remote-reset-account"></p><p>For this playtest, use 6–128 characters. No capitals, numbers, or symbols required.</p><form id="remote-reset-form"><label>New password<input id="remote-new-password" type="password" autocomplete="new-password" minlength="6" maxlength="128" required></label><button class="remote-primary">Save password and play ↗</button></form></section><section id="remote-lobby" data-games-state="loading" hidden><div class="remote-lobby-layout"><section class="remote-match-list" aria-busy="true"><div class="remote-games-loading" role="status"><span>Loading your games…</span><button type="button" id="remote-games-retry" hidden>Try again</button></div><div class="remote-section-heading"><p class="remote-eyebrow">OPEN PLAY</p><h2>Your games</h2></div><div class="remote-filters" role="group" aria-label="Filter games"><button data-filter="active" aria-pressed="true">In play</button><button data-filter="turn" aria-pressed="false">Your turn</button><button data-filter="completed" aria-pressed="false">Finished</button><button data-filter="archived" aria-pressed="false">Archived</button></div><div id="remote-invitations"></div><div id="remote-games"></div><section id="remote-waiting" aria-label="Waiting invitations"><hr><div id="remote-waiting-games"></div><div id="remote-waiting-invitations"></div></section></section><section class="remote-new-game remote-start-card"><div class="remote-lobby-court" aria-hidden="true"><span></span></div><h2>There’s always a game.</h2><p>A fresh matchup. Your team. Let’s play.</p><a class="remote-primary open-play-start" href="/?newgame=1">Start a Game <span aria-hidden="true">↗</span></a><div class="open-play-private"><h3>Meet a friend on court</h3><p>Create a private match. Each of you manages a team.</p><button id="remote-start-setup" class="remote-primary">Invite a Friend</button></div></section></div></section><section id="remote-setup" class="remote-new-game" aria-label="Set up a game" hidden><header class="remote-setup-header"><a id="remote-cancel-setup" href="/?openplay=1">← Back to Play Menu</a><div class="remote-setup-heading"><h1>Play with a Friend</h1></div></header><div class="remote-setup-fields"><div id="remote-friend-name-field"><label for="remote-friend-name">Friend’s name</label><input id="remote-friend-name" autocomplete="off" maxlength="24" required placeholder="e.g. Bob"><small>No account needed. Share the game link with them.</small></div><label id="remote-opponent-field">Choose a friend<select id="remote-opponent"></select></label><label>Scoring<select id="remote-scoring"><option value="rally-doubles">Rally scoring</option><option value="side-out-doubles" selected>Side-out scoring</option></select></label><label>Points limit<select id="remote-target" required><option value="3">3</option><option value="4">4</option><option value="5" selected>5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option><option value="9">9</option><option value="10">10</option><option value="11">11</option></select></label></div><section class="remote-setup-section"><h2>Choose Your Players</h2><div id="remote-create-team"></div></section><section class="remote-setup-section"><h2>Choose your court</h2><div class="court-selector">${courtSelector('forest','data-remote-court')}</div></section><div class="remote-setup-footer"><button id="remote-create" class="remote-primary">Start Game</button></div></section><section id="remote-invite" class="remote-new-game" hidden><button id="remote-invite-back" class="remote-quiet" aria-label="Close invitation">✕ Close</button><div class="remote-invite-heading"><p class="remote-eyebrow">GAME INVITATION</p><h1 id="remote-invite-title"></h1><p id="remote-invite-copy"></p></div><div id="remote-invite-preview"></div><h2 id="remote-accept-team-title">Choose your team</h2><div id="remote-accept-team"></div><div class="remote-invite-actions"><button id="remote-accept" class="remote-primary">Accept & start game ↗</button><button id="remote-decline" class="remote-quiet" hidden>Decline game</button><button id="remote-cancel-invite" class="remote-quiet" hidden>Cancel invitation</button><button id="remote-delete-invite" class="remote-quiet" hidden>Delete invitation</button></div></section><section id="remote-game" hidden><div id="remote-court"></div><div class="court-top"><div class="score" aria-label="Match score"><header class="remote-score-heading"><strong id="remote-score-matchup"></strong><span id="remote-score-format"></span></header><div class="score-row"><span id="remote-home-names"></span><b id="remote-home-score">0</b></div><div class="score-row score-row-away"><span id="remote-away-names"></span><b id="remote-away-score">0</b></div></div></div><nav class="remote-court-actions" aria-label="Match controls"><button id="remote-open-settings" class="gameplay-settings" aria-label="Game settings">${hudButtonIcon('settings')}</button><button id="remote-back" aria-label="Close game" title="Close game">${hudButtonIcon('close')}</button><button id="remote-replay" class="remote-replay" aria-label="Replay last move" title="Replay last move" disabled>${hudButtonIcon('replay')}</button></nav><div class="remote-move-banner" role="status" aria-live="polite"><p id="remote-move"></p><small id="remote-live-status"></small><button id="remote-retry" hidden>Retry saved turn</button></div><dialog id="game-settings" aria-labelledby="settings-title"><div class="settings-heading"><div><h2 id="settings-title">Game settings</h2><p id="remote-rules"></p></div><button id="close-settings" aria-label="Close settings">✕</button></div><label class="settings-toggle"><span>Game notifications<small>Notify me when it’s my turn in this game.</small></span><input id="remote-game-notifications" type="checkbox" role="switch" checked></label><p id="remote-notification-status" role="status"></p><label class="settings-toggle"><span>Flight guide<small>Show the ball path.</small></span><input id="remote-guides" type="checkbox" role="switch"></label><label class="settings-toggle"><span>Player names<small>Show names above players.</small></span><input id="remote-names" type="checkbox" role="switch" checked></label></dialog></section><footer class="remote-account-footer"><p id="remote-account"></p><a id="remote-sign-out" href="/?multiplayer=1" hidden>Sign out</a></footer>`;
 const el=(id:string)=>document.getElementById(id)!;
 el('remote-friend-name-field').querySelector('small')!.textContent='Share the link—they can create their account when they join.';
 const createStatus=document.createElement('p');createStatus.id='remote-create-status';createStatus.setAttribute('role','status');createStatus.setAttribute('aria-live','polite');el('remote-create').before(createStatus);
 const inviteStatus=document.createElement('p');inviteStatus.id='remote-invite-status';inviteStatus.setAttribute('role','status');el('remote-accept').before(inviteStatus);
-const claimPlayer=document.createElement('button');claimPlayer.className='remote-quiet';claimPlayer.textContent='Create your player';claimPlayer.hidden=true;claimPlayer.onclick=()=>void createYourPlayer(async()=>{await enter();teamLobby?.selectTab('profile');}).catch(e=>status(e.message));el('game-settings').append(claimPlayer);
+const claimPlayer=document.createElement('button');claimPlayer.className='remote-quiet';claimPlayer.textContent='Create your player';claimPlayer.hidden=true;claimPlayer.onclick=()=>void createYourPlayer(async()=>{location.assign('/?openplay=1&setup=1');}).catch(e=>status(e.message));el('game-settings').append(claimPlayer);
 const reshare=document.createElement('button');reshare.className='remote-quiet';reshare.textContent='Share game';reshare.hidden=true;reshare.onclick=()=>{if(session)void shareMatch(session.state!.id,session.state!.friendState==='pending').catch(e=>status(e.message));};el('game-settings').append(reshare);
 let session:RemoteSession|null=null,scene:CourtScene|undefined,account='',config:RemoteConfig|null=null;
 let signup=true,accountEmail='',shownRoster='';
@@ -75,7 +77,7 @@ const trashTalk=new TrashTalkControl(el('remote-game'),settings,matchCredentials
 let settingsCloseTimer:ReturnType<typeof setTimeout>|undefined;
 function openSettings(){
  clearTimeout(settingsCloseTimer);settingsCloseTimer=undefined;settings.classList.remove('is-closing');
- if(!settings.open)settings.showModal();
+ if(!settings.open)showViewDialog(settings);
 }
 function closeSettings(){
  if(!settings.open||settingsCloseTimer!==undefined)return;
@@ -119,7 +121,7 @@ function renderCompletion(s:PublicMatch){
  if(!s.endedEarly){const story=strategyStoryDetails(s.strategyStory,opponent);if(story)rivalryCompletion.append(story);rivalryCompletion.append(strategyDetails(s.strategy));}
 }
 gameEnd.addEventListener('cancel',e=>e.preventDefault());el('remote-end-back').onclick=()=>void lobby().catch(e=>status(e.message));
-const leaveGame=document.createElement('button');leaveGame.type='button';leaveGame.className='remote-quiet';leaveGame.textContent='Leave game';settings.append(leaveGame);
+const leaveGame=document.createElement('button');leaveGame.type='button';leaveGame.id='remote-leave-game';leaveGame.className='remote-quiet';leaveGame.textContent='Leave game';settings.append(leaveGame);
 leaveGame.onclick=()=>{
  const id=session?.state?.id;if(!id)return;
  if(!window.confirm('Leave this game? This ends the game for both players and moves it to your archive.'))return;
@@ -136,22 +138,20 @@ function syncGameEnd(){const s=session?.state;
  if(!s.endedEarly&&scene&&!scene.finishMatch(s.id,s.score,s.viewerTeam,opponentLabel(s)))return;
  gameEndReadyAt??=performance.now()+(s.endedEarly?GAME_END_PAUSE_MS:0);
  if(performance.now()<gameEndReadyAt)return;
- renderCompletion(s);clearTarget();settings.close();gameEnd.showModal();
- rematchFlow.reset(s.id,session!.owner);void rematchFlow.refresh();rematch.focus();
+ renderCompletion(s);clearTarget();settings.close();showViewDialog(gameEnd);
+ rematchFlow.reset(s.id,session!.owner);void rematchFlow.refresh();focusView(gameEnd);
 }
 function animationShot(segment:TurnAnimation,state:GameState):RallyShot{return {...presentation(state,segment.intent),contact:{...segment.path[0]},aimPoint:{...segment.path.at(-1)!},legs:segment.path.slice(1).map((to,i)=>({from:{...segment.path[i]},to:{...to},duration:segment.pathTimes?segment.pathTimes[i+1]-segment.pathTimes[i]:segment.duration/(segment.path.length-1),arc:0}))}}
 
-let playbackSpeed=1,flightGuides=false,playerNames=true,playbackElapsed=0,lastFrame=0;
-try{const saved=JSON.parse(browserStorage.getItem('pickle-remote-view')??'null');if(saved){if([1,2,3].includes(saved.speed))playbackSpeed=saved.speed;flightGuides=saved.guides===true;playerNames=saved.names!==false}}catch{}
-function saveView(){browserStorage.setItem('pickle-remote-view',JSON.stringify({speed:playbackSpeed,guides:flightGuides,names:playerNames}))}
+const playbackSpeed=1;let flightGuides=false,playerNames=true,playbackElapsed=0,lastFrame=0;
+try{const saved=JSON.parse(browserStorage.getItem('pickle-remote-view')??'null');if(saved){flightGuides=saved.guides===true;playerNames=saved.names!==false}}catch{}
+function saveView(){browserStorage.setItem('pickle-remote-view',JSON.stringify({guides:flightGuides,names:playerNames}))}
 function saveCameraView(){if(scene&&session?.state&&!el('remote-game').hidden)browserStorage.setItem(`pickle-camera:${session.owner}:${session.matchId}`,JSON.stringify(scene.cameraView()));}
 window.addEventListener('pagehide',saveCameraView);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)saveCameraView();});
 function leaveCourt(){rematchFlow.reset();completionKey='';saveCameraView();trashTalk.reset();endReplay();pointPauseRemaining=0;gameEndReadyAt=null;document.body.classList.remove('remote-playing');settings.close();gameEnd.close();scene?.setRetainedTrajectory(null);}
-(el('remote-speed') as HTMLSelectElement).value=String(playbackSpeed);
 (el('remote-guides') as HTMLInputElement).checked=flightGuides;
 (el('remote-names') as HTMLInputElement).checked=playerNames;
-el('remote-speed').onchange=()=>{playbackSpeed=Number((el('remote-speed') as HTMLSelectElement).value);saveView()};
 el('remote-guides').onchange=()=>{flightGuides=(el('remote-guides') as HTMLInputElement).checked;scene?.setGuides(flightGuides);saveView()};
 el('remote-names').onchange=()=>{playerNames=(el('remote-names') as HTMLInputElement).checked;scene?.setPlayerNames(playerNames);saveView()};
 const replayOverlay=document.createElement('section');replayOverlay.id='replay-overlay';replayOverlay.hidden=true;replayOverlay.setAttribute('aria-label','Move replay');
@@ -177,11 +177,11 @@ function drawReplay(){
 function toggleReplay(){if(replayTime>=replayDuration())replayTime=0;replayPlaying=!replayPlaying;drawReplay();}
 el('replay-toggle').onclick=toggleReplay;
 el('replay-position').oninput=event=>{replayPlaying=false;replayTime=Number((event.target as HTMLInputElement).value);drawReplay();};
-el('close-replay').onclick=()=>{endReplay();skip();render();el('remote-replay').focus();};
+el('close-replay').onclick=()=>{endReplay();skip();render();focusView();};
 replayOverlay.onkeydown=event=>{if(event.key==='Escape'){event.preventDefault();el('close-replay').click();}else if(event.code==='Space'&&event.target instanceof HTMLInputElement){event.preventDefault();toggleReplay();}};
 el('remote-replay').onclick=()=>{
  const s=session?.state;if(!s?.animation.length||session?.busy||session?.pending)return;
- clearTarget();pointPauseRemaining=0;animation=[];replaySegments=structuredClone(s.animation);replayResult=structuredClone(s.result);display=structuredClone(s.display);replayTime=0;replayPlaying=true;replayOverlay.hidden=false;document.body.classList.add('remote-replaying');lastFrame=performance.now();scene?.setRetainedTrajectory(null);drawReplay();el('replay-toggle').focus();
+ clearTarget();pointPauseRemaining=0;animation=[];replaySegments=structuredClone(s.animation);replayResult=structuredClone(s.result);display=structuredClone(s.display);replayTime=0;replayPlaying=true;replayOverlay.hidden=false;document.body.classList.add('remote-replaying');lastFrame=performance.now();scene?.setRetainedTrajectory(null);drawReplay();focusView();
 };
 const gameNotifications=el('remote-game-notifications') as HTMLInputElement;
 let savingNotifications=false;
@@ -226,7 +226,16 @@ function showLogin(){selectedInvite=null;el('remote-invite').hidden=true;leaveCo
 function accountLabel(){const name=config?.selfName??'Signed in';return accountEmail&&name!==accountEmail?`${name} · ${accountEmail}`:name;}
 function opponentName(s:PublicMatch){const id=s.accountIds?.[s.viewerTeam==='home'?'away':'home'];return teamDirectory?.teams.find(t=>t.id===id)?.manager?.trim()||config?.testers.find(t=>t.id===id)?.name?.trim()||(s.viewerTeam==='home'?s.invitedName?.trim():undefined);}
 function opponentLabel(s:PublicMatch){return opponentName(s)??'Opponent';}
-function status(message:string){createStatus.textContent=el('remote-setup').hidden?'':message;inviteStatus.textContent=el('remote-invite').hidden?'':message;el('remote-status').textContent=message;el('remote-live-status').textContent=message;if(message)document.querySelector<HTMLElement>('.remote-move-banner')!.hidden=false;}
+function status(message:string){
+ createStatus.textContent=el('remote-setup').hidden?'':message;
+ inviteStatus.textContent=el('remote-invite').hidden?'':message;
+ const accountPanel=['remote-login','remote-name-setup','remote-password-reset'].map(id=>el(id)).find(panel=>!panel.hidden);
+ const accountStatus=el('remote-status');
+ accountStatus.textContent=accountPanel?message:'';accountStatus.hidden=!accountPanel||!message;
+ if(accountPanel)accountPanel.append(accountStatus);
+ el('remote-live-status').textContent=message;
+ if(message)document.querySelector<HTMLElement>('.remote-move-banner')!.hidden=false;
+}
 function presentation(state:GameState,intent= session?.state?.choices[0]?.intent):RallyShot {
  const actor=session?.state?.serving&&!intent?session.state.server:intent?.actor??state.currentHitter??'you',p=state.ball.position;
  return {actor,intent:intent??{schemaVersion:1,actor,type:session?.state?.serving?'serve':'return',target:{kind:'zone',zone:'middle',depth:'deep'},pace:'medium',shape:'arc',intendedNetClearance:.4,tacticalIntent:'sustain',aggression:.5,source:'menu'},title:'',description:'',cue:'',contact:{...p},aimPoint:{...p},legs:[{from:{...p},to:{...p},duration:1,arc:0}],positions:Object.fromEntries(state.players.map(p=>[p.id,p.position])) as RallyShot['positions']};
@@ -285,6 +294,15 @@ async function open(id:string){rematchFlow.reset();completionKey='';gameEnd.clos
 let teamDirectory:TeamDirectory|null=null;
 let teamLobby:TeamLobby|null=null;
 let roster:PlayerCreator|null=null;
+let anonymousAccount=true;
+function accountRequired(action:()=>void=()=>{}){
+ void (async()=>{
+  const auth=(await authClient()?.auth.getSession())?.data.session;
+  if(auth&&!friendActionNeedsAccount(!!auth.user.is_anonymous)){action();return;}
+  const complete=async()=>{await enter();action();};
+  await createYourPlayer(async()=>{location.assign('/?openplay=1&setup=1');},{onSignIn:complete});
+ })().catch(error=>status((error as Error).message));
+}
 function openRoster(){
  if(!roster){
   const sync=new CloudPlayerSync(state=>roster?.setCloudStatus(state),state=>{roster?.setCreatorName(state.playerName);roster?.setTeamName(state.teamName)});
@@ -292,6 +310,16 @@ function openRoster(){
   const ready=sync.connect(roster.playerLibrary).then(library=>{roster!.applyCloudLibrary(library);const id=new URLSearchParams(location.search).get('editPlayer');if(id){const player=library.players.find(p=>p.id===id);if(player)roster!.editPlayer(player);}});
   roster.loadHistory=async()=>{await ready;return (await sync.history()).matches};
   roster.saveTeamName=name=>sync.saveTeamName(name);
+  roster.beforeSave=async player=>{
+   await ready;const auth=(await authClient()?.auth.getSession())?.data.session;if(auth&&!auth.user.is_anonymous)return true;
+   browserSessionStorage.setItem(PENDING_ACCOUNT_PLAYER_KEY,JSON.stringify(player));let switching=false;
+   const created=await createYourPlayer(async()=>{}, {playerName:player.name,onSignInSelected:()=>{switching=true},onSignIn:async()=>{
+    switching=true;const pending=browserSessionStorage.getItem(PENDING_ACCOUNT_PLAYER_KEY);if(!pending)throw new Error('Your new player could not be found. Return to the editor and save again.');
+    const destination=new URL('/?openplay=1&importplayer=1',location.origin);history.replaceState(null,'',destination);
+    await addPlayerToSignedInAccount(JSON.parse(pending));browserSessionStorage.removeItem(PENDING_ACCOUNT_PLAYER_KEY);location.assign('/?openplay=1');
+   }});
+   if(created)browserSessionStorage.removeItem(PENDING_ACCOUNT_PLAYER_KEY);else if(!switching)browserSessionStorage.removeItem(PENDING_ACCOUNT_PLAYER_KEY);return created;
+  };
   roster.navigate=(page,href)=>{
    roster!.dialog.close();
    if(page==='home'){location.assign(href);return;}
@@ -307,7 +335,7 @@ function renderTeamLobby(){
  el('remote-lobby').querySelector('.team-lobby')?.remove();
  root.parentElement?.querySelector(':scope > .lobby-bottom-nav')?.remove();
  const data=teamDirectory??{self:lobbyTeam('', 'You', {}),teams:[],friends:[]};
- const view=new TeamLobby(data,{signOut:signOutAccount,authenticate:(createAccount)=>{if(!createAccount){signInDialog(async()=>{await enter();teamLobby?.selectTab('profile');status('');});return;}if(createAccount){void createYourPlayer(async()=>{await enter();teamLobby?.selectTab('profile');}).catch(e=>status(e.message));return;}},roster:openRoster,create:()=>el('remote-start-setup').click(),challenge:challengeTeam,changed:value=>{teamDirectory=value},enabled:!!config?.creationEnabled,games:gamesPanel,rivalryFor:(opponent)=>{const records=games.filter(g=>g.accountIds?.[g.viewerTeam==='home'?'away':'home']===opponent).map(g=>rivalryData(g.rivalry)).filter((r):r is NonNullable<typeof r>=>!!r);return records.sort((a,b)=>(b.current?.games??0)-(a.current?.games??0))[0];}});
+ const view=new TeamLobby(data,{signOut:signOutAccount,authenticate:(createAccount)=>{if(!createAccount){signInDialog(async()=>{await enter();teamLobby?.selectTab('profile');status('');});return;}if(createAccount){void createYourPlayer(async()=>{location.assign('/?openplay=1&setup=1');}).catch(e=>status(e.message));return;}},roster:openRoster,create:()=>el('remote-start-setup').click(),invite:()=>accountRequired(()=>challengeTeam()),challenge:challengeTeam,changed:value=>{teamDirectory=value},enabled:!!config?.creationEnabled,games:gamesPanel,rivalryFor:(opponent)=>{const records=games.filter(g=>g.accountIds?.[g.viewerTeam==='home'?'away':'home']===opponent).map(g=>rivalryData(g.rivalry)).filter((r):r is NonNullable<typeof r>=>!!r);return records.sort((a,b)=>(b.current?.games??0)-(a.current?.games??0))[0];}});
  teamLobby=view;el('remote-lobby').prepend(view.element);root.after(view.navigation);
  if(initialLobbyPage()==='roster'&&!roster?.dialog.open)openRoster();
 }
@@ -331,10 +359,13 @@ function selectSetupMode(mode:'friends'|'solo'){
  (el('setup-solo-toggle') as HTMLInputElement).checked=mode==='solo';
  el('setup-friends-panel').hidden=mode==='solo';el('setup-solo-panel').hidden=mode!=='solo';
  el('setup-shuffle').hidden=mode!=='solo';
- if(mode==='solo'&&!soloOpponents){soloOpponents=new TeamPicker(el('remote-solo-opponents'));void soloOpponents.shuffle().catch(e=>status(e.message));}
+ if(mode==='solo'){
+  soloOpponents??=new TeamPicker(el('remote-solo-opponents'),undefined,undefined,false,true);
+  void soloOpponents.shuffle().catch(e=>status(e.message));
+ }
  updateSetupAction();
 }
-el('setup-solo-toggle').onchange=()=>selectSetupMode((el('setup-solo-toggle') as HTMLInputElement).checked?'solo':'friends');
+el('setup-solo-toggle').onchange=()=>{const mode=(el('setup-solo-toggle') as HTMLInputElement).checked?'solo':'friends';if(mode==='friends'&&anonymousAccount){selectSetupMode('solo');accountRequired(()=>challengeTeam());return;}selectSetupMode(mode);};
 el('setup-shuffle').onclick=()=>void soloOpponents?.shuffle().catch(e=>status(e.message));
 let inviteByLink=false;
 let friendSearchPortraits:AvatarThumbnails|undefined;
@@ -348,15 +379,16 @@ const friendSearch=new FriendSearch(el('remote-friend-name') as HTMLInputElement
 function resetSetupPoints(){(el('remote-target') as HTMLSelectElement).value=(el('remote-scoring') as HTMLSelectElement).value==='rally-doubles'?'7':'5';}
 el('remote-scoring').addEventListener('change',resetSetupPoints);
 function challengeTeam(team?:LobbyTeam){
+ if(team&&anonymousAccount){accountRequired(()=>challengeTeam(team));return;}
  (el('remote-scoring') as HTMLSelectElement).value='side-out-doubles';
  resetSetupPoints();
  friendSearch.reset(team);
  el('remote-lobby').hidden=true;el('remote-setup').hidden=false;
- const heading=el('remote-setup').querySelector('h1')!;heading.textContent='Set Up a Game';selectSetupMode('friends');
+ const heading=el('remote-setup').querySelector('h1')!;heading.textContent='Set Up a Game';selectSetupMode(setupModeForAccount(anonymousAccount));
  el('remote-opponent-field').hidden=true;
  el('remote-friend-name-field').hidden=false;
  updateSetupAction();
- createTeam??=new TeamPicker(el('remote-create-team'),undefined,undefined,true);el('remote-cancel-setup').focus();
+ createTeam??=new TeamPicker(el('remote-create-team'),undefined,undefined,true);focusView();
 }
 function gamesLoadState(state:'loading'|'ready'|'error'){
  el('remote-lobby').dataset.gamesState=state;
@@ -365,7 +397,7 @@ function gamesLoadState(state:'loading'|'ready'|'error'){
  el('remote-games-retry').hidden=state!=='error';
 }
 el('remote-games-retry').onclick=()=>void lobby().catch(e=>status(e.message));
-async function lobby(){gamesLoadState('loading');try{el('remote-start-setup').onclick=()=>challengeTeam();existingPlayer.onclick=()=>teamLobby?.selectTab('friends');selectedInvite=null;el('remote-invite').hidden=true;leaveCourt();
+async function lobby(){gamesLoadState('loading');try{el('remote-start-setup').onclick=()=>challengeTeam();existingPlayer.onclick=()=>{if(anonymousAccount){accountRequired(()=>teamLobby?.selectTab('friends'));return;}teamLobby?.selectTab('friends');};selectedInvite=null;el('remote-invite').hidden=true;leaveCourt();
  (el('remote-solo') as HTMLAnchorElement).href='/?home=1';
  clearTarget();session?.dispose();session=null;animation=[];display=null;shot=null;el('remote-setup').hidden=true;el('remote-game').hidden=true;el('remote-lobby').hidden=false;
  const url=new URL(location.href);url.searchParams.delete('match');url.searchParams.delete('invite');history.replaceState(null,'',url);
@@ -375,7 +407,7 @@ async function lobby(){gamesLoadState('loading');try{el('remote-start-setup').on
  (el('remote-create') as HTMLButtonElement).disabled=!config.creationEnabled||!config.testers.length;(el('remote-start-setup') as HTMLButtonElement).disabled=false;
  await refreshLobbyCards();
  try{teamDirectory=await remoteRequest<TeamDirectory>(c.token,'/api/multiplayer/teams');renderTeamLobby();renderGames();renderInvitations();}catch(e){renderTeamLobby();status((e as Error).message);return;}
- status(config.creationEnabled?'':'Private invitations are unavailable for this account. You can still start an Open Play game.');
+ status('');
  }catch(error){gamesLoadState('error');throw error;}
 }
 mountTurnPrompt(root);
@@ -431,7 +463,8 @@ function renderGames(){
  const container=el('remote-games'),waiting=el('remote-waiting-games');container.replaceChildren();waiting.replaceChildren();
  const localCount=renderOpenPlayGames(container,account||'local',gameFilter,renderGames,status);
  const visible=games.filter(g=>g.friendState!=='cancelled').filter(g=>gameFilter==='archived'?g.archived:!g.archived&&(gameFilter==='completed'?g.status==='completed':g.status==='active'&&(gameFilter!=='turn'||g.currentTeam===g.viewerTeam))).sort((a,b)=>Number(b.currentTeam===b.viewerTeam)-Number(a.currentTeam===a.viewerTeam));
- if(!visible.length&&!localCount&&gameFilter!=='active'&&!(gameFilter==='turn'&&invitations.some(i=>i.recipientId===account&&i.status==='pending'))){const empty=document.createElement('div');empty.className='remote-empty';const title=document.createElement('h3');title.textContent=gameFilter==='archived'?'No archived games.':gameFilter==='turn'?'You’re all caught up.':gameFilter==='completed'?'The first finish is ahead.':'No games here yet.';const copy=document.createElement('p');copy.textContent=gameFilter==='archived'?'Games you archive will appear here. You can restore them anytime.':gameFilter==='turn'?'Your opponents are up. Check back for your next shot.':gameFilter==='completed'?'Completed games will be waiting here.':'Choose a player and start your first game.';empty.append(title,copy);container.append(empty);}
+ const hasVisibleInvitation=gameFilter==='active'?invitations.length>0:gameFilter==='turn'&&invitations.some(i=>i.recipientId===account&&i.status==='pending');
+ if(!visible.length&&!localCount&&!hasVisibleInvitation){const empty=document.createElement('div');empty.className='remote-empty';const active=gameFilter==='active';empty.classList.toggle('remote-empty-game',active);if(active){const art=document.createElement('img');art.className='remote-empty-scene';art.src='/images/forest-court.png';art.alt='Pickleball court in the forest';empty.append(art);const eyebrow=document.createElement('span');eyebrow.className='remote-empty-eyebrow';eyebrow.textContent='YOUR GAMES';empty.append(eyebrow);}const title=document.createElement('h3');title.textContent=gameFilter==='archived'?'No archived games.':gameFilter==='turn'?'You’re all caught up.':gameFilter==='completed'?'The first finish is ahead.':'No active games yet';const copy=document.createElement('p');copy.textContent=gameFilter==='archived'?'Games you archive will appear here. You can restore them anytime.':gameFilter==='turn'?'Your opponents are up. Check back for your next shot.':gameFilter==='completed'?'Completed games will be waiting here.':'Create a game to get started. Your active games will appear here.';empty.append(title,copy);if(active){const create=document.createElement('button');create.type='button';create.className='remote-primary remote-empty-create';create.textContent='Create a New Game';create.onclick=()=>challengeTeam();empty.append(create);}container.append(empty);}
  for(const game of visible){
   const card=document.createElement('button');card.className='remote-game-card has-player-faces';const yours=game.currentTeam===game.viewerTeam,done=game.status==='completed';card.dataset.state=done?'finished':yours?'ready':'waiting';card.classList.toggle('is-your-turn',!done&&yours&&!game.archived&&game.friendState!=='pending'&&game.friendState!=='cancelled');
   const badge=document.createElement('span');badge.className='remote-badge '+(done?'finished':yours?'ready':'waiting');badge.textContent=game.friendState==='pending'?`Waiting for ${game.invitedName}`:game.friendState==='cancelled'?'Challenge cancelled':done?(game.endedEarly?'Ended':'Finished'):yours?'Your turn':opponentName(game)?`${opponentName(game)}'s Turn`:'Their turn';
@@ -481,24 +514,25 @@ async function create(){
  await sendInvitationDraft(browserStorage.getItem(key),freshRequest,value=>{if(value===null)browserStorage.removeItem(key);else browserStorage.setItem(key,value)},async request=>{const invitation=await remoteRequest<Invitation>(c.token,'/api/invitations',request);sentInvitation=invitation;return invitation;});
  status('');
  const sent=sentInvitation as Invitation|null;
- if(sent?.status==='accepted'&&sent.matchId){await open(sent.matchId);showGameShare(invitationShare(sent));return;}
+ if(sent?.status==='accepted'&&sent.matchId){await open(sent.matchId);showGameShare(invitationShare(sent)).addEventListener('close',showTurnPromptAfterInvite,{once:true});return;}
  await lobby();teamLobby?.selectTab('games');if(sent)showGameShare(invitationShare(sent)).addEventListener('close',showTurnPromptAfterInvite,{once:true});
 }
 let selectedCourt:'forest'|'venice'|'arizona'='forest';
 for(const button of Array.from(document.querySelectorAll<HTMLButtonElement>('[data-remote-court]')))button.onclick=()=>{selectedCourt=button.dataset.remoteCourt as typeof selectedCourt;for(const other of Array.from(document.querySelectorAll('[data-remote-court]')))other.setAttribute('aria-pressed',String(other===button));};
 const existingPlayer=document.createElement('button');existingPlayer.className='remote-quiet';existingPlayer.textContent='Invite an existing player';el('remote-start-setup').after(existingPlayer);
 el('remote-start-setup').textContent='Create a Game';el('remote-start-setup').onclick=()=>challengeTeam();
-existingPlayer.onclick=()=>teamLobby?.selectTab('friends');
+existingPlayer.onclick=()=>{if(anonymousAccount){accountRequired(()=>teamLobby?.selectTab('friends'));return;}teamLobby?.selectTab('friends');};
 function returnToGameList(){
  const url=new URL(location.href);url.searchParams.delete('setup');history.replaceState(null,'',url);
  if(document.activeElement instanceof HTMLElement)document.activeElement.blur();
  el('remote-setup').hidden=true;el('remote-lobby').hidden=false;
  teamLobby?.selectTab('games');status('');
  window.scrollTo({top:0,behavior:'instant'});
- document.getElementById('lobby-nav-games')?.focus({preventScroll:true});
+ focusView();
 }
 el('remote-cancel-setup').onclick=event=>{event.preventDefault();returnToGameList();};
 el('remote-create').onclick=()=>{
+ if(setupMode==='friends'&&anonymousAccount){accountRequired(()=>challengeTeam());return;}
  const button=el('remote-create') as HTMLButtonElement;
  if(button.disabled||!(el('remote-target') as HTMLSelectElement).reportValidity()||(setupMode==='friends'&&inviteByLink&&!(el('remote-friend-name') as HTMLInputElement).reportValidity()))return;
  const submit=async()=>{button.disabled=true;button.textContent=setupMode==='solo'?'Starting game…':'Creating invitation…';button.setAttribute('aria-busy','true');try{await create();}catch(e){status((e as Error).message);}finally{updateSetupAction();button.removeAttribute('aria-busy');}};
@@ -529,7 +563,7 @@ authClient()?.auth.onAuthStateChange((_event,s)=>{claimPlayer.hidden=!s?.user.is
 function showOpenLobby(owner=''){
  gamesLoadState('ready');
  showLogin();account=owner;accountEmail='';config=null;el('remote-login').hidden=true;el('remote-lobby').hidden=false;games=[];invitations=[];renderGames();renderInvitations();
- const privateSetup=()=>{teamLobby?.selectTab('profile');signInDialog(async()=>{await enter();teamLobby?.selectTab('profile');status('');});};
+ const privateSetup=()=>accountRequired(()=>teamLobby?.selectTab('friends'));
  el('remote-start-setup').onclick=()=>challengeTeam();existingPlayer.onclick=privateSetup;teamDirectory=null;renderTeamLobby();
 }
 async function enter(){const client=authClient();if(!client){showOpenLobby();if(new URLSearchParams(location.search).has('setup'))challengeTeam();return;}
@@ -547,13 +581,16 @@ async function enter(){const client=authClient();if(!client){showOpenLobby();if(
  }
  browserStorage.setItem('pickle-email-accounts-v1','1');
  const fragment=new URLSearchParams(location.hash.slice(1));if(fragment.has('error')){await client.auth.signOut({scope:'local'});showLogin();status('That sign-in link failed. Use your email and password below.');return;}
- const {data:{session:auth}}=await client.auth.getSession();
- if(!auth){showOpenLobby();const params=new URLSearchParams(location.search);if(params.has('invite')||params.has('match')){status('Sign in as the player invited to this game.');signInDialog(enter);}else{status('');if(params.has('setup'))challengeTeam();}return;}claimPlayer.hidden=!auth.user.is_anonymous;accountEmail=auth.user.email??'';el('remote-name-setup').hidden=true;const inviteId=new URLSearchParams(location.search).get('invite');if(inviteId&&/^[a-f0-9-]{36}$/i.test(inviteId)){await lobby();await showInvitation(inviteId);return;}const matchId=new URLSearchParams(location.search).get('match');if(matchId&&/^[a-f0-9-]{36}$/i.test(matchId))await open(matchId);else{await lobby();if(new URLSearchParams(location.search).has('setup'))challengeTeam();}}
+ let {data:{session:auth}}=await client.auth.getSession();
+ if(!auth){const signedIn=await client.auth.signInAnonymously();if(signedIn.error)throw signedIn.error;auth=signedIn.data.session;}
+ if(!auth)throw new Error('Guest play is unavailable right now. Please refresh and try again.');
+ const route=new URL(location.href);if(route.searchParams.has('importplayer')){const pending=browserSessionStorage.getItem(PENDING_ACCOUNT_PLAYER_KEY);if(pending){status('Adding your new player to this account…');await addPlayerToSignedInAccount(JSON.parse(pending));browserSessionStorage.removeItem(PENDING_ACCOUNT_PLAYER_KEY);}route.searchParams.delete('importplayer');history.replaceState(null,'',route);}
+ anonymousAccount=!!auth.user.is_anonymous;claimPlayer.hidden=!auth.user.is_anonymous;accountEmail=auth.user.email??'';el('remote-name-setup').hidden=true;const inviteId=new URLSearchParams(location.search).get('invite');if(inviteId&&/^[a-f0-9-]{36}$/i.test(inviteId)){await lobby();await showInvitation(inviteId);return;}const matchId=new URLSearchParams(location.search).get('match');if(matchId&&/^[a-f0-9-]{36}$/i.test(matchId))await open(matchId);else{await lobby();if(new URLSearchParams(location.search).has('setup'))challengeTeam();}}
 function authMode(){el('remote-auth-copy').textContent=signup?'Choose a player name, use a different email on each device, and choose a password of at least 6 characters. No confirmation email is needed.':'Sign in with the email and password you registered on this device.';el('remote-name-label').hidden=!signup;el('remote-username-label').hidden=!signup;(el('remote-username') as HTMLInputElement).required=signup;(el('remote-player-name') as HTMLInputElement).required=signup;el('remote-login').querySelector('h1')!.textContent=signup?'Create your account':'Welcome back';el('remote-sign-in').textContent=signup?'Create account ↗':'Sign in ↗';el('remote-auth-mode').textContent=signup?'Already registered? Sign in':'New here? Create an account';(el('remote-password') as HTMLInputElement).autocomplete=signup?'new-password':'current-password';(el('remote-password') as HTMLInputElement).minLength=signup?6:1;}
 el('remote-auth-mode').onclick=()=>{signup=!signup;authMode();status('');};
 (el('remote-login-form') as HTMLFormElement).onsubmit=e=>{e.preventDefault();const button=el('remote-sign-in') as HTMLButtonElement;button.disabled=true;status(signup?'Creating account…':'Signing in…');void(async()=>{const client=authClient();if(!client)throw Error('Cloud accounts are not configured.');const credentials={email:(el('remote-email') as HTMLInputElement).value.trim(),password:(el('remote-password') as HTMLInputElement).value};
  if(signup)await remoteRequest('', '/api/multiplayer/register',{...credentials,username:(el('remote-username') as HTMLInputElement).value.trim(),playerName:(el('remote-player-name') as HTMLInputElement).value.trim()});
- const {error}=await client.auth.signInWithPassword(credentials);if(error)throw Error(error.status===400?'Sign-in failed. Check your email and password.':error.message);(el('remote-password') as HTMLInputElement).value='';const clean=new URL(location.href);clean.hash='';history.replaceState(null,'',clean);await enter();})().catch(e=>status(e.message)).finally(()=>{button.disabled=false;});};
+ const {error}=await client.auth.signInWithPassword(credentials);if(error)throw Error(error.status===400?'Sign-in failed. Check your email and password.':error.message);(el('remote-password') as HTMLInputElement).value='';const clean=new URL(location.href);clean.hash='';if(signup){clean.search='?openplay=1&setup=1';}history.replaceState(null,'',clean);await enter();})().catch(e=>status(e.message)).finally(()=>{button.disabled=false;});};
 (el('remote-name-form') as HTMLFormElement).onsubmit=e=>{e.preventDefault();const name=(el('remote-existing-name') as HTMLInputElement).value.trim().replace(/\s+/g,' ');if(!name||name.length>32){status('Enter a player name of 1–32 characters.');return;}const button=el('remote-name-form').querySelector('button')!;button.disabled=true;void(async()=>{const {error}=await authClient()!.auth.updateUser({data:{player_name:name}});if(error)throw error;await enter();})().catch(e=>status(e.message)).finally(()=>{button.disabled=false;});};
 async function signOutAccount(){
  await disableDevicePush();const {error}=await authClient()!.auth.signOut({scope:'local'});if(error)throw error;

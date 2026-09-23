@@ -149,6 +149,10 @@ Career Mode, Arcade Mode, RPG progression, tournament ladders, skill unlocks, st
 
 - [ ] **Player-specific backhand strengths and weaknesses** (added September 20, 2026). Extend the current low-backhand penalty so forehand/backhand contact and each defender’s ability meaningfully affect return execution at normal heights too. Respect handedness, positioning, contact height, and shot type; targeting a weak backhand should provide a tactical advantage without guaranteeing failure. Validate strong versus weak backhands in equivalent situations. Keep defender skill ratings out of the shot selector’s Pressure indicator so players learn opponents’ weaknesses through play. Backlogged for later; not a new V1 launch requirement.
 
+## PickleBash+ and monetization
+
+- [ ] **Bring back “Your Game” on the profile page** (added September 23, 2026). Keep the section hidden until the PickleBash+ offering and monetization approach are defined. Then revisit its shot-mix insights and decide which features belong in the free experience versus PickleBash+ before restoring it. Deferred; not a V1 launch requirement. Existing shot-mix UI remains in `src/multiplayer/shot-mix-view.ts`; the profile entry point is `src/multiplayer/profile.ts`.
+
 ## History and references
 
 - [Historical roadmap and implementation log](BACKLOG-HISTORY.md) — original numbering and older decisions; not an active task list.

@@ -1,3 +1,4 @@
+import {focusView,showViewDialog} from './view-focus';
 import {installSwipeLeft} from './swipe-left';
 import './game-list-exit.css';
 
@@ -25,8 +26,8 @@ export function installGameListExit(card:HTMLElement,options:{title:string;messa
    finally{busy=false;confirm.disabled=false;cancel.disabled=false;}
   };
   dialog.addEventListener('cancel',event=>{if(busy)event.preventDefault();});
-  dialog.addEventListener('close',()=>{dialog?.remove();dialog=null;if(card.isConnected)card.focus();},{once:true});
+  dialog.addEventListener('close',()=>{dialog?.remove();dialog=null;focusView();},{once:true});
   actions.append(cancel,confirm);dialog.append(title,message,error,actions);document.body.append(dialog);
-  dialog.showModal();cancel.focus();
+  showViewDialog(dialog);focusView(dialog);
  });
 }

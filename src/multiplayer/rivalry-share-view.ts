@@ -1,3 +1,4 @@
+import {focusView,showViewDialog} from '../view-focus';
 import {copyInviteLink} from './pending-invite-card';
 import {rivalryShareText,sendRivalryText,type RivalryShareMatch} from './rivalry-share';
 export function openRivalryShare(match:RivalryShareMatch,opponent:string){
@@ -16,6 +17,6 @@ export function openRivalryShare(match:RivalryShareMatch,opponent:string){
  include.onchange=()=>{preview.value=include.checked?gameText:publicText;status.textContent='';};
  let busy=false;const send=async(mode:'share'|'copy')=>{if(busy)return;busy=true;share.disabled=copy.disabled=include.disabled=true;status.textContent='';try{const outcome=await sendRivalryText(preview.value,mode,{share:typeof navigator.share==='function'?data=>navigator.share(data):undefined,copy:copyInviteLink});status.textContent=outcome==='cancelled'?'Sharing cancelled.':outcome==='copied'?'Message copied.':'Share action completed.';}catch{preview.focus();preview.select();status.textContent='Could not share automatically. Copy the selected message, or try again.';}finally{busy=false;share.disabled=copy.disabled=include.disabled=false;}};
  share.onclick=()=>void send('share');copy.onclick=()=>void send('copy');close.onclick=()=>dialog.close();
- const focused=document.activeElement;dialog.addEventListener('close',()=>{dialog.remove();if(focused instanceof HTMLElement&&focused.isConnected)focused.focus();});
- dialog.append(heading,preview,label,note,share,copy,status,close);document.body.append(dialog);dialog.showModal();return dialog;
+ const focused=document.activeElement;dialog.addEventListener('close',()=>{dialog.remove();focusView();});
+ dialog.append(heading,preview,label,note,share,copy,status,close);document.body.append(dialog);showViewDialog(dialog);return dialog;
 }

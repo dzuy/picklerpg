@@ -15,7 +15,7 @@
 #app #game-settings::backdrop { background: var(--pb-scrim); }
 #app #game-settings .settings-heading { align-items: flex-start; padding-bottom: 24px; border-bottom: 1px solid var(--settings-line); }
 #app #game-settings #settings-title { color: var(--pb-text); font-size: 28px; line-height: 1.2; letter-spacing: -.8px; margin: 6px 0 0; }
-#app #game-settings #remote-rules { color: var(--pb-info-ink); font-size: 13px; line-height: 1.6; font-weight: 600; margin: 10px 0 0; }
+#app #game-settings :is(#remote-rules,#local-rules) { color: var(--pb-info-ink); font-size: 13px; line-height: 1.6; font-weight: 600; margin: 10px 0 0; }
 #app #game-settings #close-settings { flex: 0 0 44px; width: 44px; height: 44px; padding: 0; border-radius: var(--pb-radius-card); background: var(--pb-surface); border: 1px solid var(--pb-border); color: var(--pb-text-secondary); }
 #app #game-settings h3 { color: var(--pb-text); font-size: 18px; letter-spacing: -.3px; }
 #app #game-settings p,
@@ -82,3 +82,6 @@
 
 #app #game-settings #remote-notification-status:empty{display:none}
 #app #game-settings #remote-notification-status:not(:empty){margin:0;padding:0 0 12px;font-size:12px;line-height:1.4;color:var(--pb-text-secondary)}
+#app #game-settings #remote-leave-game{margin-top:14px}
+#app #game-settings .settings-compact-actions{gap:14px;margin:24px 0 0}
+#app #game-settings .settings-compact-actions .settings-restart{text-align:center}

@@ -1,3 +1,4 @@
+import {showViewDialog} from '../view-focus';
 import {authClient} from '../auth-session';
 import {hudButtonIcon} from '../hud-button';
 
@@ -19,5 +20,5 @@ export function editEmailDialog(owner:string,currentEmail:string,onUpdated:(emai
    save.hidden=true;
   })().catch(error=>{message.textContent=(error as Error).message;}).finally(()=>{save.disabled=false;input.disabled=false;});
  };
- document.body.append(dialog);dialog.showModal();input.focus();
+ document.body.append(dialog);showViewDialog(dialog);input.focus();
 }

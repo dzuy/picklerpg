@@ -1,3 +1,4 @@
+import {focusView} from './view-focus';
 import {fillSetupPlayerCard} from './setup-player-card';
 import {courtSelector} from './court-selector';
 import {COURT_LOCATIONS,type CourtLocation} from './locations';
@@ -69,14 +70,15 @@ export class MatchSetup {
   this.mode='solo';this.scoring=scoring;this.owned=saved;this.eligible=[...saved,...rosterStarters()].map(p=>p.id);
   const lineup=setupLineup([...saved,...rosterStarters()],current);this.players=lineup.players;this.selected=lineup.selected;this.restrictTeam();
   const opponents=shufflePlayers(this.players.map(p=>p.id));this.selected=[...this.selected.slice(0,2),...opponents.slice(0,2)];
-  this.render();this.element.hidden=false;void this.community.load();window.scrollTo(0,0);this.element.querySelector<HTMLButtonElement>('[data-action=back]')!.focus({preventScroll:true});
+  this.render();this.element.hidden=false;void this.community.load();window.scrollTo(0,0);focusView(this.element);
  }
  hide(){this.element.hidden=true;this.gesture=null}
  private canStart(){return isValidTargetScore(this.target)&&this.selected.slice(0,2).every(id=>this.eligible.includes(id))&&validLineup(this.players.map(p=>p.id),this.selected)&&courts.some(c=>c.id===this.court&&c.playable)}
  private refresh(focus:string,announcement:string){
+  const keyboard=document.activeElement?.matches(':focus-visible');
   const scroll=this.element.querySelector('.setup-courts')?.scrollLeft??0;
   this.render();this.element.querySelector('.setup-courts')!.scrollLeft=scroll;
-  this.element.querySelector<HTMLElement>(focus)?.focus({preventScroll:true});
+  if(keyboard)this.element.querySelector<HTMLElement>(focus)?.focus({preventScroll:true});
   this.element.querySelector('[role=status]')!.textContent=announcement;
  }
  private cycle(slot:number,step:number){

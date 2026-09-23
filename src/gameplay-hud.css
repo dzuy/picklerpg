@@ -10,9 +10,9 @@ body.match-mode[data-panel=play][data-screen=court] .court-wrap{border:0;border-
 @media(hover:hover){#app .gameplay-settings:hover{filter:drop-shadow(0 0 10px var(--pb-shadow-color));scale:1.05}}
 #app .court-top{z-index:10;top:max(28px,env(safe-area-inset-top));left:max(22px,env(safe-area-inset-left));right:auto;pointer-events:none}
 /* The frame has transparent space above/below its two rows (1448 × 1086). */
-#app .score{position:relative;isolation:isolate;width:clamp(220px,23vw,300px);min-width:0;display:grid;grid-template-rows:1fr 1fr;overflow:visible;aspect-ratio:auto;padding:10px 14px;gap:6px;border:1px solid var(--pb-border);border-radius:10px;background:var(--pb-surface);box-shadow:var(--pb-shadow-card);color:var(--pb-text)}
+#app .score{position:relative;isolation:isolate;width:clamp(220px,23vw,300px);min-width:0;display:grid;grid-template-rows:1fr 1fr;overflow:visible;aspect-ratio:auto;padding:7px 12px;gap:3px;border:1px solid var(--pb-border);border-radius:10px;background:color-mix(in srgb,var(--pb-surface) 82%,transparent);box-shadow:var(--pb-shadow-card);color:var(--pb-text)}
 #app .score::before{position:absolute;inset:-50% 0;z-index:-1;background:url('/assets/picklebash-gameplay-ui/hud/picklebash-scoreboard-frame.png') center/100% 100% no-repeat;pointer-events:none;content:none}
-#app .score-row{display:grid;gap:4%;min-height:0;border:0;background:none;align-items:center;grid-template-columns:minmax(0,1fr) 32px;padding:3px 0;border-left:3px solid var(--pb-team-home)}
+#app .score-row{display:grid;gap:4%;min-height:0;border:0;background:none;align-items:center;grid-template-columns:minmax(0,1fr) 32px;padding:1px 0;border-left:3px solid var(--pb-lime)}
 #app .score-row>span{min-width:0;padding:0 0 0 4px;font-synthesis:style;font-size:clamp(13px,1.45vw,20px);line-height:1.15;overflow-wrap:anywhere;color:var(--pb-text);font-family:var(--pb-font-body);font-style:normal;font-weight:700;letter-spacing:0;padding-left:8px}
 #app .score-row b{align-self:stretch;border:0;background:none;font-size:clamp(22px,2.1vw,30px);letter-spacing:.04em;color:var(--pb-text);font-family:var(--pb-font-heading);font-weight:800;text-shadow:none;font-variant-numeric:tabular-nums}
 #game-settings .settings-game-actions{display:grid;gap:9px;margin:10px 0 20px}
@@ -49,7 +49,7 @@ body.match-mode[data-panel=play][data-screen=court] .court-wrap{border:0;border-
 #app .trash-toggle{width:var(--hud-size);height:var(--hud-size);padding:0;border:0;background:none;box-shadow:none}
 #app .open-play-replay:disabled,#app.remote-app #remote-replay:disabled{opacity:1}
 #app .open-play-replay:disabled .hud-button-symbol,#app.remote-app #remote-replay:disabled .hud-button-symbol{opacity:.35}
-#app .score-row-away{border-left-color:var(--pb-team-away)}
+#app .score-row-away{border-left-color:var(--pb-primary)}
 .hud-button-face{fill:var(--pb-surface);stroke:var(--pb-border-strong);stroke-width:1.5}
 .hud-button-symbol{color:var(--pb-text)}
 button:hover .hud-button-face, a:hover .hud-button-face{fill:var(--pb-selected);stroke:var(--pb-info-ink)}
@@ -62,3 +62,12 @@ button:hover .hud-button-face, a:hover .hud-button-face{fill:var(--pb-selected);
 #app :is(#remote-back,.open-play-games-link){background:none;border:0;box-shadow:none}
 #app :is(#remote-back,.open-play-games-link) .hud-button-face{display:none}
 #app :is(#remote-back,.open-play-games-link) .hud-button-symbol{color:var(--pb-white)}
+
+/* Shared active-player marker for solo and Friends play. */
+.turn-arrow{position:absolute;z-index:8;pointer-events:none;width:24px;height:42px;filter:drop-shadow(0 2px 2px var(--pb-shadow-color)) drop-shadow(0 0 5px var(--pb-shadow-color));transform:translate(-50%,-100%);animation:turn-arrow-bob .85s ease-in-out infinite alternate}.turn-arrow svg{display:block;width:28px;height:46px;margin:-2px;overflow:visible;fill:var(--pb-primary);stroke:var(--pb-white);stroke-width:2;stroke-linejoin:round}@keyframes turn-arrow-bob{to{transform:translate(-50%,calc(-100% - 8px))}}@media(prefers-reduced-motion:reduce){.turn-arrow{animation:none}}
+.serve-aim-hint{position:absolute;inset:0;z-index:6;pointer-events:none}
+.serve-aim-hint svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.serve-aim-hint polygon{fill:color-mix(in srgb,var(--pb-primary) 16%,transparent);stroke:var(--pb-primary);stroke-width:3;stroke-linejoin:round;filter:drop-shadow(0 0 5px var(--pb-primary));animation:serve-aim-glow 1.2s ease-in-out infinite alternate}
+.serve-aim-hint span{position:absolute;transform:translate(-50%,-50%);width:max-content;max-width:calc(100% - 24px);padding:9px 14px;border-radius:var(--pb-radius-pill);background:var(--pb-surface);color:var(--pb-text);box-shadow:var(--pb-shadow-card);font:800 14px/1.25 var(--pb-font-body);text-align:center}
+@keyframes serve-aim-glow{to{stroke-width:5;fill:color-mix(in srgb,var(--pb-primary) 28%,transparent);filter:drop-shadow(0 0 10px var(--pb-primary))}}
+@media(prefers-reduced-motion:reduce){.serve-aim-hint polygon{animation:none}}

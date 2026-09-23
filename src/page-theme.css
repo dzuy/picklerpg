@@ -1,3 +1,6 @@
 /* Every route shares the Daylight UI tokens. */
 @import './design-system/tokens.css';
 @import './design-system/components.css';
+
+/* Neutral focus targets announce screens without highlighting an action. */
+.view-focus-target:focus{outline:none!important}

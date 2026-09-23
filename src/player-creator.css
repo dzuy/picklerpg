@@ -488,6 +488,7 @@
 #player-creator[data-view=editor] .creator-footer [data-status]{color:var(--pb-text-secondary)}
 #player-creator[data-view=editor] :is(.creator-confirm,.creator-delete-confirm){background:var(--pb-surface);border:1px solid var(--pb-border);color:var(--pb-text-secondary)}
 #player-creator[data-view=editor] :focus-visible{outline-color:var(--pb-focus)}
+#player-creator #creator-title:focus{outline:none}
 #player-creator[data-view=editor] #creator-name,#player-creator[data-view=editor] #creator-catchphrase{background:var(--pb-surface-inset);color:var(--pb-text);border-color:var(--pb-border)}
 
 /* Appearance categories: tappable dots and horizontal swipes, with natural page height. */

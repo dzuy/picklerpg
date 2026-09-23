@@ -1,3 +1,4 @@
+import {focusView,showViewDialog} from './view-focus';
 import {AvatarPreview} from './avatar-preview';
 import {fillPlayerCard,playerSkillDetails} from './player-card';
 import {canModerateCommunity,removeFromCommunity} from './community-players';
@@ -5,7 +6,7 @@ import {summarizeSkills} from './player-skill-summary';
 import type {DesignedPlayer} from './player-design';
 import './player-details.css';
 let drawer:HTMLDialogElement|undefined;
-export function attachPlayerDetails(card:HTMLElement,player:DesignedPlayer,role:string,portrait:string,edit?:()=>void,membership?:{label:string;change:()=>Promise<void>},requestDelete?:()=>void){
+export function attachPlayerDetails(card:HTMLElement,player:DesignedPlayer,role:string,portrait:string,edit?:()=>void,membership?:{label:string;primary?:boolean;change:()=>Promise<void|boolean>},requestDelete?:()=>void){
  card.querySelector(':scope > dl')?.remove();
  card.classList.add('roster-card-compact');card.tabIndex=0;card.setAttribute('role','button');card.setAttribute('aria-label',`View ${player.name} details`);
  const open=()=>openPlayerDetails(player,role,portrait,card,edit,membership,requestDelete);
@@ -13,7 +14,7 @@ export function attachPlayerDetails(card:HTMLElement,player:DesignedPlayer,role:
  card.addEventListener('keydown',event=>{if(event.target===card&&(event.key==='Enter'||event.key===' ')){event.preventDefault();open()}});
 }
 
-export function openPlayerDetails(player:DesignedPlayer,role:string,portrait='',returnFocus?:HTMLElement,edit?:()=>void,membership?:{label:string;change:()=>Promise<void>},requestDelete?:()=>void){
+export function openPlayerDetails(player:DesignedPlayer,role:string,portrait='',returnFocus?:HTMLElement,edit?:()=>void,membership?:{label:string;primary?:boolean;change:()=>Promise<void|boolean>},requestDelete?:()=>void){
 
   drawer??=document.createElement('dialog');drawer.className='roster-details-drawer';drawer.id='roster-details';drawer.setAttribute('aria-labelledby','roster-details-title');drawer.replaceChildren();if(!drawer.isConnected)document.body.append(drawer);
   let closing=false;let preview:AvatarPreview|undefined;
@@ -39,12 +40,12 @@ export function openPlayerDetails(player:DesignedPlayer,role:string,portrait='',
   if(edit){const button=document.createElement('button');button.type='button';button.className='roster-details-edit';button.textContent=player.id.startsWith('community-')?'Customize skills':'Edit player';button.onclick=()=>dismiss(edit);drawer.append(button);}
   if(requestDelete){const button=document.createElement('button');button.type='button';button.className='roster-details-delete';button.textContent='Delete player';button.onclick=()=>dismiss(requestDelete);drawer.append(button);}
   if(membership){
-   const button=document.createElement('button');button.type='button';button.className='roster-details-membership';button.textContent=membership.label;
+   const button=document.createElement('button');button.type='button';button.className='roster-details-membership';button.classList.toggle('roster-details-primary',!!membership.primary);button.textContent=membership.label;
    const status=document.createElement('p');status.setAttribute('role','status');
-   button.onclick=()=>{button.disabled=true;status.textContent='';void membership.change().then(()=>dismiss()).catch(error=>{status.textContent=(error as Error).message;button.disabled=false;});};
+   button.onclick=()=>{button.disabled=true;status.textContent='';void membership.change().then(changed=>{if(changed!==false)dismiss();}).catch(error=>{status.textContent=(error as Error).message;}).finally(()=>{button.disabled=false;});};
    drawer.append(button,status);
   }
-  drawer.onclose=()=>{preview?.dispose();preview=undefined;if(returnFocus?.isConnected)returnFocus.focus({preventScroll:true})};drawer.showModal();close.focus();
+  drawer.onclose=()=>{preview?.dispose();preview=undefined;focusView()};showViewDialog(drawer);focusView(drawer);
   const banner=profile.querySelector<HTMLElement>('.roster-banner')!,host=document.createElement('div');host.className='roster-live-preview';
   banner.prepend(host);
   try{preview=new AvatarPreview(host,true,1.3,{allowZoom:true,verticalOffset:.08});preview.setPlayer(player);banner.classList.add('has-live-preview');banner.querySelector('img')?.remove();}catch{preview?.dispose();preview=undefined;host.remove();}

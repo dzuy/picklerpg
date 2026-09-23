@@ -1,3 +1,4 @@
+import {showViewDialog} from './view-focus';
 import {playerHistory,type MatchParticipant} from './player-history';
 import type {CloudPlayerSync} from './cloud-players';
 import {browserStorage} from './browser-storage';
@@ -34,7 +35,7 @@ export function installAccountControls(cloud:CloudPlayerSync,roster:()=>{id:stri
    }
   }catch{content.textContent='Match history is unavailable. Check your connection and make sure the match-history database migration has been applied. Your pending results stay on this device.'}
  }
- document.getElementById('history-open')!.onclick=()=>{dialog.showModal();void refresh()};
+ document.getElementById('history-open')!.onclick=()=>{showViewDialog(dialog);void refresh()};
  document.getElementById('history-close')!.onclick=()=>dialog.close();
  document.getElementById('history-refresh')!.onclick=()=>void refresh();
  const status=document.getElementById('account-status')!;

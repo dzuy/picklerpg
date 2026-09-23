@@ -36,7 +36,7 @@ export class TeamDirectoryService {
   for(let page=1;page<=10;page++){
    const {data,error}=await this.client.auth.admin.listUsers({page,perPage:100});if(error)throw new ApiError(503,'teams','Teams are unavailable. Please try again.');
    for(const user of data.users){this.botRecords.set(user.id,user.app_metadata??{});this.selectedTitles.set(user.id,user.user_metadata.activity_title);}
-   for(const user of data.users)if(user.id!==actor&&!user.is_anonymous&&this.eligible.has(user.id)&&user.app_metadata?.multiplayer_playtest===true)teams.push(lobbyTeam(user.id,name(user.user_metadata),user.user_metadata));
+   for(const user of data.users)if(user.id!==actor&&!user.is_anonymous&&this.eligible.has(user.id)&&user.app_metadata?.multiplayer_playtest===true&&user.app_metadata?.directory_hidden!==true&&user.user_metadata?.purpose!=='invitation-storage-regression'&&!/^inviteqa_[ab]_[0-9a-f]{8}$/i.test(String(user.user_metadata?.username??'')))teams.push(lobbyTeam(user.id,name(user.user_metadata),user.user_metadata));
    if(data.users.length<100)break;
   }
   return {self,teams:teams.sort((a,b)=>a.name.localeCompare(b.name)),friends:friendIds(own.user.user_metadata.open_play_friends)};

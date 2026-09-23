@@ -7,8 +7,9 @@ const compiled=build({entryPoints:['src/pwa.ts'],bundle:true,write:false,format:
  b.onLoad({filter:/.*/,namespace:'mock'},args=>({contents:args.path.includes('auth-session')?'export const authClient=()=>globalThis.auth;export const matchCredentials=async()=>globalThis.credentials;':args.path.includes('browser-storage')?'export const browserStorage=globalThis.storage;export const browserSessionStorage=globalThis.sessionStorage;':'export const remoteRequest=(...args)=>globalThis.request(...args);'}));
 }}]}).then(r=>r.outputFiles[0].text);
 class Element {
+ classList={add:()=>{}};focus(){}querySelector(){return new Element()}
  children:Element[]=[];hidden=false;disabled=false;textContent='';className='';type='';open=false;events=new Map<string,()=>void>();onclick?:(event?:any)=>void;
- replaceChildren(...children:Element[]){this.children=children;}append(...children:Element[]){this.children.push(...children)}prepend(child:Element){this.children.unshift(child)}setAttribute(){}addEventListener(name:string,callback:()=>void){this.events.set(name,callback)}showModal(){this.open=true}close(){this.open=false;this.events.get('close')?.()}remove(){}
+ replaceChildren(...children:Element[]){this.children=children;}append(...children:Element[]){this.children.push(...children)}prepend(child:Element){this.children.unshift(child)}setAttribute(){}addEventListener(name:string,callback:()=>void){const previous=this.events.get(name);this.events.set(name,()=>{previous?.();callback()})}showModal(){this.open=true}close(){this.open=false;this.events.get('close')?.()}remove(){}
  find(text:string):Element|undefined{return this.textContent===text?this:this.children.map(c=>c.find(text)).find(Boolean)}
 }
 const flush=async()=>{await new Promise(resolve=>setTimeout(resolve,15));};
@@ -20,7 +21,7 @@ async function client({installed=true,permission='default',result='granted',supp
  const context:any={console,URL,Uint8Array,atob,btoa,isSecureContext:true,navigator:{userAgent:ios?'iPhone':'Chrome',platform:'',maxTouchPoints:0,serviceWorker:{register:async()=>reg,ready:Promise.resolve(reg)}},matchMedia:()=>({matches:installed,addEventListener(){}}),setTimeout,setInterval(){},fetch:async(...args:any[])=>{requests.push(args);return {}},credentials:{owner:'account-a',token:'token'},auth:{auth:{onAuthStateChange:(callback:any)=>authCallback=callback}},storage:{getItem:(k:string)=>storage.get(k)??null,setItem:(k:string,v:string)=>storage.set(k,v),removeItem:(k:string)=>storage.delete(k)},request:async(...args:any[])=>{requests.push(args);if(configFails)throw Error('offline');return {publicKey:btoa('test-key')}}};
  const session=new Map();context.sessionStorage={getItem:(k:string)=>session.get(k)??null,setItem:(k:string,v:string)=>session.set(k,v)};
  context.window=context;context.parent=context;context.addEventListener=(name:string,callback:any)=>handlers[name]=callback;
- context.document={createElement:()=>new Element(),body:new Element(),visibilityState:'visible',hasFocus:()=>true,addEventListener:(name:string,cb:any)=>handlers[name]=cb};
+ context.document={querySelectorAll:()=>[],createElement:()=>new Element(),body:new Element(),visibilityState:'visible',hasFocus:()=>true,addEventListener:(name:string,cb:any)=>handlers[name]=cb};
  if(supported){context.PushManager={};context.Notification={permission,requestPermission:async()=>{permissionCalls++;context.Notification.permission=result;return result}};}
  vm.runInNewContext(await compiled,vm.createContext(context));
  const host=new Element();context.Pwa.mountTurnPrompt(host);if(inviteCreated)context.Pwa.showTurnPromptAfterInvite();authCallback('SIGNED_IN',{user:{id:'account-a'},access_token:'token'});await flush();
@@ -37,16 +38,25 @@ test('denied, dismissed and unsupported permissions never subscribe or nag autom
  for(const result of ['denied','default']){const c=await client({result});c.button()!.onclick!();await flush();assert.equal(c.counts().subscribeCalls,0);c.context.Pwa.showTurnPromptAfterInvite();assert.equal(c.counts().permissionCalls,1);}
  const unsupported=await client({supported:false});assert.equal(unsupported.host.children[0].hidden,true);assert.equal(unsupported.counts().permissionCalls,0);
 });
-test('iPhone requires Home Screen installation; desktop enables notifications directly',async()=>{
- const phone=await client({installed:false,ios:true});const add=phone.host.find('Add PickleBash')!;add.onclick!();assert.match(phone.context.document.body.children[0].innerHTML,/Tap Share.*Tap Add to Home Screen.*Tap Add/);
- const chrome=await client({installed:false});assert.ok(chrome.button());assert.equal(chrome.button()!.hidden,false);assert.equal(chrome.counts().permissionCalls,0);
- chrome.context.storage.setItem('pickle-install-dismissed','1');chrome.context.Pwa.showTurnPromptAfterInvite();assert.equal(chrome.host.children[0].hidden,false);
- chrome.button()!.onclick!();await flush();assert.equal(chrome.counts().permissionCalls,1);assert.equal(chrome.counts().subscribeCalls,1);
+test('closing invitation sharing shows Home Screen steps directly on phone and desktop browsers',async()=>{
+ for(const options of [{ios:true},{ios:false},{supported:false},{permission:'denied'}]){
+  const c=await client({installed:false,...options});
+  const instructions=c.context.document.body.children[0];
+  assert.equal(instructions.open,true);
+  assert.match(instructions.innerHTML,/Share.*Add to Home Screen.*enable notifications/);
+  assert.match(instructions.innerHTML,/Close notification instructions/);
+  assert.equal(c.counts().permissionCalls,0);
+  instructions.close();
+  c.authCallback('TOKEN_REFRESHED',{user:{id:'account-a'},access_token:'token'});await flush();
+  assert.equal(instructions.open,false);
+ }
 });
-
-test('desktop hides blocked and unsupported notification cards while keeping usable opt-in',async()=>{
- for(const options of [{permission:'denied'},{supported:false}]){const c=await client({installed:false,...options});assert.equal(c.host.children[0].hidden,true);}
- const c=await client({installed:false});assert.equal(c.host.children[0].hidden,false);assert.equal(c.button()?.hidden,false);
+test('past install dismissal does not suppress instructions after a new invitation',async()=>{
+ const c=await client({installed:false,inviteCreated:false});
+ assert.equal(c.context.document.body.children.length,0);
+ c.context.storage.setItem('pickle-install-dismissed','1');
+ c.context.Pwa.showTurnPromptAfterInvite();
+ assert.equal(c.context.document.body.children[0].open,true);
 });
 
 test('existing successful opt-in stays hidden after reload without prompting again',async()=>{

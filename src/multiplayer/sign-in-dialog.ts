@@ -1,3 +1,4 @@
+import {showViewDialog} from '../view-focus';
 import {remoteRequest} from './api';
 import {authClient} from '../auth-session';
 import {hudButtonIcon} from '../hud-button';
@@ -12,5 +13,5 @@ export function signInDialog(onSignedIn:()=>Promise<void>){
  form.onsubmit=event=>{event.preventDefault();if(submit.disabled)return;submit.disabled=true;submit.textContent='Signing in…';message.textContent='';
  void(async()=>{const client=authClient();if(!client)throw Error('Sign in is unavailable. Please try again later.');const session=await remoteRequest<{access_token:string;refresh_token:string}>('','/api/multiplayer/sign-in',{identifier:identifier.value.trim(),password:password.value});const {error}=await client.auth.setSession(session);if(error)throw Error('Could not finish signing in. Please try again.');password.value='';await onSignedIn();dialog.close();})().catch(error=>{message.textContent=(error as Error).message;}).finally(()=>{submit.disabled=false;submit.textContent='Sign in';});
  };
- document.body.append(dialog);dialog.showModal();identifier.focus();
+ document.body.append(dialog);showViewDialog(dialog);identifier.focus();
 }

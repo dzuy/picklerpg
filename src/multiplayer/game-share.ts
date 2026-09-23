@@ -1,3 +1,4 @@
+import {focusView,showViewDialog} from '../view-focus';
 import {hudButtonIcon} from '../hud-button';
 import {copyInviteLink} from './pending-invite-card';
 import type {Invitation} from './invitation-protocol';
@@ -22,5 +23,5 @@ export function showGameShare(share:GameShare){
  copy.onclick=()=>void copyLink();
  shareButton.onclick=()=>{if(typeof navigator.share!=='function'){void copyLink();return;}void navigator.share({title:share.title,text:share.text,url}).catch(error=>{if(error.name!=='AbortError')void copyLink();});};
  const actions=document.createElement('div');actions.className='friend-share-actions';actions.append(copy,shareButton);
- dialog.append(close,heading,description,link,actions,message);dialog.addEventListener('close',()=>{dialog.remove();previous?.focus({preventScroll:true});},{once:true});document.body.append(dialog);dialog.showModal();return dialog;
+ dialog.append(close,heading,description,link,actions,message);dialog.addEventListener('close',()=>{dialog.remove();focusView();},{once:true});document.body.append(dialog);showViewDialog(dialog);return dialog;
 }

@@ -12,3 +12,6 @@
 @media(prefers-reduced-motion:no-preference){.roster-details-drawer[open]{animation:roster-drawer-in .18s ease-out}@keyframes roster-drawer-in{from{transform:translateX(100%)}to{transform:translateX(0)}}}
 
 @media(prefers-reduced-motion:no-preference){.roster-details-drawer[open].is-closing{animation:roster-drawer-out .18s ease-in forwards}.roster-details-drawer.is-closing::backdrop{animation:roster-backdrop-out .18s ease-in forwards}@keyframes roster-drawer-out{to{transform:translateX(100%)}}@keyframes roster-backdrop-out{to{background:transparent}}}
+
+.roster-details-drawer .roster-details-primary{background:var(--pb-primary);color:var(--pb-on-primary);border-color:var(--pb-primary)}
+.roster-details-drawer .roster-details-primary:hover{background:var(--pb-primary-hover);border-color:var(--pb-primary-hover)}

@@ -62,6 +62,19 @@ export class CourtScene {
  private turnArrow=document.createElement('div');
  private nextHitter:PlayerId|null=null;
  setNextHitter(id:PlayerId|null){this.nextHitter=id}
+ private serveHint=document.createElement('div');
+ private serveHintContact:{x:number;z:number}|null=null;
+ setServeHint(contact:{x:number;z:number}|null){this.serveHintContact=contact;this.serveHint.hidden=!contact}
+ private renderServeHint(){
+  const contact=this.serveHintContact;if(!contact)return;
+  const sideX=-(Math.sign(contact.x)||1),sideZ=-Math.sign(contact.z);
+  const near=sideZ*COURT.kitchen,far=sideZ*COURT.length/2,edge=sideX*COURT.width/2;
+  const rect=this.host.getBoundingClientRect();
+  const corners=[{x:0,z:near},{x:edge,z:near},{x:edge,z:far},{x:0,z:far}];
+  this.serveHint.querySelector('polygon')!.setAttribute('points',corners.map(p=>{const point=this.projectTarget(p);return `${point.x-rect.left},${point.y-rect.top}`}).join(' '));
+  const center=this.projectTarget({x:edge/2,z:(near+far)/2}),label=this.serveHint.querySelector('span')!;
+  label.style.left=`${Math.max(100,Math.min(rect.width-100,center.x-rect.left))}px`;label.style.top=`${center.y-rect.top}px`;
+ }
  private serveBubble=document.createElement('div');
  private thinkingBubble=document.createElement('div');
  private pausedBallMarker=document.createElement('div');
@@ -72,7 +85,8 @@ export class CourtScene {
  private players=new Map<PlayerId,THREE.Group>();private ball:THREE.Group;private ballHalo:THREE.Mesh;private shadow:THREE.Mesh;private trail:THREE.Line;private trailDots:THREE.Points;private target:THREE.Group;private labels=new Map<PlayerId,HTMLDivElement>();private cameraDistance=50;private guides=true;private lastShot:RallyShot|null=null;private previewShot:RallyShot|null=null;private lastOpponentShot:RallyShot|null=null;
  constructor(private host:HTMLElement,private selectPlayer:(id:PlayerId)=>void=()=>{}){
   this.bodyHit=new BodyHitReaction(host);this.celebration=new AtpCelebration(this.scene,host);this.matchCelebration=new MatchCelebration(this.scene,host);
-  this.turnArrow.className='turn-arrow';this.turnArrow.hidden=true;this.turnArrow.setAttribute('role','img');host.append(this.turnArrow);
+  this.turnArrow.className='turn-arrow';this.turnArrow.hidden=true;this.turnArrow.setAttribute('role','img');this.turnArrow.innerHTML='<svg viewBox="-2 -2 28 46" aria-hidden="true"><path d="M7.68 0H16.32V24.36H24L12 42L0 24.36H7.68Z"/></svg>';host.append(this.turnArrow);
+  this.serveHint.className='serve-aim-hint';this.serveHint.hidden=true;this.serveHint.innerHTML='<svg aria-hidden="true"><polygon/></svg><span role="status">Tap to aim your shot</span>';host.append(this.serveHint);
   this.serveBubble.className='serve-bubble';this.serveBubble.hidden=true;this.serveBubble.setAttribute('role','status');host.append(this.serveBubble);
   this.thinkingBubble.className='thinking-bubble';this.thinkingBubble.hidden=true;this.thinkingBubble.setAttribute('role','status');this.thinkingBubble.setAttribute('aria-label','Opponent thinking');
   this.thinkingBubble.innerHTML='<svg viewBox="0 0 160 80" aria-hidden="true"><path d="M29 56C8 58 3 32 20 24C18 9 40 2 51 13C62 0 85 1 94 12C109 0 132 10 130 24C155 20 163 46 145 55C136 68 117 65 109 60C93 73 72 68 64 61C50 70 34 66 29 56Z"/><circle cx="36" cy="72" r="5"/><circle cx="24" cy="78" r="2"/></svg><span aria-hidden="true">Thinking<span class="thinking-dots"><i>.</i><i>.</i><i>.</i></span></span>';
@@ -257,6 +271,7 @@ export class CourtScene {
   const {position,look}=this.cameraPose();this.camera.zoom=1.15;this.camera.position.copy(position);this.controls.target.copy(look);this.camera.lookAt(look);this.camera.updateProjectionMatrix();this.controls.update();
  }
  render(state:GameState,time:number,shot:RallyShot,serveCall:string|null=null,thinkingPlayer:PlayerId|null=null){
+  this.renderServeHint();
   this.observeBodyHit(state,time);
   if(!this.celebratingMatch&&state.phase==='complete'&&this.previousCelebrationPhase==='flight'){const winner=atpWinner(shot.intent,state.result,state.players);if(winner)this.celebrateAtp(winner,time)}
   if(state.phase!=='complete')this.matchCelebration.cancel();

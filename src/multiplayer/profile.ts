@@ -1,8 +1,7 @@
-import {shotMixPanel} from './shot-mix-view';
 import {playerFromRow} from '../cloud-players';
 import {starterPlayer} from '../starter-player';
-import {authClient} from '../auth-session';
-import {editEmailDialog} from './edit-email-dialog';
+import {authClient,playerPasswordSession} from '../auth-session';
+import {guestRegistration} from './guest-registration';
 import {browserStorage} from '../browser-storage';
 import {OpenPlayStore} from '../persistence/open-play-store';
 import {profileRecord} from '../profile-record';
@@ -13,6 +12,21 @@ import {remoteRequest} from './api';
 import type {PublicMatch} from './protocol';
 
 function node<K extends keyof HTMLElementTagNameMap>(tag:K,text='',cls=''){const el=document.createElement(tag);el.textContent=text;el.className=cls;return el;}
+function accountAccess(panel:HTMLElement,client:NonNullable<ReturnType<typeof authClient>>,session:Awaited<ReturnType<typeof client.auth.getSession>>['data']['session']){
+ const heading=node('h2','Create your account'),copy=node('p','Save players, play with friends, and keep your games on every device.','profile-auth-copy');
+ const form=node('form','','profile-auth-form') as HTMLFormElement,usernameLabel=node('label','Username *'),username=node('input') as HTMLInputElement,emailLabel=node('label','Email *'),email=node('input') as HTMLInputElement,passwordLabel=node('label','Password *'),password=node('input') as HTMLInputElement;
+ username.name='username';username.required=true;username.autocomplete='username';username.minLength=3;username.maxLength=24;username.pattern='[A-Za-z0-9_]{3,24}';username.placeholder='e.g. luna17';usernameLabel.append(username);
+ email.name='identifier';email.type='email';email.required=true;email.autocomplete='email';emailLabel.append(email);
+ password.name='password';password.type='password';password.required=true;password.minLength=6;password.maxLength=128;password.autocomplete='new-password';passwordLabel.append(password);
+ const submit=node('button','Create Account','team-lobby-primary') as HTMLButtonElement;submit.type='submit';const toggle=node('button','Already have an account? Sign in','team-lobby-quiet') as HTMLButtonElement;toggle.type='button';const message=node('p','','profile-auth-status');message.setAttribute('role','status');message.setAttribute('aria-live','polite');
+ form.append(usernameLabel,emailLabel,passwordLabel,submit,message);panel.append(heading,copy,form,toggle);
+ let signup=true;
+ const sync=()=>{heading.textContent=signup?'Create your account':'Welcome back';copy.textContent=signup?'Save players, play with friends, and keep your games on every device.':'Sign in to see your roster, games, and profile.';usernameLabel.hidden=!signup;emailLabel.firstChild!.textContent=signup?'Email *':'Username or email *';email.type=signup?'email':'text';email.autocomplete='username';password.autocomplete=signup?'new-password':'current-password';password.minLength=signup?6:1;submit.textContent=signup?'Create Account':'Sign in';toggle.textContent=signup?'Already have an account? Sign in':'New here? Create an account';message.textContent='';};
+ toggle.onclick=()=>{signup=!signup;sync();(signup?username:email).focus();};
+ const register=session?.user.is_anonymous?guestRegistration(session.user.id,credentials=>remoteRequest(session.access_token,'/api/multiplayer/claim-player',{...credentials,username:username.value.trim(),playerName:username.value.trim()}),{signIn:playerPasswordSession,install:async fresh=>{const {error}=await client.auth.setSession(fresh);if(error)throw error;}}):async(credentials:{email:string;password:string})=>{await remoteRequest('','/api/multiplayer/register',{...credentials,username:username.value.trim(),playerName:username.value.trim()});const fresh=await playerPasswordSession(credentials);const {error}=await client.auth.setSession(fresh);if(error)throw error;};
+ form.onsubmit=event=>{event.preventDefault();if(submit.disabled)return;submit.disabled=true;toggle.disabled=true;message.textContent=signup?'Creating your account…':'Signing in…';void(async()=>{if(signup)await register({email:email.value.trim(),password:password.value});else{const fresh=await remoteRequest<{access_token:string;refresh_token:string}>('','/api/multiplayer/sign-in',{identifier:email.value.trim(),password:password.value});const {error}=await client.auth.setSession(fresh);if(error)throw error;}password.value='';location.assign(signup?'/?openplay=1&setup=1':'/?openplay=1&tab=profile');})().catch(error=>{message.textContent=(error as Error).message;submit.disabled=false;toggle.disabled=false;});};
+ sync();
+}
 export function profilePanel(portraits:AvatarThumbnails|undefined,authenticate:(signup:boolean,guest:boolean)=>void,signOut:()=>Promise<void>){
  const panel=node('section','','lobby-profile own-profile');panel.setAttribute('aria-label','Your profile');panel.setAttribute('aria-busy','true');panel.append(node('p','Loading your profile…'));
  void (async()=>{
@@ -22,10 +36,7 @@ export function profilePanel(portraits:AvatarThumbnails|undefined,authenticate:(
   const user=session?.data.session?.user;
   panel.replaceChildren();
   if(!user||user.is_anonymous){
-   panel.append(node('h2','Your profile'),node('p','Create an account or sign in to see your player and game record.'));
-   const actions=node('div','','lobby-profile-auth');
-   for(const signup of [true,false]){const button=node('button',signup?'Create account':'Sign in',signup?'team-lobby-primary':'team-lobby-quiet');button.type='button';button.onclick=()=>authenticate(signup,!!user?.is_anonymous);actions.append(button);}
-   panel.append(actions);return;
+   if(!client)throw new Error('Accounts are unavailable right now.');accountAccess(panel,client,session?.data.session??null);return;
   }
   const name=typeof user.user_metadata.player_name==='string'?user.user_metadata.player_name.trim():'Player';
   const columns='id,name,catchphrase,appearance,skills,handedness,is_active,is_public';
@@ -66,14 +77,12 @@ export function profilePanel(portraits:AvatarThumbnails|undefined,authenticate:(
    progressBar.value=data.nextAt===null?10:data.games%10;progressBar.hidden=false;
    rewardNote.textContent=`${data.games} completed online games · Every 10 earns +1 point, up to 45.`;
   });
-  const insights=node('section','','profile-insights');insights.append(node('h3','Your game'),node('p','A closer look at how you play.','profile-section-copy'),shotMixPanel());panel.append(insights);
   const footer=node('footer','','lobby-profile-account'),signOutButton=node('button','Sign out','team-lobby-quiet'),accountStatus=node('p');
   signOutButton.type='button';accountStatus.setAttribute('role','status');
-  let currentEmail=user.email??'';
-  const accountLabel=node('p',currentEmail||name||'Player','profile-email'),editEmail=node('button','Edit email','team-lobby-quiet');editEmail.type='button';
+  const currentEmail=user.email??'';
+  const accountLabel=node('p',currentEmail||name||'Player','profile-email');
   if(user.new_email&&user.new_email!==currentEmail)accountStatus.textContent=`Email change to ${user.new_email} awaits confirmation. Check your email inboxes.`;
-  editEmail.onclick=()=>editEmailDialog(user.id,currentEmail,(email,pending)=>{currentEmail=email;accountLabel.textContent=email;accountStatus.textContent=pending?`Email change to ${pending} awaits confirmation. Check your email inboxes.`:'Email address updated.';});
-  const accountActions=node('div','','profile-account-actions');accountActions.append(editEmail,signOutButton);footer.append(node('span','Email address','profile-account-label'),accountLabel,accountActions,accountStatus);const settings=node('details','','profile-account-settings');settings.append(node('summary','Account settings'),footer);panel.append(settings);
+  const accountActions=node('div','','profile-account-actions');accountActions.append(signOutButton);footer.append(node('span','Email address','profile-account-label'),accountLabel,accountActions,accountStatus);const settings=node('details','','profile-account-settings');settings.append(node('summary','Account settings'),footer);panel.append(settings);
   signOutButton.onclick=()=>{signOutButton.disabled=true;signOutButton.textContent='Signing out…';accountStatus.textContent='';void signOut().catch(()=>{accountStatus.textContent='Could not sign out. Please try again.';}).finally(()=>{signOutButton.disabled=false;signOutButton.textContent='Sign out';});};
   try{
    const history=async()=>{const matches:HistoryMatch[]=[];for(let offset=0;;offset+=500){const result=await client!.from('match_history').select('id,home_names,away_names,home_score,away_score,ended_early,completed_at').eq('owner_id',user.id).order('completed_at',{ascending:false}).order('id').range(offset,offset+499);if(result.error)throw result.error;matches.push(...result.data);if(result.data.length<500)return matches;}};

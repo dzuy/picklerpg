@@ -27,3 +27,11 @@
 .turn-notification-modal .turn-prompt p{font-size:14px;margin-top:10px}
 .turn-notification-modal .turn-prompt-actions{margin-top:20px}
 @media(max-width:480px){.turn-notification-modal .turn-prompt{padding:22px 18px;gap:12px}.turn-notification-modal .turn-prompt strong{font-size:19px}}
+
+.turn-invite-instructions{position:relative;width:min(420px,calc(100vw - 32px));max-width:none;max-height:calc(100dvh - 32px);overflow:auto;box-sizing:border-box;background:var(--pb-surface);font-family:var(--pb-font-body)}
+.turn-invite-instructions h2{margin:8px 32px 14px 0;font-size:26px;line-height:1.15;letter-spacing:-.5px}
+.turn-invite-instructions ol{display:block;list-style:decimal;padding-left:24px;margin:20px 0}
+.turn-invite-instructions li{display:list-item;padding:5px 0 5px 4px;font-size:16px;color:var(--pb-text)}
+.turn-invite-instructions .turn-install-close{position:absolute;top:8px;right:8px;width:44px;height:44px;padding:0;background:transparent;font-size:28px}
+.turn-invite-instructions .turn-install-tip{font-size:13px;color:var(--pb-text-secondary)}
+.turn-invite-instructions .turn-install-done{width:100%;min-height:48px;margin-top:8px;background:var(--pb-primary);color:var(--pb-on-primary);font-weight:800}

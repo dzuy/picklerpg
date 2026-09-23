@@ -48,3 +48,22 @@ test('a pause exactly on a bounce counts it once across reload and reception sel
  e.restoreRuntime(hydrateRally(checkpointRally(e.runtime())));e.chooseReception('bounced');e.update(.01);
  assert.equal(e.state.bounces,1);assert.equal(e.state.legIndex,1);
 });
+
+test('active-player indicator follows the receiver during an incoming-shot decision',()=>{
+ const m=new Match();
+ assert.equal(m.activeHitter,m.state.currentHitter);
+ const r=m.engine.runtime();
+ r.state.phase='flight';r.state.currentHitter='opponent-left';r.receptionPrompt=true;
+ r.shot.receptionChoice={bounced:{legs:structuredClone(r.shot.legs),positions:structuredClone(r.shot.positions),resolution:{receiver:'you',bounced:true}}};
+ m.engine.restoreRuntime(r);
+ assert.equal(m.activeHitter,'you');
+ r.shot.receptionChoice.bounced!.resolution.receiver='partner';
+ m.engine.restoreRuntime(r);
+ assert.equal(m.activeHitter,'partner');
+ r.receptionPrompt=false;
+ m.engine.restoreRuntime(r);
+ assert.equal(m.activeHitter,null);
+ r.state.phase='complete';
+ m.engine.restoreRuntime(r);
+ assert.equal(m.activeHitter,null);
+});

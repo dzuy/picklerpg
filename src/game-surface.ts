@@ -1,3 +1,4 @@
+import {focusView,showViewDialog} from './view-focus';
 import type {SoloLaunch} from './solo-launch';
 import './game-surface.css';
 const CLOSE='picklebash:close-game';
@@ -16,8 +17,8 @@ export function openGameSurface(path='/?newgame=1',solo?:SoloLaunch){
  const close=()=>dialog.close();
  const message=(event:MessageEvent)=>{if(event.origin!==location.origin||event.source!==frame.contentWindow)return;if(event.data===CLOSE)close();if(event.data==='picklebash:solo-ready'&&solo)frame.contentWindow?.postMessage({type:'picklebash:start-solo',setup:solo},location.origin);};
  window.addEventListener('message',message);
- dialog.addEventListener('close',()=>{window.removeEventListener('message',message);frame.src='about:blank';dialog.remove();surface=null;document.body.style.overflow=overflow;previousFocus?.focus({preventScroll:true});window.dispatchEvent(new Event('game-surface-closed'));},{once:true});
- dialog.showModal();frame.focus();
+ dialog.addEventListener('close',()=>{window.removeEventListener('message',message);frame.src='about:blank';dialog.remove();surface=null;document.body.style.overflow=overflow;focusView();window.dispatchEvent(new Event('game-surface-closed'));},{once:true});
+ showViewDialog(dialog);frame.focus();
 }
 /** Closing a game reveals its launcher; direct links return to Games. */
 export function closeGameSurface(){

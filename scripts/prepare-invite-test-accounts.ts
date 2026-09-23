@@ -13,7 +13,7 @@ for(const name of ['a','b']){
  const account=accounts[name]??={email:`invite-qa-${name}-${randomUUID()}@picklebash-test.invalid`,password:randomBytes(32).toString('base64url')};
  if(!account.id){
   await writeFile(file,JSON.stringify(accounts,null,2)+'\n',{mode:0o600});
-  const {data,error}=await admin.auth.admin.createUser({email:account.email,password:account.password,email_confirm:true,user_metadata:{player_name:`Invite QA ${name.toUpperCase()}`,username:`inviteqa_${name}_${randomBytes(4).toString('hex')}`,purpose:'invitation-storage-regression',roster_starters:['preset-0','preset-1']},app_metadata:{multiplayer_playtest:name!=='outsider'}});
+  const {data,error}=await admin.auth.admin.createUser({email:account.email,password:account.password,email_confirm:true,user_metadata:{player_name:`Invite QA ${name.toUpperCase()}`,username:`inviteqa_${name}_${randomBytes(4).toString('hex')}`,purpose:'invitation-storage-regression',roster_starters:['preset-0','preset-1']},app_metadata:{multiplayer_playtest:name!=='outsider',directory_hidden:true}});
   if(error||!data.user)throw Error(`Could not create tester ${name}: ${error?.code??'unknown'}`);
   account.id=data.user.id;await writeFile(file,JSON.stringify(accounts,null,2)+'\n',{mode:0o600});
  }

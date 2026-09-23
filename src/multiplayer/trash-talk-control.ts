@@ -1,3 +1,4 @@
+import {focusView} from '../view-focus';
 import {hudButtonIcon} from '../hud-button';
 import type {CourtScene} from '../scene';
 import type {GameState,PlayerId} from '../engine/model';
@@ -26,11 +27,11 @@ export class TrashTalkControl {
   this.panel.onsubmit=e=>{e.preventDefault();void this.send(this.input.value,true)};
   this.input.oninput=()=>{this.input.value=[...this.input.value].slice(0,CHAT_LIMIT).join('');this.count.textContent=`${[...this.input.value].length} / ${CHAT_LIMIT}`;this.pending=null;};
   this.host.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Escape'){e.preventDefault();this.open(false)}});
-  const label=document.createElement('label');label.className='settings-toggle';label.innerHTML='<span>Mute reactions<small>Hide message bubbles, including in replay.</small></span><input type="checkbox" role="switch">';
+  const label=document.createElement('label');label.className='settings-toggle settings-reactions-toggle';label.innerHTML='<span>Mute reactions<small>Hide message bubbles, including in replay.</small></span><input type="checkbox" role="switch">';
   const mute=label.querySelector('input')!;mute.checked=this.muted;mute.onchange=()=>{this.muted=mute.checked;browserStorage.setItem('pickle-trash-talk-muted',String(this.muted))};const names=settings.querySelector('#remote-names')?.closest('label');if(names)names.after(label);else settings.append(label);
   this.host.hidden=true;
  }
- private open(value:boolean){this.host.classList.toggle('is-open',value);this.panel.inert=!value;this.toggle.setAttribute('aria-expanded',String(value));if(value){this.clearTarget();this.input.focus()}else this.toggle.focus();}
+ private open(value:boolean){this.host.classList.toggle('is-open',value);this.panel.inert=!value;this.toggle.setAttribute('aria-expanded',String(value));if(value){this.clearTarget();this.input.focus()}else focusView();}
  private recentKey(){return `pickle-trash-talk-recents:${this.owner}`}
  private loadRecent(){
   try{const value=JSON.parse(browserStorage.getItem(this.recentKey())??'[]');this.recent=Array.isArray(value)?value.filter((text):text is string=>typeof text==='string'&&[...text].length>0&&[...text].length<=CHAT_LIMIT&&!TRASH_TALK_OPTIONS.includes(text)).filter((text,index,list)=>list.indexOf(text)===index).slice(0,3):[]}catch{this.recent=[]}

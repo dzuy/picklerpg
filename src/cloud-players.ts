@@ -13,11 +13,22 @@ export type CloudSaveState='local'|'connecting'|'saving'|'saved'|'offline';
 export type CloudAccountState={kind:'unavailable'|'connecting'|'guest'|'pending'|'authenticated';email?:string;playerName?:string;teamName?:string};
 type PlayerRow={id:string;name:string;catchphrase:string|null;appearance:unknown;skills:unknown;handedness:'left'|'right';is_active:boolean;is_public?:boolean;published_skills?:DesignedPlayer['skills']};
 const CLOUD_OWNER_KEY='pickle-rpg-cloud-owner-v1',CLOUD_DIRTY_KEY='pickle-rpg-cloud-dirty-v1';
+export const PENDING_ACCOUNT_PLAYER_KEY='picklebash-pending-account-player-v1';
 
 export function playerFromRow(row:PlayerRow):DesignedPlayer{
  return validatePlayer({id:row.id,name:row.name,...(row.published_skills?{publishedSkills:row.published_skills}:{}),isPublic:row.is_public??false,...(row.catchphrase?{catchphrase:row.catchphrase}:{}),appearance:row.appearance,skills:row.skills,handedness:row.handedness});
 }
 function rowFromPlayer(ownerId:string,player:DesignedPlayer,activeId:string|null){return {owner_id:ownerId,id:player.id,name:player.name,is_public:player.isPublic===true,published_skills:player.publishedSkills??null,catchphrase:player.catchphrase??null,appearance:player.appearance,skills:player.skills,handedness:player.handedness,is_active:player.id===activeId}}
+
+export function accountPlayerRow(ownerId:string,player:DesignedPlayer){return rowFromPlayer(ownerId,validatePlayer(player),null)}
+export async function addPlayerToSignedInAccount(player:DesignedPlayer){
+ const client=authClient();if(!client)throw new Error('Your account is unavailable. Please try again.');
+ const {data:{session},error:sessionError}=await client.auth.getSession();if(sessionError)throw sessionError;
+ if(!session||session.user.is_anonymous)throw new Error('Sign in to add this player to your roster.');
+ const budget=await accountSkillBudget(),normalized={...validatePlayer(player),skills:normalizeSkillBudget(player.skills,budget)};
+ const {error}=await client.from('players').upsert(accountPlayerRow(session.user.id,normalized),{onConflict:'owner_id,id'});
+ if(error)throw new Error('You’re signed in, but this player could not be added to your roster. Please try again.');
+}
 
 /** Existing local edits win on first connection; cloud-only players are retained. */
 export function mergePlayerLibraries(local:PlayerLibrary,remote:PlayerLibrary):PlayerLibrary{

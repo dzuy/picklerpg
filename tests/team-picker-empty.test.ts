@@ -14,7 +14,7 @@ test('empty roster exposes roster choices and can recover to an acceptable two-p
  path.includes('default-lineup')?'export const defaultLineup=players=>[players[0]?.id,players[1]?.id??players[0]?.id].filter(Boolean);':
  path.includes('roster-membership')?'export const rosterStarters=()=>[];export const ownedRosterPlayers=p=>p;':
  path.includes('community-section')?'export class CommunitySection {element=document.createElement("section");constructor(changed){globalThis.addRosterPlayers=changed}async load(){globalThis.addRosterPlayers([])}}':
- path.includes('community-players')?'export const refreshCommunityDesigns=async t=>t;':
+ path.includes('community-players')?'export const refreshCommunityDesigns=async t=>t;export const communityPlayers=async()=>globalThis.publicRows??[];':
  path.includes('player-design')?'export const parseLibrary=()=>({players:[]});export const PLAYER_STORAGE_KEY="players";':
  path.includes('browser-storage')?'export const browserStorage={getItem:()=>null};':
  path.includes('athlete')?'export const preloadAthletes=async()=>{};':
@@ -32,4 +32,11 @@ test('empty roster exposes roster choices and can recover to an acceptable two-p
  context.addRosterPlayers=(players:any[])=>picker.setCommunity(players);
  context.addRosterPlayers([{id:'one',appearance:{}},{id:'two',appearance:{}}]);assert.equal(host.children.includes(picker.community.element),false);assert.deepEqual(Array.from(await picker.freshTeam(),(p:any)=>p.id),['one','one']);
  await picker.shuffle();assert.deepEqual(Array.from(await picker.freshTeam(),(p:any)=>p.id),['two','one']);
+ // Opponents include unadded public players and exclude private owned designs.
+ context.publicRows=[{player:{id:'community-bea',appearance:{}},added:false},{player:{id:'community-sam',appearance:{}},added:false},{player:{id:'community-lee',appearance:{}},added:true}];
+ const opponents=new context.Picker.TeamPicker(new Element(),[{id:'private',appearance:{}}],undefined,false,true);
+ await opponents.shuffle();
+ assert.deepEqual(Array.from(await opponents.freshTeam(),(p:any)=>p.id),['community-lee','community-sam']);
+ assert.deepEqual(Array.from(opponents.lineup.players,(p:any)=>p.id),['community-bea','community-sam','community-lee']);
+ assert.deepEqual(Array.from(picker.lineup.players,(p:any)=>p.id),['one','two']);
 });

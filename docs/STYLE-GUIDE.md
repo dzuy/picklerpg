@@ -79,3 +79,5 @@ After edits:
 - September 21, 2026: all standard action buttons use fully rounded pills through `--pb-radius-button`; cards and inputs retain separate shape tokens. Circular icon buttons remain circular.
 
 - September 21, 2026: added project-backed named styles, save/update/load, local draft recovery, and explicit Use in app. Preserved the user’s current Hot Pink palette without changing its colors.
+
+- September 23, 2026: Open Play reuses the forest court-selection artwork in a white empty-state card, with a compact pink Create a game pill and responsive image/text layout. Removed the decorative paddle and schematic court drawings.
