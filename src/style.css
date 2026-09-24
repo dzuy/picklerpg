@@ -540,7 +540,7 @@ body[data-screen=start]{overflow:hidden;background:var(--pb-surface)}
 .start-accessible-title{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 .start-actions{position:absolute;left:15%;right:15%;top:75%;display:flex;flex-direction:column;gap:clamp(12px,1.8dvh,18px)}
 .start-actions button{width:100%;margin:0;cursor:pointer;touch-action:manipulation;transition:transform .15s ease,filter .15s ease;-webkit-tap-highlight-color:transparent;display:flex;align-items:center;justify-content:space-between;padding:18px 24px;min-height:64px;background:var(--pb-primary);color:var(--pb-on-primary);border:1px solid transparent;border-radius:var(--pb-radius-button);font-family:var(--pb-font-heading);font-size:clamp(19px,3dvh,25px);font-weight:800;box-shadow:var(--pb-shadow-card)}
-#start-multiplayer{background:linear-gradient(166deg,rgba(255,255,255,.26) 0%,rgba(255,255,255,.13) 43%,transparent 44%),linear-gradient(180deg,#ff83a5 0%,#ff477e 48%,#ff1e65 100%);border-color:#ff96b1;box-shadow:inset 0 2px 0 rgba(255,255,255,.65),inset 0 -2px 0 rgba(188,8,66,.18),var(--pb-shadow-card);}
+#start-multiplayer{position:relative;top:-16px;background:linear-gradient(166deg,rgba(255,255,255,.26) 0%,rgba(255,255,255,.13) 43%,transparent 44%),linear-gradient(180deg,#ff83a5 0%,#ff477e 48%,#ff1e65 100%);border-color:#ff96b1;box-shadow:inset 0 2px 0 rgba(255,255,255,.65),inset 0 -2px 0 rgba(188,8,66,.18),var(--pb-shadow-card);}
 #start-create-player{min-height:48px;padding:12px 20px;background:color-mix(in srgb,var(--pb-surface) 88%,transparent);color:var(--pb-text);border-color:var(--pb-border-strong);font-size:clamp(15px,2.1dvh,18px);font-weight:700;box-shadow:var(--pb-shadow-card)}
 .start-actions img{display:block;width:100%;height:auto;user-select:none;filter:drop-shadow(0 5px 8px var(--pb-shadow-color))}
 .start-actions button:focus-visible{outline:3px solid var(--pb-focus);outline-offset:5px}
@@ -655,3 +655,7 @@ body[data-screen=start], .roster-route-loading { background: var(--pb-bg); backg
 
 .court-result .result-actions #next-point{background:var(--pb-primary);color:var(--pb-on-primary)}
 .court-result .result-actions #next-point:hover{background:var(--pb-primary-hover)}
+
+/* Three home actions stay above the phone's bottom safe area. */
+.start-actions{top:auto;bottom:max(5%,env(safe-area-inset-bottom));gap:clamp(8px,1.2dvh,12px)}
+#start-quick-solo{min-height:48px;padding:12px 20px;background:var(--pb-lime);color:var(--pb-text);font-size:clamp(16px,2.3dvh,20px)}

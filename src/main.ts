@@ -1,3 +1,8 @@
+import {quickSolo} from './quick-solo';
+import {authClient} from './auth-session';
+import {communityPlayers,refreshCommunityDesigns} from './community-players';
+import {defaultTeam} from './multiplayer/team-directory';
+import {TeamPicker} from './multiplayer/team-picker';
 import {focusView,showViewDialog} from './view-focus';
 import {parseSoloLaunch} from './solo-launch';
 import {serveDotCount,updateServeIndicator} from './serve-indicator';
@@ -46,7 +51,7 @@ const directGame=rosterRoute.has('game')||rosterRoute.get('newgame')==='1';
 let onStartScreen=true;
 document.body.dataset.screen='start';
 const startScreen=document.createElement('main');startScreen.id='start-screen';startScreen.setAttribute('aria-labelledby','start-title');
-startScreen.innerHTML=`<h1 id="start-title" class="start-accessible-title">PickleBash</h1><div class="start-stage"><img class="start-background" src="/images/start/daylight-court.png" alt="" fetchpriority="high"><img class="start-logo" src="/images/start/picklebash-logo.png" alt="" fetchpriority="high"><nav class="start-actions" aria-label="Main menu"><button id="start-multiplayer" aria-label="Let's Play!"><span>Let's Play!</span><span aria-hidden="true">↗</span></button><button id="start-create-player" type="button"><span>Create Your Player</span><span aria-hidden="true">↗</span></button></nav><p class="start-loading" role="status">Getting the court ready…</p></div>`;
+startScreen.innerHTML=`<h1 id="start-title" class="start-accessible-title">PickleBash</h1><div class="start-stage"><img class="start-background" src="/images/start/daylight-court.png" alt="" fetchpriority="high"><img class="start-logo" src="/images/start/picklebash-logo.png" alt="" fetchpriority="high"><nav class="start-actions" aria-label="Main menu"><button id="start-multiplayer" aria-label="Play With Friends!"><span>Play With Friends!</span><span aria-hidden="true">↗</span></button><button id="start-quick-solo" type="button"><span>Quick Solo Match</span><span aria-hidden="true">↗</span></button><button id="start-create-player" type="button"><span>Create Your Player</span><span aria-hidden="true">↗</span></button></nav><p class="start-loading" role="status">Getting the court ready…</p></div>`;
 startScreen.hidden=directRoster||directGame;
 document.body.append(startScreen);
 const rosterLoading=document.createElement('div');
@@ -564,6 +569,25 @@ function enterCourt(fresh=true){
  onStartScreen=false;document.body.dataset.screen='court';app.inert=false;startScreen.hidden=true;showPanel('play');lastUI='';updateUI();focusView();
 }
 byId('start-multiplayer').addEventListener('click',()=>location.assign('/?openplay=1'));
+byId('start-quick-solo').addEventListener('click',()=>{
+ const button=byId('start-quick-solo') as HTMLButtonElement;if(button.disabled)return;
+ button.disabled=true;button.setAttribute('aria-busy','true');
+ const notice=startScreen.querySelector<HTMLElement>('.start-loading')!;notice.textContent='Setting up your match…';
+ void(async()=>{
+  await cloudReady;
+  const session=(await authClient()?.auth.getSession())?.data.session;
+  const catalog=await communityPlayers();
+  let home=null;
+  if(session&&!session.user.is_anonymous){
+   const saved=defaultTeam(session.user.user_metadata.open_play_team);
+   home=saved?await refreshCommunityDesigns(saved):await new TeamPicker(document.createElement('div'),undefined,undefined,true).freshTeam();
+  }
+  const setup=quickSolo(catalog.map(row=>row.player),home);
+  setScoringPreference(setup.scoring);guestHasAimed=false;
+  startConfiguredMatch(setup.players,'solo',setup.court,setup.target);
+  notice.textContent='';
+ })().catch(error=>{notice.textContent=(error as Error).message;}).finally(()=>{button.disabled=false;button.removeAttribute('aria-busy');});
+});
 byId('start-create-player').addEventListener('click',()=>{playerOnboarding=true;creator.activateOnSave=true;creator.createPlayer()});
 byId('back-to-lobby').addEventListener('click',()=>{if(settingsCloseTimer)window.clearTimeout(settingsCloseTimer);settingsDialog.close();settingsDialog.classList.remove('is-closing');closeGameSurface()});
 document.querySelector('.brand')!.addEventListener('click',event=>{event.preventDefault();showStartScreen()});
