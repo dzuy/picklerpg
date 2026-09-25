@@ -1,10 +1,11 @@
 import {focusView,showViewDialog} from '../view-focus';
 import {copyInviteLink} from './pending-invite-card';
 import {rivalryShareText,sendRivalryText,type RivalryShareMatch} from './rivalry-share';
+import {publicOrigin} from '../native-origin';
 export function openRivalryShare(match:RivalryShareMatch,opponent:string){
  // Validate before opening. Freeze the preview so later polling cannot change
  // the text underneath a player's approval or native share operation.
- const publicText=rivalryShareText(match,opponent,location.origin),gameText=rivalryShareText(match,opponent,location.origin,true);
+ const publicText=rivalryShareText(match,opponent,publicOrigin()),gameText=rivalryShareText(match,opponent,publicOrigin(),true);
  const dialog=document.createElement('dialog');dialog.className='friend-dialog remote-new-game rivalry-share';dialog.setAttribute('aria-label','Share rivalry moment');
  const heading=document.createElement('h2');heading.textContent='Share this rivalry moment';
  const preview=document.createElement('textarea');preview.readOnly=true;preview.rows=6;preview.value=publicText;preview.setAttribute('aria-label','Exact message to share');

@@ -2,6 +2,6 @@
 .game-surface::backdrop{background:var(--pb-scrim)}
 .game-surface iframe{display:block;width:100%;height:100%;border:0}
 /* Private setup and invitation details occupy the same full-screen layer. */
-#app #remote-setup:not([hidden]),#app #remote-invite:not([hidden]){position:fixed;inset:0;z-index:100;width:100%;height:100dvh;max-width:none;margin:0;padding:24px max(18px,calc((100vw - 900px)/2)) calc(24px + env(safe-area-inset-bottom));border:0;border-radius:0;overflow:auto;background:var(--pb-bg,var(--pb-surface));color:var(--pb-text)}
+#app #remote-setup:not([hidden]),#app #remote-invite:not([hidden]){position:fixed;inset:0;z-index:100;width:100%;height:100dvh;max-width:none;margin:0;padding:max(24px,env(safe-area-inset-top)) max(18px,calc((100vw - 900px)/2)) calc(24px + env(safe-area-inset-bottom));border:0;border-radius:0;overflow:auto;background:var(--pb-bg,var(--pb-surface));color:var(--pb-text)}
 body:has(#remote-setup:not([hidden])),body:has(#remote-invite:not([hidden])){overflow:hidden}
-.friend-team-dialog{width:100vw!important;height:100dvh;max-width:none!important;max-height:none!important;inset:0;margin:0;border:0;border-radius:0!important;padding:24px max(18px,calc((100vw - 850px)/2))!important}
+.friend-team-dialog{width:100vw!important;height:100dvh;max-width:none!important;max-height:none!important;inset:0;margin:0;border:0;border-radius:0!important;padding:max(24px,env(safe-area-inset-top)) max(18px,calc((100vw - 850px)/2)) max(24px,env(safe-area-inset-bottom))!important}

@@ -9,6 +9,8 @@
     "build": "tsc --noEmit && tsc -p tsconfig.server.json && vite build && node scripts/build-server.mjs",
     "test": "node --import tsx --test tests/*.test.ts",
     "preview": "vite preview --host 127.0.0.1",
+    "ios:sync": "npm run build && cap sync ios",
+    "ios:open": "cap open ios",
     "preview:rivalry": "node --import tsx tests/browser/rivalry-preview.ts",
     "opponent-server": "node --env-file-if-exists=.env.local server/opponent.mjs",
     "start": "node server/production.mjs",
@@ -25,12 +27,15 @@
     "preview:invites": "node --import tsx tests/browser/invite-lab.ts"
   },
   "dependencies": {
+    "@capacitor/core": "8.5.2",
+    "@capacitor/ios": "8.5.2",
     "@huggingface/transformers": "^4.2.0",
     "@supabase/supabase-js": "^2.116.0",
     "three": "^0.180.0",
     "web-push": "^3.6.7"
   },
   "devDependencies": {
+    "@capacitor/cli": "8.5.2",
     "@types/pg": "^8.23.1",
     "@types/three": "^0.180.0",
     "@types/web-push": "^3.6.4",

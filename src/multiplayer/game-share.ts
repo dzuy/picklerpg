@@ -2,6 +2,7 @@ import {focusView,showViewDialog} from '../view-focus';
 import {hudButtonIcon} from '../hud-button';
 import {copyInviteLink} from './pending-invite-card';
 import type {Invitation} from './invitation-protocol';
+import {publicOrigin} from '../native-origin';
 export interface GameShare {title:string;description:string;path:string;text:string}
 export function matchShare(id:string):GameShare{return {title:'Share game',description:'Send this link to your opponent to reopen this game. It opens for the players who joined it.',path:`/?multiplayer=1&match=${encodeURIComponent(id)}`,text:'Open our PickleBash game.'};}
 export function invitationShare(invite:Pick<Invitation,'id'|'recipientName'|'status'|'matchId'>):GameShare{
@@ -15,7 +16,7 @@ export function showGameShare(share:GameShare){
  const close=document.createElement('button');close.type='button';close.className='friend-share-close';close.setAttribute('aria-label','Close');close.innerHTML=hudButtonIcon('close');close.onclick=()=>dialog.close();
  const heading=document.createElement('h1');heading.textContent=share.title;
  const description=document.createElement('p');description.className='friend-share-intro';description.textContent=share.description;
- const url=new URL(share.path,location.origin).href,link=document.createElement('input');link.value=url;link.readOnly=true;link.setAttribute('aria-label','Game link');link.onclick=()=>link.select();
+ const url=new URL(share.path,publicOrigin()).href,link=document.createElement('input');link.value=url;link.readOnly=true;link.setAttribute('aria-label','Game link');link.onclick=()=>link.select();
  const copy=document.createElement('button');copy.type='button';copy.className='remote-quiet';copy.textContent='Copy Link';
  const shareButton=document.createElement('button');shareButton.type='button';shareButton.className='remote-primary';shareButton.textContent='Share game';
  const message=document.createElement('p');message.setAttribute('role','status');

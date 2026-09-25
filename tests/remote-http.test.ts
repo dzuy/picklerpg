@@ -23,6 +23,10 @@ test('emitted Node engine serves authenticated remote APIs alongside static, hea
  try{
   for(const path of ['/','/healthz','/api/opponent'])assert.equal((await fetch(url+path)).status,200);
   assert.equal((await fetch(url+'/api/matches')).status,401);
+  const preflight=await fetch(url+'/api/matches',{method:'OPTIONS',headers:{Origin:'capacitor://localhost','Access-Control-Request-Method':'GET','Access-Control-Request-Headers':'authorization'}});
+  assert.equal(preflight.status,204);assert.equal(preflight.headers.get('access-control-allow-origin'),'capacitor://localhost');
+  const native=await request('/api/matches',A,undefined,{Origin:'capacitor://localhost'});
+  assert.equal(native.status,200);assert.equal(native.headers.get('access-control-allow-origin'),'capacitor://localhost');
   assert.equal((await request('/api/matches',A,creation(),{Origin:'https://unrelated.example'})).status,403);
   assert.equal((await request('/api/matches',A,{...creation(),extra:'x'.repeat(40000)})).status,413);
   const response=await request('/api/matches',A,creation());assert.equal(response.status,201);const s=await response.json();

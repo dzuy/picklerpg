@@ -1,4 +1,5 @@
 import {analyzeShot,createCommentaryMemory} from './shot-commentary';
+import {apiUrl} from './native-origin';
 import {erneReceptionFeet,kitchenSafeRoute} from './engine/erne';
 import {resolveTarget} from './engine/targeting';
 import {controllersFor,teamOf,playerForTeam,type PlayMode} from './engine/controllers';
@@ -289,7 +290,7 @@ export class Match {
   const requestEngine=this.engine,requestGeneration=this.generation;
   const command=text.trim();if(!command||command.length>300)throw new Error('Use 1–300 characters.');
   this.customBusy=true;this.customStatus='Interpreting…';let parsed;
-  try{if(canParseInstantly(command))parsed=parseLocalCommand(command);else {const response=await fetch('/api/command',{method:'POST',headers:{'Content-Type':'application/json'},signal:AbortSignal.timeout(30000),body:JSON.stringify({version:1,command,schema:COMMAND_SCHEMA,context:{ball:this.state.ball,players:this.state.players},options:[{}]})});if(!response.ok)throw new Error('Could not understand that shot right now. Try a simpler command.');parsed=validateCommand(await response.json())}}
+  try{if(canParseInstantly(command))parsed=parseLocalCommand(command);else {const response=await fetch(apiUrl('/api/command'),{method:'POST',headers:{'Content-Type':'application/json'},signal:AbortSignal.timeout(30000),body:JSON.stringify({version:1,command,schema:COMMAND_SCHEMA,context:{ball:this.state.ball,players:this.state.players},options:[{}]})});if(!response.ok)throw new Error('Could not understand that shot right now. Try a simpler command.');parsed=validateCommand(await response.json())}}
   finally{if(this.engine===requestEngine&&this.generation===requestGeneration)this.customBusy=false}
   if(this.engine!==requestEngine||this.generation!==requestGeneration)throw new Error('That reception is no longer available.');
   if(!this.receptionDecision)throw new Error('That contact is no longer available.');
@@ -431,7 +432,7 @@ export class Match {
   const engine=this.engine,index=this.state.shotIndex,actor=this.state.currentHitter!,generation=this.generation,c=structuredClone(this.currentContext);
   this.customPreview=null;this.customBusy=true;this.customStatus='Interpreting…';
   try{let parsed;
-   if(useLLM){const response=await fetch('/api/command',{method:'POST',headers:{'Content-Type':'application/json'},signal:AbortSignal.timeout(30000),body:JSON.stringify({version:1,command:text,schema:COMMAND_SCHEMA,context:{actor,contact:c,players:this.state.players},options:[{}]})});if(!response.ok)throw new Error('Could not understand that shot right now. Try a simpler command.');parsed=validateCommand(await response.json())}else parsed=parseLocalCommand(text);
+   if(useLLM){const response=await fetch(apiUrl('/api/command'),{method:'POST',headers:{'Content-Type':'application/json'},signal:AbortSignal.timeout(30000),body:JSON.stringify({version:1,command:text,schema:COMMAND_SCHEMA,context:{actor,contact:c,players:this.state.players},options:[{}]})});if(!response.ok)throw new Error('Could not understand that shot right now. Try a simpler command.');parsed=validateCommand(await response.json())}else parsed=parseLocalCommand(text);
    if(this.engine!==engine||this.generation!==generation||this.state.shotIndex!==index||this.state.phase!=='decision')return;
    const preview=commandIntent(parsed,actor,c,this.state.players);preview.intent.source=source;if(parsed.shot==='serve'&&/\bflat\b/i.test(text))preview.intent.shape='flat';
    const highDrive=preview.intent.type==='drive'&&preview.intent.technique!=='atp'&&c.contact.y>SHOT_FAMILIES.drive.maxHeight&&c.opening==='rally'&&c.twoBounceSatisfied;

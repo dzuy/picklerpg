@@ -3,6 +3,7 @@ import {pushActivityState} from './push-activity';
 import {authClient,matchCredentials} from './auth-session';
 import {remoteRequest} from './multiplayer/api';
 import {browserStorage,browserSessionStorage} from './browser-storage';
+import {Capacitor} from '@capacitor/core';
 import './pwa.css';
 interface InstallPrompt extends Event {prompt():Promise<void>;userChoice:Promise<{outcome:'accepted'|'dismissed'}>}
 let installPrompt:InstallPrompt|null=null;
@@ -13,7 +14,7 @@ let render=()=>{};
 window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event as InstallPrompt;render();});
 window.addEventListener('appinstalled',()=>{installedThisSession=true;installPrompt=null;render();});
 matchMedia('(display-mode: standalone)').addEventListener('change',()=>render());
-const registration='serviceWorker' in navigator&&isSecureContext
+const registration=!Capacitor.isNativePlatform()&&'serviceWorker' in navigator&&isSecureContext
  ?navigator.serviceWorker.register('/sw.js',{scope:'/',updateViaCache:'none'}).catch(()=>null):Promise.resolve(null);
 let subscription:PushSubscription|null=null;
 let eligible=false,enabled=false,busy=false,message='',publicKey:string|null=null;
@@ -23,6 +24,7 @@ const supported=()=> 'Notification' in window&&'PushManager' in window&&'service
 const notificationDismissed=()=>!!owner&&browserSessionStorage.getItem(`pickle-notifications-dismissed:${owner}`)==='1';
 const dismissed=()=>browserStorage.getItem('pickle-install-dismissed')==='1';
 export function showTurnPromptAfterInvite(){
+ if(Capacitor.isNativePlatform())return;
  if(!standalone()){showHomeScreenInstructions();return;}
  eligible=true;render();
 }
@@ -34,6 +36,7 @@ function showHomeScreenInstructions(){
  document.body.append(dialog);dialog.addEventListener('close',()=>dialog.remove(),{once:true});showViewDialog(dialog);
 }
 export function mountTurnPrompt(host:HTMLElement){
+ if(Capacitor.isNativePlatform())return;
  const dialog=document.createElement('dialog');dialog.className='turn-notification-modal';dialog.setAttribute('aria-labelledby','turn-prompt-title');dialog.setAttribute('aria-describedby','turn-prompt-copy');
  const card=document.createElement('section');card.className='turn-prompt';dialog.append(card);host.append(dialog);
  dialog.addEventListener('close',()=>{eligible=false;if(owner)browserSessionStorage.setItem(`pickle-notifications-dismissed:${owner}`,'1');});

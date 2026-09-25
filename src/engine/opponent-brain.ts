@@ -1,6 +1,7 @@
 import {archetypeShotPreference} from './archetype-style';
 import {resolveTarget} from './targeting';
 import {overheadPressure} from './overhead-pressure';
+import {apiUrl} from '../native-origin';
 import type {GameState,ShotIntent} from './model';
 export const PERSONALITIES=['Banger','Grinder','Technician','Gambler','Wall','Chess Player'] as const;
 export type Personality=typeof PERSONALITIES[number];
@@ -75,12 +76,12 @@ export function localDecision(s:TacticalSnapshot,strategy?:{shots:readonly strin
  return viable.at(-1)?.i??0;
 }
 export function validateChoice(value:unknown,count:number):number {if(!value||typeof value!=='object'||Object.keys(value).length!==1||!('choice' in value)||!Number.isInteger(value.choice)||Number(value.choice)<0||Number(value.choice)>=count)throw new Error('Invalid opponent choice');return Number(value.choice)}
-export async function requestOpponent(s:TacticalSnapshot,signal:AbortSignal):Promise<number>{const r=await fetch('/api/opponent',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(s),signal});if(!r.ok)throw new Error('Model unavailable');return validateChoice(await r.json(),s.options.length)}
+export async function requestOpponent(s:TacticalSnapshot,signal:AbortSignal):Promise<number>{const r=await fetch(apiUrl('/api/opponent'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(s),signal});if(!r.ok)throw new Error('Model unavailable');return validateChoice(await r.json(),s.options.length)}
 
 /** Strategy uses roster and rally history, never a pending contact's shot menu. */
 export async function requestStrategy(s:TacticalSnapshot,signal:AbortSignal):Promise<OpponentStrategy>{
  const {options,actor,ball,bounces,stage,...context}=s;
- const response=await fetch('/api/opponent',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...context,kind:'strategy',options:STRATEGIES}),signal});
+ const response=await fetch(apiUrl('/api/opponent'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...context,kind:'strategy',options:STRATEGIES}),signal});
  if(!response.ok)throw new Error('Strategy unavailable');
  return STRATEGIES[validateChoice(await response.json(),STRATEGIES.length)];
 }

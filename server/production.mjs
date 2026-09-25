@@ -12,6 +12,15 @@ export function createProductionServer({root=defaultRoot,apiHandler=createOppone
  return createServer(async(req,res)=>{
   let pathname;
   try{pathname=decodeURIComponent(new URL(req.url,'http://localhost').pathname)}catch{res.writeHead(400).end();return}
+  // Bundled iOS pages have a local origin while online APIs remain on the hosted server.
+  if(pathname.startsWith('/api/')&&req.headers.origin==='capacitor://localhost'){
+   res.setHeader('Access-Control-Allow-Origin','capacitor://localhost');
+   res.setHeader('Vary','Origin');
+   if(req.method==='OPTIONS'){
+    res.writeHead(204,{'Access-Control-Allow-Methods':'GET, POST, OPTIONS','Access-Control-Allow-Headers':'Authorization, Content-Type','Access-Control-Max-Age':'600'}).end();
+    return;
+   }
+  }
   if(pathname==='/api/invitations'||pathname.startsWith('/api/invitations/')||pathname==='/api/matches'||pathname.startsWith('/api/matches/')||pathname.startsWith('/api/multiplayer/')){if(!matchHandler){res.writeHead(503,{'Content-Type':'application/json'}).end(JSON.stringify({error:{code:'disabled',message:'Remote play is not enabled.'}}));return}await matchHandler(req,res);return}
   if(pathname.startsWith('/api/')){req.url=pathname;await apiHandler(req,res);return}
   if(!['GET','HEAD'].includes(req.method)){res.writeHead(405,{'Allow':'GET, HEAD'}).end();return}

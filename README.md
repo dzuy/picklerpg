@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-Open the local URL Vite prints. The development server also runs the multiplayer API, so no separate `npm run multiplayer-server` process is needed for local play. Multiplayer still requires the Supabase and multiplayer settings in `.env.local` (see `.env.example`); restart `npm run dev` after changing them. The standalone `multiplayer-server` command remains available for backend-only development. `npm run build` checks TypeScript and creates `dist/`; `npm run preview` serves that production build. `npm test` runs simulation checks.
+Open the local URL Vite prints. The development server also runs the multiplayer API, so no separate `npm run multiplayer-server` process is needed for local play. Multiplayer still requires the Supabase and multiplayer settings in `.env.local` (see `.env.example`); restart `npm run dev` after changing them. The standalone `multiplayer-server` command remains available for backend-only development. `npm run build` checks TypeScript and creates `dist/`; `npm run preview` serves that production build. `npm test` runs simulation checks. For the Capacitor iOS shell, see [the iPhone build guide](docs/IOS.md).
 
 ## First milestone
 

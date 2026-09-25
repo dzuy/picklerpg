@@ -10,6 +10,7 @@ import {authClient,matchCredentials,playerPasswordSession} from '../auth-session
 import {browserStorage} from '../browser-storage';
 import {playerId} from '../player-design';
 import {remoteRequest} from './api';
+import {publicOrigin} from '../native-origin';
 import {signInDialog} from './sign-in-dialog';
 function track(event:string,token?:string){void matchCredentials().then(c=>remoteRequest(c.token,'/api/multiplayer/invite-event',{event,token})).catch(()=>{});}
 export interface FriendChallenge {token:string;matchId:string;inviterName:string;invitedName:string;status:string}
@@ -26,7 +27,7 @@ export function shareChallenge(i:FriendChallenge,openShare=false){
  const d=panel(`Waiting for ${i.invitedName}`);d.classList.add('friend-share-dialog');
  const close=d.querySelector('button')!;close.className='friend-share-close';close.setAttribute('aria-label','Close');close.title='Close';close.innerHTML=hudButtonIcon('close');
  const intro=document.createElement('p');intro.className='friend-share-intro';intro.textContent='Share the game link with your friends to start playing.';
- const url=new URL(`/challenge/${i.token}`,location.origin).href,link=document.createElement('input');link.value=url;link.readOnly=true;link.setAttribute('aria-label','Challenge link');link.onclick=()=>link.select();
+ const url=new URL(`/challenge/${i.token}`,publicOrigin()).href,link=document.createElement('input');link.value=url;link.readOnly=true;link.setAttribute('aria-label','Challenge link');link.onclick=()=>link.select();
  const send=button(`Text ${i.invitedName} a link`,true),copy=button('Copy Link'),message=document.createElement('p');message.setAttribute('role','status');
  async function copyLink(){try{await copyInviteLink(url);message.textContent='Link copied.';track('invite_link_copied',i.token);}catch{link.focus();link.select();message.textContent='Select and copy the link above.';}}
  const nativeShare=()=>navigator.share({title:'PickleBash challenge',text:`${i.inviterName} challenged you to PickleBash. Think you can outplay them?`,url});

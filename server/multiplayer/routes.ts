@@ -27,9 +27,9 @@ export function createMatchHandler(service:MatchService,authenticate:Authenticat
  function limit(key:string,max:number){const now=Date.now();let b=buckets.get(key);if(!b||now-b.start>=60000){if(buckets.size>=5000)for(const [k,v] of buckets)if(now-v.start>=60000)buckets.delete(k);if(buckets.size>=5000)throw new ApiError(429,'busy','Try again shortly.');b={start:now,count:0};buckets.set(key,b);}if(++b.count>max)throw new ApiError(429,'rate_limited','Too many requests. Try again shortly.');}
  return async(req:IncomingMessage,res:ServerResponse)=>{
   try{
-   // No cookie authority and no cross-origin write API. Bearer tokens are verified remotely.
+   // Native app requests use a local origin; bearer tokens still authorize every private route.
    const origin=req.headers.origin;
-   if(origin){let host;try{host=new URL(origin).host}catch{throw new ApiError(403,'origin','Invalid origin.');}if(host!==req.headers.host)throw new ApiError(403,'origin','This origin is not allowed.');}
+   if(origin&&origin!=='capacitor://localhost'){let host;try{host=new URL(origin).host}catch{throw new ApiError(403,'origin','Invalid origin.');}if(host!==req.headers.host)throw new ApiError(403,'origin','This origin is not allowed.');}
    limit(`ip:${req.socket.remoteAddress}`,300);
    const pathname=new URL(req.url!,'http://localhost').pathname;
    if(pathname==='/api/multiplayer/sign-in'&&req.method==='POST'){if(!signIn)throw new ApiError(503,'sign_in','Sign in is unavailable.');limit(`sign-in:${req.socket.remoteAddress}`,10);send(res,200,await signIn(await body(req)));return;}

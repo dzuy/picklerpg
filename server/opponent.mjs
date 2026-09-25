@@ -11,7 +11,7 @@ export function createOpponentHandler({provider=process.env.OPPONENT_PROVIDER||'
  let active=0;
  return async(req,res)=>{
   const origin=req.headers.origin;
-  if(origin){let allowed=false;try{const url=new URL(origin);allowed=['http:','https:'].includes(url.protocol)&&url.host===req.headers.host}catch{}if(!allowed){res.writeHead(403).end();return}}
+  if(origin){let allowed=origin==='capacitor://localhost';try{const url=new URL(origin);allowed ||= ['http:','https:'].includes(url.protocol)&&url.host===req.headers.host}catch{}if(!allowed){res.writeHead(403).end();return}}
   if(!['/api/opponent','/api/command'].includes(req.url)||req.method!=='POST'){res.writeHead(404).end();return}
   if(active>=maxConcurrent){res.writeHead(429,{'Retry-After':'1'}).end();return}
   active++;

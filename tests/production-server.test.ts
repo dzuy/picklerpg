@@ -38,6 +38,9 @@ test('production serves game assets and HTTPS-origin AI on one port',async()=>{
   assert.equal(await (await fetch(url,{method:'HEAD'})).text(),'');
   const request=(origin:string)=>fetch(url+'/api/opponent',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify({version:1,options:[{}]})});
   assert.deepEqual(await (await request(`https://127.0.0.1:${port}`)).json(),{choice:0});
+  const preflight=await fetch(url+'/api/opponent',{method:'OPTIONS',headers:{Origin:'capacitor://localhost','Access-Control-Request-Method':'POST','Access-Control-Request-Headers':'content-type'}});
+  assert.equal(preflight.status,204);assert.equal(preflight.headers.get('access-control-allow-origin'),'capacitor://localhost');
+  const native=await request('capacitor://localhost');assert.equal(native.status,200);assert.equal(native.headers.get('access-control-allow-origin'),'capacitor://localhost');
   assert.equal((await request('https://unrelated.example')).status,403);
  }finally{await new Promise<void>(resolve=>server.close(resolve));await rm(root,{recursive:true,force:true})}
 });
