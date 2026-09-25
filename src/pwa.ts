@@ -1,3 +1,4 @@
+import {disableNativeNotifications} from './platform/notifications';
 import {showViewDialog} from './view-focus';
 import {pushActivityState} from './push-activity';
 import {authClient,matchCredentials} from './auth-session';
@@ -102,6 +103,7 @@ async function activity(forceInactive=false){
 }
 // Clear this device before explicit logout; other devices remain subscribed.
 export async function disableDevicePush(){
+ if(Capacitor.isNativePlatform()){await disableNativeNotifications();return;}
  if(!subscription)return;
  try{const c=await matchCredentials();await remoteRequest(c.token,'/api/multiplayer/push/unsubscribe',{endpoint:subscription.endpoint});}catch{/* Local unsubscribe still invalidates delivery when the API is offline. */}
  await subscription.unsubscribe();subscription=null;enabled=false;browserStorage.removeItem('pickle-push-owner');render();

@@ -5,6 +5,7 @@ const config:CapacitorConfig={
  appName:'PickleBash',
  webDir:'dist',
  ios:{contentInset:'never'},
+ plugins:{PushNotifications:{presentationOptions:['badge','sound','banner','list']}},
 };
 
 export default config;

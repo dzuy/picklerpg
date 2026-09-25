@@ -63,6 +63,7 @@ export class CloudPlayerSync{
   if(browserStorage.getItem(CLOUD_DIRTY_KEY)==='1')throw new Error('Your player changes are not synced yet. Reconnect before signing out.');
   const {data:{session}}=await this.client.auth.getSession();
   if(session?.user.is_anonymous)throw new Error('Protect your progress before signing out.');
+  await (await import('./pwa')).disableDevicePush();
   this.signingOut=true;
   const {error}=await this.client.auth.signOut({scope:'local'});if(error){this.signingOut=false;throw error}
   browserStorage.removeItem('pickle-rpg-players-v1');browserStorage.removeItem(CLOUD_OWNER_KEY);location.reload();

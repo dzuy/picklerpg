@@ -40,6 +40,19 @@ export function createMatchHandler(service:MatchService,authenticate:Authenticat
    const token=req.headers.authorization?.match(/^Bearer ([^\s]+)$/i)?.[1];if(!token||token.length>8192)throw new ApiError(401,'authentication','Sign in to open this match.');
    const actor=await authenticate(token);if(!uuid(actor))throw new ApiError(401,'authentication','Sign in again.');
    limit(`user:${actor}`,180);
+   if(pathname==='/api/multiplayer/push/native/config'&&req.method==='GET'){send(res,200,{available:push?.native?.available??false});return;}
+   if(pathname==='/api/multiplayer/push/badge'&&req.method==='GET'){
+    if(!push?.native)throw new ApiError(503,'push_disabled','Notifications unavailable.');
+    send(res,200,{count:await push.native.count(actor)});return;
+   }
+   if(pathname.startsWith('/api/multiplayer/push/native/')&&req.method==='POST'){
+    if(!push?.native)throw new ApiError(503,'push_disabled','Notifications unavailable.');
+    limit(`native-push:${actor}`,30);const input=await body(req);
+    if(pathname==='/api/multiplayer/push/native/register')await push.native.register(actor,input);
+    else if(pathname==='/api/multiplayer/push/native/disable')await push.native.disable(actor,input);
+    else throw new ApiError(404,'not_found','Endpoint not found.');
+    send(res,200,{ok:true});return;
+   }
    if(pathname==='/api/multiplayer/push/config'&&req.method==='GET'){send(res,200,{publicKey:push?.publicKey??null});return;}
    if(pathname.startsWith('/api/multiplayer/push/')&&req.method==='POST'){
     if(!push)throw new ApiError(503,'push_disabled','Notifications are not available yet.');
