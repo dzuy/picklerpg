@@ -41,6 +41,10 @@ test('friend slot exists before account claim; retries, races, cancellation, aut
  assert.deepEqual(restored.checkpoint,completed.checkpoint);
  assert.equal(restored.version,completed.version);
  assert.equal(restored.status,completed.status);
+ assert.equal(restored.winner_user_id,completed.winner_user_id===winner?replacement:completed.winner_user_id);
+ const projection=(await db.pool.query('select * from public.async_rivalry_results where match_id=$1',[i.match_id])).rows[0];
+ assert.equal(projection.low_user_id===replacement||projection.high_user_id===replacement,true);
+ assert.equal((await db.pool.query('select count(*) from public.async_rivalries where (low_user_id,high_user_id)=(least($1::uuid,$2::uuid),greatest($1::uuid,$2::uuid))',[A,winner])).rows[0].count,0);
  assert.equal(await repo.get(i.match_id,winner),null);
  await recover(replacement);
  // Registering the recovered player revokes link-only recovery.
