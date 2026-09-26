@@ -35,9 +35,9 @@ test('database enforces account/public budgets, protects rewards, and freezes ed
  await db.pool.query("update async_matches set status='completed',current_action_user_id=null,completed_at=now(),winner_user_id=home_user_id");
  assert.equal((await as(A,'select my_skill_budget() as budget')).rows[0].budget,36);
  assert.equal((await as(B,'select my_skill_budget() as budget')).rows[0].budget,36,'losses also count');
- const progress=(await as(A,'select my_skill_progress() as progress')).rows[0].progress;assert.equal(progress.nextAt,20);assert.equal(progress.games,10);
+ const progress=(await as(A,'select my_skill_progress() as progress')).rows[0].progress;assert.equal(progress.lifetimeXp,145);assert.equal(progress.currentSkillBudget,36);
  await db.pool.query('update async_matches set ended_by=$1',[A]);
- assert.equal((await as(A,'select my_skill_progress() as progress')).rows[0].progress.games,0,'early exits earn nothing');
+ assert.equal((await as(A,'select my_skill_progress() as progress')).rows[0].progress.lifetimeXp,145,'completed awards are immutable');
  await db.pool.query('update async_matches set ended_by=null');
  const higher=allocateArea(changed,'Speed',6,36);assert.equal(usedSkillPoints(higher),36);
  await as(B,'select save_community_skills($1,$2)',[id,higher]);
@@ -46,7 +46,7 @@ test('database enforces account/public budgets, protects rewards, and freezes ed
  for(let i=0;i<95;i++)await service.create(A,creation());
  await db.pool.query("update async_matches set status='completed',current_action_user_id=null,completed_at=now(),winner_user_id=home_user_id");
  const capped=(await as(A,'select my_skill_progress() as progress')).rows[0].progress;
- assert.equal(capped.budget,45);assert.equal(capped.nextAt,null);assert.equal(capped.games,105);
+ assert.equal(capped.currentSkillBudget,43);assert.equal(capped.lifetimeXp,1475);
  for(let i=0;i<30;i++){const skills=Object.fromEntries(SKILLS.map(k=>[k,Math.floor(Math.random()*101)])) as typeof player.skills;const sql=(await db.pool.query('select normalize_skill_budget($1,35) as skills',[skills])).rows[0].skills;assert.deepEqual(sql,normalizeSkillBudget(skills));}
  }finally{await db.close();}
 });

@@ -1,0 +1,7 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Account XP component preview</title><style>body{font:16px system-ui;background:#f6f3e8;color:#253429;max-width:480px;margin:24px auto;padding:16px}h1{font-size:24px}</style><h1>Account progression</h1><div id="reward" class="account-xp" aria-live="polite"></div><div id="progress"></div><div id="cap"></div><script type="module">
+import {renderAccountProgress,renderXpReward} from '/src/account-xp.ts';
+const p={lifetimeXp:372,currentSkillBudget:38,earnedSkillPoints:3,maxSkillBudget:43,xpPerSkillPoint:100,currentXpTowardNextSkillPoint:72,currentPlayStreak:5,lifetimePlayerCreationXpAwards:3};
+renderXpReward(document.querySelector('#reward'),{lifetime_xp:402,final_xp:7,streak_multiplier:1,streak_days:1,skill_points_earned:1,current_skill_budget:39,game_type:'friends',details:{completion_xp:5,win_xp:2}},{...p,lifetimeXp:402,currentSkillBudget:39,earnedSkillPoints:4},()=>{});
+renderAccountProgress(document.querySelector('#progress'),p);
+renderAccountProgress(document.querySelector('#cap'),{...p,lifetimeXp:872,currentSkillBudget:43,earnedSkillPoints:8});
+</script></html>

@@ -1,3 +1,4 @@
+import {loadAccountProgress} from '../account-xp';
 import {playerFromRow} from '../cloud-players';
 import {starterPlayer} from '../starter-player';
 import {authClient,playerPasswordSession} from '../auth-session';
@@ -62,27 +63,12 @@ export function profilePanel(portraits:AvatarThumbnails|undefined,authenticate:(
   const values=['Games','Wins','Losses'].map(label=>{const stat=node('div'),value=node('dd','—');stat.append(node('dt',label),value);stats.append(stat);return value;});
   const note=node('p','Loading your game record…','lobby-profile-note');note.setAttribute('role','status');panel.append(stats,actions,note);
   const progression=node('section','','profile-skill-progress');
-  const progressHeader=node('div','','profile-progress-header'),progressTitle=node('div');
-  progressTitle.append(node('span','Level up together','profile-eyebrow'),node('h3','Skill points'));
-  const budgetBadge=node('div','','profile-budget-badge');budgetBadge.hidden=true;
-  progressHeader.append(progressTitle,budgetBadge);
-  const progressCopy=node('p','Loading your account skill budget…','profile-progress-copy');progressCopy.setAttribute('role','status');
-  const progressBar=node('progress','','profile-progress-bar');progressBar.max=10;progressBar.hidden=true;progressBar.setAttribute('aria-label','Completed games toward your next skill point');
-  const rewardNote=node('p','','profile-reward-note');
-  progression.append(progressHeader,progressCopy,progressBar,rewardNote);panel.append(progression);
-  void client!.rpc('my_skill_progress').then(({data,error})=>{
-   if(error||!data){progressCopy.textContent='Skill progress is unavailable right now.';return;}
-   budgetBadge.replaceChildren(node('strong',String(data.budget)),node('span','per player'));budgetBadge.hidden=false;
-   progressCopy.textContent=data.nextAt===null?'Maximum budget reached. Make every point count.':`${data.nextAt-data.games} more ${data.nextAt-data.games===1?'game':'games'} to your next skill point.`;
-   progressBar.value=data.nextAt===null?10:data.games%10;progressBar.hidden=false;
-   rewardNote.textContent=`${data.games} completed online games · Every 10 earns +1 point, up to 45.`;
-  });
-  const footer=node('footer','','lobby-profile-account'),signOutButton=node('button','Sign out','team-lobby-quiet'),accountStatus=node('p');
+  panel.append(progression);void loadAccountProgress(progression,true);
+  const footer=node('footer','','lobby-profile-account'),signOutButton=node('button','Sign out','profile-sign-out'),accountStatus=node('p');
   signOutButton.type='button';accountStatus.setAttribute('role','status');
   const currentEmail=user.email??'';
-  const accountLabel=node('p',currentEmail||name||'Player','profile-email');
   if(user.new_email&&user.new_email!==currentEmail)accountStatus.textContent=`Email change to ${user.new_email} awaits confirmation. Check your email inboxes.`;
-  const accountActions=node('div','','profile-account-actions');accountActions.append(signOutButton);footer.append(node('span','Email address','profile-account-label'),accountLabel,accountActions,accountStatus);const settings=node('details','','profile-account-settings');settings.append(node('summary','Account settings'),footer);panel.append(settings);
+  footer.append(signOutButton,accountStatus);panel.append(footer);
   signOutButton.onclick=()=>{signOutButton.disabled=true;signOutButton.textContent='Signing out…';accountStatus.textContent='';void signOut().catch(()=>{accountStatus.textContent='Could not sign out. Please try again.';}).finally(()=>{signOutButton.disabled=false;signOutButton.textContent='Sign out';});};
   try{
    const history=async()=>{const matches:HistoryMatch[]=[];for(let offset=0;;offset+=500){const result=await client!.from('match_history').select('id,home_names,away_names,home_score,away_score,ended_early,completed_at').eq('owner_id',user.id).order('completed_at',{ascending:false}).order('id').range(offset,offset+499);if(result.error)throw result.error;matches.push(...result.data);if(result.data.length<500)return matches;}};

@@ -23,9 +23,18 @@ export class TeamDirectoryService {
     matches.push(...data as HistoryMatch[]);if(data.length<500)return matches;
    }
   };
-  const [saved,games]=await Promise.all([history(),remote()]);
+  const progress=async()=>{
+   try{
+    const {data,error}=await this.client.from('account_xp').select('lifetime_xp').eq('account_id',target).maybeSingle();
+    if(error)return null;
+    // Give generated players stable sample XP for their simulated history.
+    const baseline=addBotRecord({games:0,wins:0,losses:0},recordMetadata);
+    return Number(data?.lifetime_xp??0)+baseline.games*10+baseline.wins*4;
+   }catch{return null;}
+  };
+  const [saved,games,lifetimeXp]=await Promise.all([history(),remote(),progress()]);
   const seeded=recordMetadata.community_bot===true&&Array.isArray(recordMetadata.bot_seed_activity)?recordMetadata.bot_seed_activity as ActivityEvent[]:[];
-  return {...addBotRecord(profileRecord(saved,[],games),recordMetadata),activity:activityRewards([...seeded,...activityEvents(saved,games)],selectedTitle)};
+  return {...addBotRecord(profileRecord(saved,[],games),recordMetadata),lifetimeXp,activity:activityRewards([...seeded,...activityEvents(saved,games)],selectedTitle)};
  }
  async list(actor:string):Promise<TeamDirectory>{
   const {data:own,error:ownError}=await this.client.auth.admin.getUserById(actor);

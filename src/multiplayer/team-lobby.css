@@ -73,6 +73,7 @@ body[data-screen=remote]:has(#remote-lobby:not([hidden])){background:var(--pb-su
 #remote-lobby #remote-invitations:empty{display:none}
 #app.remote-app #remote-lobby{width:100%;min-width:0}
 #app.remote-app:has(#remote-lobby:not([hidden])){padding-bottom:calc(110px + env(safe-area-inset-bottom))}
+@media(max-width:700px){#app.remote-app:has(#remote-lobby:not([hidden])){padding-top:calc(16px + env(safe-area-inset-top))}}
 #remote-lobby .remote-game-card.remote-invitation-card::after{justify-self:end}
 /* Profile contains only account access or the player's identity and record. */
 :is(#remote-lobby,.friend-profile-dialog) .lobby-profile{max-width:620px;margin:auto;text-align:center;padding:32px 20px}
@@ -368,3 +369,10 @@ body[data-screen=remote]:has(#remote-lobby:not([hidden])){background:var(--pb-su
 #remote-lobby .profile-auth-form button{min-height:44px;padding:11px 18px}
 #remote-lobby .team-lobby[data-tab=profile]:has(.profile-auth-form) .team-lobby-heading{padding:0 0 16px}
 #remote-lobby .team-lobby[data-tab=profile]:has(.profile-auth-form) .team-lobby-heading h1{margin:0;font-size:clamp(36px,5vw,58px)}
+
+#remote-lobby .own-profile .profile-skill-progress:has(.xp-profile){padding:0;background:none;box-shadow:none;border:0}
+
+/* Own-profile sign-out stays visible as a quiet link below the profile content. */
+#remote-lobby .own-profile .lobby-profile-account{align-items:center;padding:8px 0 0}
+#remote-lobby .own-profile .profile-sign-out{min-height:44px;min-width:0;padding:8px 12px;border:0;background:none;color:var(--pb-text-secondary);font:inherit;font-size:13px;text-decoration:underline;text-underline-offset:4px;cursor:pointer}
+#remote-lobby .own-profile .profile-sign-out:hover{color:var(--pb-text)}

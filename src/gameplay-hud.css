@@ -11,6 +11,8 @@ body.match-mode[data-panel=play][data-screen=court] .court-wrap{border:0;border-
 #app .court-top{z-index:10;top:max(28px,env(safe-area-inset-top));left:max(22px,env(safe-area-inset-left));right:auto;pointer-events:none}
 /* The frame has transparent space above/below its two rows (1448 × 1086). */
 #app .score{position:relative;isolation:isolate;width:clamp(220px,23vw,300px);min-width:0;display:grid;grid-template-rows:1fr 1fr;overflow:visible;aspect-ratio:auto;padding:7px 12px;gap:3px;border:1px solid var(--pb-border);border-radius:10px;background:color-mix(in srgb,var(--pb-surface) 82%,transparent);box-shadow:var(--pb-shadow-card);color:var(--pb-text)}
+#app .score.has-rules{grid-template-rows:auto 1fr 1fr}
+#app .solo-score-rules{display:block;padding:1px 0 5px;border-bottom:1px solid var(--pb-border);color:var(--pb-text-secondary);font:700 10px/1.1 var(--pb-font-body);letter-spacing:.02em;text-align:left}
 #app .score::before{position:absolute;inset:-50% 0;z-index:-1;background:url('/assets/picklebash-gameplay-ui/hud/picklebash-scoreboard-frame.png') center/100% 100% no-repeat;pointer-events:none;content:none}
 #app .score-row{display:grid;gap:4%;min-height:0;border:0;background:none;align-items:center;grid-template-columns:minmax(0,1fr) 32px;padding:1px 0;border-left:3px solid var(--pb-lime)}
 #app .score-row>span{min-width:0;padding:0 0 0 4px;font-synthesis:style;font-size:clamp(13px,1.45vw,20px);line-height:1.15;overflow-wrap:anywhere;color:var(--pb-text);font-family:var(--pb-font-body);font-style:normal;font-weight:700;letter-spacing:0;padding-left:8px}

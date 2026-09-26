@@ -9,7 +9,7 @@ import type {InvitationService} from './invitations';
 
 function number(key:string){return createHash('sha256').update(key).digest().readUInt32BE(0);}
 /** Stable per decision, so restarts and multiple servers cannot shorten the delay. */
-export function botDelay(key:string,invitation=false){return (invitation?8000:4000)+number(key)%(invitation?17001:10001);}
+export function botDelay(key:string,invitation=false){return (invitation?8000:250)+number(key)%(invitation?17001:501);}
 export function botAction(game:PublicMatch){
  if(game.status!=='active'||game.currentTeam!==game.viewerTeam||!game.choices.length)return null;
  const key=`community-bot:${game.id}:${game.version}`,hex=createHash('sha256').update(key).digest('hex');
@@ -89,5 +89,5 @@ export function startCommunityBots(client:SupabaseClient,matches:MatchService,in
   }catch(error){report(error);}finally{busy=false;}
  }
  function report(error:unknown){const status=(error as {status?:number})?.status;if(status===409||status===404)return;console.warn('Community bot worker could not complete a check:',(error as {code?:string})?.code??'unavailable');}
- const timer=setInterval(()=>void tick(),2000);timer.unref();void tick();return ()=>clearInterval(timer);
+ const timer=setInterval(()=>void tick(),1000);timer.unref();void tick();return ()=>clearInterval(timer);
 }

@@ -1,5 +1,7 @@
 import webpush from 'web-push';
 import type {SupabaseClient} from '@supabase/supabase-js';
+import {configuredAPNs} from './apns';
+import {NativePushService} from './native-push';
 import {ApiError} from './errors';
 export interface TurnReady {userId:string;matchId:string;version:number;opponentName:string}
 export type TurnNotifier=(event:TurnReady)=>Promise<void>;
@@ -14,8 +16,8 @@ export function parseSubscription(input:unknown):Subscription {
  if(!key(s.keys?.p256dh,65)||Buffer.from(s.keys.p256dh,'base64url')[0]!==4||!key(s.keys?.auth,16))throw new ApiError(400,'subscription','Invalid notification keys.');
  return {endpoint:s.endpoint,keys:{p256dh:s.keys.p256dh,auth:s.keys.auth}};
 }
-export class PushService {
- constructor(private client:SupabaseClient,readonly publicKey:string,private privateKey:string,private subject:string,private deliver:typeof webpush.sendNotification=webpush.sendNotification){}
+export class NotificationService {
+ constructor(private client:SupabaseClient,readonly publicKey:string,private privateKey:string,private subject:string,private deliver:typeof webpush.sendNotification=webpush.sendNotification,readonly native?:NativePushService,private smsFallback?:TurnNotifier){}
  async subscribe(userId:string,input:unknown){
   const s=parseSubscription(input);
   // Reassign only when this authenticated browser explicitly enables notifications.
@@ -47,6 +49,10 @@ export class PushService {
   if(matchError)throw Error('push preference check');
   if(!match||!(event.userId===match.home_user_id||event.userId===match.away_user_id)||(event.userId===match.home_user_id?match.muted_home:match.muted_away))return;
 
+  try{if(await this.native?.deliver(event.userId,event,type))return;}catch{console.warn('Native delivery unavailable; trying fallback');}
+  // A legacy SMS adapter can be supplied here without changing any game event logic.
+  if(this.smsFallback){await this.smsFallback(event);return;}
+  if(!this.publicKey)return;
   const {data:rows,error:readError}=await this.client.from('push_subscriptions').select('id,endpoint,p256dh,auth,active_until').eq('user_id',event.userId);
   if(readError)throw Error('push subscriptions');
   // Any active device means the account is already seeing normal match updates.
@@ -64,8 +70,13 @@ export class PushService {
   }));
  }
 }
+// Preserve existing imports while game events depend on one channel-independent service.
+export {NotificationService as PushService};
 export function configuredPush(client:SupabaseClient,env:NodeJS.ProcessEnv){
  const {VAPID_PUBLIC_KEY:publicKey,VAPID_PRIVATE_KEY:privateKey,VAPID_SUBJECT:subject}=env;
- if(!publicKey||!privateKey||!subject)return undefined;
- try{webpush.setVapidDetails(subject,publicKey,privateKey);return new PushService(client,publicKey,privateKey,subject)}catch{console.warn('Turn push disabled: invalid VAPID configuration');return undefined}
+ let webConfigured=false;
+ if(publicKey&&privateKey&&subject){try{webpush.setVapidDetails(subject,publicKey,privateKey);webConfigured=true}catch{console.warn('Web Push disabled: invalid VAPID configuration');}}
+ let apns;try{apns=configuredAPNs(env)}catch{console.warn('Native push disabled: invalid APNs configuration');}
+ const native=new NativePushService(client,apns);native.startBadgeWorker();
+ return new NotificationService(client,webConfigured?publicKey!:'',webConfigured?privateKey!:'',webConfigured?subject!:'',undefined,native);
 }

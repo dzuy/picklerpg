@@ -1,0 +1,20 @@
+{
+  "base": "https://picklebash.app",
+  "verifiedAt": "2026-09-21T21:23:57.861Z",
+  "matchId": "fa6dccf4-dba2-4527-b081-9d11d848613d",
+  "checks": [
+    "real password sign-ins",
+    "create and preview invitation",
+    "registered recipient team selection",
+    "recipient serves first",
+    "first turn persisted",
+    "fresh sign-in reopens same match",
+    "both game lists contain match"
+  ],
+  "deployedCommit": "1fee992",
+  "deploymentId": "1861373d-6a3c-4566-99b0-f42b2344457a",
+  "healthStatus": 200,
+  "updatedClientAssetsVerified": true,
+  "testsPassed": 586,
+  "productionBuild": "passed"
+}

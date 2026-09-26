@@ -578,3 +578,29 @@
 
 .roster-card .roster-card-identity{min-width:0}
 .roster-card .roster-card-identity h3{min-width:0;max-width:100%;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;overflow-wrap:normal;word-break:normal}
+
+/* Owned-player editing stays beneath the card content at every breakpoint. */
+.roster-card .owned-player-actions{grid-column:1/-1;grid-row:auto}
+#player-creator .owned-player-actions .roster-edit{flex:0 0 auto;width:auto;min-height:30px;padding:5px 12px;font-size:11px;line-height:18px}
+.roster-card .owned-player-actions{justify-content:center}
+
+/* The paused editor preview lets gestures scroll the page instead of orbiting. */
+#player-creator[data-view=editor] .creator-preview{touch-action:pan-y pinch-zoom;cursor:default}
+#player-creator[data-view=editor] .creator-preview canvas{pointer-events:none;touch-action:pan-y pinch-zoom;cursor:default}
+
+/* Anchor preview controls to the character area on desktop and mobile. */
+#player-creator[data-view=editor] .creator-preview .creator-stage-bottom{position:absolute;top:8px;left:auto;right:8px;bottom:auto;margin:0;z-index:2}
+
+#player-creator[data-view=editor] .creator-preview .creator-stage-bottom{flex-direction:column;gap:8px}
+#player-creator .creator-stage-bottom [data-preview-play]{display:grid;place-items:center;width:44px;height:44px;min-width:44px;padding:9px;border-radius:50%}
+#player-creator .creator-stage-bottom [data-preview-play] svg{width:24px;height:24px}
+
+.creator-lens-translucency{padding:16px;background:var(--pb-surface);border-radius:var(--pb-radius-card)}
+.creator-lens-translucency label,.creator-lens-translucency>div{display:flex;justify-content:space-between;gap:16px}
+.creator-lens-translucency label{font-size:13px;font-weight:700}
+.creator-lens-translucency input{width:100%;min-height:44px;accent-color:var(--pb-primary);touch-action:pan-y}
+.creator-lens-translucency>div{font-size:12px;color:var(--pb-text-secondary)}
+
+/* Keep eyewear palettes compact without dropping saved color choices. */
+#player-creator[data-view=editor] .color-choices:is([data-palette=glassesColor],[data-palette=lensColor]){display:flex;flex-wrap:nowrap;min-width:0;max-width:100%;overflow-x:auto;padding:4px;touch-action:pan-x pan-y pinch-zoom}
+#player-creator[data-view=editor] .color-choices:is([data-palette=glassesColor],[data-palette=lensColor])>*{flex-shrink:0}

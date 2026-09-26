@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
-import {createAthlete,disposeAthlete,setAthleteHandedness,poseAthleteForPortrait,poseAthleteForRoster,animateRosterAthlete} from './athlete';
+import {createAthlete,disposeAthlete,setAthleteHandedness,poseAthleteForPortrait,poseAthleteForEditor,poseAthleteForRoster,animateRosterAthlete} from './athlete';
 import {type Appearance,type DesignedPlayer} from './player-design';
 function light(scene:THREE.Scene){scene.add(new THREE.HemisphereLight('#fff6e4','#788c79',2.5));const sun=new THREE.DirectionalLight('#fff0d9',3);sun.position.set(-3,5,-4);scene.add(sun)}
 export class AvatarPreview {
@@ -8,8 +8,20 @@ export class AvatarPreview {
  private observer:ResizeObserver;
  private motion=matchMedia('(prefers-reduced-motion: reduce)');
  private started=performance.now();
- private syncMotion=()=>{this.renderer.setAnimationLoop(this.animated&&!this.motion.matches?()=>{if(document.hidden||!this.host.getClientRects().length)return;if(this.avatar)animateRosterAthlete(this.avatar,(performance.now()-this.started)/1000);this.draw()}:null);if(this.avatar&&this.animated)poseAthleteForRoster(this.avatar);this.draw()};
- constructor(private host:HTMLElement,private animated=false,zoom=1,options:{allowZoom?:boolean;verticalOffset?:number}={}){
+ private pausedTime=0;private manualPlayback=false;
+ get animationPlaying(){return this.animated&&!this.options.paused&&(!this.motion.matches||this.manualPlayback)}
+ setAnimationPlaying(playing:boolean){
+  if(playing){this.manualPlayback=true;this.options.paused=false;this.started=performance.now()-this.pausedTime*1000;this.syncMotion();}
+  else{this.pausedTime=(performance.now()-this.started)/1000;this.options.paused=true;this.renderer.setAnimationLoop(null);if(this.avatar&&this.manualPlayback)this.animatePreview(this.pausedTime);this.draw();}
+ }
+ private animatePreview(time:number){
+  if(!this.avatar)return;
+  animateRosterAthlete(this.avatar,time);
+  // A gentle turntable shares the animation clock so pause/resume keeps its angle.
+  if(this.options.editorPose)this.avatar.rotation.y=(time%12)/12*Math.PI*2;
+ }
+ private syncMotion=()=>{this.renderer.setAnimationLoop(this.animationPlaying?()=>{if(document.hidden||!this.host.getClientRects().length)return;if(this.avatar)this.animatePreview((performance.now()-this.started)/1000);this.draw()}:null);if(this.avatar&&this.animated){if(this.manualPlayback)this.animatePreview(this.options.paused?this.pausedTime:(performance.now()-this.started)/1000);else if(this.options.editorPose)poseAthleteForEditor(this.avatar);else if(this.options.paused)this.animatePreview(0);else poseAthleteForRoster(this.avatar);}this.draw()};
+ constructor(private host:HTMLElement,private animated=false,zoom=1,private options:{allowZoom?:boolean;verticalOffset?:number;paused?:boolean;interactive?:boolean;editorPose?:boolean}={}){
   this.camera.zoom=zoom;
   this.renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});this.renderer.setPixelRatio(Math.min(devicePixelRatio,2));this.renderer.outputColorSpace=THREE.SRGBColorSpace;this.renderer.toneMapping=THREE.ACESFilmicToneMapping;
   this.renderer.domElement.setAttribute('aria-label','Your player in 3D. Drag to rotate.');this.renderer.domElement.setAttribute('role','img');host.append(this.renderer.domElement);
@@ -19,8 +31,9 @@ export class AvatarPreview {
   if(animated){this.camera.position.set(-.55,.95,-3.9);this.controls.target.set(0,.75,0);this.controls.update();this.renderer.domElement.setAttribute('aria-label','Animated player in 3D. Drag to rotate.');this.motion.addEventListener('change',this.syncMotion);this.syncMotion();}
   if(options.verticalOffset){this.camera.position.y+=options.verticalOffset;this.controls.target.y+=options.verticalOffset;this.controls.update();}
   if(options.allowZoom){this.controls.enableZoom=true;this.controls.minDistance=2.4;this.controls.maxDistance=6;this.controls.zoomSpeed=.7;this.renderer.domElement.setAttribute('aria-label','Player in 3D. Drag to rotate. Pinch to zoom.');}
+  if(options.interactive===false){this.controls.enabled=false;this.controls.disconnect();this.renderer.domElement.style.touchAction='pan-y pinch-zoom';this.renderer.domElement.style.pointerEvents='none';this.renderer.domElement.setAttribute('aria-label','Your player in 3D.');}
  }
- setPlayer(player:DesignedPlayer){if(this.avatar){this.scene.remove(this.avatar);disposeAthlete(this.avatar)}this.avatar=createAthlete('you',player.appearance.jersey,player.appearance);setAthleteHandedness(this.avatar,player.handedness);(this.animated?poseAthleteForRoster:poseAthleteForPortrait)(this.avatar);this.scene.add(this.avatar);this.resize()}
+ setPlayer(player:DesignedPlayer){if(this.avatar){this.scene.remove(this.avatar);disposeAthlete(this.avatar)}this.avatar=createAthlete('you',player.appearance.jersey,player.appearance);setAthleteHandedness(this.avatar,player.handedness);if(this.manualPlayback)this.animatePreview(this.options.paused?this.pausedTime:(performance.now()-this.started)/1000);else if(this.options.editorPose)poseAthleteForEditor(this.avatar);else if(this.options.paused)this.animatePreview(0);else (this.animated?poseAthleteForRoster:poseAthleteForPortrait)(this.avatar);this.scene.add(this.avatar);this.resize()}
  dispose(){this.renderer.setAnimationLoop(null);this.motion.removeEventListener('change',this.syncMotion);this.observer.disconnect();this.controls.dispose();if(this.avatar){this.scene.remove(this.avatar);disposeAthlete(this.avatar)}this.scene.traverse(object=>{if(object instanceof THREE.Mesh){object.geometry.dispose();for(const material of Array.isArray(object.material)?object.material:[object.material])material.dispose()}});this.renderer.dispose();this.renderer.forceContextLoss();this.renderer.domElement.remove();}
  rotate(degrees:number){const angle=(degrees-11)*Math.PI/180;this.camera.position.set(Math.sin(angle)*3.2,1.05,-Math.cos(angle)*3.2);this.controls.update();this.draw()}
  resize(){const {clientWidth:w,clientHeight:h}=this.host;if(!w||!h)return;this.renderer.setSize(w,h);this.camera.aspect=w/h;this.camera.fov=w/h<.65?36:30;this.camera.updateProjectionMatrix();this.draw()}

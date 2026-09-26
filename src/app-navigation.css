@@ -9,5 +9,6 @@ body[data-screen=remote]:not(:has(#remote-lobby:not([hidden])))>.lobby-bottom-na
 @media(max-width:480px){:is(body[data-screen=remote],#player-creator)>.lobby-bottom-nav .lobby-nav-item{font-size:11px}}
 
 .lobby-nav-item .nav-icon-filled{display:none}
+.lobby-nav-item>span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lobby-nav-item[aria-current=page] .nav-icon-outline{display:none}
 .lobby-nav-item[aria-current=page] .nav-icon-filled{display:inline}

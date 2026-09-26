@@ -1,0 +1,3 @@
+-- Generated from src/xp-config.json
+update public.xp_config set config='{"XP_PER_SKILL_POINT":100,"STARTING_SKILL_BUDGET":35,"MAX_SKILL_BUDGET":43,"solo":{"easy":[4,2],"normal":[6,4],"hard":[10,6],"expert":[14,10]},"friends":[10,4],"invite":{"joined":25,"first_game":25},"playerCreation":{"xp":5,"limit":3},"streak":[[1,1],[2,1.25],[3,1.5],[5,1.75],[7,2]]}'::jsonb where id=true;
+notify pgrst,'reload schema';

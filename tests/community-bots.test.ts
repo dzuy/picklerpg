@@ -4,7 +4,7 @@ import {acceptBotChallenge,botAction,botDelay,botReaction,surpriseInvitePlan} fr
 import {MatchService} from '../server/multiplayer/service';
 import {MemoryRepository,A,B,testers,creation} from './helpers/remote';
 test('bot delay is bounded, varied, and stable across retries',()=>{
- const values=new Set<number>();for(let i=0;i<100;i++){const key=`game:${i}`;const delay=botDelay(key);assert.ok(delay>=4000&&delay<=14000);assert.equal(delay,botDelay(key));values.add(delay);assert.ok(botDelay(key,true)>=8000&&botDelay(key,true)<=25000);}assert.ok(values.size>80);
+ const values=new Set<number>();for(let i=0;i<100;i++){const key=`game:${i}`;const delay=botDelay(key);assert.ok(delay>=250&&delay<=750);assert.equal(delay,botDelay(key));values.add(delay);assert.ok(botDelay(key,true)>=8000&&botDelay(key,true)<=25000);}assert.ok(values.size>80);
 });
 test('bot actions use normal rules, reject waiting turns, and complete a saved match',async()=>{
  const repo=new MemoryRepository(),service=new MatchService(repo,testers);let game=await service.create(A,creation());

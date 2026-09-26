@@ -5,6 +5,19 @@ import {RemoteError} from '../src/multiplayer/api';
 import {MatchService} from '../server/multiplayer/service';
 import {A,B,testers,creation,action,MemoryRepository} from './helpers/remote';
 function storage(){const values=new Map<string,string>();return {getItem:(k:string)=>values.get(k)??null,setItem:(k:string,v:string)=>{values.set(k,v)},removeItem:(k:string)=>{values.delete(k)}};}
+test('concurrent refreshes share one match request',async()=>{
+ const service=new MatchService(new MemoryRepository(),testers),s=await service.create(A,creation());
+ let requests=0,release!:()=>void,started!:()=>void;
+ const wait=new Promise<void>(resolve=>{release=resolve});
+ const requested=new Promise<void>(resolve=>{started=resolve});
+ const client=new RemoteSession(A,s.id,async()=>({owner:A,token:'test'}),async<T>()=>{requests++;started();await wait;return s as T;},storage());
+ const first=client.refresh(),second=client.refresh();
+ assert.equal(first,second);
+ await requested;
+ assert.equal(requests,1);
+ release();await Promise.all([first,second]);
+ assert.equal(client.state?.version,s.version);
+});
 test('lost response persists same action across reload and cannot double score',async()=>{
  const db=new MemoryRepository(),service=new MatchService(db,testers),s=await service.create(A,creation()),store=storage();let lost=true;
  const request:Transport=async<T>(_token:string,_path:string,body?:unknown)=>{if(body){const result=await service.act(s.id,A,body);if(lost){lost=false;throw new Error('Lost response')}return result as T;}return await service.get(s.id,A) as T;};

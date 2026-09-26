@@ -206,7 +206,29 @@ export function dressAthlete(model:THREE.Group,a:Appearance){
    }
   }attach(g,'head');
  }
- if(a.glasses!=='none'){
+ if(a.glasses==='wraparound'){
+  const g=slot('glasses-wraparound'),frame=a.glassesColor;
+  // Wide, swept shield lenses and a continuous brow distinguish athletic eyewear.
+  const outline:[number,number][]=[[.022,.055],[.16,.066],[.29,.035],[.275,-.045],[.12,-.075],[.04,-.045]];
+  const cy=1.61-.5064;
+  const vertex=(x:number,y:number)=>new THREE.Vector3(x,cy+y,.304-Math.max(0,Math.abs(x)-.15)*.55);
+  for(const sign of [-1,1]){
+   const points=outline.map(([x,y])=>vertex(sign*x,y));
+   const geometry=new THREE.BufferGeometry();
+   const center=points.reduce((sum,p)=>sum.add(p),new THREE.Vector3()).multiplyScalar(1/points.length),vertices:number[]=[];
+   for(let i=0;i<points.length;i++)vertices.push(...center.toArray(),...points[i].toArray(),...points[(i+1)%points.length].toArray());
+   geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geometry.computeVertexNormals();
+   const lens=mesh(g,geometry,a.lensColor==='none'?'#ffffff':a.lensColor,new THREE.Vector3());
+   lens.material=(lens.material as THREE.MeshStandardMaterial).clone();
+   Object.assign(lens.material,{transparent:true,opacity:1-(a.lensTranslucency??0)/100,depthWrite:false,metalness:.55,roughness:.16,side:THREE.DoubleSide});lens.name='glasses-lens';lens.visible=a.lensColor!=='none';
+   line(g,points.slice(0,3),frame,.018);
+   line(g,[...points.slice(2),points[0]],frame,.007);
+   line(g,[points[2],H(sign*.35,1.635,-.15),H(sign*.35,1.60,.045)],frame,.012);
+   line(g,[H(sign*.30,1.63,-.21),H(sign*.345,1.63,-.16)],a.accent,.016);
+  }
+  line(g,[vertex(-.022,.055),vertex(0,.065),vertex(.022,.055)],frame,.016);
+  attach(g,'head');
+ }else if(a.glasses!=='none'){
   const g=slot(`glasses-${a.glasses}`),sun=a.glasses==='sunglasses'||a.glasses==='sport',round=a.glasses==='round'||a.glasses==='oval',frame=a.glassesColor;
   for(const sign of [-1,1]){
    const cx=sign*.137,cy=1.602-.5064;
@@ -220,10 +242,10 @@ export function dressAthlete(model:THREE.Group,a:Appearance){
     const pts=outline.map(([x,y])=>new THREE.Vector3(cx+x,cy+y,.28));line(g,pts,frame,.010);
    }
    const shape=new THREE.Shape(lensOutline.map(([x,y])=>new THREE.Vector2(x,y)));
-   const lens=mesh(g,new THREE.ShapeGeometry(shape),a.lensColor,new THREE.Vector3(cx,cy,.277));
+   const lens=mesh(g,new THREE.ShapeGeometry(shape),a.lensColor==='none'?'#ffffff':a.lensColor,new THREE.Vector3(cx,cy,.277));
    lens.material=(lens.material as THREE.MeshStandardMaterial).clone();
-   Object.assign(lens.material,{transparent:true,opacity:sun?.88:.38,depthWrite:false,side:THREE.DoubleSide,roughness:.22});
-   lens.name='glasses-lens';lens.castShadow=false;
+   Object.assign(lens.material,{transparent:true,opacity:1-(a.lensTranslucency??(sun?12:62))/100,depthWrite:false,side:THREE.DoubleSide,roughness:.22});
+   lens.name='glasses-lens';lens.visible=a.lensColor!=='none';lens.castShadow=false;
    line(g,[H(sign*.213,1.629,-.28),H(sign*.347,1.629,-.17),H(sign*.347,1.61,.025)],frame,.007);
   }
   line(g,[H(-.06,1.624,-.284),H(0,1.635,-.286),H(.06,1.624,-.284)],frame,.008);attach(g,'head');

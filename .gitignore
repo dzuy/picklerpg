@@ -9,3 +9,6 @@ dist-server/
 .multiplayer-test-accounts.json
 
 .multiplayer-phone-logins.md
+
+# Apple APNs signing keys must never be committed.
+*.p8

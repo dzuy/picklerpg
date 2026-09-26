@@ -110,3 +110,13 @@ test('patterned paddles use trim color on both faces and attach to the paddle so
   for(const side of [-1,1]){const face=group.getObjectByName(`paddle-pattern-${paddleShape.split('-')[1]}-${side}`)!;assert.ok(face);assert.equal(face.children.length>0,true);face.traverse(o=>{if(o instanceof THREE.Mesh)assert.equal((o.material as THREE.MeshStandardMaterial).color.getHexString(),'ff3388')});}
  }
 });
+
+test('lens translucency persists and controls every glasses style',()=>{
+ for(const glasses of APPEARANCE_OPTIONS.glasses.filter(g=>g!=='none'))for(const translucency of [0,50,100]){
+  const player=newPlayer('lens');Object.assign(player.appearance,{glasses,lensTranslucency:translucency});
+  const saved=validatePlayer(JSON.parse(JSON.stringify(player)));assert.equal(saved.appearance.lensTranslucency,translucency);
+  const model=clone(asset.scene);dressAthlete(model,saved.appearance);let lenses=0;
+  model.traverse(o=>{if(o instanceof THREE.Mesh&&o.name==='glasses-lens'){lenses++;assert.equal((o.material as THREE.MeshStandardMaterial).opacity,1-translucency/100);}});assert.equal(lenses,2);
+ }
+ for(const value of [-1,101,NaN,'50']){const player=newPlayer('bad-lens');Object.assign(player.appearance,{lensTranslucency:value});assert.throws(()=>validatePlayer(player),/translucency/);}
+});

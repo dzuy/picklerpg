@@ -1,0 +1,5 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Guest progress preview</title><link rel="stylesheet" href="/src/style.css"><body><dialog id="game-end" aria-label="Guest completion preview"><div class="game-end-card"><div class="game-end-kicker">GAME COMPLETE</div><h1>Well played!</h1><section id="reward" aria-live="polite"></section><div class="game-end-actions"><button>New Game</button><button>Rematch</button></div></div></dialog><script type="module">
+import {renderGuestProgressCta} from '/src/account-xp.ts';
+renderGuestProgressCta(document.querySelector('#reward'));
+document.querySelector('dialog').showModal();
+</script></body></html>

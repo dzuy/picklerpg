@@ -1,13 +1,16 @@
+import {loadScoringPreference} from './scoring-preference';
 import {focusView} from './view-focus';
 import {fillSetupPlayerCard} from './setup-player-card';
 import {courtSelector} from './court-selector';
 import {COURT_LOCATIONS,type CourtLocation} from './locations';
-import {rosterStarters} from './roster-membership';
+import {defaultLineup} from './multiplayer/default-lineup';
+import {rosterStarters,starterIds} from './roster-membership';
 import {CommunitySection} from './community-section';
 import {refreshCommunityDesigns} from './community-players';
 import {DEFAULT_RULES,isValidTargetScore,type ScoringMode} from './engine/scoring';
 import {type PlayMode} from './engine/controllers';
-import type {DesignedPlayer} from './player-design';
+import {parseLibrary,PLAYER_STORAGE_KEY,type DesignedPlayer} from './player-design';
+import {browserStorage} from './browser-storage';
 import {cyclePlayer,setupLineup,shufflePlayers,validLineup} from './match-setup-state';
 import type {PlayerId} from './engine/model';
 import './match-setup.css';
@@ -18,8 +21,8 @@ const courts=COURT_LOCATIONS.map(c=>({...c,playable:true}));
 export class MatchSetup {
  readonly element=document.createElement('main');
  private players:DesignedPlayer[]=[];
- private owned:DesignedPlayer[]=[];private eligible:string[]=[];
- private setRoster(players:DesignedPlayer[]){const own=[...this.owned,...players];this.eligible=own.map(p=>p.id);const current=this.selected.map((id,i)=>i<2&&!this.eligible.includes(id)?null:this.players.find(p=>p.id===id)??null);const lineup=setupLineup(own,current);this.players=lineup.players;this.selected=lineup.selected;this.restrictTeam();if(!this.element.hidden)this.render();}
+ private owned:DesignedPlayer[]=[];private eligible:string[]=[];private applyStarters=false;
+ private setRoster(players:DesignedPlayer[]){const own=[...this.owned,...players];this.eligible=own.map(p=>p.id);const current=this.selected.map((id,i)=>i<2&&!this.eligible.includes(id)?null:this.players.find(p=>p.id===id)??null);const lineup=setupLineup(own,current);this.players=lineup.players;this.selected=lineup.selected;if(this.applyStarters){this.selected=[...defaultLineup(own,parseLibrary(browserStorage.getItem(PLAYER_STORAGE_KEY)).activeId,'',undefined,starterIds()),...this.selected.slice(2)];this.applyStarters=false;}this.restrictTeam();if(!this.element.hidden)this.render();}
  private restrictTeam(){for(let i=0;i<2;i++)if(!this.eligible.includes(this.selected[i])&&this.eligible.length)this.selected[i]=this.eligible.find(id=>!this.selected.slice(0,i).includes(id))??this.eligible[0];}
  private community=new CommunitySection(players=>this.setRoster(players));
  private starting=false;
@@ -67,7 +70,8 @@ export class MatchSetup {
   });
  }
  show(saved:DesignedPlayer[],current:(DesignedPlayer|null)[],mode:PlayMode='solo',scoring:ScoringMode='rally-doubles'){
-  this.mode='solo';this.scoring=scoring;this.owned=saved;this.eligible=[...saved,...rosterStarters()].map(p=>p.id);
+  this.target=loadScoringPreference({scoring,target:DEFAULT_RULES.target}).target;
+  this.applyStarters=true;this.mode='solo';this.scoring=scoring;this.owned=saved;this.eligible=[...saved,...rosterStarters()].map(p=>p.id);
   const lineup=setupLineup([...saved,...rosterStarters()],current);this.players=lineup.players;this.selected=lineup.selected;this.restrictTeam();
   const opponents=shufflePlayers(this.players.map(p=>p.id));this.selected=[...this.selected.slice(0,2),...opponents.slice(0,2)];
   this.render();this.element.hidden=false;void this.community.load();window.scrollTo(0,0);focusView(this.element);

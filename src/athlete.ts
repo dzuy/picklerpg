@@ -66,6 +66,15 @@ export function poseAthleteForPortrait(root:THREE.Group){
  const rig=resetRig(root);rotate(rig,'chest',0,.1);rotate(rig,'head',0,-.16,.025);rotate(rig,'upper_arm.R',-.08,0,.12);rotate(rig,'forearm.R',-.2);rotate(rig,'upper_arm.L',-.08,0,-.12);rotate(rig,'forearm.L',-.2);rotate(rig,'thigh.L',0,0,-.055);rotate(rig,'thigh.R',0,0,.055);
  const ring=root.getObjectByName('ground-ring');if(ring)ring.visible=false;
 }
+/** Relaxed open stance keeps the shirt and shorts visible in the outfit editor. */
+export function poseAthleteForEditor(root:THREE.Group){
+ poseAthleteForPortrait(root);
+ const rig=root.userData.playerRig as ReturnType<typeof collectRig>;
+ rotate(rig,'chest');rotate(rig,'head');
+ rotate(rig,'upper_arm.R',-.08,0,.6);rotate(rig,'forearm.R',-.12);
+ rotate(rig,'upper_arm.L',-.08,0,-.6);rotate(rig,'forearm.L',-.12);
+ root.rotation.z=0;
+}
 export function disposeAthlete(root:THREE.Group){root.traverse(object=>{if(object instanceof THREE.Mesh){if(object.userData.ownedGeometry)object.geometry.dispose();for(const material of Array.isArray(object.material)?object.material:[object.material])material.dispose()}})}
 export function setAthleteHandedness(root:THREE.Group,hand:'left'|'right'){root.scale.x=hand==='left'?-1:1}
 

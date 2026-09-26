@@ -2,15 +2,16 @@ import {COURT,type PlayerState,type ShotIntent} from './engine/model';
 import type {ShotContext} from './engine/shot-families';
 import {executeShot} from './engine/execution';
 import {generateTrajectory,sampleFlight} from './engine/trajectory';
-export type ShotAssessment={risk:'Low'|'Medium'|'High';pressure:'Low'|'Medium'|'High'};
+export type ShotAssessment={risk:'Low'|'Medium'|'High';pressure:'Low'|'Medium'|'High';accuracyRadius?:number;riskFill?:number;pressureFill?:number};
 export type AssessmentContact={timing:'air'|'bounce'|null;actor:ShotIntent['actor'];context:ShotContext;players:PlayerState[]};
 /** Coarse estimates, using fixed independent samples—not the match's hidden outcome seed. */
 export function assessShot(intent:ShotIntent,context:ShotContext,players:PlayerState[]):ShotAssessment{
  const trajectory=generateTrajectory(intent,context,players);
  // Enough deterministic samples to distinguish occasional misses from routine risk.
- const sampleCount=128;let poor=0;
+ const sampleCount=128;let poor=0;const errors:number[]=[];
  for(let i=0;i<sampleCount;i++){
   const shot=executeShot(intent,context,players,{seed:(0x9e3779b9*(i+1))>>>0,balance:1});
+  errors.push(shot.endpointError);
   const serveFault=intent.type==='serve'&&shot.leg.bounceAtEnd&&(shot.actualEndpoint.x*context.contact.x>=0||Math.abs(shot.actualEndpoint.z)<=COURT.kitchen);
   if(shot.outcome==='net'||shot.outcome==='out'||serveFault||shot.mishit||shot.endpointError>.85)poor++;
  }
@@ -29,7 +30,8 @@ export function assessShot(intent:ShotIntent,context:ShotContext,players:PlayerS
  }
  const pace=Math.hypot(trajectory.leg.to.x-trajectory.leg.from.x,trajectory.leg.to.z-trajectory.leg.from.z)/trajectory.leg.duration;
  const pressure=demand+Math.max(0,pace-9)*.13;
- return {risk:poor/sampleCount<=.05?'Low':poor/sampleCount<=.20?'Medium':'High',pressure:pressure<1.6?'Low':pressure<3.6?'Medium':'High'};
+ errors.sort((a,b)=>a-b);const accuracyRadius=errors[Math.floor(sampleCount*.8)];
+ return {accuracyRadius,riskFill:Math.min(3,.3+poor/sampleCount*2.4+accuracyRadius*.4),pressureFill:Math.min(3,.2+demand*.45+pace*.07),risk:poor/sampleCount<=.05?'Low':poor/sampleCount<=.20?'Medium':'High',pressure:pressure<1.6?'Low':pressure<3.6?'Medium':'High'};
 }
 export function assessChoice(choice:{intent:ShotIntent;timing?:'air'|'bounce'},point:{x:number;z:number;playerId?:ShotIntent['actor']},contacts:AssessmentContact[]):ShotAssessment|undefined{
  const contact=contacts.find(c=>c.actor===choice.intent.actor&&(c.timing??undefined)===choice.timing);

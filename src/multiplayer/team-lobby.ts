@@ -19,11 +19,11 @@ export class TeamLobby {
  readonly element=node('section','team-lobby');
  navigation!:HTMLElement;
  private static activeTab:'games'|'friends'|'community'|'roster'|'profile'=initialLobbyPage()==='friends'&&new URLSearchParams(location.search).get('view')==='community'?'community':initialLobbyPage();private get tab(){return TeamLobby.activeTab}private set tab(value:'games'|'friends'|'community'|'roster'|'profile'){TeamLobby.activeTab=value}private static portraits:AvatarThumbnails|undefined;private get portraits(){return TeamLobby.portraits;}
- private static records=new Map<string,{expires:number;value:Promise<(ReturnType<typeof profileRecord>&{activity?:ActivityRewards})>}>();
+ private static records=new Map<string,{expires:number;value:Promise<(ReturnType<typeof profileRecord>&{activity?:ActivityRewards;lifetimeXp?:number|null})>}>();
  private record(person:LobbyTeam){
   const key=`${this.data.self.id}:${person.id}`,cached=TeamLobby.records.get(key);
   if(cached&&cached.expires>Date.now())return cached.value;
-  const value=matchCredentials().then(credentials=>remoteRequest<(ReturnType<typeof profileRecord>&{activity?:ActivityRewards})>(credentials.token,`/api/multiplayer/teams/${person.id}/record`));
+  const value=matchCredentials().then(credentials=>remoteRequest<(ReturnType<typeof profileRecord>&{activity?:ActivityRewards;lifetimeXp?:number|null})>(credentials.token,`/api/multiplayer/teams/${person.id}/record`));
   const entry={expires:Date.now()+30000,value};TeamLobby.records.set(key,entry);
   void value.catch(()=>{if(TeamLobby.records.get(key)===entry)TeamLobby.records.delete(key);});return value;
  }
@@ -71,7 +71,7 @@ export class TeamLobby {
     const recordLabel=node('span','lobby-person-record','');title.append(recordLabel);
     const story=rivalryCardStory(this.actions.rivalryFor?.(person.id));
     if(story)identity.append(node('p','lobby-person-rivalry',story));
-    void this.record(person).then(record=>{if(!card.isConnected)return;if(communityView&&!canShowCommunityAccount(person.manager,record.games)){card.remove();finishCommunityRecord();return;}card.hidden=false;recordLabel.textContent=` (${record.wins.toLocaleString()}-${record.losses.toLocaleString()})`;recordLabel.setAttribute('aria-label',`${record.wins} wins, ${record.losses} losses`);finishCommunityRecord();}).catch(()=>{if(!card.isConnected)return;card.hidden=false;recordLabel.textContent=' (—)';recordLabel.setAttribute('aria-label','Record unavailable');finishCommunityRecord();});
+    void this.record(person).then(record=>{if(!card.isConnected)return;if(communityView&&!canShowCommunityAccount(person.manager,record.games)){card.remove();finishCommunityRecord();return;}card.hidden=false;const xp=record.lifetimeXp;recordLabel.textContent=` (${record.wins.toLocaleString()}-${record.losses.toLocaleString()}) · ${xp==null?'—':xp.toLocaleString()} XP`;recordLabel.setAttribute('aria-label',`${record.wins} wins, ${record.losses} losses, ${xp==null?'XP unavailable':`${xp} XP`}`);finishCommunityRecord();}).catch(()=>{if(!card.isConnected)return;card.hidden=false;recordLabel.textContent=' (—)';recordLabel.setAttribute('aria-label','Record unavailable');finishCommunityRecord();});
     const controls=node('div','lobby-person-actions'),challenge=this.button('Challenge',()=>this.actions.challenge(person),'team-lobby-primary');challenge.disabled=!this.actions.enabled;
     if(!this.data.friends.includes(person.id)){controls.classList.add('has-add-friend');controls.append(this.button('Add Friend',()=>void this.friend(person.id),'team-lobby-add-friend'));}controls.append(challenge);
     card.append(identity,controls);list.append(card);

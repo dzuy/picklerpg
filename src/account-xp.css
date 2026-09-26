@@ -1,0 +1,85 @@
+.account-xp {padding:1rem;border:1px solid #79876c55;border-radius:12px;margin-block:.75rem;text-align:left;font-size:.9rem;}
+.account-xp p {margin:.5rem 0;line-height:1.45;}
+.account-xp progress {display:block;width:100%;height:.65rem;accent-color:#60864a;margin:.6rem 0;}
+.account-xp small {display:block;margin-top:.5rem;}
+.account-xp h3 {font-size:1.1rem;line-height:1.4;}
+/* The confirmed match reward takes precedence over the supporting match stats. */
+.account-xp:has(.xp-reward){padding:0;border:0;background:none;margin:24px 0}
+.xp-reward{padding:24px 20px;border-radius:20px;text-align:center;background:var(--pb-tint-blue,#e7f7ff);border:1px solid var(--pb-border-accent,#9cddeb);color:var(--pb-text,#124155)}
+.xp-reward .xp-reward-label{font-size:12px;letter-spacing:2px;font-weight:850;margin:0 0 8px}
+.xp-reward-amount{display:block;font-size:clamp(42px,10vw,64px);line-height:1.1;font-weight:900;font-variant-numeric:tabular-nums;color:var(--pb-info-ink,#007b96)}
+.xp-reward .xp-reward-breakdown{font-size:12px;color:var(--pb-text-secondary,#477080);margin:10px 0 20px}
+.xp-reward-total{font-weight:800;font-size:16px;font-variant-numeric:tabular-nums}
+.xp-reward progress{appearance:none;width:100%;height:16px;border:0;border-radius:999px;overflow:hidden;background:#cce3eb;margin:12px 0}
+.xp-reward progress::-webkit-progress-bar{background:#cce3eb;border-radius:999px}
+.xp-reward progress::-webkit-progress-value{background:linear-gradient(90deg,#00b9d8,#00d99c);border-radius:999px}
+.xp-reward progress::-moz-progress-bar{background:linear-gradient(90deg,#00b9d8,#00d99c);border-radius:999px}
+.xp-reward .xp-reward-next{font-size:12px;margin:0}
+.xp-reward-milestone{margin-top:18px;font-weight:850;color:var(--pb-info-ink,#007b96)}
+.xp-reward-milestone button{display:block;margin:12px auto 0;padding:10px 18px;border:0;border-radius:12px;background:var(--pb-primary,#ff287a);color:var(--pb-on-primary,#fff);font:inherit;cursor:pointer}
+.xp-reward.is-complete .xp-reward-amount{animation:xp-reward-pop 400ms ease-out}
+.xp-reward-announcement{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+@keyframes xp-reward-pop{50%{transform:scale(1.08)}}
+@media(prefers-reduced-motion:reduce){.xp-reward.is-complete .xp-reward-amount{animation:none}.xp-reward progress::-webkit-progress-value{transition:none}}
+/* Shared with both XP surfaces; angular energy marks echo the player cards. */
+.xp-reward{position:relative;isolation:isolate;overflow:hidden;padding:20px 24px;border:2px solid #00c8e8;background:linear-gradient(150deg,#effeff,#9ceff8 48%,#effeff);box-shadow:0 5px 0 #009fb9,inset 0 1px 0 #e6ffff;color:#08213f}
+.xp-reward::before,.xp-reward::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none}
+.xp-reward::before{background:url('/assets/brand/character-halftone.svg') center/100% 100%}
+.xp-reward::after{background:linear-gradient(140deg,#00bedb,#43d7e8);opacity:.35;clip-path:polygon(0 26%,67% 0,35% 24%,100% 5%,61% 36%,100% 24%,100% 36%,25% 81%,53% 54%,0 93%,0 77%,36% 45%,0 62%)}
+.xp-reward-amount{color:#fff;text-shadow:2px 3px 0 #061932,-1px -1px 0 #061932,1px -1px 0 #061932,-1px 1px 0 #061932;font-style:italic;letter-spacing:-2px}
+.xp-reward progress{background:#e8fdff;margin:14px 0 9px;box-shadow:0 0 0 2px #08213f}
+.xp-reward progress::-webkit-progress-bar{background:#e8fdff}
+.xp-reward progress::-webkit-progress-value{background:linear-gradient(90deg,#ff168a,#ff51a4)}
+.xp-reward progress::-moz-progress-bar{background:linear-gradient(90deg,#ff168a,#ff51a4)}
+.xp-reward .xp-reward-next{font-weight:750}
+
+.xp-profile .xp-profile-budget{margin:16px 0 0;font-size:14px;font-weight:800}
+.xp-profile small{font-size:12px;font-weight:650}
+
+.xp-reward .xp-reward-profile-link{display:inline-flex;align-items:center;justify-content:center;min-height:44px;margin-top:8px;color:#08213f;font-size:13px;font-weight:750;text-decoration:underline;text-underline-offset:3px}
+.xp-reward .xp-reward-profile-link:focus-visible{outline:3px solid #08213f;outline-offset:3px;border-radius:4px}
+.xp-profile .xp-help-link{display:block;margin:8px auto 0;padding:10px 8px;min-height:44px;border:0;background:transparent;color:#16475b;font:600 12px/1.4 var(--pb-font-body, sans-serif);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.xp-help-link:focus-visible,.xp-help button:focus-visible{outline:3px solid var(--pb-focus,#00a9cb);outline-offset:3px}
+.xp-help{box-sizing:border-box;width:min(560px,calc(100vw - 32px));max-height:calc(100dvh - 40px);overflow:auto;padding:24px;border:1px solid var(--pb-border-accent,#7edcec);border-radius:24px;background:var(--pb-surface,#fff);color:var(--pb-text,#124155);font-family:var(--pb-font-body,sans-serif);box-shadow:0 20px 70px #08213f40}
+.xp-help::backdrop{background:#08213f80;backdrop-filter:blur(4px)}
+.xp-help header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.xp-help h2{margin:0;font-size:26px;line-height:1.15}
+.xp-help .xp-help-eyebrow{font-size:10px;font-weight:800;letter-spacing:1.5px;margin:0 0 8px;color:var(--pb-text-secondary,#477080)}
+.xp-help header button{flex:none;width:40px;height:40px;border:0;border-radius:50%;background:var(--pb-surface-inset,#e9faff);color:inherit;font-size:18px;cursor:pointer}
+.xp-help-intro,.xp-help-note{font-size:13px;line-height:1.5;color:var(--pb-text-secondary,#477080)}
+.xp-help ul{list-style:none;margin:20px 0;padding:0}
+.xp-help li{display:flex;align-items:flex-start;gap:16px;padding:16px 0;border-top:1px solid var(--pb-border,#d6e7ee)}
+.xp-help li>div{flex:1;min-width:0}
+.xp-help h3{font-size:15px;margin:0 0 6px}
+.xp-help li p{font-size:13px;line-height:1.5;margin:0;color:var(--pb-text-secondary,#477080)}
+.xp-help li>strong{flex:none;font-size:13px;color:var(--pb-info-ink,#007b96);white-space:nowrap}
+
+.xp-reward .xp-reward-empty{font-size:clamp(24px,6vw,36px);letter-spacing:-1px}
+.xp-reward .xp-reward-status{font-size:13px;line-height:1.5;margin:16px 0 0}
+
+/* Keep the completion dialog compact without changing profile progress cards. */
+#game-end .account-xp:has(.xp-reward){margin:16px 0}
+#game-end .xp-reward{padding:14px 16px;border-radius:16px}
+#game-end .xp-reward-amount{font-size:42px}
+#game-end .xp-reward .xp-reward-label{font-size:10px;margin-bottom:6px}
+#game-end .xp-reward progress{height:12px;margin:12px 0 8px}
+#game-end .xp-reward .xp-reward-profile-link{margin-top:2px}
+
+/* A milestone remains visible after the brief confetti burst finishes. */
+.xp-reward.has-skill-point{border-color:#f3c746;box-shadow:0 5px 0 #be9420,inset 0 0 0 1px #fff5b4;background:linear-gradient(145deg,#fffde9,#fff1ad 52%,#e4fbff)}
+.xp-reward.has-skill-point::after{opacity:.16}
+.xp-reward .xp-reward-milestone{position:relative;z-index:1;margin-top:14px;color:#08213f}
+.xp-reward .xp-milestone-title{font-size:clamp(20px,5vw,26px);line-height:1.15;letter-spacing:-.5px;margin:0}
+.xp-reward .xp-milestone-copy{font-size:13px;font-weight:550;line-height:1.45;max-width:360px;margin:8px auto 0}
+.xp-reward-milestone button{min-height:44px;font-weight:800;margin-top:12px}
+.xp-confetti{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:2;border-radius:inherit}
+.xp-confetti i{position:absolute;top:-14px;left:var(--x);width:7px;height:12px;border-radius:2px;opacity:0;animation:xp-confetti-fall 2100ms var(--delay) ease-out both}
+@keyframes xp-confetti-fall{0%{opacity:0;transform:translate(0,-12px) rotate(0)}10%{opacity:1}75%{opacity:1}100%{opacity:0;transform:translate(var(--drift),430px) rotate(var(--spin))}}
+@media(prefers-reduced-motion:reduce){.xp-confetti{display:none}.xp-confetti i{animation:none}}
+
+.xp-reward .xp-guest-title{font-size:24px;line-height:1.2;letter-spacing:-.5px;margin:8px 0;color:#08213f}
+.xp-reward .xp-guest-copy{max-width:340px;margin:8px auto 14px;font-size:13px;line-height:1.5}
+.xp-guest-create{min-height:44px;padding:10px 22px;border:0;border-radius:12px;background:var(--pb-primary,#ff287a);color:var(--pb-on-primary,#fff);font:inherit;font-weight:800;cursor:pointer}
+.xp-guest-create:disabled{opacity:.65;cursor:wait}
+.xp-reward .xp-guest-status{font-size:12px;margin:10px 0 0}
+.xp-reward .xp-guest-status:empty{display:none}

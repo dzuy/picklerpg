@@ -27,8 +27,10 @@
     "preview:invites": "node --import tsx tests/browser/invite-lab.ts"
   },
   "dependencies": {
+    "@capacitor/app": "^8.1.1",
     "@capacitor/core": "8.5.2",
     "@capacitor/ios": "8.5.2",
+    "@capacitor/push-notifications": "^8.1.2",
     "@huggingface/transformers": "^4.2.0",
     "@supabase/supabase-js": "^2.116.0",
     "three": "^0.180.0",

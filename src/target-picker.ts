@@ -1,3 +1,5 @@
+import {attachShotPower,shotHoldDelay} from './shot-power-control';
+import './shot-power.css';
 import {PLAYER_PROFILES,ARCHETYPES} from './engine/player-profiles';
 import {incomingShotLabel} from './incoming-shot';
 import {assessChoice,type ShotAssessment} from './shot-assessment';
@@ -30,6 +32,8 @@ export interface TargetingSource {
 /** Court coordinates survive camera movement; selections belong to one contact. */
 export class CourtTargetPicker {
  private panel=document.createElement('section');
+ private powerCleanup:Array<()=>void>=[];
+ private holdMs=shotHoldDelay(location.search);
  private point:{x:number;z:number;playerId?:PlayerId}|null=null;
  private context:unknown=null;
  private decision='';
@@ -51,7 +55,7 @@ export class CourtTargetPicker {
   let dismissPointer:number|null=null,suppressClick=false;
   document.addEventListener('pointerdown',event=>{
    suppressClick=false;
-   if(!this.active||(event.target instanceof Element&&event.target.closest('.target-wheel')))return;
+   if(!this.active||(event.target instanceof Element&&event.target.closest('.target-wheel,.shot-power-popover')))return;
    dismissPointer=event.pointerId;suppressClick=true;event.preventDefault();event.stopImmediatePropagation();this.clear();
   },true);
   document.addEventListener('pointerup',event=>{if(event.pointerId===dismissPointer){dismissPointer=null;event.preventDefault();event.stopImmediatePropagation()}},true);
@@ -60,7 +64,7 @@ export class CourtTargetPicker {
   this.panel.addEventListener('keydown',event=>{if(event.key==='Escape'){event.stopPropagation();this.clear()}});
 
  }
- clear(){this.interpretation?.abort();this.interpretation=null;this.point=null;this.panel.hidden=true;this.scene.setSelectedTarget(null);this.scene.setShotPreview(null)}
+ clear(){this.powerCleanup.splice(0).forEach(cleanup=>cleanup());this.scene.setTargetAccuracy(null);this.interpretation?.abort();this.interpretation=null;this.point=null;this.panel.hidden=true;this.scene.setSelectedTarget(null);this.scene.setShotPreview(null)}
  sync(active:boolean){
   this.enabled=active&&this.source.enabled;
   if(this.point&&((!this.enabled&&!this.interpretation)||this.context!==this.source.context||this.decision!==this.source.decision)){this.clear();return}
@@ -88,6 +92,7 @@ export class CourtTargetPicker {
  }
  private status(text:string){this.panel.querySelector<HTMLElement>('.target-picker-status')!.textContent=text}
  private draw(){
+  this.powerCleanup.splice(0).forEach(cleanup=>cleanup());
   this.panel.hidden=false;
   const seen=new Set<string>();
   const choices=this.source.choices.flatMap(choice=>{
@@ -100,22 +105,24 @@ export class CourtTargetPicker {
   });
   choices.sort((a,b)=>Number(!!b.intent.technique)-Number(!!a.intent.technique));
   if(!choices.length){this.clear();return}
-  const meter=(label:'Risk'|'Pressure',level:ShotAssessment['risk']|undefined)=>{
+  const meter=(label:'Risk'|'Pressure',level:ShotAssessment['risk']|undefined,fill?:number)=>{
    const count=level==='High'?3:level==='Medium'?2:level==='Low'?1:0;
-   const description=level?`${label}: ${level} (${count} of 3)`:`${label}: unavailable`;
+   const description=level?`${label}: ${level}`:`${label}: unavailable`;
    const icon=label==='Risk'?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 4.1 2.5 18a2 2 0 0 0 1.7 3h15.6a2 2 0 0 0 1.7-3L13.7 4.1a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4m0 4h.01"/></svg>':'💪';
-   return `<span class="target-shot-rating" role="img" aria-label="${description}" title="${description}" data-metric="${label.toLowerCase()}" data-level="${count}"><span class="shot-rating-icon" aria-hidden="true">${icon}</span><span class="shot-rating-bars" aria-hidden="true">${[1,2,3].map(n=>`<i class="${n<=count?'is-filled':''}"></i>`).join('')}</span></span>`;
+   return `<span class="target-shot-rating" role="img" aria-label="${description}" title="${description}" data-metric="${label.toLowerCase()}" data-level="${count}"><span class="shot-rating-icon" aria-hidden="true">${icon}</span><span class="shot-rating-bars" aria-hidden="true">${[1,2,3].map(n=>`<i class="${n<=count?'is-filled':''}"${fill===undefined?'':` style="background:linear-gradient(to right,var(--rating-color) ${Math.max(0,Math.min(1,fill-(n-1)))*100}%,transparent 0)"`}></i>`).join('')}</span></span>`;
   };
   const tile=(choice:typeof choices[number],index:number)=>{
    const timing=choice.timing?(choice.timing==='air'?'Before bounce':'After bounce'):'';
    const rating=this.source.assess?.(choice,this.point!);
-   return `<button type="button" class="target-shot ${choice.intent.technique==='atp'?'target-shot-atp':choice.intent.technique==='erne'?'target-shot-erne':''}" data-type="${choice.intent.type}" data-choice="${index}">${shotIcon(choice.intent,index,'wheel')}<span class="target-shot-copy"><span class="target-shot-label">${choice.intent.technique==='atp'?'ATP Alert!':choice.intent.technique==='erne'?'Erne Alert!':choice.label}</span>${choice.intent.technique==='atp'?'<span class="target-atp-description">Around the post. Very risky, hard to defend. Highlight-reel stuff… if you hit it!</span><span class="target-shot-timing">Aim carefully around the post</span>':choice.intent.technique==='erne'?'<span class="target-atp-description">Attack from outside the kitchen. Risky timing. Steal time from their return.</span>':''}${timing?`<span class="target-shot-timing" data-timing="${choice.timing}">${timing}</span>`:''}<span class="target-shot-ratings">${meter('Risk',rating?.risk)}${meter('Pressure',rating?.pressure)}</span></span></button>`;
+   return `<button type="button" class="target-shot ${choice.intent.technique==='atp'?'target-shot-atp':choice.intent.technique==='erne'?'target-shot-erne':''}" data-type="${choice.intent.type}" data-choice="${index}">${shotIcon(choice.intent,index,'wheel')}<span class="target-shot-copy"><span class="target-shot-label">${choice.intent.technique==='atp'?'ATP Alert!':choice.intent.technique==='erne'?'Erne Alert!':choice.label}</span>${choice.intent.technique==='atp'?'<span class="target-atp-description">Around the post. Very risky, hard to defend. Highlight-reel stuff… if you hit it!</span><span class="target-shot-timing">Aim carefully around the post</span>':choice.intent.technique==='erne'?'<span class="target-atp-description">Attack from outside the kitchen. Risky timing. Steal time from their return.</span>':''}${timing?`<span class="target-shot-timing" data-timing="${choice.timing}">${timing}</span>`:''}<span class="target-shot-ratings">${meter('Risk',rating?.risk,rating?.riskFill)}${meter('Pressure',rating?.pressure,rating?.pressureFill)}</span></span></button>`;
   };
-  this.panel.innerHTML=`<div class="target-wheel" role="group" aria-label="Shot type"><div class="target-shots" role="group" aria-label="Shot options. Scroll for more shots.">${choices.map(tile).join('')}</div><form class="target-shot-description"><label><span class="sr-only">Describe your shot</span><input type="text" placeholder="Describe your shot…" maxlength="240" enterkeyhint="go" autocomplete="off" required></label><button type="submit" aria-label="Play described shot">Go</button></form><span class="target-picker-status" role="status"></span></div>`;
+  this.panel.innerHTML=`<div class="target-wheel" role="group" aria-label="Shot type"><div class="target-shots" role="group" aria-label="Shot options. Scroll for more shots.">${choices.map(tile).join('')}</div><p class="shot-power-hint">Tap to play · Hold to adjust control / power</p><form class="target-shot-description"><label><span class="sr-only">Describe your shot</span><input type="text" placeholder="Describe your shot…" maxlength="240" enterkeyhint="go" autocomplete="off" required></label><button type="submit" aria-label="Play described shot">Go</button></form><span class="target-picker-status" role="status"></span></div>`;
   if(this.source.incoming){
    const heading=document.createElement('p');heading.className='target-incoming-shot';heading.textContent=this.source.incoming;
    this.panel.querySelector('.target-wheel')!.prepend(heading);
   }
+  // Temporarily hide custom shot entry; retain the form and handlers for its return.
+  this.panel.querySelector<HTMLFormElement>('.target-shot-description')!.hidden=true;
   const description=this.panel.querySelector<HTMLInputElement>('.target-shot-description input')!;
   description.value=this.shotDescription;
   description.addEventListener('input',()=>{this.shotDescription=description.value});
@@ -146,11 +153,21 @@ export class CourtTargetPicker {
   for(const button of Array.from(this.panel.querySelectorAll<HTMLButtonElement>('[data-type]'))){
    const choice=choices[Number(button.dataset.choice)];
    button.title=`Play ${choice.label}${choice.timing?choice.timing==='air'?' · before bounce':' · after bounce':''}`;
-   button.addEventListener('click',()=>{
-    try{this.source.play(choice,this.point!);this.panel.hidden=true}
-    catch(error){this.draw();if(this.active)this.status((error as Error).message)}
-
-   });
+   button.title+=' · Hold or press an arrow key to adjust power';
+   const ratings=button.querySelector<HTMLElement>('.target-shot-ratings')!,initialRatings=ratings.innerHTML;
+   this.powerCleanup.push(attachShotPower(button,this.panel.querySelector('.target-wheel')!,choice.label,{
+    begin:()=>this.powerCleanup.forEach(cleanup=>cleanup()),
+    preview:power=>{
+     const rating=this.source.assess?.({...choice,intent:{...choice.intent,power}},this.point!);
+     ratings.innerHTML=meter('Risk',rating?.risk,rating?.riskFill)+meter('Pressure',rating?.pressure,rating?.pressureFill);
+     this.scene.setTargetAccuracy(rating?.accuracyRadius??null,power);
+    },
+    cancel:()=>{ratings.innerHTML=initialRatings;this.scene.setTargetAccuracy(null)},
+    play:power=>{
+     try{if(!this.active||!this.source.enabled)throw Error('Wait for your turn.');this.source.play(power===undefined?choice:{...choice,intent:{...choice.intent,power}},this.point!);this.clear()}
+     catch(error){this.draw();if(this.active)this.status((error as Error).message)}
+    },
+   },this.holdMs));
   }
   this.sync(true);this.panel.focus({preventScroll:true});
  }

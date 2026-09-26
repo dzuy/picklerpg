@@ -22,6 +22,8 @@ export type ShotTarget =
 export interface SpinIntent {side:typeof SPIN_SIDES[number];vertical:typeof VERTICAL_SPINS[number];strength:typeof SPIN_STRENGTHS[number]}
 export interface ShotIntent {
  schemaVersion:1; actor:PlayerId; type:ShotType; target:ShotTarget;
+ /** Optional control/power balance: 0 is control, .5 preserves default execution, 1 is power. */
+ power?:number;
  pace:typeof PACES[number]; shape:typeof SHAPES[number]; intendedNetClearance:number;
  tacticalIntent:typeof TACTICS[number]; aggression:number; source:typeof INPUT_SOURCES[number]; spin?:SpinIntent; technique?:'atp'|'erne';
 }

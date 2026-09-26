@@ -63,6 +63,7 @@ export class CloudPlayerSync{
   if(browserStorage.getItem(CLOUD_DIRTY_KEY)==='1')throw new Error('Your player changes are not synced yet. Reconnect before signing out.');
   const {data:{session}}=await this.client.auth.getSession();
   if(session?.user.is_anonymous)throw new Error('Protect your progress before signing out.');
+  await (await import('./pwa')).disableDevicePush();
   this.signingOut=true;
   const {error}=await this.client.auth.signOut({scope:'local'});if(error){this.signingOut=false;throw error}
   browserStorage.removeItem('pickle-rpg-players-v1');browserStorage.removeItem(CLOUD_OWNER_KEY);location.reload();
@@ -72,9 +73,9 @@ export class CloudPlayerSync{
   if(!this.client)throw new Error('Reconnect to send a link.');
   const {error}=await this.client.auth.resend({type:'email_change',email,options:{emailRedirectTo:this.returnUrl()}});if(error)throw error;
  }
- async recordMatch(result:{id:string;home_names:string;away_names:string;home_score:number;away_score:number;ended_early?:boolean;participants?:MatchParticipant[]},owner:string){
+ async recordMatch(result:{id:string;home_names:string;away_names:string;home_score:number;away_score:number;ended_early?:boolean;participants?:MatchParticipant[];difficulty?:string;target?:number},owner:string){
   if(!this.client||this.ownerId!==owner)throw new Error('Reconnect to the account that played this match.');
-  const {error}=await this.client.rpc(result.participants?'record_match_players':result.ended_early?'record_early_match':'record_match',{p_id:result.id,p_home_names:result.home_names,p_away_names:result.away_names,p_home_score:result.home_score,p_away_score:result.away_score,...(result.participants?{p_ended_early:!!result.ended_early,p_participants:result.participants}:{})});if(error)throw error;
+  const {error}=await this.client.rpc('record_solo_xp',{p_id:result.id,p_home_names:result.home_names,p_away_names:result.away_names,p_home_score:result.home_score,p_away_score:result.away_score,p_ended_early:!!result.ended_early,p_participants:result.participants??[],p_difficulty:result.difficulty??'normal',p_target:result.target??11});if(error)throw error;
  }
  async history(){
   if(!this.client||!this.ownerId)throw new Error('Connect to view your match history.');

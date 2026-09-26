@@ -1,2 +1,3 @@
+import config from './xp-config.json';
 import {authClient} from './auth-session';
-export async function accountSkillBudget(){const client=authClient();if(!client)return 35;const {data,error}=await client.rpc('my_skill_budget');if(error)throw new Error('Could not load your skill budget. Reconnect to allocate earned points.');return Math.max(35,Math.min(45,Number(data)||35));}
+export async function accountSkillBudget(){const client=authClient();if(!client)return config.STARTING_SKILL_BUDGET;const {data,error}=await client.rpc('my_skill_budget');if(error)throw new Error('Could not load your skill budget. Reconnect to allocate earned points.');return Math.max(config.STARTING_SKILL_BUDGET,Number(data)||config.STARTING_SKILL_BUDGET);}

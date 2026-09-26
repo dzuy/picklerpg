@@ -1,6 +1,6 @@
 # PickleBash on iPhone
 
-The iOS app is a Capacitor 8 shell around the existing Vite/Three.js build. Its bundle ID is `com.picklebash.app`. The native project contains no remote code loading or native feature plugins. The compiled game is copied from `dist/` into the Xcode app when you sync.
+The iOS app is a Capacitor 8 shell around the existing Vite/Three.js build. Its bundle ID is `com.picklebash.app`. The native project uses Capacitor push notifications and app lifecycle plugins; it does not load remote application code. The compiled game is copied from `dist/` into the Xcode app when you sync.
 
 ## Build and open
 
@@ -20,4 +20,4 @@ The normal browser commands, `npm run dev`, `npm test`, and `npm run build`, rem
 
 ## Online services
 
-Bundled pages use the local `capacitor://localhost` origin. In the installed app, `/api` requests and shared game links use `https://picklebash.app`; in a browser, requests still use the page's own origin. Deploy the matching server changes before testing online games or model-backed shots in the installed app, because the server must allow that native origin. The existing Supabase build variables are still required for account and multiplayer features. Browser push prompts and service-worker registration stay browser-only; this shell adds no native notifications.
+Bundled pages use the local `capacitor://localhost` origin. In the installed app, `/api` requests and shared game links use `https://picklebash.app`; in a browser, requests still use the page's own origin. Deploy the matching server changes before testing online games or model-backed shots in the installed app, because the server must allow that native origin. The existing Supabase build variables are still required for account and multiplayer features. Browser push prompts and service-worker registration stay browser-only. Native iOS push setup, turn badges, deployment, and testing are documented in [NATIVE_PUSH.md](NATIVE_PUSH.md).

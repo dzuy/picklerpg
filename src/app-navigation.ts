@@ -1,4 +1,13 @@
 import './app-navigation.css';
+import {authClient} from './auth-session';
+import type {User} from '@supabase/supabase-js';
+let watchingNavigationAuth=false;
+function updateProfileLabel(item:HTMLElement,user:User|null){
+ const username=!user?.is_anonymous&&typeof user?.user_metadata.username==='string'?user.user_metadata.username.trim():'';
+ item.querySelector('span')!.textContent=username||'Profile';
+ item.title=username?`${username} — Profile`:'Profile';
+ item.setAttribute('aria-label',username?`${username} — Profile`:'Profile');
+}
 export type NavigationPage='home'|'games'|'friends'|'roster'|'profile';
 export type LobbyPage='games'|'friends'|'roster'|'profile';
 export function initialLobbyPage():LobbyPage{
@@ -23,6 +32,17 @@ export function appNavigation(active:NavigationPage,navigate?:(page:NavigationPa
   if(active===key)item.setAttribute('aria-current','page');
   if(navigate)item.addEventListener('click',event=>{if(event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;event.preventDefault();navigate(key,routes[key]);});
   nav.append(item);
+ }
+ const client=authClient();
+ if(client){
+  const profile=nav.querySelector<HTMLElement>('#lobby-nav-profile')!;
+  void client.auth.getSession().then(({data:{session}})=>updateProfileLabel(profile,session?.user??null)).catch(()=>{});
+  if(!watchingNavigationAuth){
+   watchingNavigationAuth=true;
+   client.auth.onAuthStateChange((_event,session)=>{
+    document.querySelectorAll<HTMLElement>('.lobby-bottom-nav #lobby-nav-profile').forEach(item=>updateProfileLabel(item,session?.user??null));
+   });
+  }
  }
  return nav;
 }

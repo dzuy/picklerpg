@@ -386,3 +386,16 @@
 /* Shared short portraits for lineup selection and available Community players. */
 :is(#player-creator[data-view=roster], #match-setup, #remote-setup) .roster-card.roster-card-short .roster-banner{--portrait-height:90px;grid-row:3;height:90px;padding-top:0}
 :is(#player-creator[data-view=roster], #match-setup, #remote-setup) .roster-card.roster-card-short .roster-banner img{width:140px;height:140px;left:calc(50% - 70px);top:-18px;bottom:auto}
+
+/* Standalone roster icons retain roomy, keyboard-accessible hit targets. */
+#player-creator[data-view=roster] .owned-player-actions{justify-self:center;justify-content:center;margin-left:0;margin-right:0}
+#player-creator[data-view=roster] .roster-card-actions :is(.roster-starter,.roster-remove,.roster-edit){display:inline-flex;align-items:center;justify-content:center;flex:0 0 44px;width:44px;min-height:44px;padding:10px;border:0;border-radius:0;background:transparent;color:var(--pb-text-secondary);box-shadow:none}
+#player-creator[data-view=roster] .roster-card-actions :is(.roster-starter,.roster-remove,.roster-edit):hover:not(:disabled){background:transparent;color:var(--pb-text);box-shadow:none}
+#player-creator[data-view=roster] .roster-card-actions .roster-starter,#player-creator[data-view=roster] .roster-card-actions .roster-starter:hover:not(:disabled){color:#e6b94a}
+#player-creator[data-view=roster] .roster-card-actions:has(.roster-starter){justify-self:stretch;justify-content:flex-start;flex-wrap:nowrap;margin-left:0;margin-right:0}
+#player-creator[data-view=roster] .roster-card-actions .roster-remove,#player-creator[data-view=roster] .roster-card-actions .roster-remove:hover:not(:disabled){color:var(--pb-danger);margin-right:auto}
+#player-creator[data-view=roster] .roster-card-actions :is(.roster-starter,.roster-remove,.roster-edit) svg{width:20px;height:20px;flex:none}
+#player-creator[data-view=roster] .roster-card-actions :is(.roster-starter,.roster-remove,.roster-edit):focus-visible{outline:2px solid var(--pb-focus);outline-offset:0}
+.starter-picker{max-width:min(420px,calc(100vw - 32px));padding:24px;border:1px solid var(--pb-border);border-radius:var(--pb-radius-card);background:var(--pb-surface);color:var(--pb-text)}
+.starter-picker h2{margin-top:0}
+.starter-picker button{display:block;width:100%;margin-top:10px;padding:10px;border:1px solid var(--pb-border);border-radius:var(--pb-radius-button);background:var(--pb-surface);color:var(--pb-text)}

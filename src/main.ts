@@ -1,7 +1,9 @@
+import {loadScoringPreference,saveScoringPreference} from './scoring-preference';
+import {loadFlightGuide,saveFlightGuide} from './flight-guide-preference';
+import {showGameXp} from './account-xp';
 import {quickSolo} from './quick-solo';
 import {authClient} from './auth-session';
-import {communityPlayers,refreshCommunityDesigns} from './community-players';
-import {defaultTeam} from './multiplayer/team-directory';
+import {communityPlayers} from './community-players';
 import {TeamPicker} from './multiplayer/team-picker';
 import {focusView,showViewDialog} from './view-focus';
 import {parseSoloLaunch} from './solo-launch';
@@ -16,7 +18,7 @@ const rallySounds=new RallySounds();
 import type {ScoringMode} from './engine/scoring';
 import {teamLabel} from './engine/controllers';
 import {OpenPlayStore} from './persistence/open-play-store';
-import {fillPlayerCard,playerRecord} from './player-card';
+import {openPlayerDetails,playerDetailsOpen} from './player-details';
 import {MatchSetup} from './match-setup';
 import {randomLineup} from './random-lineup';
 import {describePointResult} from './point-result';
@@ -63,13 +65,12 @@ document.body.append(rosterLoading);
 app.innerHTML=`
 <header class="header"><a class="brand" href="/" aria-label="Pickle RPG home"><span class="brand-ball">⠿</span> PICKLE<span>RPG</span></a><button id="back-to-lobby" class="header-lobby" type="button" aria-label="Open match lobby"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20v-7l8-7 8 7v7"/><path d="M8 20v-5h8v5M8 8V4h3v2"/></svg><span>Lobby</span></button><button id="open-settings" class="header-icon" aria-label="Settings" title="Settings" aria-haspopup="dialog"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9.2 3-.6 2.2-1.5.9L4.9 6 2.8 9.6l1.6 1.6v1.7l-1.6 1.6 2.1 3.6 2.2-.2 1.5.9.6 2.2h4.2l.6-2.2 1.5-.9 2.2.2 2.1-3.6-1.6-1.6v-1.7l1.6-1.6L17.7 6l-2.2.1-1.5-.9-.6-2.2Z"/><circle cx="11.3" cy="12" r="3"/></svg></button></header>
 <main><section class="play-section">
-<div class="court-wrap"><div id="court"></div><div class="court-top"><div class="score" aria-label="Match score"><div class="score-row score-row-home"><span>YOU &amp; FINN</span><b id="score-home">0</b></div><div class="score-row score-row-away"><span>JULES &amp; RIO</span><b id="score-away">0</b></div></div></div><div id="court-result" class="court-result" role="status" aria-live="assertive" hidden><strong id="court-result-title"></strong><div class="result-actions"><button id="open-replay" type="button" aria-controls="replay-overlay">▶ Replay</button><button id="next-point" type="button">Next point ↗</button></div><div id="point-countdown" aria-live="off"></div></div><div class="court-bottom"><span>20 × 44 FT <span class="small-dot">·</span> REGULATION COURT</span><span class="team-key"><i></i> YOUR TEAM <i></i> OPPONENTS</span></div></div>
+<div class="court-wrap"><div id="court"></div><div class="court-top"><div class="score" aria-label="Match score"><span id="solo-score-rules" class="solo-score-rules" hidden></span><div class="score-row score-row-home"><span>YOU &amp; FINN</span><b id="score-home">0</b></div><div class="score-row score-row-away"><span>JULES &amp; RIO</span><b id="score-away">0</b></div></div></div><div id="court-result" class="court-result" role="status" aria-live="assertive" hidden><strong id="court-result-title"></strong><div class="result-actions"><button id="open-replay" type="button" aria-controls="replay-overlay">▶ Replay</button><button id="next-point" type="button">Next point ↗</button></div><div id="point-countdown" aria-live="off"></div></div><div class="court-bottom"><span>20 × 44 FT <span class="small-dot">·</span> REGULATION COURT</span><span class="team-key"><i></i> YOUR TEAM <i></i> OPPONENTS</span></div></div>
 
 
 <div class="rally-strip"><div class="eyebrow">THE PATTERN <span>01 / PRESSURE THE MIDDLE</span></div><ol id="timeline">${['Serve','Deep return','Drive middle','High block','Overhead Smash'].map((s,i)=>`<li data-step="${i}"><span class="step-number">${i+1}</span><span>${s}</span></li>`).join('')}</ol></div>
 </section><aside><button id="back-to-play" class="back-to-play">← Back to play</button><div class="aside-heading"><span class="eyebrow">PATTERN 01</span><span class="difficulty">INTERMEDIATE +</span></div><h2>Pressure.<br>Pop-up.<br><em>Put-away.</em></h2><p class="pattern-description">Create a weak ball through the middle. Recognize your chance to finish.</p><div class="aside-divider"></div><div id="decision" aria-live="polite"></div><div class="coach"><span class="coach-icon">✳</span><div><div class="eyebrow">COURT SENSE</div><p id="cue"></p></div></div><div class="aside-foot"><span class="script-dot"></span> Scripted opponents <span>·</span> Automatic positioning</div><section id="match-panel" hidden></section></aside></main><footer><span>READ THE COURT. MAKE THE CALL.</span><span><kbd>Space</kbd> play shot / pause <kbd>R</kbd> restart</span></footer><dialog id="game-settings" aria-labelledby="settings-title"><div class="settings-heading"><div><h2 id="settings-title">Game settings</h2><p id="local-rules"></p></div><button id="close-settings" aria-label="Close settings">✕</button></div><section class="settings-lineup" aria-labelledby="settings-lineup-title"><h3 id="settings-lineup-title">Current Players</h3><div id="settings-player-slots"></div></section><label class="settings-toggle" for="guides"><span>Flight guide<small>Show the ball path.</small></span><span class="settings-switch-control"><strong id="guides-state">On</strong><input id="guides" type="checkbox" role="switch" checked></span></label><label class="settings-toggle" for="show-player-names"><span>Player names<small>Show names above players.</small></span><span class="settings-switch-control"><strong id="show-player-names-state">On</strong><input id="show-player-names" type="checkbox" role="switch" checked></span></label><label class="settings-toggle" for="result-timer"><span>Result window timer<small>Automatically continue after 10 seconds at normal speed.</small></span><span class="settings-switch-control"><strong id="result-timer-state">On</strong><input id="result-timer" type="checkbox" role="switch" checked></span></label><section class="settings-account" aria-labelledby="settings-account-title"><div class="settings-account-heading"><h3 id="settings-account-title">Account</h3><span id="account-badge">Connecting…</span></div><p id="account-copy">Connecting your cloud saves…</p><form id="account-form" novalidate><label for="account-email">Email</label><input id="account-email" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" required><div class="settings-account-actions"><button id="protect-progress" type="submit">Protect progress</button><button id="account-sign-in" type="button">Sign in instead</button></div></form><p id="account-status" role="status" aria-live="polite"></p></section></dialog>`;
 document.querySelector('#game-settings .settings-lineup')!.insertAdjacentHTML('afterend','<button id="restart" class="settings-restart">Restart current game <span aria-hidden="true">↻</span></button><label class="settings-toggle" for="partner-autonomy"><span>Partner auto-play<small>Let your partner choose their own shots when the ball comes to them.</small></span><span class="settings-switch-control"><strong id="partner-autonomy-state">Off</strong><input id="partner-autonomy" type="checkbox" role="switch"></span></label>');
-app.insertAdjacentHTML('beforeend','<dialog id="player-drawer" aria-labelledby="player-drawer-title"><div class="drawer-heading"><div><div class="eyebrow">PLAYER PROFILE</div><h2 id="player-drawer-title"></h2></div><button id="close-player-drawer" aria-label="Close player profile">✕</button></div><article id="player-profile-card" class="roster-card"></article><button type="button" id="edit-player-design" hidden>Edit Design ↗</button><p id="player-drawer-description"></p><div id="player-drawer-meta"></div><dl id="player-drawer-skills" class="player-skill-drawer"></dl></dialog>');
 await preloadAthletes();
 const match=new Match();match.partnerAutonomy=true;match.randomizeSeedOnReset=true;let scene:CourtScene;
 try{scene=new CourtScene(document.querySelector('#court')!,id=>openPlayerDrawer(id))}catch(error){document.querySelector('#court')!.innerHTML='<div class="webgl-error"><h2>3D rendering is unavailable</h2><p>Enable hardware acceleration in your browser, then reload to play.</p></div>';throw error}
@@ -82,7 +83,7 @@ applyCourtLocation(savedCourt);
 const byId=(id:string)=>document.getElementById(id)!;
  const gamesLink=document.createElement('a');gamesLink.className='open-play-games-link';gamesLink.href='/?openplay=1';gamesLink.onclick=event=>{event.preventDefault();closeGameSurface();};gamesLink.setAttribute('aria-label','Close game');gamesLink.title='Close game';gamesLink.innerHTML=hudButtonIcon('close');document.querySelector('.court-wrap')!.append(gamesLink);
  const turnBanner=document.createElement('p');turnBanner.id='local-turn-banner';turnBanner.setAttribute('role','status');turnBanner.hidden=true;document.querySelector('.court-wrap')!.append(turnBanner);
-const speed=1;let guides=true,showPlayerNames=true,resultTimer=true,cameraDistance=50,lastUI='';
+const speed=1;let guides=loadFlightGuide('solo'),showPlayerNames=true,resultTimer=true,cameraDistance=50,lastUI='';
 const voicePanel=document.createElement('section');voicePanel.className='voice-controls';
 voicePanel.innerHTML=`<div class="voice-actions"><span id="voice-mic-dock" hidden><button id="voice-speak" type="button" aria-label="Speak a shot" title="Speak a shot" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/></svg></button></span><label><input id="voice-handsfree" type="checkbox"> Hands-free</label></div><p id="voice-status" role="status"></p><div id="voice-recovery" hidden><label>Game address <input id="voice-address" readonly aria-label="Game address"></label><button id="voice-copy-address" type="button">Copy game address</button><span id="voice-copy-status" role="status"></span></div><p id="voice-partner-status"></p>`;
 document.querySelector('.court-wrap')!.insertAdjacentElement('afterend',voicePanel);
@@ -155,7 +156,7 @@ function syncVoice(){
  const toggleParent=!focused&&composer?composer:voicePanel;
  if(voiceHandsFreeLabel.parentElement!==toggleParent)toggleParent.append(voiceHandsFreeLabel);
  const key=voiceToken();const changed=voiceContextKey!==key||voiceEngine!==match.engine;if(voiceEngine!==match.engine)voiceAttempt=null;voiceEngine=match.engine;
- const blocked=match.playerAutonomy||settingsDialog.open||creator.dialog.open||reactions.isOpen||playerDrawer.open||match.replayIndex!==null||document.hidden;
+ const blocked=match.playerAutonomy||settingsDialog.open||creator.dialog.open||reactions.isOpen||playerDetailsOpen()||match.replayIndex!==null||document.hidden;
  if(blocked){if(voice.active){voice.stop();voiceStatus('')}voiceHandsFree=false;voiceHandsFreeInput.checked=false}
  else if(changed&&voice.active){voice.stop();voiceStatus('')}
  voiceMeter.hidden=voice.phase!=='listening'||!localFactory;
@@ -248,7 +249,6 @@ endGameButton.addEventListener('click',()=>{
  if(settingsCloseTimer)window.clearTimeout(settingsCloseTimer);
  settingsDialog.close();settingsDialog.classList.remove('is-closing');syncGameEnd();
 });
-const playerDrawer=byId('player-drawer') as HTMLDialogElement;
 const replayOverlay=document.createElement('section');replayOverlay.id='replay-overlay';replayOverlay.hidden=true;replayOverlay.setAttribute('aria-label','Point replay');
 replayOverlay.innerHTML='<div class="replay-player"><button id="replay-toggle" class="replay-toggle" aria-label="Pause point replay">Ⅱ</button><div class="replay-track"><div><strong>Replay</strong><output id="replay-time">0:00 / 0:00</output></div><input id="replay-position" type="range" min="0" max="0" value="0" step="0.01" aria-label="Replay timeline"></div><button id="close-replay" aria-label="Exit replay" title="Exit replay">✕</button></div>';
 document.querySelector('.court-wrap')!.append(replayOverlay);
@@ -259,24 +259,13 @@ byId('replay-position').addEventListener('input',event=>{match.scrubReplayTime(N
 replayOverlay.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();closeReplay()}else if(event.code==='Space'&&event.target instanceof HTMLInputElement){event.preventDefault();match.replayPlaying?match.pauseReplay():match.resumeReplay()}});
 
 let profilePortraits:AvatarThumbnails|undefined;
-let playerDrawerCloseTimer:number|undefined,settingsCloseTimer:number|undefined;
+let settingsCloseTimer:number|undefined;
 function openPlayerDrawer(id:PlayerId){
- if(playerDrawerCloseTimer)window.clearTimeout(playerDrawerCloseTimer);playerDrawer.classList.remove('is-closing');
  const player=match.state.players.find(candidate=>candidate.id===id);if(!player)return;
- const names=playerNames();
- const archetype=match.lineup[id]?ARCHETYPES[match.lineup[id]!] : PLAYER_PROFILES[id];
+ targetPicker.clear();
  const design=match.getPlayerDesign(id);
- const card=byId('player-profile-card');card.replaceChildren();
- let portrait='';try{profilePortraits??=new AvatarThumbnails(512);portrait=profilePortraits.get(scene.getPlayerAppearance(id),'roster')}catch{}
- fillPlayerCard(card,{...(design??newPlayer()),name:names[id],appearance:scene.getPlayerAppearance(id),skills:player.skills,handedness:player.handedness},match.isLocalHuman?'Character skills':archetype.name,portrait);
- if(!match.isLocalHuman)card.querySelector('.roster-card-identity')!.append(playerRecord(design?.id??null,creator.loadHistory()));
- byId('edit-player-design').hidden=match.isLocalHuman||id!=='you';
- byId('player-drawer-title').textContent=names[id];byId('player-drawer-description').textContent=match.isLocalHuman?'Fixed multiplayer attributes for this match.':archetype.description;
- byId('player-drawer-meta').innerHTML=`<span>${match.isLocalHuman?teamLabel(player.team):player.team==='home'?'Your team':'Opponent'}</span><span>${match.isLocalHuman?'Character skills':archetype.name}</span><span>${player.handedness[0].toUpperCase()+player.handedness.slice(1)}-handed</span>`;
- byId('player-drawer-skills').innerHTML=Object.entries(player.skills).map(([skill,value])=>`<div><dt>${skill}</dt><dd><meter min="0" max="100" value="${value}" aria-label="${skill} ${value} out of 100"></meter><strong>${value}</strong></dd></div>`).join('');
- if(!playerDrawer.open)showViewDialog(playerDrawer);
+ openPlayerDetails({... (design??newPlayer()),name:playerNames()[id],appearance:scene.getPlayerAppearance(id),skills:player.skills,handedness:player.handedness},player.team==='home'?'Your team':'Opponent','',document.activeElement instanceof HTMLElement?document.activeElement:undefined);
 }
-function closePlayerDrawer(){if(!playerDrawer.open||playerDrawer.classList.contains('is-closing'))return;playerDrawer.classList.add('is-closing');const delay=matchMedia('(prefers-reduced-motion: reduce)').matches?0:180;playerDrawerCloseTimer=window.setTimeout(()=>{playerDrawer.close();playerDrawer.classList.remove('is-closing');playerDrawerCloseTimer=undefined},delay)}
 const courtSlots:PlayerId[]=['you','partner','opponent-left','opponent-right'];
 const slotLabels:Record<PlayerId,string>={you:'You',partner:'Partner','opponent-left':'Left-side opponent','opponent-right':'Right-side opponent'};
 function playerNames():Record<PlayerId,string>{return {you:match.getPlayerDesign('you')?.name??'You',partner:match.getPlayerDesign('partner')?.name??'Finn','opponent-left':match.getPlayerDesign('opponent-left')?.name??'Jules','opponent-right':match.getPlayerDesign('opponent-right')?.name??'Rio'}}
@@ -346,12 +335,8 @@ byId('open-settings').addEventListener('click',openSettings);
 byId('close-settings').addEventListener('click',closeSettings);
 settingsDialog.addEventListener('click',event=>{if(event.target===settingsDialog)closeSettings()});
 settingsDialog.addEventListener('cancel',event=>{event.preventDefault();closeSettings()});
-byId('close-player-drawer').addEventListener('click',closePlayerDrawer);
-byId('edit-player-design').addEventListener('click',()=>{if(playerDrawerCloseTimer)window.clearTimeout(playerDrawerCloseTimer);playerDrawer.close();playerDrawer.classList.remove('is-closing');creator.editPlayer(match.playerDesign)});
-playerDrawer.addEventListener('click',event=>{if(event.target===playerDrawer)closePlayerDrawer()});
-playerDrawer.addEventListener('cancel',event=>{event.preventDefault();closePlayerDrawer()});
 let scoringPreference:ScoringMode='rally-doubles';
-try{const saved=JSON.parse(browserStorage.getItem('pickle-rpg-controls-v1')??'null');if(saved&&typeof saved==='object'){if(saved.scoringPreference==='side-out-doubles'||saved.scoringPreference==='rally-doubles')scoringPreference=saved.scoringPreference;if(typeof saved.guides==='boolean')guides=saved.guides;if(typeof saved.showPlayerNames==='boolean')showPlayerNames=saved.showPlayerNames;if(typeof saved.resultTimer==='boolean')resultTimer=saved.resultTimer;if(typeof saved.partnerAutonomy==='boolean')match.partnerAutonomy=saved.partnerAutonomy;if(typeof saved.cameraDistance==='number'&&Number.isFinite(saved.cameraDistance)&&saved.cameraDistance>=0&&saved.cameraDistance<=100)cameraDistance=saved.cameraDistance}}catch{/* Invalid saved settings leave defaults in place. */}
+try{const saved=JSON.parse(browserStorage.getItem('pickle-rpg-controls-v1')??'null');if(saved&&typeof saved==='object'){if(saved.scoringPreference==='side-out-doubles'||saved.scoringPreference==='rally-doubles')scoringPreference=saved.scoringPreference;if(typeof saved.showPlayerNames==='boolean')showPlayerNames=saved.showPlayerNames;if(typeof saved.resultTimer==='boolean')resultTimer=saved.resultTimer;if(typeof saved.partnerAutonomy==='boolean')match.partnerAutonomy=saved.partnerAutonomy;if(typeof saved.cameraDistance==='number'&&Number.isFinite(saved.cameraDistance)&&saved.cameraDistance>=0&&saved.cameraDistance<=100)cameraDistance=saved.cameraDistance}}catch{/* Invalid saved settings leave defaults in place. */}
 document.querySelector('label[for="partner-autonomy"]')!.insertAdjacentHTML('afterend','<label class="settings-toggle" for="scoring-preference"><span>Scoring rules<small>Saved for new games. Rally awards every rally; side-out awards only the serving team.</small><small id="active-scoring-rules"></small></span><select id="scoring-preference" aria-label="Scoring rules for new games"><option value="rally-doubles">Rally</option><option value="side-out-doubles">Side-out</option></select></label>');
 function setScoringPreference(value:ScoringMode){scoringPreference=value;match.scoringPreference=value;(byId('scoring-preference') as HTMLSelectElement).value=value;saveControls();}
 match.scoringPreference=scoringPreference;(byId('scoring-preference') as HTMLSelectElement).value=scoringPreference;
@@ -361,13 +346,13 @@ byId('scoring-preference').addEventListener('change',e=>{const value=(e.target a
 byId('show-player-names').addEventListener('change',e=>{showPlayerNames=(e.target as HTMLInputElement).checked;byId('show-player-names-state').textContent=showPlayerNames?'On':'Off';scene.setPlayerNames(showPlayerNames);saveControls()});
 (byId('result-timer') as HTMLInputElement).checked=resultTimer;byId('result-timer-state').textContent=resultTimer?'On':'Off';
 byId('result-timer').addEventListener('change',e=>{resultTimer=(e.target as HTMLInputElement).checked;byId('result-timer-state').textContent=resultTimer?'On':'Off';resultElapsed=0;resultExpired=false;saveControls()});
-document.querySelector('label[for="partner-autonomy"]')!.insertAdjacentHTML('beforebegin','<label class="settings-toggle" for="player-autonomy"><span>Your player auto-play<small>Choose your shots automatically. Enabling also turns on partner auto-play; points continue automatically.</small></span><span class="settings-switch-control"><strong id="player-autonomy-state">Off</strong><input id="player-autonomy" type="checkbox" role="switch"></span></label>');
+document.querySelector('label[for="partner-autonomy"]')!.insertAdjacentHTML('beforebegin','<label class="settings-toggle" for="player-autonomy"><span>Auto-play my player · Temporary<small>For testing: choose shots and continue points automatically. Also turns on partner auto-play.</small></span><span class="settings-switch-control"><strong id="player-autonomy-state">Off</strong><input id="player-autonomy" type="checkbox" role="switch"></span></label>');
 try{match.playerAutonomy=JSON.parse(browserStorage.getItem('pickle-rpg-controls-v1')??'null')?.playerAutonomy===true}catch{/* Keep manual play by default. */}
 (byId('player-autonomy') as HTMLInputElement).checked=match.playerAutonomy;byId('player-autonomy-state').textContent=match.playerAutonomy?'On':'Off';
 byId('player-autonomy').addEventListener('change',e=>{match.playerAutonomy=(e.target as HTMLInputElement).checked;if(match.playerAutonomy){match.partnerAutonomy=true;(byId('partner-autonomy') as HTMLInputElement).checked=true;byId('partner-autonomy-state').textContent='On';voice.stop();targetPicker.clear()}byId('player-autonomy-state').textContent=match.playerAutonomy?'On':'Off';lastUI='';saveControls();updateUI()});
 function saveControls(){browserStorage.setItem('pickle-rpg-controls-v1',JSON.stringify({scoringPreference,guides,showPlayerNames,resultTimer,cameraDistance,playerAutonomy:match.playerAutonomy,partnerAutonomy:match.partnerAutonomy}))}
 scene.setCamera(100-cameraDistance);
-byId('guides').addEventListener('change',e=>{guides=(e.target as HTMLInputElement).checked;byId('guides-state').textContent=guides?'On':'Off';scene.setGuides(guides);saveControls()});
+byId('guides').addEventListener('change',e=>{guides=(e.target as HTMLInputElement).checked;byId('guides-state').textContent=guides?'On':'Off';scene.setGuides(guides);saveFlightGuide(guides);saveControls()});
 byId('partner-autonomy').addEventListener('change',e=>{match.partnerAutonomy=(e.target as HTMLInputElement).checked;byId('partner-autonomy-state').textContent=match.partnerAutonomy?'On':'Off';lastUI='';saveControls();updateUI()});
 document.addEventListener('keydown',event=>{if(onStartScreen||settingsDialog.open||creator.dialog.open||gameEnd.open||scene.celebratingMatch)return;if(match.replayIndex!==null){if(event.key==='Escape'){event.preventDefault();closeReplay()}else if(event.code==='Space'&&!(event.target instanceof HTMLElement&&event.target.closest('button,input'))){event.preventDefault();match.replayPlaying?match.pauseReplay():match.resumeReplay()}return;}if(event.target instanceof HTMLElement&&event.target.closest('button, input, select, textarea, a'))return;if(event.code==='Space'){event.preventDefault();match.state.phase==='decision'||match.isLocalHuman&&match.receptionDecision?submit():match.state.phase==='complete'?(!match.scoring.winner?(match.nextPoint(),lastUI='',updateUI()):reset()):pause()}if(event.key.toLowerCase()==='r')reset()});
 function updateUI(){updateMatchUI()}
@@ -389,13 +374,15 @@ function analysisCards(){
 }
 
 function updateMatchUI(){
- byId('active-scoring-rules').textContent=`Current game: ${match.scoring.rules.scoring==='rally-doubles'?'Rally':'Side-out'} · first to ${match.scoring.rules.target}${match.scoring.rules.winBy>1?', win by '+match.scoring.rules.winBy:''}`;
+ const rules=match.scoring.rules;
+ byId('active-scoring-rules').textContent=`Current game: ${rules.scoring==='rally-doubles'?'Rally':'Side-out'} · first to ${rules.target}${rules.winBy>1?', win by '+rules.winBy:''}`;
+ const scoreRules=byId('solo-score-rules');scoreRules.textContent=`${rules.scoring==='rally-doubles'?'Rally':'Side-out'} to ${rules.target} · Win by ${rules.winBy}`;scoreRules.hidden=match.isLocalHuman||!!match.practice;scoreRules.parentElement!.classList.toggle('has-rules',!scoreRules.hidden);
  document.body.classList.toggle('local-human-mode',match.isLocalHuman);
  const team=match.decisionTeam;
  if(match.isLocalHuman&&team)scene.setViewTeam(team);else if(!match.isLocalHuman)scene.setViewTeam('home');
  const banner=byId('local-turn-banner');banner.hidden=match.replayIndex!==null||match.state.phase==='complete';
  banner.textContent=match.isLocalHuman?(team?`${teamLabel(team)} · ${match.receptionDecision?'choose timing and shot':playerNames()[match.state.currentHitter!]+', choose your shot'}`:match.state.phase==='complete'?(match.scoring.winner?'Match complete':'Point over'):'Shot in play…'):(match.manualReceptionDecision||match.humanContact?`${match.shot.intent.type==='serve'?'Your serve':'Your turn'} · Tap the court to aim`:'Shot in play…');
- if(!match.isLocalHuman&&match.selectionCommentary?.engine===match.engine&&match.selectionCommentary.index===match.state.shotIndex&&match.state.phase!=='complete'&&!match.humanContact&&!match.manualReceptionDecision)banner.textContent=match.selectionCommentary.text;
+ if(match.selectionCommentary?.engine===match.engine&&match.selectionCommentary.index===match.state.shotIndex&&match.state.phase!=='complete'&&!match.humanContact&&!match.manualReceptionDecision)banner.textContent=match.selectionCommentary.text;
  for(const id of ['restart','open-player-design','partner-autonomy','player-autonomy','result-timer']){const el=byId(id) as HTMLInputElement|HTMLButtonElement;el.disabled=match.isLocalHuman;}
  const s=match.state,score=match.scoring,key=`match:${match.mode}:${match.point}:${s.phase}:${s.shotIndex}:${s.paused}:${match.receptionDecision}:${score.call}:${score.winner}:${match.brainStatus}:${match.thinking}:${match.practice}:${match.variation}:${match.customBusy}:${match.customStatus}:${match.replayIndex===null?'live':match.replayPlaying?'replaying':'scrubbing'}`;if(key===lastUI)return;lastUI=key;
  byId('score-home').textContent=String(score.score.home);byId('score-away').textContent=String(score.score.away);
@@ -426,12 +413,14 @@ function updateMatchUI(){
 
 }
 const gameEnd=document.createElement('dialog');gameEnd.id='game-end';gameEnd.setAttribute('aria-labelledby','game-end-title');
-gameEnd.innerHTML=`<div class="game-end-card"><div class="game-end-kicker">GARDEN COURT · GAME COMPLETE</div><div class="game-end-emblem" aria-hidden="true">✦</div><p class="game-end-label">THE WINNERS</p><h1 id="game-end-title"></h1><div class="game-end-score" aria-label="Final score"><div><strong id="game-end-home-score"></strong><span id="game-end-home-names"></span></div><span class="game-end-dash" aria-hidden="true">–</span><div><strong id="game-end-away-score"></strong><span id="game-end-away-names"></span></div></div><section class="game-end-stats" aria-labelledby="game-end-stats-title"><div class="game-end-stats-heading"><h2 id="game-end-stats-title">Game stats</h2><p id="game-end-stats-summary"></p></div><div id="game-end-player-stats"></div></section><div class="game-end-actions"><button id="game-end-replay" type="button">▶ Full Game Replay</button><button id="game-end-rematch" type="button">Rematch</button><button id="game-end-new" type="button">New Game ↗</button></div></div>`;
+gameEnd.innerHTML=`<div class="game-end-card"><div class="game-end-kicker">GAME COMPLETE</div><div class="game-end-emblem" aria-hidden="true">✦</div><p class="game-end-label">THE WINNERS</p><h1 id="game-end-title"></h1><div class="game-end-score" aria-label="Final score"><div><strong id="game-end-home-score"></strong><span id="game-end-home-names"></span></div><span class="game-end-dash" aria-hidden="true">–</span><div><strong id="game-end-away-score"></strong><span id="game-end-away-names"></span></div></div><details class="game-end-stats" aria-labelledby="game-end-stats-title" hidden><summary class="game-end-stats-heading"><h2 id="game-end-stats-title">Game stats</h2><p id="game-end-stats-summary"></p></summary><div id="game-end-player-stats"></div></details><div class="game-end-actions"><button id="game-end-new" type="button">New Game</button><button id="game-end-rematch" type="button">Rematch</button></div></div>`;
 document.body.append(gameEnd);
+const gameXp=document.createElement('section');gameEnd.querySelector('.game-end-score')!.after(gameXp);
+window.addEventListener('account-xp-saved',event=>{const id=(event as CustomEvent).detail.gameId;if(id===match.matchId)void showGameXp(gameXp,id,()=>{gameEnd.close();creator.open()});});
+
 gameEnd.addEventListener('cancel',event=>event.preventDefault());
 byId('game-end-new').addEventListener('click',()=>{gameEnd.close();closeGameSurface()});
 byId('game-end-rematch').addEventListener('click',()=>{gameEnd.close();scene.cancelMatchCelebration();match.reset();lastUI='';updateUI();focusView()});
-byId('game-end-replay').addEventListener('click',()=>{gameEnd.close();match.startGameReplay();showPanel('play');lastUI='';updateUI();replayOverlay.hidden=false;byId('replay-position').focus()});
 function renderGameStats(){
  const shots=match.gameShotHistory,names=playerNames();
  byId('game-end-stats-summary').textContent=`${match.recordedPoints} ${match.recordedPoints===1?'rally':'rallies'} · ${shots.length} ${shots.length===1?'shot':'shots'}`;
@@ -448,20 +437,21 @@ function syncGameEnd(){
  if(match.replayIndex===null)scene.observeBodyHit(match.state,performance.now()/1000);
  if(scene.celebratingAtp||scene.reactingToHit)return;
  const early=endedGames.has(match.scoring),finished=early||!!match.scoring.winner;
- (byId('game-end-replay') as HTMLButtonElement).disabled=match.recordedPoints===0;
- if(finished&&!match.practice&&!match.isLocalHuman&&match.replayIndex===null){const names=playerNames();void accountControls.completed(match.scoring,{id:match.matchId,home_names:`${names.you} & ${names.partner}`,away_names:`${names['opponent-left']} & ${names['opponent-right']}`,home_score:match.scoring.score.home,away_score:match.scoring.score.away,ended_early:early,participants:courtSlots.flatMap(slot=>{const player=match.getPlayerDesign(slot);return player?[{player_id:player.id,name:player.name,team:slot==='you'||slot==='partner'?'home' as const:'away' as const}]:[]})})}
- const visible=!onStartScreen&&finished&&match.replayIndex===null&&!creator.dialog.open&&!settingsDialog.open&&!playerDrawer.open;
+ if(finished&&!match.practice&&!match.isLocalHuman&&match.replayIndex===null){const names=playerNames();void accountControls.completed(match.scoring,{id:match.matchId,home_names:`${names.you} & ${names.partner}`,away_names:`${names['opponent-left']} & ${names['opponent-right']}`,home_score:match.scoring.score.home,away_score:match.scoring.score.away,ended_early:early,target:match.scoring.rules.target,difficulty:'normal',participants:courtSlots.flatMap(slot=>{const player=match.getPlayerDesign(slot);return player?[{player_id:player.id,name:player.name,team:slot==='you'||slot==='partner'?'home' as const:'away' as const}]:[]})})}
+ const visible=!onStartScreen&&finished&&match.replayIndex===null&&!creator.dialog.open&&!settingsDialog.open&&!playerDetailsOpen();
  if(!visible){scene.cancelMatchCelebration();if(gameEnd.open)gameEnd.close();return}
  if(!early&&!scene.finishMatch(match.matchId,match.scoring.score,'home',`${playerNames()['opponent-left']} & ${playerNames()['opponent-right']}`))return;
  const names=playerNames(),home=`${names.you} & ${names.partner}`,away=`${names['opponent-left']} & ${names['opponent-right']}`;
- byId('game-end-title').textContent=early?'Game ended':`${match.scoring.winner==='home'?home:away} win!`;
+ byId('game-end-title').textContent=early?'Game ended':(match.scoring.winner==='home'?home:away);
  gameEnd.querySelector('.game-end-label')!.textContent=early?'ENDED EARLY':'THE WINNERS';
  byId('game-end-home-names').textContent=home;byId('game-end-away-names').textContent=away;
  byId('game-end-home-score').textContent=String(match.scoring.score.home);byId('game-end-away-score').textContent=String(match.scoring.score.away);
- renderGameStats();
+ // Solo stats are parked for the future paid upgrade; retain the renderer.
+ const gameStats=gameEnd.querySelector<HTMLDetailsElement>('.game-end-stats')!;
+ gameStats.hidden=match.mode==='solo';
+ if(!gameStats.hidden)renderGameStats();
  gameEnd.dataset.winner=match.scoring.winner??'';
- (byId('game-end-replay') as HTMLButtonElement).disabled=!match.recordedPoints;
- if(!gameEnd.open){showViewDialog(gameEnd);focusView()}
+ if(!gameEnd.open){(gameEnd.querySelector('.game-end-stats') as HTMLDetailsElement).open=false;gameXp.replaceChildren();if(early)gameXp.textContent='Incomplete game · 0 XP';else void showGameXp(gameXp,match.matchId,()=>{gameEnd.close();creator.open()});showViewDialog(gameEnd);focusView()}
 }
 
 function syncReplayUI(replay:ReturnType<Match['replayView']>){
@@ -487,7 +477,7 @@ const reactions=new TrashTalkControl(document.querySelector<HTMLElement>('.court
 for(const id of ['open-player-design','restart'])byId(id).hidden=true;
 document.querySelector<HTMLElement>('#game-settings .settings-lineup')!.hidden=true;
 document.querySelector<HTMLElement>('#game-settings .settings-account')!.hidden=true;
-for(const selector of ['label[for="player-autonomy"]','label[for="scoring-preference"]','label[for="result-timer"]'])document.querySelector<HTMLElement>(selector)!.hidden=true;
+for(const selector of ['label[for="scoring-preference"]','label[for="result-timer"]'])document.querySelector<HTMLElement>(selector)!.hidden=true;
 byId('guides-state').hidden=true;byId('show-player-names-state').hidden=true;byId('partner-autonomy-state').hidden=true;
 const soundLabel=settingsDialog.querySelector<HTMLElement>('[data-sound-toggle]')!.closest<HTMLElement>('label')!;
 const guidesLabel=byId('guides').closest<HTMLElement>('label')!;
@@ -522,7 +512,7 @@ function syncPointResult(dt:number){
  const now=performance.now()/1000;
  if(scene.reactingToHit||scene.celebratingAtp)resultReadyAt=null;
  else resultReadyAt??=now+RESULT_DELAY_SECONDS;
- const visible=resultReadyAt!==null&&now>=resultReadyAt&&!scene.reactingToHit&&!scene.celebratingAtp&&(!resultTimer||!resultExpired)&&match.replayIndex===null&&document.body.dataset.panel==='play'&&!settingsDialog.open&&!creator.dialog.open&&!playerDrawer.open&&!document.hidden;
+ const visible=resultReadyAt!==null&&now>=resultReadyAt&&!scene.reactingToHit&&!scene.celebratingAtp&&(!resultTimer||!resultExpired)&&match.replayIndex===null&&document.body.dataset.panel==='play'&&!settingsDialog.open&&!creator.dialog.open&&!playerDetailsOpen()&&!document.hidden;
  banner.hidden=!visible;document.querySelector('.court-wrap')?.classList.toggle('has-result',visible);
  if(!visible)return;
  byId('next-point').textContent=match.scoring.winner?'New game ↗':'Next point ↗';
@@ -546,6 +536,7 @@ const startConfiguredMatch:ConstructorParameters<typeof MatchSetup>[0]=(players,
   }
  }finally{match.onCheckpoint=save;}
  try{match.saveBoundary()}catch(error){reportSaveError(error);return;}
+ saveScoringPreference(match.scoring.rules);
  for(const slot of courtSlots)scene.substitutePlayer(slot,match.getPlayerDesign(slot));
  syncRosterNames();
  for(const [id,value] of [['partner-autonomy',match.partnerAutonomy],['player-autonomy',match.playerAutonomy]] as const){(byId(id) as HTMLInputElement).checked=value;byId(id+'-state').textContent=value?'On':'Off';}
@@ -557,6 +548,7 @@ function showMatchSetup(returnToCourt=false){
  setupReturnsToCourt=returnToCourt;
  voice.stop();voiceHandsFree=false;voiceHandsFreeInput.checked=false;match.stopReplay();
  onStartScreen=true;document.body.dataset.screen='setup';app.inert=true;startScreen.hidden=true;targetPicker.sync(false);
+ setScoringPreference(loadScoringPreference({scoring:scoringPreference,target:11}).scoring);
  matchup.show(creator.savedPlayers,courtSlots.map(slot=>match.getPlayerDesign(slot)),match.mode,scoringPreference);
 }
 function showStartScreen(){
@@ -579,10 +571,10 @@ byId('start-quick-solo').addEventListener('click',()=>{
   const catalog=await communityPlayers();
   let home=null;
   if(session&&!session.user.is_anonymous){
-   const saved=defaultTeam(session.user.user_metadata.open_play_team);
-   home=saved?await refreshCommunityDesigns(saved):await new TeamPicker(document.createElement('div'),undefined,undefined,true).freshTeam();
+   home=await new TeamPicker(document.createElement('div'),undefined,undefined,true).freshTeam();
   }
   const setup=quickSolo(catalog.map(row=>row.player),home);
+  Object.assign(setup,loadScoringPreference({scoring:setup.scoring,target:setup.target}));
   setScoringPreference(setup.scoring);guestHasAimed=false;
   startConfiguredMatch(setup.players,'solo',setup.court,setup.target);
   notice.textContent='';
@@ -645,12 +637,12 @@ updateUI();let previous:number|undefined;function frame(now:number){
  const realDt=previous===undefined?0:Math.max(0,Math.min((now-previous)/1000,.1)),dt=realDt*1.125*speed;if(!creator.dialog.open&&(!endedGames.has(match.scoring)||match.replayIndex!==null))try{match.update(match.replayPlaying?realDt:dt)}catch(error){reportSaveError(error)};previous=now;updateUI();if(!endedGames.has(match.scoring))syncPointResult(realDt*speed);syncGameEnd();syncVoice();
  rallySounds.update(match.state,cue=>sounds.play(cue),'home',match.scoring.winner==='home');
  const replay=match.replayView();syncReplayUI(replay);scene.setGuides(guides&&!replay);
- const showCourtHint=document.body.dataset.panel==='play'&&!settingsDialog.open&&!creator.dialog.open&&!playerDrawer.open&&!gameEnd.open&&!reactions.isOpen&&!replay;
+ const showCourtHint=document.body.dataset.panel==='play'&&!settingsDialog.open&&!creator.dialog.open&&!playerDetailsOpen()&&!gameEnd.open&&!reactions.isOpen&&!replay;
  if(targetPicker.active)guestHasAimed=true;
  scene.setNextHitter(!replay&&!match.scoring.winner?match.activeHitter:null);
  scene.setServeHint(showCourtHint&&!guestHasAimed&&cloudAccountState.kind!=='authenticated'&&cloudAccountState.kind!=='connecting'&&match.humanContact&&match.state.phase==='decision'&&match.shot.intent.type==='serve'?match.shot.contact:null);
  scene.render(replay?.state??match.state,now/1000,replay?.shot??match.shot,!match.practice&&!replay?match.scoring.call:null,!replay&&!settingsDialog.open&&!gameEnd.open&&match.state.phase==='decision'&&match.state.possession==='away'?match.state.currentHitter:null);
- const courtVisible=!onStartScreen&&!settingsDialog.open&&!creator.dialog.open&&!playerDrawer.open&&!gameEnd.open;
+ const courtVisible=!onStartScreen&&!settingsDialog.open&&!creator.dialog.open&&!playerDetailsOpen()&&!gameEnd.open;
  courtReplay.hidden=!courtVisible||!!replay;courtReplay.disabled=!match.canReplay;courtReplay.title=match.canReplay?'Replay rally':'Replay available after a shot';
  reactions.update({id:match.matchId,version:match.point},reactionOwner());
  reactions.frame(scene,replay?.state??match.state,replay?replay.state.simulationTime:null,courtVisible,replay?(match.replayScope==='game'?[]:localReactions.replay(match.matchId,match.replayPointIndex,replay.state.simulationTime)):undefined);

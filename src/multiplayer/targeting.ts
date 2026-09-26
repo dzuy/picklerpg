@@ -22,7 +22,7 @@ export function remoteTargeting(current:()=>RemoteSession|null,beforePlay:()=>vo
   },
   validate(choice,point){
    const s=current()?.state;
-   if(!this.enabled||!s||!s.choices.some(c=>c.timing===choice.timing&&sameShotIntent(c.intent,choice.intent)))throw Error('That shot is no longer available. Tap the court again.');
+   if(!this.enabled||!s||!s.choices.some(c=>c.timing===choice.timing&&sameShotIntent(c.intent,{...choice.intent,power:c.intent.power})))throw Error('That shot is no longer available. Tap the court again.');
    if(!canTarget(point))throw Error('Tap in the highlighted box to serve.');
    if(!isOpposingTarget(point,s.viewerTeam))throw Error('Aim on the opposing side of the net.');
    if(point.playerId&&!s.display.players.some(p=>p.id===point.playerId&&p.team!==s.viewerTeam))throw Error('Choose an opposing player.');

@@ -1,3 +1,4 @@
+import {shotPower} from './shot-power';
 import {erneAvailable} from './erne';
 import {COURT,type FlightLeg,type PlayerState,type ShotIntent,type Vec3} from './model';
 import {parseShotIntent} from './shot-intent';
@@ -29,7 +30,7 @@ export function generateTrajectory(value:unknown,context:ShotContext,players:Pla
   if(!context.attemptTechnique&&Math.abs(context.contact.x)<=COURT.netWidth/2+.08)throw new Error('ATP needs the ball wider than the net post.');
   if(resolved.kind!=='landing'||!context.attemptTechnique&&resolved.point.x*context.contact.x<=0)throw new Error('Aim the ATP deep on the same side as the contact.');
   const base=buildFamilyFlight(intent.type,context,resolved.point,resolved.kind);
-  const leg:FlightLeg={...base,arc:.06,duration:base.duration/({soft:.7,medium:1,fast:1.3}[intent.pace])};
+  const leg:FlightLeg={...base,arc:.06,duration:base.duration/({soft:.7,medium:1,fast:1.3}[intent.pace]*shotPower(intent).speed)};
   const crossing=sampleFlight(leg,context.contact.z/(context.contact.z-resolved.point.z));
   if(!context.attemptTechnique&&Math.abs(crossing.x)<=COURT.netWidth/2+.08)throw new Error('This angle would hit the post. Wait for a wider ATP contact.');
   return {intent,leg,aimPoint:{...resolved.point},apex:flightApex(leg),netClearance:crossing.y-COURT.netSideline};
@@ -55,7 +56,10 @@ export function generateTrajectory(value:unknown,context:ShotContext,players:Pla
  // otherwise turns a well-placed short ball into an unnecessarily floating one.
  const softPlacement=['drop','dink','reset','block'].includes(intent.type);
  const shapeLift=softPlacement?0:intent.shape==='flat'?family.lift*.35:intent.shape==='descending'?0:family.lift*1.3;
- const arc=Math.max(0,shapeLift,required);
+ const power=shotPower(intent);
+ const arc=Math.max(0,shapeLift,required)*power.loft;
+ // A powered lob spends its extra energy climbing and stays airborne longer.
+ if(power.loft>1)duration*=Math.sqrt(power.loft);
  // No shot should suspend a low arc in mid-air, regardless of stacked pace modifiers.
  // For the parabolic 4*arc*t*(1-t) path, gravity is 8*arc / duration².
  // Bound hang time by that arc, while leaving genuinely lofted shots more time.
@@ -65,7 +69,7 @@ export function generateTrajectory(value:unknown,context:ShotContext,players:Pla
   duration=Math.min(duration,Math.max(softPlacement?.55:.22,gravityTime,fallTime));
  }
  // A descending request must actually start descending; never silently turn it into a lob.
- const leg:FlightLeg={...base,duration,arc,...(sideCurve?{sideCurve}:{}),...(verticalSpin?{verticalSpin}:{})};
+ const leg:FlightLeg={...base,duration:duration/shotPower(intent).speed,arc,...(sideCurve?{sideCurve}:{}),...(verticalSpin?{verticalSpin}:{})};
  if(intent.shape==='descending'&&sampleFlightVelocity(leg,0).y>1e-8){
   if(!context.attemptTechnique)throw new Error('A descending shot cannot reach this target with that clearance. Lower the clearance or choose an arc.');
   leg.arc=Math.max(0,(context.contact.y-resolved.point.y)/4);

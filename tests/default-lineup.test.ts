@@ -14,3 +14,15 @@ test('username fallback and small rosters stay valid',()=>{
  assert.deepEqual(defaultLineup([],null,'rocket'),[]);
  assert.deepEqual(defaultLineup(players,'removed','unknown',()=>0),['0','1']);
 });
+
+test('selected starters take priority over active player and random partner',()=>{
+ assert.deepEqual(defaultLineup(players,'1','rocket',()=>.99,['2','0']),['2','0']);
+});
+test('starter defaults are stable until explicitly changed',()=>{
+ for(let i=0;i<10;i++)assert.deepEqual(defaultLineup(players,'1','rocket'),['1','0']);
+});
+test('removed and duplicate starters fall back to eligible distinct players',()=>{
+ assert.deepEqual(defaultLineup(players,'1','rocket',undefined,['removed','2']),['2','1']);
+ assert.deepEqual(defaultLineup(players,'1','rocket',undefined,['2','2']),['2','1']);
+ assert.deepEqual(defaultLineup([players[0]],null,'',undefined,['removed','0']),['0','0']);
+});

@@ -1,3 +1,4 @@
+import {playerMovementProgress} from './positioning';
 import {samplePlayerJump} from './erne';
 import {parseShotIntent,sameShotIntent} from './shot-intent';
 import {sampleFlight,sampleFlightVelocity} from './trajectory';
@@ -180,8 +181,7 @@ export class RallyEngine {
    this.state.ball.position=sampleLeg(leg,this.state.elapsed/leg.duration);
    this.state.ball.velocity=sampleVelocity(leg,this.state.elapsed/leg.duration);
    const total=this.shot.legs.reduce((sum,l)=>sum+l.duration,0);
-   const alpha=Math.min(1,this.shotElapsed/total),smooth=alpha*alpha*(3-2*alpha);
-   for(const player of this.state.players){const delay=player.id===this.shot.actor?(this.shot.recoveryDelay??0):0;const progress=delay?Math.max(0,Math.min(1,(this.shotElapsed-delay)/Math.max(.001,total-delay))):alpha;const movement=delay?progress*progress*(3-2*progress):smooth;const from=this.movementStart[player.id],to=this.shot.positions[player.id];player.position=this.shot.jump?.playerId===player.id?samplePlayerJump(this.shot.jump,this.shotElapsed):{x:from.x+(to.x-from.x)*movement,y:0,z:from.z+(to.z-from.z)*movement}}
+   for(const player of this.state.players){const delay=player.id===this.shot.actor?(this.shot.recoveryDelay??0):0;const movement=playerMovementProgress(player.id,this.shotElapsed,total,delay);const from=this.movementStart[player.id],to=this.shot.positions[player.id];player.position=this.shot.jump?.playerId===player.id?samplePlayerJump(this.shot.jump,this.shotElapsed):{x:from.x+(to.x-from.x)*movement,y:0,z:from.z+(to.z-from.z)*movement}}
    if(pauseForReception&&this.acceptCommittedBoundary())return;
    if(pauseForReception){
     // A pause exactly at a bounce owns that boundary before either branch resumes.

@@ -6,6 +6,7 @@ import {summarizeSkills} from './player-skill-summary';
 import type {DesignedPlayer} from './player-design';
 import './player-details.css';
 let drawer:HTMLDialogElement|undefined;
+export function playerDetailsOpen(){return !!drawer?.open;}
 export function attachPlayerDetails(card:HTMLElement,player:DesignedPlayer,role:string,portrait:string,edit?:()=>void,membership?:{label:string;primary?:boolean;change:()=>Promise<void|boolean>},requestDelete?:()=>void){
  card.querySelector(':scope > dl')?.remove();
  card.classList.add('roster-card-compact');card.tabIndex=0;card.setAttribute('role','button');card.setAttribute('aria-label',`View ${player.name} details`);

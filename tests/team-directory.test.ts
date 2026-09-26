@@ -28,7 +28,7 @@ test('friend records aggregate recorded solo and online results without exposing
  const service=new TeamDirectoryService(client,new Map());
  service.list=async()=>({self:lobbyTeam('self','Me',{}),teams:[lobbyTeam('friend','Friend',{})],friends:['friend']});
  const remote=async()=>[{id:'online-win',status:'completed',viewerTeam:'away',score:{home:3,away:11}},{id:'pending',status:'active',viewerTeam:'home',score:{home:1,away:2}}] as import('../src/multiplayer/protocol').PublicMatch[];
- const {activity,...record}=await service.record('self','friend',remote);assert.deepEqual(record,{games:3,wins:2,losses:1});assert.ok(activity);assert.equal(owner,'friend');
+ const {activity,lifetimeXp,...record}=await service.record('self','friend',remote);assert.deepEqual(record,{games:3,wins:2,losses:1});assert.ok(activity);assert.equal(owner,'friend');
 });
 
 test('friend records reject profiles outside the directory before reading results',async()=>{
@@ -56,3 +56,13 @@ test('community identity uses unique usernames instead of duplicate display name
  const result=await new TeamDirectoryService(client,new Map([['guest','Maeling'],['registered','maeling']])).list('self');
  assert.deepEqual(result.teams.map(t=>t.id),['registered']);
  });
+
+test('directory records include saved XP and sample XP only for generated players',async()=>{
+ for(const generated of [false,true]){
+  const self={id:'self',user_metadata:{}},friend={id:'friend',user_metadata:{username:'friend'},app_metadata:{multiplayer_playtest:true,community_bot:generated,bot_seed_record:{games:80,wins:45,losses:35}}};
+  const client={auth:{admin:{getUserById:async()=>({data:{user:self}}),listUsers:async()=>({data:{users:[self,friend]}})}},from:(table:string)=>({select(){return this},eq(){return this},order(){return this},async range(){return {data:[],error:null}},async maybeSingle(){assert.equal(table,'account_xp');return {data:{lifetime_xp:120},error:null}}})} as unknown as SupabaseClient;
+  const service=new TeamDirectoryService(client,new Map([['friend','Friend']]));
+  const first=await service.record('self','friend',async()=>[]),second=await service.record('self','friend',async()=>[]);
+  assert.equal(first.lifetimeXp,generated?1100:120);assert.equal(second.lifetimeXp,first.lifetimeXp);
+ }
+});

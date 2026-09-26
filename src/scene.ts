@@ -41,6 +41,9 @@ export class CourtScene {
  private viewTeam:Team='home';
  setViewTeam(team:Team){if(this.viewTeam===team)return;this.viewTeam=team;this.lastOpponentShot=null;this.setShotPreview(null);this.customizedView=false;this.updateCamera();}
  onCourtTap:((point:{x:number;z:number;playerId?:PlayerId})=>boolean)|null=null;
+ private accuracyRadius:number|null=null;
+ private accuracyZone=new THREE.Group();
+ setTargetAccuracy(radius:number|null,power=.5){this.accuracyRadius=radius;const color=new THREE.Color('#32e5aa').lerp(new THREE.Color('#ff486d'),power);for(const child of this.accuracyZone.children)(child as THREE.Mesh<THREE.BufferGeometry,THREE.MeshBasicMaterial>).material.color.copy(color)}
  private selectedTarget:{x:number;z:number}|null=null;
  setSelectedTarget(point:{x:number;z:number}|null){this.selectedTarget=point}
  projectTarget(point:{x:number;z:number}){const p=new THREE.Vector3(point.x,.08,point.z).project(this.camera);const rect=this.host.getBoundingClientRect();return {x:rect.left+(p.x*.5+.5)*rect.width,y:rect.top+(-p.y*.5+.5)*rect.height}}
@@ -131,6 +134,10 @@ export class CourtScene {
   this.trajectoryArrow.renderOrder=22;this.trajectoryArrow.visible=false;this.scene.add(this.trajectoryArrow);
   const trailGeometry=new THREE.BufferGeometry();this.trail=new THREE.Line(trailGeometry,new THREE.LineDashedMaterial({color:'#efff70',transparent:true,opacity:.98,dashSize:.24,gapSize:.07,linewidth:2,depthTest:false}));this.trail.renderOrder=20;this.scene.add(this.trail);
   this.trailDots=new THREE.Points(trailGeometry,new THREE.PointsMaterial({color:'#efff70',size:2.5,sizeAttenuation:false,transparent:true,opacity:.92,depthTest:false}));this.trailDots.renderOrder=21;this.trailDots.visible=false;this.scene.add(this.trailDots);
+  const accuracyFill=new THREE.Mesh(new THREE.CircleGeometry(1,64),new THREE.MeshBasicMaterial({color:'#32e5aa',transparent:true,opacity:.24,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));
+  const accuracyEdge=new THREE.Mesh(new THREE.RingGeometry(.94,1,64),new THREE.MeshBasicMaterial({color:'#32e5aa',transparent:true,opacity:.9,side:THREE.DoubleSide,depthTest:false,depthWrite:false}));
+  accuracyFill.renderOrder=28;accuracyEdge.renderOrder=29;
+  this.accuracyZone.add(accuracyFill,accuracyEdge);this.accuracyZone.rotation.x=-Math.PI/2;this.accuracyZone.visible=false;this.scene.add(this.accuracyZone);
   this.target=new THREE.Group();
   // A dark outline keeps the lime bullseye readable on every court and over court lines.
   const targetLayer=(geometry:THREE.BufferGeometry,color:string,order:number,opacity=1)=>{
@@ -334,6 +341,9 @@ export class CourtScene {
   (this.trail.material as THREE.LineDashedMaterial).color.set(opponentShot?'#FF4F63':'#DFFF32');const dots=this.trailDots.material as THREE.PointsMaterial;dots.color.set(opponentShot?'#FF4F63':'#DFFF32');dots.size=opponentShot?3.6:2.4;
   const opponentThinking=!this.retainedTrajectory&&state.phase==='decision'&&state.possession!==this.viewTeam;
   const showingDecisionPath=!!this.previewShot||!!retainedOpponentShot;
+  this.accuracyZone.visible=!!this.selectedTarget&&this.accuracyRadius!==null&&!this.celebratingMatch;
+  if(this.selectedTarget&&this.accuracyRadius!==null){this.accuracyZone.position.set(this.selectedTarget.x,.07,this.selectedTarget.z);this.accuracyZone.scale.setScalar(.65+this.accuracyRadius*1.5);}
+  this.target.scale.setScalar(1);
   this.trail.visible=this.guides&&!opponentThinking&&(state.phase==='flight'||showingDecisionPath);this.trailDots.visible=this.trail.visible;const destination=this.selectedTarget?{...this.selectedTarget,y:.08}:displayShot.aimPoint;this.target.rotation.set(destination.y>.1?0:-Math.PI/2,0,this.reducedMotion.matches?0:time*.8);this.target.position.set(destination.x,Math.max(.058,destination.y),destination.z);this.target.visible=!!this.selectedTarget||(this.guides&&state.phase==='decision'&&!!this.previewShot);
   if(!this.customizedView){const base=this.cameraPose().look,tracking=state.phase==='flight'?new THREE.Vector3(THREE.MathUtils.clamp(state.ball.position.x*.045,-.24,.24),0,THREE.MathUtils.clamp(state.ball.position.z*.025,-.3,.3)):new THREE.Vector3();const desired=base.add(tracking),delta=desired.clone().sub(this.controls.target).multiplyScalar(cameraBlend(state.paused?0:renderDt,this.reducedMotion.matches));this.controls.target.add(delta);this.camera.position.add(delta)}
   this.controls.update();

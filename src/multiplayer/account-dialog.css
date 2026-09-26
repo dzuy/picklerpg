@@ -1,0 +1,5 @@
+/* Shared by account creation from Solo and Friends screens. */
+.friend-account-dialog>h1{padding-right:44px}
+.friend-account-dialog .friend-account-close{position:absolute;top:10px;right:10px;display:grid;place-items:center;width:44px;height:44px;min-height:44px;margin:0;padding:0;border:0;border-radius:50%;background:var(--pb-surface);color:var(--pb-text);font-size:28px;line-height:1;cursor:pointer}
+.friend-account-dialog .friend-account-close:hover{background:var(--pb-surface-hover)}
+.friend-account-dialog .friend-account-close:focus-visible{outline:3px solid var(--pb-focus);outline-offset:2px}

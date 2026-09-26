@@ -1,3 +1,4 @@
+import {shotPower} from './shot-power';
 import {popUpChance,popUpRoll} from './soft-contact';
 import {skillBenchmark} from './skill-benchmarks';
 import {contactDifficulty} from './difficulty';
@@ -43,8 +44,9 @@ export function executeShot(value:unknown,context:ShotContext,players:PlayerStat
  const controlCost=precisionDemand*(.35+.65*(1-skill/100));
  if(shortPlacement>.25)contact.labels.push('Tight net-side placement');
  if(shortLob>.25)contact.labels.push('Short lob depth control');
- const dispersion=benchmark.spread+pressure*benchmark.pressure+.35*specialDifficulty+controlCost*.9;
- const liftError=benchmark.lift+pressure*benchmark.pressure*.35+controlCost*.12;
+ const power=shotPower(intent,skill);
+ const dispersion=(benchmark.spread+pressure*benchmark.pressure+.35*specialDifficulty+controlCost*.9)*power.spread;
+ const liftError=(benchmark.lift+pressure*benchmark.pressure*.35+controlCost*.12)*power.spread;
  let seed=conditions.seed>>>0;
  const random=()=>{seed=(seed+0x6D2B79F5)>>>0;let n=Math.imul(seed^(seed>>>15),1|seed);n^=n+Math.imul(n^(n>>>7),61|n);return ((n^(n>>>14))>>>0)/4294967296*2-1};
  // Default players fail most ATP attempts. Elite drive and hands can make the shot
@@ -55,7 +57,7 @@ export function executeShot(value:unknown,context:ShotContext,players:PlayerStat
  const mishit=techniqueFailed||specialFailed||(random()+1)/2<benchmark.mishit+pressure*benchmark.mishit*2+timing*(1-hitter.skills.hands/100)*.3;
  const errorScale=mishit?6:1;
  const leg=structuredClone(intended.leg);
- leg.to.x+=random()*dispersion*errorScale;leg.to.z+=random()*(dispersion+lobRisk*2)*errorScale;
+ leg.to.x+=random()*dispersion*errorScale;leg.to.z+=random()*(dispersion+lobRisk*2*power.spread)*errorScale;
  if(specialFailed&&intent.technique==='atp')leg.to.x=Math.sign(intended.aimPoint.x||context.contact.x)*(COURT.width/2+.12+Math.abs(random())*.8);
  if(!leg.bounceAtEnd)leg.to.y=Math.max(.037,leg.to.y+random()*dispersion*errorScale*.3);
  leg.arc=Math.max(0,leg.arc+random()*liftError*errorScale);
@@ -75,6 +77,14 @@ export function executeShot(value:unknown,context:ShotContext,players:PlayerStat
   leg.to.z+=Math.sign(intended.aimPoint.z)*(1.2+(1-skill/100)*.6);
   leg.duration=Math.max(leg.duration,Math.sqrt(8*(leg.arc+Math.abs(leg.verticalSpin??0))/9.81));
   contact.labels.push('Pop-up under pressure');
+ }
+ // Bound powered soft-shot misses by their shot family and contact distance.
+ // This also bounds mishits/pop-ups, so a dink cannot reverse across the hitter.
+ if(Number.isFinite(power.errorLimit)){
+  const dx=leg.to.x-intended.aimPoint.x,dz=leg.to.z-intended.aimPoint.z;
+  const error=Math.hypot(dx,dz);
+  const limit=Math.min(power.errorLimit,Math.hypot(intended.aimPoint.x-context.contact.x,intended.aimPoint.z-context.contact.z)*.75);
+  if(error>limit){leg.to.x=intended.aimPoint.x+dx*limit/error;leg.to.z=intended.aimPoint.z+dz*limit/error}
  }
  const actualEndpoint={...leg.to};
  const t=leg.from.z/(leg.from.z-leg.to.z),point=sampleFlight(leg,t),x=point.x;

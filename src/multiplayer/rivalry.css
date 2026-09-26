@@ -13,7 +13,7 @@
 .rivalry-note{font-size:12px;line-height:1.5;color:var(--pb-text-secondary)}
 .rematch-status{font-size:14px;line-height:1.5;overflow-wrap:anywhere;margin:12px 0}
 .rematch-status:empty{display:none}
-.rivalry-game-end .game-end-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+.rivalry-game-end .game-end-actions{display:grid;grid-template-columns:1fr;gap:10px;margin-top:18px}
 .rivalry-game-end .game-end-actions .rematch-primary{grid-column:1/-1;background:var(--pb-primary);border-color:var(--pb-primary);color:var(--pb-on-primary);font-size:18px;min-height:54px}
 .rivalry-game-end .game-end-actions .rematch-primary:disabled{opacity:.75}
 .rivalry-game-end .game-end-actions button{padding:14px 10px;border-radius:12px;background:var(--pb-surface-inset)}
