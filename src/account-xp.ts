@@ -33,9 +33,9 @@ async function createProgressAccount(){
  if(created)await refresh();
 }
 
-export function renderGuestProgressCta(host:HTMLElement,createAccount:()=>Promise<void>=createProgressAccount){
- host.replaceChildren();host.classList.add('account-xp');
- const card=document.createElement('div');card.className='xp-reward xp-guest-save';
+export function renderGuestProgressCta(host:HTMLElement,createAccount:()=>Promise<void>=createProgressAccount,embedded=false){
+ if(!embedded){host.replaceChildren();host.classList.add('account-xp');}
+ const card=document.createElement('div');card.className=embedded?'xp-guest-save xp-guest-inline':'xp-reward xp-guest-save';
  const label=document.createElement('p');label.className='xp-reward-label';label.textContent='KEEP YOUR PROGRESS';
  const title=document.createElement('h3');title.className='xp-guest-title';title.textContent='Save your progress';
  const copy=document.createElement('p');copy.className='xp-guest-copy';copy.textContent='Create an account to keep your progress and earn Skill Points to upgrade your players.';
@@ -52,17 +52,26 @@ export function renderGuestProgressCta(host:HTMLElement,createAccount:()=>Promis
 /** Read the durable receipt, never award from a presentation callback. */
 export async function showGameXp(host:HTMLElement,gameId:string,upgrade:()=>void,mode:'solo'|'friends'='solo'){
  host.dataset.xpGame=gameId;host.classList.add('account-xp');host.setAttribute('aria-live','polite');host.textContent='Loading game XP…';
+ let guest=false;
  try{
  const client=authClient();if(!client)throw Error('Offline');
  const {data:{session},error:sessionError}=await client.auth.getSession();if(sessionError)throw sessionError;
  if(host.dataset.xpGame!==gameId)return;
+ guest=!session||!!session.user.is_anonymous;
  if(!session){renderGuestProgressCta(host);return;}
  const {data,error}=await client.from('xp_events').select('*').eq('game_id',gameId).maybeSingle();if(error)throw error;
  if(host.dataset.xpGame!==gameId)return;
  if(!data&&session.user.is_anonymous){renderGuestProgressCta(host);return;}
  const p=await accountProgress();if(host.dataset.xpGame!==gameId)return;host.replaceChildren();
  const e=data as XpEvent|null;
- if(e)renderXpReward(host,e,p,upgrade);
+ if(e){
+  renderXpReward(host,e,p,upgrade);
+  if(guest){
+   const card=host.querySelector<HTMLElement>('.xp-reward')!;
+   card.querySelector('.xp-reward-profile-link')?.remove();
+   renderGuestProgressCta(card,createProgressAccount,true);
+  }
+ }
  else {
   renderAccountProgress(host,p,true);
   const card=host.querySelector<HTMLElement>('.xp-reward')!;
@@ -76,7 +85,7 @@ export async function showGameXp(host:HTMLElement,gameId:string,upgrade:()=>void
   const link=document.createElement('a');link.className='xp-reward-profile-link';link.href='/?openplay=1&tab=profile';link.textContent='See your total XP';card.append(link);
  }
 
- }catch{if(host.dataset.xpGame!==gameId)return;host.textContent='XP summary unavailable. ';const retry=document.createElement('button');retry.textContent='Retry';retry.onclick=()=>void showGameXp(host,gameId,upgrade,mode);host.append(retry);}
+ }catch{if(host.dataset.xpGame!==gameId)return;if(guest){renderGuestProgressCta(host);return;}host.textContent='XP summary unavailable. ';const retry=document.createElement('button');retry.textContent='Retry';retry.onclick=()=>void showGameXp(host,gameId,upgrade,mode);host.append(retry);}
 }
 
 /** A short, decorative burst confined to the reward card, with no input blocking. */

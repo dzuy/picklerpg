@@ -1,3 +1,4 @@
+import {COMMUNITY_CATEGORIES,communityCategorySkills} from '../../src/community-categories';
 import {createClient} from '@supabase/supabase-js';
 import {createHash,randomBytes} from 'node:crypto';
 import {BOT_PERSONAS,botPlayer,botRecord,botActivity} from '../../server/multiplayer/bot-persona';
@@ -18,6 +19,7 @@ for(let index=0;index<count;index++){
   if(users.some(u=>u.id!==user?.id&&u.user_metadata.username===username))username=`${base}${parseInt(createHash('sha256').update(`${batch}:${index}`).digest('hex').slice(0,5),16)}`;
   if(users.some(u=>u.id!==user?.id&&u.user_metadata.username===username))throw Error(`Username collision for ${username}; choose another batch name.`);
   const player=botPlayer(name,'starter'),partner=botPlayer(partnerName,'partner');
+  player.skills=communityCategorySkills(COMMUNITY_CATEGORIES[(index*2)%COMMUNITY_CATEGORIES.length].id,index);partner.skills=communityCategorySkills(COMMUNITY_CATEGORIES[(index*2+1)%COMMUNITY_CATEGORIES.length].id,index);
   const seedRecord=user?.app_metadata.bot_seed_record??botRecord();
   const metadata={...user?.user_metadata,username,player_name:name,profile_avatar:player.appearance,starter_player:player,open_play_team:[player,partner],open_play_friends:user?.user_metadata.open_play_friends??(dzuy?[dzuy.id]:[])};
   const appMetadata={...user?.app_metadata,multiplayer_playtest:true,community_bot:true,bot_seed_batch:batch,bot_seed_index:index,bot_seed_record:seedRecord,bot_seed_activity:user?.app_metadata.bot_seed_activity??botActivity(seedRecord)};

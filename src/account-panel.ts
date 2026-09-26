@@ -1,4 +1,3 @@
-import {accountProgress,renderAccountProgress} from './account-xp';
 import {showViewDialog} from './view-focus';
 import {playerHistory,type MatchParticipant} from './player-history';
 import type {CloudPlayerSync} from './cloud-players';
@@ -27,7 +26,6 @@ export function installAccountControls(cloud:CloudPlayerSync,roster:()=>{id:stri
     if(!history.entries.length)content.append('No recorded matches for this player yet.');
     for(const entry of history.entries){const card=document.createElement('article');card.className='history-match';const title=document.createElement('strong');title.textContent=`${entry.result} · ${entry.score}–${entry.against}`;const teams=document.createElement('p');teams.textContent=`${entry.home_names} vs ${entry.away_names}`;const date=document.createElement('small');date.textContent=new Date(entry.completed_at).toLocaleString();card.append(title,teams,date);content.append(card)}return;
    }
-   const xp=document.createElement('section');renderAccountProgress(xp,await accountProgress());content.append(xp);
    const summary=document.createElement('p');summary.textContent=progress?`${progress.games} games · ${progress.wins} wins · ${progress.losses} losses`:'No completed matches yet. Finish a game to start your history.';content.append(summary);
    if(progress?.unlocks?.length){const badges=document.createElement('p');badges.textContent=`Milestones: ${progress.unlocks.join(' · ')}`;content.append(badges)}
    for(const match of matches){const card=document.createElement('article');card.className='history-match';

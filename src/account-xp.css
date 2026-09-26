@@ -83,3 +83,6 @@
 .xp-guest-create:disabled{opacity:.65;cursor:wait}
 .xp-reward .xp-guest-status{font-size:12px;margin:10px 0 0}
 .xp-reward .xp-guest-status:empty{display:none}
+
+.xp-guest-inline{margin-top:16px;padding-top:14px;border-top:1px solid #08213f30}
+.xp-reward .xp-guest-inline .xp-guest-title{font-size:20px}

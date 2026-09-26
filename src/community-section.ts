@@ -1,3 +1,4 @@
+import {COMMUNITY_CATEGORIES,communityCategory} from './community-categories';
 import {rosterTrashIcon} from './roster-action-icons';
 import {attachPlayerDetails} from './player-details';
 import {canAddToRoster} from './roster-account';
@@ -18,12 +19,12 @@ export class CommunitySection {
  rosterCards(history:Promise<HistoryMatch[]>){return this.addedPlayers.map(player=>{const card=this.card(player,true);card.querySelector('.roster-card-identity')!.append(playerRecord(player.id,history));return card})}
  constructor(private changed:(players:DesignedPlayer[])=>void=()=>{},private editSkills?:(player:DesignedPlayer)=>void){
   document.addEventListener('community-moderated',()=>{void this.load();});
-  this.element.className='community-section';this.element.innerHTML='<h2>Get more players</h2><p>Add these community-created players to your roster to play as them</p><p data-community-status role="status"></p><h3>Community</h3><div class="community-grid roster-grid"></div>';
+  this.element.className='community-section';this.element.innerHTML='<h2>Browse Players</h2><p>Add these community-created players to your roster to play as them</p><p data-community-status role="status"></p><div class="community-categories"></div>';
  }
  async load(){const generation=++this.generation;const status=this.element.querySelector<HTMLElement>('[data-community-status]')!;status.textContent='Loading Community Players…';
   await loadRosterStarters();
   try{this.rows=await communityPlayers();status.textContent=this.rows.length?'':'No public players yet.';}catch(e){status.textContent=(e as Error).message;}
-  await preloadAthletes();if(generation!==this.generation)return;this.changed(this.addedPlayers);this.draw();
+  await preloadAthletes();if(generation!==this.generation)return;this.draw();this.changed(this.addedPlayers);
  }
  private card(player:DesignedPlayer,inRoster:boolean){
   const row=this.rows.find(r=>r.player.id===player.id),added=row?.added??rosterStarters().some(p=>p.id===player.id);
@@ -39,11 +40,16 @@ export class CommunitySection {
  }
  private draw(){
   const added=new Set(this.addedPlayers.map(player=>player.id));
-  const community=this.element.querySelector<HTMLElement>('.community-grid')!;
-  community.replaceChildren(...this.rows.filter(row=>!added.has(row.player.id)).map(row=>this.card(row.player,false)));
-  for(const grid of [community]){
-   grid.hidden=grid.childElementCount===0;
-   (grid.previousElementSibling as HTMLElement).hidden=grid.hidden;
+  const community=this.element.querySelector<HTMLElement>('.community-categories')!;
+  community.replaceChildren();
+  for(const category of COMMUNITY_CATEGORIES){
+   const rows=this.rows.filter(row=>!added.has(row.player.id)&&communityCategory(row.player.skills).id===category.id).sort((a,b)=>category.score(b.player.skills)-category.score(a.player.skills)||a.player.name.localeCompare(b.player.name));
+   if(!rows.length)continue;
+   const section=document.createElement('section');section.className='community-category';
+   const heading=document.createElement('h3');heading.textContent=category.title;
+   const description=document.createElement('p');description.textContent=category.description;
+   const rail=document.createElement('div');rail.className='community-grid roster-grid community-category-row';rail.tabIndex=0;rail.setAttribute('role','region');rail.setAttribute('aria-label',`${category.title} players`);
+   rail.append(...rows.map(row=>this.card(row.player,false)));section.append(heading,description,rail);community.append(section);
   }
  }
 }

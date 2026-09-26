@@ -601,6 +601,8 @@
 .creator-lens-translucency input{width:100%;min-height:44px;accent-color:var(--pb-primary);touch-action:pan-y}
 .creator-lens-translucency>div{font-size:12px;color:var(--pb-text-secondary)}
 
-/* Keep eyewear palettes compact without dropping saved color choices. */
-#player-creator[data-view=editor] .color-choices:is([data-palette=glassesColor],[data-palette=lensColor]){display:flex;flex-wrap:nowrap;min-width:0;max-width:100%;overflow-x:auto;padding:4px;touch-action:pan-x pan-y pinch-zoom}
-#player-creator[data-view=editor] .color-choices:is([data-palette=glassesColor],[data-palette=lensColor])>*{flex-shrink:0}
+/* Every appearance palette stays on one horizontally scrollable row. */
+#player-creator[data-view=editor] .creator-options{touch-action:pan-x pan-y pinch-zoom}
+#player-creator[data-view=editor] .appearance-page .creator-choices{display:flex!important;flex-wrap:nowrap;min-width:0;max-width:100%;overflow-x:auto;overflow-y:hidden;padding:4px;touch-action:pan-x pan-y pinch-zoom}
+#player-creator[data-view=editor] .appearance-page .creator-choices>*{flex-shrink:0}
+#player-creator[data-view=editor] .appearance-page .creator-choices:not(.color-choices) button{flex:0 0 58px!important;width:58px!important;height:58px!important;min-width:58px;min-height:58px}

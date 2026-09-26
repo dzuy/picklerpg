@@ -1,5 +1,7 @@
 <!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Guest progress preview</title><link rel="stylesheet" href="/src/style.css"><body><dialog id="game-end" aria-label="Guest completion preview"><div class="game-end-card"><div class="game-end-kicker">GAME COMPLETE</div><h1>Well played!</h1><section id="reward" aria-live="polite"></section><div class="game-end-actions"><button>New Game</button><button>Rematch</button></div></div></dialog><script type="module">
-import {renderGuestProgressCta} from '/src/account-xp.ts';
-renderGuestProgressCta(document.querySelector('#reward'));
+import {renderGuestProgressCta,renderXpReward} from '/src/account-xp.ts';
+const host=document.querySelector('#reward');
+renderXpReward(host,{lifetime_xp:10,final_xp:10,streak_multiplier:1,streak_days:1,skill_points_earned:0,current_skill_budget:35,game_type:'solo',details:{}},{lifetimeXp:10,currentSkillBudget:35,earnedSkillPoints:0,maxSkillBudget:43,xpPerSkillPoint:100,currentXpTowardNextSkillPoint:10,currentPlayStreak:1,lifetimePlayerCreationXpAwards:0},()=>{});
+const card=host.querySelector('.xp-reward');card.querySelector('.xp-reward-profile-link').remove();renderGuestProgressCta(card,undefined,true);
 document.querySelector('dialog').showModal();
 </script></body></html>
