@@ -6,7 +6,7 @@ import {newPlayer} from '../src/player-design';
 test('setup preserves saved user identity, latest skills and current teammates',()=>{
  const user=newPlayer('custom');user.name='My player';user.skills.drive=91;
  const partner=newPlayer('partner'),opponent=newPlayer('opponent');
- const {players,selected}=setupLineup([user],[{...user,skills:{...user.skills,drive:20}},partner,opponent,null],()=>.5);
+ const {players,selected}=setupLineup([user,partner,opponent],[{...user,skills:{...user.skills,drive:20}},partner,opponent,null],()=>.5);
  assert.deepEqual(selected.slice(0,3),['custom','partner','opponent']);
  assert.equal(players.find(p=>p.id==='custom')?.skills.drive,91);
  assert.ok(validLineup(players.map(p=>p.id),selected));
@@ -35,4 +35,29 @@ test('four-player roster allows duplicates without changing other slots',()=>{
  assert.deepEqual(cyclePlayer(roster,roster,1,-1),['a','a','c','d']);
  assert.equal(validLineup(roster,['a','b','b','d']),true);
  assert.equal(validLineup(roster,['a','b','c','missing']),false);
+});
+
+test('new setup uses the two starred players with their latest saved details',()=>{
+ const old=newPlayer('old'),first=newPlayer('first'),second=newPlayer('second');
+ first.name='Edited name';first.skills.drive=88;
+ const {players,selected}=setupLineup([old,first,second],[old,newPlayer('deleted'),null,null],()=>0,{activeId:old.id,preferred:[second.id,first.id]});
+ assert.deepEqual(selected.slice(0,2),[second.id,first.id]);
+ assert.equal(players.find(p=>p.id===first.id)?.name,'Edited name');
+ assert.equal(players.find(p=>p.id===first.id)?.skills.drive,88);
+ assert.ok(!players.some(p=>p.id==='deleted'));
+ assert.ok(validLineup(players.map(p=>p.id),selected));
+});
+test('deleted saved players are removed from all setup slots and choices',()=>{
+ const current=newPlayer('current'),deleted=newPlayer('deleted');
+ const {players,selected}=setupLineup([current],[deleted,current,deleted,null],()=>0);
+ assert.ok(!players.some(p=>p.id===deleted.id));
+ assert.ok(!selected.includes(deleted.id));
+ assert.ok(validLineup(players.map(p=>p.id),selected));
+});
+test('missing starred players fall back to current roster members',()=>{
+ const first=newPlayer('first'),second=newPlayer('second');
+ const {selected}=setupLineup([first,second],[],()=>0,{activeId:'deleted',preferred:['deleted',second.id]});
+ assert.deepEqual(selected.slice(0,2),[second.id,first.id]);
+ const single=setupLineup([first],[],()=>0,{activeId:null,preferred:['deleted']});
+ assert.deepEqual(single.selected.slice(0,2),[first.id,first.id]);
 });

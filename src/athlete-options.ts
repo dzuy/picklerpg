@@ -1,10 +1,13 @@
 import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+import {dressCostume} from './athlete-costumes';
 import type {Appearance} from './player-design';
 
 /** Runtime modules use the approved Blender rig's rest coordinates (Y up, face +Z).
  * Each rigid part attaches to its existing bone; no second skeleton is animated. */
-export function dressAthlete(model:THREE.Group,a:Appearance){
+export function dressAthlete(model:THREE.Group,appearance:Appearance){
+ const costumed=!!appearance.outfit&&appearance.outfit!=='none';
+ const a:Appearance=costumed?{...appearance,hat:'none',hairStyle:'none',top:'tank',bottom:'skirt',shoeStyle:'court',accessory:'none'}:appearance;
  const bones=new Map<string,THREE.Bone>();model.traverse(o=>{if(o instanceof THREE.Bone)bones.set(o.name,o)});
  const mats=new Map<string,THREE.MeshStandardMaterial>();
  const material=(color:string)=>{let m=mats.get(color);if(!m){m=new THREE.MeshStandardMaterial({color,roughness:.83});mats.set(color,m)}return m};
@@ -174,7 +177,7 @@ export function dressAthlete(model:THREE.Group,a:Appearance){
  }
  // Tuck the upper hair into closed headwear, including the authored ponytail.
  // Work in rest/model space and clone shared GLB geometry before changing it.
- if(['cap','backwards','beanie','bucket'].includes(a.hat)){
+ if(['cap','backwards','beanie','bucket','viking','cowboy','santa','sombrero'].includes(a.hat)){
   const hairGroup=model.getObjectByName(`option-hair-${a.hairStyle}`)??(a.hairStyle==='ponytail'?model.getObjectByName('hair_ponytail_01'):undefined);
   model.updateMatrixWorld(true);
   hairGroup?.traverse(o=>{if(!(o instanceof THREE.Mesh))return;
@@ -196,11 +199,86 @@ export function dressAthlete(model:THREE.Group,a:Appearance){
  }
  if(a.hat!=='none'){
   const g=slot(`hat-${a.hat}`),color=a.hatColor;
-  if(a.hat==='crown'){
+  if(['viking','cowboy','santa','sombrero'].includes(a.hat)){
+   // Elliptical profiles sit outside the square head and preserve its hairline.
+   const profile=(points:[number,number][],shade:string,depth=.86)=>{
+    const m=mesh(g,new THREE.LatheGeometry(points.map(([r,y])=>new THREE.Vector2(r,y)),32),shade,H(0,1.83));m.scale.z=depth;return m;
+   };
+   const brim=(radius:number,lift:number,shade:string,cowboy=false)=>{
+    const geometry=new THREE.CylinderGeometry(radius,radius,.035,48,1),positions=geometry.attributes.position;
+    for(let i=0;i<positions.count;i++){
+     const x=positions.getX(i),z=positions.getZ(i),r=Math.hypot(x,z)/radius;
+     positions.setY(i,positions.getY(i)+lift*Math.pow(cowboy?Math.abs(x)/radius:r,4));positions.setZ(i,z*.82);
+    }
+    geometry.computeVertexNormals();return mesh(g,geometry,shade,H(0,1.84));
+   };
+   if(a.hat==='viking'){
+    profile([[.47,0],[.47,.10],[.43,.22],[.31,.34],[0,.40]],color);
+    profile([[.475,0],[.475,.065]],ink);
+    // Curved, tapering ivory horns sweep outwards and then upwards.
+    for(const sign of [-1,1]){
+     const path=new THREE.CatmullRomCurve3([H(sign*.39,2.03),H(sign*.60,2.03),H(sign*.76,2.19),H(sign*.77,2.40)]);
+     const geometry=new THREE.TubeGeometry(path,24,.105,10,false),positions=geometry.attributes.position;
+     for(let row=0;row<=24;row++){
+      const center=path.getPointAt(row/24),taper=1-row/24*.98;
+      for(let col=0;col<=10;col++){const i=row*11+col;const point=new THREE.Vector3().fromBufferAttribute(positions,i).sub(center).multiplyScalar(taper).add(center);positions.setXYZ(i,point.x,point.y,point.z)}
+     }
+     geometry.computeVertexNormals();mesh(g,geometry,white,new THREE.Vector3());
+    }
+    line(g,[H(0,1.88,-.413),H(0,2.06,-.36),H(0,2.21,0)],white,.025);
+    for(const x of [-.28,-.14,.14,.28])mesh(g,new THREE.SphereGeometry(.018,8,6),white,H(x,1.86,-.39*Math.sqrt(1-x*x/.23)));
+   }else if(a.hat==='cowboy'){
+    brim(.72,.18,color,true);
+    const crown=profile([[.43,0],[.43,.09],[.39,.35],[.32,.42],[0,.42]],color);
+    const positions=crown.geometry.attributes.position;
+    for(let i=0;i<positions.count;i++)if(positions.getY(i)>.30)positions.setY(i,positions.getY(i)-.075*Math.exp(-Math.pow(positions.getX(i)/.11,2)));
+    crown.geometry.computeVertexNormals();
+    profile([[.435,.035],[.425,.105]],ink);
+    box(g,H(0,1.90,-.374),[.10,.075,.024],white,.01);
+   }else if(a.hat==='santa'){
+    // A bent cloth cone with a hanging pom-pom and a fluffy white cuff.
+    const points=[[0,0,.46],[0,.18,.38],[.06,.36,.27],[.19,.49,.17],[.34,.47,.09],[.43,.34,.015]];
+    const positions:number[]=[],indices:number[]=[],segments=32;
+    points.forEach(([x,y,r],row)=>{for(let i=0;i<=segments;i++){const angle=i/segments*Math.PI*2;const p=H(x+Math.cos(angle)*r,1.84+y,Math.sin(angle)*r*.86);positions.push(p.x,p.y,p.z);if(row<points.length-1&&i<segments){const n=row*(segments+1)+i;indices.push(n,n+1,n+segments+1,n+1,n+segments+2,n+segments+1)}}});
+    const cone=new THREE.BufferGeometry();cone.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));cone.setIndex(indices);cone.computeVertexNormals();mesh(g,cone,color,new THREE.Vector3());
+    for(let i=0;i<24;i++){const angle=i/24*Math.PI*2;const puff=mesh(g,new THREE.SphereGeometry(.07,10,8),white,H(Math.cos(angle)*.455,1.865,Math.sin(angle)*.39));puff.scale.y=.85;}
+    mesh(g,new THREE.SphereGeometry(.10,14,10),white,H(.43,2.16));
+   }else{
+    brim(.90,.11,color);
+    profile([[.43,0],[.38,.12],[.29,.38],[.17,.56],[0,.60]],color);
+    profile([[.418,.03],[.393,.09]],white);
+    const trim=mesh(g,new THREE.TorusGeometry(.885,.018,8,64),white,H(0,1.945));trim.rotation.x=Math.PI/2;trim.scale.y=.82;
+    for(let i=0;i<20;i++){const angle=i/20*Math.PI*2;mesh(g,new THREE.SphereGeometry(.023,8,6),white,H(Math.cos(angle)*.78,1.915,Math.sin(angle)*.78*.82));}
+   }
+  }else if(a.hat==='tiara'){
+   // An open-backed band and airy jewel arches distinguish the tiara from the crown.
+   const front=(x:number,y:number)=>H(x,y,-(.36-.075*Math.pow(x/.35,2)));
+   line(g,Array.from({length:33},(_,i)=>front((i/32-.5)*.70,1.94)),color,.016);
+   for(const sign of [-1,1])line(g,[front(sign*.35,1.94),H(sign*.37,1.94,-.13),H(sign*.35,1.92,.13)],color,.013);
+   for(let i=-2;i<=2;i++){
+    const x=i*.135,height=.255-Math.abs(i)*.06,width=.064-Math.abs(i)*.007;
+    const outline=[front(x,1.945),front(x-width,1.94+height*.47),front(x,1.94+height),front(x+width,1.94+height*.47),front(x,1.945)];
+    line(g,outline,color,.011);
+    const p=front(x,1.94+height*.57);p.z+=.017;
+    const setting=mesh(g,new THREE.OctahedronGeometry(i===0?.053:.037),white,p);setting.scale.set(.72,1,.4);
+    const jewel=mesh(g,new THREE.OctahedronGeometry(i===0?.044:.030),i===0?'#df3c96':Math.abs(i)===1?'#ac7bd8':'#80cdd2',p.clone().add(new THREE.Vector3(0,0,.016)));
+    jewel.name='tiara-jewel';jewel.scale.set(.72,1,.4);jewel.material=(jewel.material as THREE.MeshStandardMaterial).clone();Object.assign(jewel.material,{roughness:.15,metalness:.25});
+    mesh(g,new THREE.SphereGeometry(.016,10,8),white,front(x,1.94+height+.003));
+   }
+   for(let i=-3;i<=3;i++)mesh(g,new THREE.SphereGeometry(.012,8,6),white,front(i*.095,1.947));
+  }else if(a.hat==='crown'){
    for(const sign of [-1,1]){box(g,H(sign*.35,1.94,0),[.045,.105,.59],color,.008);box(g,H(0,1.94,sign*.285),[.73,.105,.045],color,.008);}
    for(const depth of [-.295,.295])for(let i=-2;i<=2;i++)plate(g,[[i*.14-.065,1.96],[i*.14+.065,1.96],[i*.14,2.12+(i===0?.035:0)]],-depth,.035,color);
    for(const sign of [-1,1])for(const depth of [-.14,.14])mesh(g,new THREE.ConeGeometry(.045,.15,4),color,H(sign*.35,2.045,depth));
-   box(g,H(0,1.95,-.326),[.045,.045,.018],white,.006);
+   // Raised faceted gems, with pale settings, around the crown band.
+   const jewel=(p:THREE.Vector3,shade:string,side=false,large=false)=>{
+    const size=large?.064:.043;
+    const setting=mesh(g,new THREE.OctahedronGeometry(size*1.20),white,p);setting.scale.set(side?.42:.80,1,side?.80:.42);
+    const gem=mesh(g,new THREE.OctahedronGeometry(size),shade,p.clone().add(new THREE.Vector3(side?Math.sign(p.x)*.015:0,0,side?0:Math.sign(p.z)*.015)));
+    gem.name='crown-jewel';gem.scale.copy(setting.scale);gem.material=(gem.material as THREE.MeshStandardMaterial).clone();Object.assign(gem.material,{roughness:.18,metalness:.3});
+   };
+   for(const depth of [-.332,.332]){jewel(H(0,1.987,depth),'#df3c66',false,true);for(const sign of [-1,1])jewel(H(sign*.235,1.96,depth),sign<0?'#4285df':'#36936c');}
+   for(const sign of [-1,1])for(const depth of [-.16,.16])jewel(H(sign*.38,1.96,depth),'#ac7bd8',true);
   }else if(a.hat==='visor'||a.hat==='headband'){
    box(g,H(0,1.816,-.287),[.713,.079,.043],a.hat==='visor'?white:color,.012);
    for(const sign of [-1,1])box(g,H(sign*.34,1.816,.004),[.043,.079,.55],a.hat==='visor'?white:color,.012);
@@ -256,25 +334,33 @@ export function dressAthlete(model:THREE.Group,a:Appearance){
   attach(g,'head');
  }else if(a.glasses!=='none'){
   const g=slot(`glasses-${a.glasses}`),sun=a.glasses==='sunglasses'||a.glasses==='sport',round=a.glasses==='round'||a.glasses==='oval',frame=a.glassesColor;
+  const novelty=['stars','flowers','hearts','diamonds','oversized'].includes(a.glasses);
+  const noveltyOutline=():number[][]=>{
+   if(a.glasses==='stars')return Array.from({length:10},(_,i)=>{const angle=Math.PI/2+i*Math.PI/5,r=i%2?.060:.126;return [Math.cos(angle)*r,Math.sin(angle)*r]});
+   if(a.glasses==='flowers')return Array.from({length:96},(_,i)=>{const angle=i*Math.PI/48,r=.096+.027*Math.cos(6*(angle-Math.PI/2));return [Math.cos(angle)*r,Math.sin(angle)*r]});
+   if(a.glasses==='hearts')return Array.from({length:64},(_,i)=>{const t=i*Math.PI/32;return [.0077*16*Math.pow(Math.sin(t),3),.0076*(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t)+2)]});
+   if(a.glasses==='diamonds')return [[0,.132],[.12,0],[0,-.132],[-.12,0]];
+   return Array.from({length:40},(_,i)=>{const t=i*Math.PI/20,c=Math.cos(t),s=Math.sin(t);return [Math.sign(c)*Math.pow(Math.abs(c),.5)*.138,Math.sign(s)*Math.pow(Math.abs(s),.5)*.114]});
+  };
   for(const sign of [-1,1]){
-   const cx=sign*.137,cy=1.602-.5064;
+   const cx=sign*(novelty?.16:.137),cy=1.602-.5064;
    let lensOutline:number[][];
    if(round)lensOutline=Array.from({length:32},(_,i)=>{const t=i*Math.PI/16;return [Math.cos(t)*.068*(a.glasses==='oval'?1.14:1),Math.sin(t)*.068*(a.glasses==='oval'?.72:1)]});
    else lensOutline=[];
    if(round){const ring=mesh(g,new THREE.TorusGeometry(.072,.009,6,24),frame,new THREE.Vector3(cx,cy,.282));if(a.glasses==='oval')ring.scale.set(1.14,.72,1)}
    else{
-    const outline=a.glasses==='hexagon'?Array.from({length:7},(_,i)=>[Math.cos(i*Math.PI/3)*.082,Math.sin(i*Math.PI/3)*.077]):a.glasses==='cat-eye'?[[-.072,-.052],[.058,-.052],[.095,.080],[-.070,.052],[-.072,-.052]].map(([x,y])=>[x*sign,y]):[[-.076,-.073],[.076,-.073],[.076,.073],[-.076,.073],[-.076,-.073]];
+    const outline=novelty?noveltyOutline():a.glasses==='hexagon'?Array.from({length:7},(_,i)=>[Math.cos(i*Math.PI/3)*.082,Math.sin(i*Math.PI/3)*.077]):a.glasses==='cat-eye'?[[-.072,-.052],[.058,-.052],[.095,.080],[-.070,.052],[-.072,-.052]].map(([x,y])=>[x*sign,y]):[[-.076,-.073],[.076,-.073],[.076,.073],[-.076,.073],[-.076,-.073]];
     lensOutline=outline;
-    const pts=outline.map(([x,y])=>new THREE.Vector3(cx+x,cy+y,.28));line(g,pts,frame,.010);
+    const pts=outline.map(([x,y])=>new THREE.Vector3(cx+x,cy+y,.28));if(novelty)pts.push(pts[0].clone());line(g,pts,frame,novelty?.012:.010);
    }
    const shape=new THREE.Shape(lensOutline.map(([x,y])=>new THREE.Vector2(x,y)));
    const lens=mesh(g,new THREE.ShapeGeometry(shape),a.lensColor==='none'?'#ffffff':a.lensColor,new THREE.Vector3(cx,cy,.277));
    lens.material=(lens.material as THREE.MeshStandardMaterial).clone();
    Object.assign(lens.material,{transparent:true,opacity:1-(a.lensTranslucency??(sun?12:62))/100,depthWrite:false,side:THREE.DoubleSide,roughness:.22});
    lens.name='glasses-lens';lens.visible=a.lensColor!=='none';lens.castShadow=false;
-   line(g,[H(sign*.213,1.629,-.28),H(sign*.347,1.629,-.17),H(sign*.347,1.61,.025)],frame,.007);
+   line(g,[H(sign*(novelty?.28:.213),1.629,-.28),H(sign*.347,1.629,-.17),H(sign*.347,1.61,.025)],frame,.007);
   }
-  line(g,[H(-.06,1.624,-.284),H(0,1.635,-.286),H(.06,1.624,-.284)],frame,.008);attach(g,'head');
+  line(g,[H(novelty?-.045:-.06,1.624,-.284),H(0,1.635,-.286),H(novelty?.045:.06,1.624,-.284)],frame,.008);attach(g,'head');
  }
  if(a.top!=='tank'){
   hide('top');const g=slot(`top-${a.top}`);
@@ -356,6 +442,52 @@ export function dressAthlete(model:THREE.Group,a:Appearance){
    const face=box(g,c.clone().add(new THREE.Vector3(0,0,.077)),[.065,.055,.018],white,.008);face.quaternion.copy(band.quaternion);attach(g,'forearm.L');
   }
  }
+ // A costume tail follows the pelvis, sweeping out to the side so it reads in front views.
+ if(a.accessory==='dinosaur-tail'){
+  const g=slot('dinosaur-tail');
+  const path=new THREE.CatmullRomCurve3([
+   new THREE.Vector3(0,.51,-.10),new THREE.Vector3(.10,.42,-.32),
+   new THREE.Vector3(.32,.29,-.49),new THREE.Vector3(.58,.27,-.53),
+   new THREE.Vector3(.77,.38,-.51),new THREE.Vector3(.81,.48,-.48),
+  ]);
+  const segments=40,sides=12,geometry=new THREE.TubeGeometry(path,segments,.13,sides,false),positions=geometry.attributes.position;
+  for(let row=0;row<=segments;row++){
+   const t=row/segments,center=path.getPointAt(t),radius=Math.pow(1-t,.85)*.995+.005;
+   for(let col=0;col<=sides;col++){
+    const i=row*(sides+1)+col,p=new THREE.Vector3().fromBufferAttribute(positions,i).sub(center).multiplyScalar(radius).add(center);
+    positions.setXYZ(i,p.x,p.y,p.z);
+   }
+  }
+  geometry.computeVertexNormals();mesh(g,geometry,a.accent,new THREE.Vector3());
+  const spikeColor='#'+new THREE.Color(a.accent).lerp(new THREE.Color(white),.58).getHexString();
+  for(let i=0;i<7;i++){
+   const t=.10+i*.115,p=path.getPointAt(t),radius=.13*(Math.pow(1-t,.85)*.995+.005),height=.13*(1-t)+.025;
+   p.y+=radius+height*.36;
+   const spike=mesh(g,new THREE.ConeGeometry(.052*(1-t)+.009,height,4),spikeColor,p);
+   spike.rotation.y=Math.PI/4;
+  }
+  attach(g,'pelvis');
+ }
+ if(a.accessory==='cape'){
+  const g=slot('cape'),vertices:number[]=[],indices:number[]=[],rows=18,cols=24;
+  // A broad, softly folded cloth panel hangs behind the shoulders to the calves.
+  const surface=(u:number,t:number)=>new THREE.Vector3(u*(.205+.245*Math.sin(t*Math.PI/2)),.84-.66*t-.025*t*Math.cos(u*Math.PI/2),-.175-.22*t-.035*Math.sin(t*Math.PI)+.026*t*Math.cos(u*Math.PI*4));
+  for(let row=0;row<=rows;row++)for(let col=0;col<=cols;col++){
+   vertices.push(...surface(col/cols*2-1,row/rows).toArray());
+   if(row<rows&&col<cols){const n=row*(cols+1)+col;indices.push(n,n+1,n+cols+1,n+1,n+cols+2,n+cols+1);}
+  }
+  const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geometry.setIndex(indices);geometry.computeVertexNormals();
+  const cloth=mesh(g,geometry,a.accent,new THREE.Vector3());cloth.name='cape-cloth';cloth.material=(cloth.material as THREE.MeshStandardMaterial).clone();cloth.material.side=THREE.DoubleSide;
+  const trim='#'+new THREE.Color(a.accent).lerp(new THREE.Color(white),.55).getHexString();
+  line(g,Array.from({length:25},(_,i)=>surface(i/12-1,1)),trim,.009);
+  for(const sign of [-1,1]){
+   line(g,Array.from({length:19},(_,i)=>surface(sign,i/18)),trim,.007);
+   line(g,[surface(sign,0),new THREE.Vector3(sign*.20,.84,.02),new THREE.Vector3(sign*.07,.80,.19)],a.accent,.025);
+  }
+  const clasp=mesh(g,new THREE.SphereGeometry(.032,12,8),white,new THREE.Vector3(0,.80,.205));clasp.scale.set(1,1,.4);
+  attach(g,'chest');
+ }
+ if(costumed)dressCostume(model,appearance);
  // Compress only the neck bone. Cancel its scale on the head so the face,
  // hair and accessories retain their size while the full head sits lower.
  const neck=bones.get('neck'),head=bones.get('head');

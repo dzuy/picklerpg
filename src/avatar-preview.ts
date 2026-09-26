@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {createAthlete,disposeAthlete,setAthleteHandedness,poseAthleteForPortrait,poseAthleteForEditor,poseAthleteForRoster,animateRosterAthlete} from './athlete';
+import {animateCostumeWings} from './athlete-costumes';
 import {type Appearance,type DesignedPlayer} from './player-design';
 function light(scene:THREE.Scene){scene.add(new THREE.HemisphereLight('#fff6e4','#788c79',2.5));const sun=new THREE.DirectionalLight('#fff0d9',3);sun.position.set(-3,5,-4);scene.add(sun)}
 export class AvatarPreview {
@@ -12,7 +13,7 @@ export class AvatarPreview {
  get animationPlaying(){return this.animated&&!this.options.paused&&(!this.motion.matches||this.manualPlayback)}
  setAnimationPlaying(playing:boolean){
   if(playing){this.manualPlayback=true;this.options.paused=false;this.started=performance.now()-this.pausedTime*1000;this.syncMotion();}
-  else{this.pausedTime=(performance.now()-this.started)/1000;this.options.paused=true;this.renderer.setAnimationLoop(null);if(this.avatar&&this.manualPlayback)this.animatePreview(this.pausedTime);this.draw();}
+  else{this.pausedTime=(performance.now()-this.started)/1000;this.options.paused=true;this.renderer.setAnimationLoop(null);if(this.avatar&&this.manualPlayback)this.animatePreview(this.pausedTime);this.syncMotion();}
  }
  private animatePreview(time:number){
   if(!this.avatar)return;
@@ -20,7 +21,8 @@ export class AvatarPreview {
   // A gentle turntable shares the animation clock so pause/resume keeps its angle.
   if(this.options.editorPose)this.avatar.rotation.y=(time%12)/12*Math.PI*2;
  }
- private syncMotion=()=>{this.renderer.setAnimationLoop(this.animationPlaying?()=>{if(document.hidden||!this.host.getClientRects().length)return;if(this.avatar)this.animatePreview((performance.now()-this.started)/1000);this.draw()}:null);if(this.avatar&&this.animated){if(this.manualPlayback)this.animatePreview(this.options.paused?this.pausedTime:(performance.now()-this.started)/1000);else if(this.options.editorPose)poseAthleteForEditor(this.avatar);else if(this.options.paused)this.animatePreview(0);else poseAthleteForRoster(this.avatar);}this.draw()};
+ private get wingsMoving(){return this.animated&&!this.motion.matches&&!!this.avatar?.userData.model?.userData.costumeWingHinges;}
+ private syncMotion=()=>{this.renderer.setAnimationLoop((this.animationPlaying||this.wingsMoving)?()=>{if(document.hidden||!this.host.getClientRects().length)return;if(this.avatar){if(this.animationPlaying)this.animatePreview((performance.now()-this.started)/1000);if(this.wingsMoving)animateCostumeWings(this.avatar,performance.now()/1000);}this.draw()}:null);if(this.avatar&&this.animated){if(this.manualPlayback)this.animatePreview(this.options.paused?this.pausedTime:(performance.now()-this.started)/1000);else if(this.options.editorPose)poseAthleteForEditor(this.avatar);else if(this.options.paused)this.animatePreview(0);else poseAthleteForRoster(this.avatar);}this.draw()};
  constructor(private host:HTMLElement,private animated=false,zoom=1,private options:{allowZoom?:boolean;verticalOffset?:number;paused?:boolean;interactive?:boolean;editorPose?:boolean}={}){
   this.camera.zoom=zoom;
   this.renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});this.renderer.setPixelRatio(Math.min(devicePixelRatio,2));this.renderer.outputColorSpace=THREE.SRGBColorSpace;this.renderer.toneMapping=THREE.ACESFilmicToneMapping;
@@ -33,7 +35,7 @@ export class AvatarPreview {
   if(options.allowZoom){this.controls.enableZoom=true;this.controls.minDistance=2.4;this.controls.maxDistance=6;this.controls.zoomSpeed=.7;this.renderer.domElement.setAttribute('aria-label','Player in 3D. Drag to rotate. Pinch to zoom.');}
   if(options.interactive===false){this.controls.enabled=false;this.controls.disconnect();this.renderer.domElement.style.touchAction='pan-y pinch-zoom';this.renderer.domElement.style.pointerEvents='none';this.renderer.domElement.setAttribute('aria-label','Your player in 3D.');}
  }
- setPlayer(player:DesignedPlayer){if(this.avatar){this.scene.remove(this.avatar);disposeAthlete(this.avatar)}this.avatar=createAthlete('you',player.appearance.jersey,player.appearance);setAthleteHandedness(this.avatar,player.handedness);if(this.manualPlayback)this.animatePreview(this.options.paused?this.pausedTime:(performance.now()-this.started)/1000);else if(this.options.editorPose)poseAthleteForEditor(this.avatar);else if(this.options.paused)this.animatePreview(0);else (this.animated?poseAthleteForRoster:poseAthleteForPortrait)(this.avatar);this.scene.add(this.avatar);this.resize()}
+ setPlayer(player:DesignedPlayer){if(this.avatar){this.scene.remove(this.avatar);disposeAthlete(this.avatar)}this.avatar=createAthlete('you',player.appearance.jersey,player.appearance);setAthleteHandedness(this.avatar,player.handedness);if(this.manualPlayback)this.animatePreview(this.options.paused?this.pausedTime:(performance.now()-this.started)/1000);else if(this.options.editorPose)poseAthleteForEditor(this.avatar);else if(this.options.paused)this.animatePreview(0);else (this.animated?poseAthleteForRoster:poseAthleteForPortrait)(this.avatar);this.scene.add(this.avatar);this.syncMotion();this.resize()}
  dispose(){this.renderer.setAnimationLoop(null);this.motion.removeEventListener('change',this.syncMotion);this.observer.disconnect();this.controls.dispose();if(this.avatar){this.scene.remove(this.avatar);disposeAthlete(this.avatar)}this.scene.traverse(object=>{if(object instanceof THREE.Mesh){object.geometry.dispose();for(const material of Array.isArray(object.material)?object.material:[object.material])material.dispose()}});this.renderer.dispose();this.renderer.forceContextLoss();this.renderer.domElement.remove();}
  rotate(degrees:number){const angle=(degrees-11)*Math.PI/180;this.camera.position.set(Math.sin(angle)*3.2,1.05,-Math.cos(angle)*3.2);this.controls.update();this.draw()}
  resize(){const {clientWidth:w,clientHeight:h}=this.host;if(!w||!h)return;this.renderer.setSize(w,h);this.camera.aspect=w/h;this.camera.fov=w/h<.65?36:30;this.camera.updateProjectionMatrix();this.draw()}
@@ -50,7 +52,10 @@ export class AvatarThumbnails {
   if(category==='roster'){y=.95;z=-3.2;x=-.25}
   if(category==='profile'){y=1.08;z=-2.15;x=-.38}
   if(category==='hairStyle'||category==='hat'){y=1.23;z=-1.8;x=-.3}
+  if(category==='hat'&&['viking','cowboy','santa','sombrero'].includes(appearance.hat)){y=1.32;z=appearance.hat==='sombrero'?-3.6:-3.2;x=-.32}
+  if(category==='outfit'){y=.86;z=-4.4;x=-.7}
   if(category==='full'||category==='presentation'||category.startsWith('hand-')){y=.78;z=-3.2;x=-.4}
+  if(category==='glasses'){y=1.13;z=-1.9;x=-.08}
   if(category==='facialHair'){y=1.03;z=-1.25;x=-.12}
   if(category==='top'){y=.64;z=-1.15}
   if(category==='bottom'){y=.40;z=-1.0}
@@ -60,6 +65,10 @@ export class AvatarThumbnails {
   this.camera.position.set(x,y+.035,z);this.camera.lookAt(targetX,y,category==='shoes'||category==='shoeStyle'?.045:0);
   const watch=category==='accessory'&&appearance.accessory==='watch'?avatar.getObjectByName('option-watch'):null;
   if(watch){avatar.updateMatrixWorld(true);const center=new THREE.Box3().setFromObject(watch).getCenter(new THREE.Vector3());this.camera.position.set(center.x-.08,center.y+.04,center.z-.52);this.camera.lookAt(center)}
+  const cape=category==='accessory'&&appearance.accessory==='cape'?avatar.getObjectByName('option-cape'):null;
+  if(cape){avatar.updateMatrixWorld(true);const center=new THREE.Box3().setFromObject(cape).getCenter(new THREE.Vector3());this.camera.position.set(center.x+.85,center.y+.18,center.z+2.1);this.camera.lookAt(center)}
+  const tail=category==='accessory'&&appearance.accessory==='dinosaur-tail'?avatar.getObjectByName('option-dinosaur-tail'):null;
+  if(tail){avatar.updateMatrixWorld(true);const center=new THREE.Box3().setFromObject(tail).getCenter(new THREE.Vector3());this.camera.position.set(center.x-1.1,center.y+.40,center.z+1.7);this.camera.lookAt(center)}
   this.renderer.render(this.scene,this.camera);
   const url=this.renderer.domElement.toDataURL('image/png');this.scene.remove(avatar);disposeAthlete(avatar);this.cache.set(key,url);return url;
  }

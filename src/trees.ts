@@ -26,11 +26,13 @@ export function parkTreePlacements(){
    const x=Math.cos(angle)*radius,z=Math.sin(angle)*radius;
    const outsideCourt=Math.abs(x)>COURT.width/2+2.5||Math.abs(z)>COURT.length/2+2.5;
    const spaced=placements.every(([px,pz])=>Math.hypot(x-px,z-pz)>minSpacing);
-   if(!outsideCourt||!spaced)continue;
+   // Keep recreation areas and their connecting walks clear of trunks and canopies.
+   const recreation=(z<-11&&z>-27&&Math.abs(x)<25)||Math.abs(Math.abs(x)-8)<3||Math.abs(z+12)<3;
+   if(!outsideCourt||!spaced||recreation)continue;
    placements.push([x,z,.68+random()*.62]);count--;
   }
  };
- scatter(18,9,27,2.2);
+ scatter(12,14,32,3.5);
  scatter(36,23,78,2.8);
  return placements;
 }

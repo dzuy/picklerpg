@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 320">
+ <defs>
+  <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#e4a56b"/><stop offset="1" stop-color="#f6d29a"/></linearGradient>
+  <g id="tree"><path d="M-5 0h10v-67H-5z" fill="#785037"/><path d="m0-25-22-28m22 17 24-28" fill="none" stroke="#785037" stroke-width="5"/><path d="m-40-39-9-29 19-27 25-11 35 11 21 27-12 30-33 14Z" fill="#ce6429"/><path d="m-30-95 25-11 35 11 21 27-34 11-42-9Z" fill="#ef9639"/><path d="m-30-95 25-11 24 8-9 26-35 6-18-13Z" fill="#f6b751"/></g>
+  <g id="pumpkin"><ellipse cy="2" rx="18" ry="5" fill="#965731" opacity=".2"/><ellipse cy="-10" rx="17" ry="13" fill="#e58026"/><ellipse cy="-10" rx="10" ry="13" fill="#ee9833"/><ellipse cy="-10" rx="4" ry="13" fill="#f3aa41"/><path d="m-2-22 1-8 5 1-1 8" fill="#66643d"/></g>
+  <g id="bench"><path d="M-25 0v17m50-17v17" stroke="#574b34" stroke-width="4"/><path d="M-31-14h62v8h-62zm0 13h62v7h-62z" fill="#9b5a35"/></g>
+  <g id="lamp"><path d="M0 0v-60" stroke="#624c32" stroke-width="4"/><path d="M-8-81H8v22H-8z" fill="#ffdc8e" stroke="#775234" stroke-width="2"/><path d="m-12-81 12-10 12 10Z" fill="#915632"/></g>
+ </defs>
+ <path d="M0 0h640v320H0z" fill="url(#sky)"/><circle cx="451" cy="47" r="28" fill="#ffdf9e"/>
+ <path d="M0 129Q151 105 289 128T640 110V320H0Z" fill="#c69756"/>
+ <g opacity=".62"><use href="#tree" transform="translate(4 151) scale(.8)"/><use href="#tree" transform="translate(152 129) scale(.6)"/><use href="#tree" transform="translate(306 126) scale(.65)"/><use href="#tree" transform="translate(497 130) scale(.62)"/><use href="#tree" transform="translate(631 156) scale(.9)"/></g>
+ <path d="m0 190 640-38v22L0 218Z" fill="#e6b77e"/>
+ <use href="#tree" transform="translate(71 172) scale(1.15)"/><use href="#tree" transform="translate(560 174) scale(1.12)"/>
+ <!-- Pumpkin patch and bundled hay behind the baseline. -->
+ <path d="M141 134h69v29h-69z" fill="#d7a64e"/><path d="M157 134v29m36-29v29" stroke="#aa803e" stroke-width="3"/><path d="M143 142h65m-65 7h65m-65 7h65" stroke="#ebc477" stroke-width="1.5"/>
+ <use href="#pumpkin" transform="translate(165 135) scale(.8)"/><use href="#pumpkin" transform="translate(197 135) scale(.55)"/><use href="#pumpkin" transform="translate(131 167) scale(.8)"/>
+ <path d="M481 168v-65m0 46-11-13m11 5 13-16m-13 2-7-12" stroke="#b78538" stroke-width="3"/><path d="m476 112 5-18 5 18-5 9Z" fill="#e3b958"/>
+ <use href="#pumpkin" transform="translate(469 173) scale(.8)"/><use href="#pumpkin" transform="translate(495 177) scale(.6)"/>
+<!-- Centered baseline view shared by the court thumbnail family. -->
+ <path d="M103 288 220 145H420L537 288Z" fill="#d19a66"/>
+ <polygon points="237.00,161.00 403.00,161.00 494.00,275.00 146.00,275.00" fill="#b45b32"/>
+ <polygon points="218.99,183.56 421.01,183.56 446.66,215.69 193.34,215.69" fill="#e3a267"/>
+ <g fill="none" stroke="#fff6e4" stroke-width="2.7" stroke-linejoin="round">
+  <polygon points="237.00,161.00 403.00,161.00 494.00,275.00 146.00,275.00"/>
+  <path d="M218.99,183.56 421.01,183.56 M193.34,215.69 446.66,215.69 M320.00,161.00 320.00,183.56 M320.00,215.69 320.00,275.00"/>
+ </g>
+ <path d="M198.06 177.82H441.94v20H198.06Z" fill="#4b4033" fill-opacity=".78"/>
+ <path d="M205.00 177.82v20M212.00 177.82v20M219.00 177.82v20M226.00 177.82v20M233.00 177.82v20M240.00 177.82v20M247.00 177.82v20M254.00 177.82v20M261.00 177.82v20M268.00 177.82v20M275.00 177.82v20M282.00 177.82v20M289.00 177.82v20M296.00 177.82v20M303.00 177.82v20M310.00 177.82v20M317.00 177.82v20M324.00 177.82v20M331.00 177.82v20M338.00 177.82v20M345.00 177.82v20M352.00 177.82v20M359.00 177.82v20M366.00 177.82v20M373.00 177.82v20M380.00 177.82v20M387.00 177.82v20M394.00 177.82v20M401.00 177.82v20M408.00 177.82v20M415.00 177.82v20M422.00 177.82v20M429.00 177.82v20M436.00 177.82v20M198.06 192.82H441.94M198.06 187.82H441.94M198.06 182.82H441.94" fill="none" stroke="#f1f0dc" stroke-width=".55" opacity=".4"/>
+ <path d="M198.06 199.82v-24M441.94 199.82v-24" stroke="#4b4033" stroke-width="3.5"/>
+ <path d="M198.06 177.82H441.94" stroke="#fff6e4" stroke-width="3"/>
+ <use href="#lamp" transform="translate(139 235) scale(.72)"/><use href="#lamp" transform="translate(474 253) scale(.8)"/>
+ <use href="#bench" transform="translate(101 248) rotate(-8) scale(.8)"/><use href="#bench" transform="translate(501 286) rotate(5) scale(.8)"/>
+ <use href="#tree" transform="translate(24 320) scale(.8)"/><use href="#tree" transform="translate(617 320) scale(.94)"/>
+ <use href="#pumpkin" transform="translate(556 307) scale(1.05)"/>
+ <g fill="#b65f29"><path d="m77 283 6-7 8 5-6 7zm49-85 5-7 8 5-5 5zm312 94 8-6 7 4-9 7zM375 110l7-6 7 4-9 5z"/></g>
+ <g fill="#edac42"><path d="m109 304 6-7 8 5-6 7zm26-32 5-7 8 5-5 5zm330 19 8-6 7 4-9 7zM526 215l7-6 7 4-9 5zM225 120l6-8 9 4-9 7z"/></g>
+</svg>

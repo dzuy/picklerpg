@@ -3,8 +3,7 @@ import {focusView} from './view-focus';
 import {fillSetupPlayerCard} from './setup-player-card';
 import {courtSelector} from './court-selector';
 import {COURT_LOCATIONS,type CourtLocation} from './locations';
-import {defaultLineup} from './multiplayer/default-lineup';
-import {rosterStarters,starterIds} from './roster-membership';
+import {rosterStarters,ownedRosterPlayers,starterIds} from './roster-membership';
 import {CommunitySection} from './community-section';
 import {refreshCommunityDesigns} from './community-players';
 import {DEFAULT_RULES,isValidTargetScore,type ScoringMode} from './engine/scoring';
@@ -21,8 +20,14 @@ const courts=COURT_LOCATIONS.map(c=>({...c,playable:true}));
 export class MatchSetup {
  readonly element=document.createElement('main');
  private players:DesignedPlayer[]=[];
- private owned:DesignedPlayer[]=[];private eligible:string[]=[];private applyStarters=false;
- private setRoster(players:DesignedPlayer[]){const own=[...this.owned,...players];this.eligible=own.map(p=>p.id);const current=this.selected.map((id,i)=>i<2&&!this.eligible.includes(id)?null:this.players.find(p=>p.id===id)??null);const lineup=setupLineup(own,current);this.players=lineup.players;this.selected=lineup.selected;if(this.applyStarters){this.selected=[...defaultLineup(own,parseLibrary(browserStorage.getItem(PLAYER_STORAGE_KEY)).activeId,'',undefined,starterIds()),...this.selected.slice(2)];this.applyStarters=false;}this.restrictTeam();if(!this.element.hidden)this.render();}
+ private owned:DesignedPlayer[]=[];private eligible:string[]=[];private applyStarters=false;private loading=false;private generation=0;
+ private setRoster(players:DesignedPlayer[]){
+  const own=[...ownedRosterPlayers(this.owned),...players];this.eligible=own.map(p=>p.id);
+  const current=this.selected.map((id,i)=>i<2&&!this.eligible.includes(id)?null:this.players.find(p=>p.id===id)??null);
+  const defaults=this.applyStarters?{activeId:parseLibrary(browserStorage.getItem(PLAYER_STORAGE_KEY)).activeId,preferred:starterIds()}:undefined;
+  const lineup=setupLineup(own,current,Math.random,defaults);this.players=lineup.players;this.selected=lineup.selected;
+  this.applyStarters=false;this.restrictTeam();if(!this.element.hidden&&!this.loading)this.render();
+ }
  private restrictTeam(){for(let i=0;i<2;i++)if(!this.eligible.includes(this.selected[i])&&this.eligible.length)this.selected[i]=this.eligible.find(id=>!this.selected.slice(0,i).includes(id))??this.eligible[0];}
  private community=new CommunitySection(players=>this.setRoster(players));
  private starting=false;
@@ -42,7 +47,7 @@ export class MatchSetup {
    if(button.dataset.action==='back')back();
    if(button.dataset.mode==='solo'||button.dataset.mode==='local-human'){this.mode=button.dataset.mode;this.refresh(`[data-mode="${this.mode}"]`,this.mode==='solo'?'Solo selected.':'Two players selected. Each person controls one team using their characters’ skills.');}
    if(button.dataset.action==='random'){
-    this.selected=[this.selected[0],...shufflePlayers(this.players.map(p=>p.id).filter(id=>id!==this.selected[0])).slice(0,3)];
+    this.selected=[...this.selected.slice(0,2),...shufflePlayers(this.players.map(p=>p.id)).slice(0,2)];
     this.restrictTeam();this.refresh('[data-action=random]','New matchup selected.');
    }
    if(button.dataset.step)this.cycle(Number(button.dataset.slot),Number(button.dataset.step));
@@ -69,14 +74,25 @@ export class MatchSetup {
    }
   });
  }
- show(saved:DesignedPlayer[],current:(DesignedPlayer|null)[],mode:PlayMode='solo',scoring:ScoringMode='rally-doubles'){
+ show(saved:DesignedPlayer[],_current:(DesignedPlayer|null)[],_mode:PlayMode='solo',scoring:ScoringMode='rally-doubles'){
+  const generation=++this.generation;
   this.target=loadScoringPreference({scoring,target:DEFAULT_RULES.target}).target;
-  this.applyStarters=true;this.mode='solo';this.scoring=scoring;this.owned=saved;this.eligible=[...saved,...rosterStarters()].map(p=>p.id);
-  const lineup=setupLineup([...saved,...rosterStarters()],current);this.players=lineup.players;this.selected=lineup.selected;this.restrictTeam();
-  const opponents=shufflePlayers(this.players.map(p=>p.id));this.selected=[...this.selected.slice(0,2),...opponents.slice(0,2)];
-  this.render();this.element.hidden=false;void this.community.load();window.scrollTo(0,0);focusView(this.element);
+  this.applyStarters=true;this.loading=true;this.mode='solo';this.scoring=scoring;this.owned=saved;
+  const roster=[...ownedRosterPlayers(saved),...rosterStarters()];this.eligible=roster.map(p=>p.id);
+  const lineup=setupLineup(roster,[],Math.random,{activeId:parseLibrary(browserStorage.getItem(PLAYER_STORAGE_KEY)).activeId,preferred:starterIds()});
+  this.players=lineup.players;this.selected=lineup.selected;this.restrictTeam();
+  this.element.innerHTML='<div class="setup-shell"><button type="button" data-action="back">← Back to Play Menu</button><h1 id="setup-title">Play Solo</h1><p role="status">Loading your default players…</p></div>';
+  this.element.hidden=false;this.element.setAttribute('aria-busy','true');window.scrollTo(0,0);focusView(this.element);
+  void this.community.load().then(()=>{
+   if(generation!==this.generation)return;
+   this.loading=false;this.element.removeAttribute('aria-busy');this.render();focusView(this.element);
+  }).catch(error=>{
+   if(generation!==this.generation)return;
+   this.loading=false;this.element.removeAttribute('aria-busy');
+   this.element.querySelector('[role=status]')!.textContent=`Could not load your default players. Return to the play menu and try again. ${(error as Error).message}`;
+  });
  }
- hide(){this.element.hidden=true;this.gesture=null}
+ hide(){this.generation++;this.loading=false;this.element.removeAttribute('aria-busy');this.element.hidden=true;this.gesture=null}
  private canStart(){return isValidTargetScore(this.target)&&this.selected.slice(0,2).every(id=>this.eligible.includes(id))&&validLineup(this.players.map(p=>p.id),this.selected)&&courts.some(c=>c.id===this.court&&c.playable)}
  private refresh(focus:string,announcement:string){
   const keyboard=document.activeElement?.matches(':focus-visible');

@@ -1,1 +1,37 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 320"><defs><linearGradient id="s" x2="0" y2="1"><stop stop-color="#777aa8"/><stop offset="1" stop-color="#e4ac9a"/></linearGradient><pattern id="w" width="18" height="20" patternUnits="userSpaceOnUse"><path d="M4 5h8v5H4z" fill="#b5d8df" opacity=".6"/></pattern></defs><path fill="url(#s)" d="M0 0h640v320H0z"/><g fill="#344761"><path d="M0 95h75v225H0zM85 35h72v285H85zM166 110h63v210h-63zM430 65h78v255h-78zM518 0h69v320h-69zM598 84h42v236h-42z"/></g><path fill="url(#w)" d="M0 95h75v225H0zM85 35h72v285H85zM166 110h63v210h-63zM430 65h78v255h-78zM518 0h69v320h-69zM598 84h42v236h-42z"/><path d="M111 251l130-113 211 13 92 126-256 43z" fill="#71839b"/><path d="M111 251v69h433v-43l-256 43z" fill="#26374f"/><path d="M155 251l99-91 178 11 65 97-211 30z" fill="#214958"/><path d="M188 246l76-72 153 10 48 75-177 24z" fill="#278b9d"/><path d="M219 218l20-21 194 17 15 22z" fill="#75c7c7"/><g fill="none" stroke="#eafff5" stroke-width="3"><path d="M188 246l76-72 153 10 48 75-177 24zM219 218l229 18M239 197l194 17M340 180l-7 25M333 228l-5 49"/></g><path d="M211 217v-20l244 21v22" fill="none" stroke="#142c44" stroke-width="3"/><path d="M211 197l244 21" stroke="#f5ffff" stroke-width="3"/><path d="M112 232l129-112 211 13 92 126" fill="none" stroke="#b7e9ed" stroke-width="3"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 320">
+ <defs>
+  <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#747fa7"/><stop offset="1" stop-color="#edb6a2"/></linearGradient>
+  <linearGradient id="tower" x2="1" y2="1"><stop stop-color="#42556f"/><stop offset="1" stop-color="#25364d"/></linearGradient>
+  <pattern id="windows" width="17" height="20" patternUnits="userSpaceOnUse"><path d="M5 6h6v7H5z" fill="#b4d7dd" opacity=".5"/></pattern>
+  <pattern id="net" width="7" height="6" patternUnits="userSpaceOnUse"><path d="M0 0h7v6" fill="none" stroke="#d4e9e7" stroke-width=".6" opacity=".65"/></pattern>
+ </defs>
+ <path fill="url(#sky)" d="M0 0h640v320H0z"/>
+ <circle cx="346" cy="62" r="29" fill="#f6ceaf" opacity=".6"/>
+ <!-- Layered skyline sits behind the rooftop. -->
+ <path d="M0 93h45v227H0zm52 34h39v193H52zm126-48h42v241h-42zm49 24h44v217h-44zm244-23h39v240h-39zm89 30h41v210h-41zm49-57h40v267h-40z" fill="#717d98"/>
+ <path id="buildings" d="M0 143h63v177H0zM76 52h79v268H76zm85 109h52v159h-52zm335-116h74v275h-74zm85 88h59v187h-59z" fill="url(#tower)"/>
+ <use href="#buildings" fill="url(#windows)"/>
+ <path d="M0 143h63v177H0zM76 52h79v268H76zm85 109h52v159h-52zm335-116h74v275h-74zm85 88h59v187h-59z" fill="url(#windows)"/>
+ <g fill="#596b81"><path d="M73 48h85v7H73zm420-7h80v7h-80zM98 34h34v14H98zm413-14h30v14h-30z"/></g>
+ <path d="M526 5v24M116 18v17" stroke="#54647c" stroke-width="3"/>
+ <!-- Symmetrical rooftop and railing follow the centered court perspective. -->
+ <path d="M82 296H558V320H82Z" fill="#283b51"/>
+ <path d="M82 296 208 132H432L558 296Z" fill="#8194a5"/>
+ <g fill="none" stroke="#c1d9df" stroke-width="2.5">
+  <path d="M87 278 208 116H432L553 278M208 116v16m56-16v16m56-16v16m56-16v16m56-16v16M178 156v16m-30 24v16m-31 24v16m-30 24v16M462 156v16m30 24v16m31 24v16m30 24v16"/>
+ </g>
+<!-- Centered baseline view shared by the court thumbnail family. -->
+ <path d="M103 288 220 145H420L537 288Z" fill="#475e70"/>
+ <polygon points="237.00,161.00 403.00,161.00 494.00,275.00 146.00,275.00" fill="#278b9d"/>
+ <polygon points="218.99,183.56 421.01,183.56 446.66,215.69 193.34,215.69" fill="#75c7c7"/>
+ <g fill="none" stroke="#fff6e4" stroke-width="2.7" stroke-linejoin="round">
+  <polygon points="237.00,161.00 403.00,161.00 494.00,275.00 146.00,275.00"/>
+  <path d="M218.99,183.56 421.01,183.56 M193.34,215.69 446.66,215.69 M320.00,161.00 320.00,183.56 M320.00,215.69 320.00,275.00"/>
+ </g>
+ <path d="M198.06 177.82H441.94v20H198.06Z" fill="#163e4c" fill-opacity=".78"/>
+ <path d="M205.00 177.82v20M212.00 177.82v20M219.00 177.82v20M226.00 177.82v20M233.00 177.82v20M240.00 177.82v20M247.00 177.82v20M254.00 177.82v20M261.00 177.82v20M268.00 177.82v20M275.00 177.82v20M282.00 177.82v20M289.00 177.82v20M296.00 177.82v20M303.00 177.82v20M310.00 177.82v20M317.00 177.82v20M324.00 177.82v20M331.00 177.82v20M338.00 177.82v20M345.00 177.82v20M352.00 177.82v20M359.00 177.82v20M366.00 177.82v20M373.00 177.82v20M380.00 177.82v20M387.00 177.82v20M394.00 177.82v20M401.00 177.82v20M408.00 177.82v20M415.00 177.82v20M422.00 177.82v20M429.00 177.82v20M436.00 177.82v20M198.06 192.82H441.94M198.06 187.82H441.94M198.06 182.82H441.94" fill="none" stroke="#f1f0dc" stroke-width=".55" opacity=".4"/>
+ <path d="M198.06 199.82v-24M441.94 199.82v-24" stroke="#163e4c" stroke-width="3.5"/>
+ <path d="M198.06 177.82H441.94" stroke="#fff6e4" stroke-width="3"/>
+ <!-- Compact planters soften the rooftop without covering the playing lines. -->
+ <g><path d="m195 176 15 2v12l-15-2z" fill="#344c59"/><path d="m190 174 8-13 12 1 6 15-14 5z" fill="#628d78"/><path d="m506 240 15 2v12l-15-2z" fill="#344c59"/><path d="m501 238 8-13 12 1 6 15-14 5z" fill="#628d78"/></g>
+</svg>

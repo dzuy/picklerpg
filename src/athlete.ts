@@ -4,6 +4,7 @@ import {clone as cloneSkeleton} from 'three/addons/utils/SkeletonUtils.js';
 import type {AthletePose} from './athlete-motion';
 import type {PlayerId} from './engine/model';
 import {DEFAULT_APPEARANCE,type Appearance} from './player-design';
+import {animateCostumeWings} from './athlete-costumes';
 import {dressAthlete} from './athlete-options';
 
 const MODEL_URL='/models/riley/riley.glb';
@@ -55,12 +56,12 @@ export function createAthlete(id:PlayerId,color:string,appearance?:Appearance){
 function resetRig(root:THREE.Group){const rig=root.userData.playerRig as ReturnType<typeof collectRig>;for(const [name,bone] of rig.bones){bone.quaternion.copy(rig.rest.get(name)!);bone.position.copy(rig.positions.get(name)!)}return rig}
 function rotate(rig:ReturnType<typeof collectRig>,name:string,x=0,y=0,z=0){const bone=rig.bones.get(name);if(bone)bone.quaternion.copy(rig.rest.get(name)!).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(x,y,z,'XYZ')))}
 /** Map the established tactical poses onto the production skeleton. */
-export function animateAthlete(root:THREE.Group,pose:AthletePose){
+export function animateAthlete(root:THREE.Group,pose:AthletePose,wingTime=performance.now()/1000){
  const rig=resetRig(root);const pelvis=rig.bones.get('pelvis');if(pelvis)pelvis.position.y=rig.positions.get('pelvis')!.y-pose.crouch;
  // Elevate the hitting shoulder so an overhead clears the stylized oversized head.
  const shoulder=rig.bones.get('clavicle.R');if(shoulder&&pose.shoulderLift){shoulder.position.y+=pose.shoulderLift;shoulder.position.x-=pose.shoulderLift*.65;}
  rotate(rig,'chest',pose.lean*.4,pose.torso,pose.lean);rotate(rig,'upper_arm.R',pose.armX,pose.armY,pose.armZ);rotate(rig,'forearm.R',pose.elbow,pose.wrist*.18,pose.wrist*.35);rotate(rig,'hand.R',pose.wrist*.45,0,pose.wrist*.18);
- rotate(rig,'upper_arm.L',pose.offArm,0,-.12);rotate(rig,'thigh.L',pose.stride,0,.045);rotate(rig,'shin.L',Math.max(0,-pose.stride)*.6);rotate(rig,'thigh.R',-pose.stride,0,-.045);rotate(rig,'shin.R',Math.max(0,pose.stride)*.6);root.rotation.z=pose.lean;
+ rotate(rig,'upper_arm.L',pose.offArm,0,-.12);rotate(rig,'thigh.L',pose.stride,0,.045);rotate(rig,'shin.L',Math.max(0,-pose.stride)*.6);rotate(rig,'thigh.R',-pose.stride,0,-.045);rotate(rig,'shin.R',Math.max(0,pose.stride)*.6);root.rotation.z=pose.lean;animateCostumeWings(root,wingTime);
 }
 export function poseAthleteForPortrait(root:THREE.Group){
  const rig=resetRig(root);rotate(rig,'chest',0,.1);rotate(rig,'head',0,-.16,.025);rotate(rig,'upper_arm.R',-.08,0,.12);rotate(rig,'forearm.R',-.2);rotate(rig,'upper_arm.L',-.08,0,-.12);rotate(rig,'forearm.L',-.2);rotate(rig,'thigh.L',0,0,-.055);rotate(rig,'thigh.R',0,0,.055);
@@ -114,6 +115,7 @@ export function poseAthleteForRoster(root:THREE.Group){
  const seed=JSON.stringify(root.userData.appearance).split('').reduce((sum,char)=>sum+char.charCodeAt(0),0);
  if(seed%3===1)poseRosterReady(root);
  else poseRosterSwing(root,seed%3===0?'load':'follow');
+ animateCostumeWings(root,0);
 }
 type ShowcaseFrame=Map<string,{rotation:THREE.Quaternion;position:THREE.Vector3}>;
 /** A smooth practice loop: settle, prepare, swing, follow through, and recover. */
@@ -133,5 +135,5 @@ export function animateRosterAthlete(root:THREE.Group,time:number){
  const index=beats.findIndex((beat,i)=>i<beats.length-1&&t>=beat.at&&t<beats[i+1].at);
  const from=beats[index],to=beats[index+1],progress=(t-from.at)/(to.at-from.at),blend=progress*progress*(3-2*progress);
  for(const [name,bone] of rig.bones){const a=frames[from.pose].get(name)!,b=frames[to.pose].get(name)!;bone.quaternion.slerpQuaternions(a.rotation,b.rotation,blend);bone.position.lerpVectors(a.position,b.position,blend);}
- root.rotation.z=0;
+ root.rotation.z=0;animateCostumeWings(root,time);
 }

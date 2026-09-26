@@ -17,7 +17,7 @@ export class CourtEnvironment {
  protected fadeable(root:THREE.Object3D){
   // Batch static parts by material so skyline windows and canopy clusters stay cheap.
   const batches=new Map<string,THREE.Mesh<THREE.BufferGeometry,THREE.MeshStandardMaterial>[]>();
-  for(const child of [...root.children])if(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshStandardMaterial){const key=child.material.color.getHexString()+':'+child.material.emissiveIntensity;const batch=batches.get(key)??[];batch.push(child);batches.set(key,batch)}
+  for(const child of [...root.children])if(child instanceof THREE.Mesh&&child.material instanceof THREE.MeshStandardMaterial){const key=child.material.color.getHexString()+':'+child.material.emissiveIntensity+':'+!!child.geometry.index;const batch=batches.get(key)??[];batch.push(child);batches.set(key,batch)}
   for(const meshes of batches.values())if(meshes.length>1){
    const geometries=meshes.map(m=>{m.updateMatrix();return m.geometry.clone().applyMatrix4(m.matrix)});
    const geometry=mergeGeometries(geometries);geometries.forEach(g=>g.dispose());
@@ -29,7 +29,7 @@ export class CourtEnvironment {
 
 export class CityRooftop extends CourtEnvironment {
  constructor(){
-  super();this.group.name='The City';
+  super();this.group.name='Skyline';
   // The playing surface is sixty metres above the street, on its own tower.
   this.box(17,60,26,0,-30.2,0,'#26374f');
   this.box(18,.35,27,0,-.24,0,'#64748a');
@@ -100,7 +100,7 @@ export class GlowballHall extends CourtEnvironment {
 
 export class CostaRicanJungle extends CourtEnvironment {
  constructor(){
-  super(0);this.group.name='The Jungle';
+  super(0);this.group.name='La Fortuna';
   for(let i=0;i<58;i++){
    const angle=i*2.39996,r=13+(i%8)*3.6,x=Math.cos(angle)*r,z=Math.sin(angle)*r;
    // Leave a wider clearing by removing the two innermost rings of trees.
@@ -162,5 +162,140 @@ export class CostaRicanJungle extends CourtEnvironment {
   for(const side of [-1,1]){this.orb(.12,.85,1.03,side*.2,'#a87837',g);this.orb(.04,1.09,.82,side*.2,'#19291c',g);for(const end of [-1,1])this.link(new THREE.Vector3(end*.5,.55,side*.24),new THREE.Vector3(end*.6,.08,side*.27),.11,'#cc9445',g);}
   for(let i=0;i<18;i++){const spot=this.orb(.055,(i%6-2.5)*.22,.6+Math.floor(i/6)*.13,(i%2?1:-1)*.35,'#48372a',g);spot.scale.y=1.3;}
   this.link(new THREE.Vector3(-.75,.6,0),new THREE.Vector3(-1.5,.82,.2),.075,'#c79349',g);this.orb(.09,1.13,.65,0,'#523c2c',g);
+ }
+}
+
+/** A public recreation park; every fixture sits beyond the pickleball run-off. */
+export class NeighborhoodPark extends CourtEnvironment {
+ constructor(){
+  super(0);this.group.name='Hemingway';
+  this.landscape();
+  // Pale concrete walks connect the court, playground, and basketball court.
+  this.box(49,.08,2.4,0,-.10,-12,'#d8cbb1');
+  for(const x of [-8,8])this.box(2,.08,29,x,-.10,1,'#d8cbb1');
+  this.box(2.4,.08,9,0,-.10,-17,'#d8cbb1');
+  this.playground(-12,-19);this.basketball(13,-20);
+  for(const [x,z,rotation] of [[-6.5,-11,0],[6.5,-11,0],[-10,-26,Math.PI],[9,8,-Math.PI/2]]){
+   const bench=new THREE.Group();bench.name='park-bench';bench.position.set(x,0,z);bench.rotation.y=rotation;this.group.add(bench);
+   for(const depth of [-.22,0,.22])this.box(2.4,.09,.16,0,.5,depth,'#ba804d',bench);
+   for(const y of [.8,1.02])this.box(2.4,.15,.09,0,y,-.29,'#ba804d',bench);
+   for(const side of [-1,1]){this.box(.09,1.06,.09,side*.9,.49,-.3,'#355b53',bench);this.box(.09,.5,.09,side*.9,.2,.24,'#355b53',bench);this.box(.1,.08,.68,side*1.05,.74,0,'#355b53',bench);}
+   this.fadeable(bench);
+  }
+  for(const x of [-9.5,9.5]){
+   const bin=new THREE.Group();bin.position.set(x,0,-10.5);this.group.add(bin);
+   this.mesh(new THREE.CylinderGeometry(.32,.3,.85,12),'#355b53',0,.3,0,bin);
+   this.mesh(new THREE.CylinderGeometry(.37,.37,.09,12),'#203d39',0,.77,0,bin);this.fadeable(bin);
+  }
+ }
+ private landscape(){
+  // Low, irregular turf patches and grass tufts break up the large lawn.
+  const lawn=(x:number,z:number)=>!(Math.abs(x)<9.8&&z>-14&&z<17)&&!(z<-10&&z>-28&&Math.abs(x)<25)&&!(Math.abs(x)<19&&z>4&&z<12);
+  const transform=new THREE.Object3D(),patchAreas:{x:number;z:number;r:number}[]=[];
+  for(const [tone,color] of ['#80ad54','#719b48','#8bb45f'].entries()){
+   const patches=new THREE.InstancedMesh(new THREE.CircleGeometry(1,9),new THREE.MeshStandardMaterial({color,roughness:1}),32);patches.name='varied-park-lawn';
+   let count=0;
+   for(let i=0;count<32&&i<500;i++){
+    const a=(i*3+tone)*2.39996,r=12+i%15*3.1,x=Math.cos(a)*r,z=Math.sin(a)*r;
+    const radius=Math.max(1.3+i%4*.7,.8+i%3*.5);
+    if(!lawn(x,z)||patchAreas.some(p=>Math.hypot(x-p.x,z-p.z)<radius+p.r+.1))continue;
+    patchAreas.push({x,z,r:radius});
+    transform.position.set(x,-.13,z);transform.rotation.set(-Math.PI/2,0,a);transform.scale.set(1.3+i%4*.7,.8+i%3*.5,1);transform.updateMatrix();patches.setMatrixAt(count++,transform.matrix);
+   }
+   patches.count=count;patches.receiveShadow=true;this.group.add(patches);
+  }
+  const grassGeometry=new THREE.BufferGeometry();grassGeometry.setAttribute('position',new THREE.Float32BufferAttribute([-.13,0,0,-.04,.29,0,.04,0,0,0,0,-.1,0,.22,.01,0,0,.12],3));grassGeometry.computeVertexNormals();
+  const grass=new THREE.InstancedMesh(grassGeometry,new THREE.MeshStandardMaterial({color:'#557f3c',side:THREE.DoubleSide,roughness:1}),200);grass.name='park-grass-tufts';
+  let count=0;
+  for(let i=0;count<200&&i<1000;i++){
+   const a=i*2.39996,r=10+i%31*1.4,x=Math.cos(a)*r,z=Math.sin(a)*r;if(!lawn(x,z))continue;
+   transform.position.set(x,-.14,z);transform.rotation.set(0,a,0);transform.scale.setScalar(.7+i%4*.15);transform.updateMatrix();grass.setMatrixAt(count++,transform.matrix);
+  }
+  grass.count=count;grass.receiveShadow=true;this.group.add(grass);
+  for(const [x,z] of [[-11,-5],[11,-5],[-5,15.5],[5,15.5],[-23,-8],[23,10]])this.garden(x,z);
+  for(const [x,z] of [[-12,2],[12,2],[-17,15],[18,-9],[-25,-26],[25,23],[-4,23]]){
+   const rocks=new THREE.Group();rocks.name='park-rocks';rocks.position.set(x,0,z);this.group.add(rocks);
+   for(let i=0;i<3;i++){const rock=this.orb(.45+i*.16,(i-1)*.65,.14,i%2*.5,['#839087','#a3a89a','#75877e'][i],rocks);rock.scale.set(1.15,.58,.85);rock.rotation.y=i*.8;}
+   this.fadeable(rocks);
+  }
+  for(const side of [-1,1]){
+   this.box(7,.065,1.5,side*12,-.10,8,'#d8cbb1');
+   this.picnic(side*15,8,side*.2);
+  }
+  // Drinking fountain and a timber park noticeboard beside the walking path.
+  const fountain=new THREE.Group();fountain.name='drinking-fountain';fountain.position.set(10.2,0,-.5);this.group.add(fountain);
+  this.mesh(new THREE.CylinderGeometry(.22,.3,.95,10),'#527e76',0,.35,0,fountain);
+  this.mesh(new THREE.CylinderGeometry(.4,.28,.12,12),'#b5c8c4',0,.88,0,fountain);
+  this.box(.07,.13,.07,.2,.98,0,'#607e83',fountain);this.fadeable(fountain);
+  const board=new THREE.Group();board.name='park-noticeboard';board.position.set(-10.4,0,.1);board.rotation.y=Math.PI/2;this.group.add(board);
+  for(const x of [-.65,.65])this.box(.13,2,.13,x,.9,0,'#876441',board);
+  this.box(1.6,1.1,.15,0,1.45,0,'#876441',board);this.box(1.35,.85,.035,0,1.45,.095,'#e8d7ad',board);
+  this.box(.4,.52,.015,-.3,1.47,.12,'#f5eee0',board);this.box(.48,.3,.015,.3,1.58,.12,'#89ab80',board);this.box(.48,.16,.015,.3,1.26,.12,'#d7a569',board);
+  this.box(1.85,.12,.4,0,2.05,0,'#466f60',board);this.fadeable(board);
+ }
+ private garden(x:number,z:number){
+  const bed=new THREE.Group();bed.name='park-flower-bed';bed.position.set(x,0,z);this.group.add(bed);
+  const soil=this.mesh(new THREE.CylinderGeometry(1.6,1.6,.08,12),'#866a48',0,-.08,0,bed);soil.scale.z=.7;
+  for(let i=0;i<12;i++){const a=i*Math.PI/6,stone=this.orb(.24,Math.cos(a)*1.55,.015,Math.sin(a)*1.08,'#b2b09b',bed);stone.scale.set(1,.6,.85);}
+  for(let i=0;i<3;i++){const bush=this.orb(.48,(i-1)*.65,.28,-.15,['#4e8751','#659c56','#3e7950'][i],bed);bush.scale.set(1,.8,.9);}
+  for(let i=0;i<13;i++){
+   const a=i*2.39996,r=.45+(i%3)*.23,px=Math.cos(a)*r,pz=Math.sin(a)*r;
+   this.box(.025,.32,.025,px,.08,pz,'#56834b',bed);
+   const bloom=this.orb(.115,px,.28,pz,['#eac05e','#e49a94','#e5e4c5'][i%3],bed);bloom.scale.y=.5;
+  }
+  this.fadeable(bed);
+ }
+ private picnic(x:number,z:number,angle:number){
+  const table=new THREE.Group();table.name='park-picnic-table';table.position.set(x,0,z);table.rotation.y=angle;this.group.add(table);
+  const pad=this.mesh(new THREE.CylinderGeometry(2.5,2.5,.045,12),'#c2b798',0,-.12,0,table);pad.scale.z=.8;
+  for(let i=0;i<5;i++)this.box(2.6,.1,.18,0,.82,(i-2)*.2,'#ad7949',table);
+  for(const side of [-1,1]){
+   this.box(2.7,.1,.35,0,.44,side*.85,'#ad7949',table);
+   for(const end of [-1,1])this.link(new THREE.Vector3(end*.88,.79,side*.3),new THREE.Vector3(end*.88,-.08,side*.95),.065,'#39574d',table);
+   this.box(.1,.09,2.05,side*.88,.33,0,'#39574d',table);
+  }
+  this.fadeable(table);
+ }
+ private playground(x:number,z:number){
+  this.box(15,.10,10,x,-.09,z,'#cbb18a');
+  // Low timber edging around the sand / wood-chip play area.
+  for(const side of [-1,1]){this.box(15,.18,.16,x,.01,z+side*5,'#a08059');this.box(.16,.18,10,x+side*7.5,.01,z,'#a08059');}
+  const play=new THREE.Group();play.name='playground';play.position.set(x-3,0,z);this.group.add(play);
+  for(const px of [-1,1])for(const pz of [-1,1])this.box(.14,3.3,.14,px,1.5,pz,'#388e9c',play);
+  this.box(2.25,.18,2.3,0,1.45,0,'#e6b452',play);
+  const roof=this.mesh(new THREE.ConeGeometry(1.9,1.15,4),'#e57651',0,3.55,0,play);roof.rotation.y=Math.PI/4;
+  for(const side of [-1,1])for(let i=-.8;i<=.8;i+=.4)this.box(.08,.8,.08,side,1.95,i,'#f5d06b',play);
+  // Ladder to the platform and a broad yellow slide facing the court.
+  for(const side of [-1,1])this.link(new THREE.Vector3(side*.5,0,-2),new THREE.Vector3(side*.5,1.5,-1),.07,'#388e9c',play);
+  for(let i=0;i<5;i++)this.box(1,.08,.10,0,.2+i*.28,-1.87+i*.19,'#f1cf7a',play);
+  const a=new THREE.Vector3(0,1.5,1),b=new THREE.Vector3(0,.12,3.7),mid=a.clone().add(b).multiplyScalar(.5);
+  const slide=this.box(1.1,.10,a.distanceTo(b),mid.x,mid.y,mid.z,'#f4c64e',play);slide.rotation.x=Math.atan2(1.38,2.7);
+  for(const side of [-1,1])this.link(new THREE.Vector3(side*.59,1.65,1),new THREE.Vector3(side*.59,.27,3.7),.09,'#e7a83d',play);
+  this.fadeable(play);
+  const swings=new THREE.Group();swings.name='swings';swings.position.set(x+3.7,0,z);this.group.add(swings);
+  for(const sx of [-2.3,2.3])for(const sz of [-1.3,1.3])this.link(new THREE.Vector3(sx,0,sz),new THREE.Vector3(sx,3,0),.09,'#dc7851',swings);
+  this.box(5,.16,.16,0,3,0,'#dc7851',swings);
+  for(const sx of [-1,1]){
+   for(const side of [-1,1])this.link(new THREE.Vector3(sx+side*.36,2.96,0),new THREE.Vector3(sx+side*.36,.62,.15),.018,'#647780',swings);
+   this.box(.86,.09,.4,sx,.58,.15,'#355b53',swings);
+  }
+  this.fadeable(swings);
+ }
+ private basketball(x:number,z:number){
+  const court=new THREE.Group();court.name='basketball-court';court.position.set(x,0,z);this.group.add(court);
+  this.box(13,.1,12,0,-.08,0,'#718e8d',court);
+  this.box(4,.012,4.8,0,-.015,-3,'#cd987a',court);
+  for(const side of [-1,1]){this.box(.07,.015,11,side*6,-.005,0,'#f6eddb',court);this.box(12,.015,.07,0,-.005,side*5.5,'#f6eddb',court);this.box(.07,.015,4.8,side*2,.005,-3,'#f6eddb',court);}
+  this.box(4,.015,.07,0,.005,-.6,'#f6eddb',court);
+  const arc=new THREE.EllipseCurve(0,-3.8,5.1,5.1,0,Math.PI,false,0).getPoints(40);
+  const stripe=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(arc.map(p=>new THREE.Vector3(p.x,.005,p.y))),40,.035,4,false),new THREE.MeshStandardMaterial({color:'#f6eddb'}));court.add(stripe);
+  const hoop=new THREE.Group();hoop.name='basketball-hoop';hoop.position.set(x,0,z-5);this.group.add(hoop);
+  this.box(.16,3.6,.16,0,1.7,0,'#526b70',hoop);this.box(.12,.12,1,0,3.25,.4,'#526b70',hoop);
+  this.box(1.8,1.1,.10,0,3.35,.9,'#f5eedc',hoop);
+  for(const sx of [-.32,.32])this.box(.045,.43,.02,sx,3.25,.965,'#ca6946',hoop);
+  for(const y of [3.04,3.46])this.box(.68,.045,.02,0,y,.965,'#ca6946',hoop);
+  const rim=this.mesh(new THREE.TorusGeometry(.28,.035,6,20),'#d86e3f',0,3.04,1.22,hoop);rim.rotation.x=Math.PI/2;
+  for(let i=0;i<10;i++){const a=i*Math.PI/5;this.link(new THREE.Vector3(Math.cos(a)*.27,3.02,1.22+Math.sin(a)*.27),new THREE.Vector3(Math.cos(a)*.17,2.62,1.22+Math.sin(a)*.17),.012,'#f5eedc',hoop);}
+  this.fadeable(hoop);
  }
 }

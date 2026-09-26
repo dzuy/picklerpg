@@ -4,6 +4,19 @@ The approved direction is **Daylight Arcade**: warm cream, white cards, deep tea
 
 This replaces the earlier [neon arena guide](archive/STYLE-GUIDE-NEON.md) for application UI. Character art, models, outfits, court materials, and gameplay remain unchanged. Marketing artwork and the legacy asset pack are not automatically recolored.
 
+## Court thumbnails
+
+All new and revised court-selection thumbnails must match the approved illustration family:
+
+- Use a straight-on view from behind the near baseline, centered along the length of the court. The court must be a symmetrical four-sided trapezoid in perspective, with a wider near baseline and narrower far baseline.
+- Keep both baselines, the net, and kitchen lines horizontal. Keep the service centerline vertical and centered; sidelines converge symmetrically toward the background. No three-quarter, isometric, diagonally rotated, or top-down courts.
+- Use flat, stylized SVG artwork with simple geometric scenery, restrained shading, and the court's recognizable colors. Place themed details around and behind the court while keeping the playing lines readable.
+- For new assets, use a `640 320` viewBox. Use the centered court geometry in [Skyline](../public/images/city-court.svg), [Winter Wonderland](../public/images/winter-wonderland.svg), or [Autumn Park](../public/images/autumn-park.svg) as a starting point, changing the palette and scenery rather than inventing a new viewing angle.
+- The perspective references are [La Fortuna](../public/images/jungle-court.svg), [Glowball](../public/images/glowball-court.svg), [Arizona Desert](../public/images/arizona-desert.svg), and [The Beach](../public/images/venice-sunset.svg). Their existing framing remains approved.
+- Verify new thumbnails beside the existing set and at the selector's actual crop (`240 × 108` desktop and `220 × 108` mobile, using `object-fit: cover`). The court, net, and theme must remain recognizable at that size.
+
+This rule governs thumbnail artwork; it does not change the interactive 3D camera or gameplay geometry.
+
 ## Source of truth
 
 Edit [tokens.css](../src/design-system/tokens.css). This is the single editable palette for product UI. [components.css](../src/design-system/components.css) defines reusable controls; existing feature styles consume the same semantic roles. [page-theme.css](../src/page-theme.css) loads both for every route. Do not create another per-feature palette.
@@ -81,3 +94,25 @@ After edits:
 - September 21, 2026: added project-backed named styles, save/update/load, local draft recovery, and explicit Use in app. Preserved the user’s current Hot Pink palette without changing its colors.
 
 - September 23, 2026: Open Play reuses the forest court-selection artwork in a white empty-state card, with a compact pink Create a game pill and responsive image/text layout. Removed the decorative paddle and schematic court drawings.
+
+### PickleBash+ customization preparation
+
+Hair, facial hair, expressions, hats, tops, bottoms, glasses, accessories, and paddles now have separate horizontally scrolling Standard (free) and PickleBash+ (premium) rows inside each category card. Explicit item assignments live in `src/player-customization-tiers.ts`. Free hair options are None (first), Ponytail, Short, Bob, and Spiky; all remaining hair options are premium. Free expressions are Happy (default), Serious, and Determined; Angry, Crying, and Confident are premium. Free glasses are None (first), Square, Round, and Oval; Sport wraparound, Cat eye, and Hexagon are premium. Sunglasses and Sport shades are excluded from the picker and appearance shuffle; existing saved appearances remain supported. Free hats are None (first), Cap, Cap back, Visor, and Headband; other hats are premium. Beanie and Bucket remain excluded from the picker and shuffle. Free paddles are Squarish, Squarish stripes, Rounded, and Rounded stripes; other paddle styles are premium. Rectangular and Circular remain hidden. Other categories keep “None” and default appearance items standard. All existing color palettes and custom color controls stay shared and free. This content-organization pass keeps both tiers selectable; premium visual treatment and subscription enforcement are a later step.
+
+Premium headwear includes Viking hat, Cowboy hat, Santa hat, and Large sombrero, built as bone-attached 3D accessories. Their main material uses the existing free Hat Color palette, with fixed decorative trim; wide hat thumbnails use a wider camera framing.
+
+The premium Dinosaur tail accessory attaches to the pelvis and curves outward for visibility in the editor. Accessories Color controls the tail, with lighter matching spikes and a dedicated rear-angle thumbnail.
+
+Free facial hair options are None (first), Mustache, and Short beard; Goatee, Long beard, and Chops are premium. Facial Hair Color remains free.
+
+Premium glasses include Stars, Flowers, Hearts, Diamonds, and Large oversized frames with matching lens shapes. They use the existing free frame/lens colors and translucency controls. Glasses thumbnails use wider framing to show the complete frames.
+
+### Full-body Outfits
+
+Outfits follows Accessories in the editor. Frog, Dinosaur, Lion, Bear, Butterfly, and Bee are all PickleBash+ costumes; None removes the costume without requiring premium access. Each open-face suit replaces visible hair, hats, tops, bottoms, shoes, socks, and accessories with rig-attached costume parts while preserving saved selections. Expressions, glasses, facial hair, and paddles stay available. Each outfit starts with a recognizable default color and supports the shared free Outfit Color palette with Custom Color first. Costumes and their colors persist in saved players, with older records defaulting to no outfit. As with the other premium categories, subscription locking remains a later step.
+
+Toucan has been retired; saved Toucan selections normalize to None. Bee wings project farther behind the suit, and both insect suits have a gentle three-second wing flap. The editor keeps the wings moving while the character pose is still, respecting reduced-motion preferences. Dinosaur head spikes are smaller and seated within the hood.
+
+The crown has raised multicolor faceted jewels around its band. Cape is a premium accessory attached at the shoulders, with folded cloth and a rear-view thumbnail. It uses the existing free Accessories Color control and is hidden while a full-body outfit is worn.
+
+Tiara is premium headwear with an open-backed band, five jewel arches, colored faceted stones, and pearl tips. Its band uses the existing free Hat Color control.

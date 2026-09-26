@@ -1,5 +1,6 @@
 import {newPlayer,type DesignedPlayer} from './player-design';
 import {LOOKS} from './player-looks';
+import {defaultLineup} from './multiplayer/default-lineup';
 
 export function shufflePlayers(ids:string[],random= Math.random):string[]{
  const result=[...ids];
@@ -7,12 +8,14 @@ export function shufflePlayers(ids:string[],random= Math.random):string[]{
  return result;
 }
 
-export function setupLineup(saved:DesignedPlayer[],current:(DesignedPlayer|null)[],random=Math.random){
+export function setupLineup(saved:DesignedPlayer[],current:(DesignedPlayer|null)[],random=Math.random,defaults?:{activeId:string|null;preferred:string[]}){
  const presets=LOOKS.map((look,i)=>({...newPlayer(`preset-${i}`),name:look.name,appearance:{...look.appearance},skills:{...look.skills}}));
- // Saved records win by ID. Keep current players even if their library is still loading.
+ // Only current roster records and built-in opponents belong in a new setup.
  const records=new Map<string,DesignedPlayer>();
- for(const player of [...saved,...current.filter((p):p is DesignedPlayer=>p!==null),...presets])if(!records.has(player.id))records.set(player.id,player);
+ for(const player of [...saved,...presets])if(!records.has(player.id))records.set(player.id,player);
  const players=[...records.values()];
+ current=current.map(player=>player?records.get(player.id)??null:null);
+ if(defaults)current=[...defaultLineup(saved,defaults.activeId,'',undefined,defaults.preferred).map(id=>records.get(id)!),null,null];
  const selected:string[]=[];
  selected.push(current[0]?.id??players[0].id);
  const available=shufflePlayers(players.map(p=>p.id).filter(id=>id!==selected[0]),random);

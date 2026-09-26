@@ -1,8 +1,10 @@
 import test from 'node:test';
+import {AutumnPark} from '../src/autumn-park';
+import {WinterWonderland} from '../src/winter-wonderland';
 import assert from 'node:assert/strict';
 import {existsSync} from 'node:fs';
 import * as THREE from 'three';
-import {CityRooftop,GlowballHall,CostaRicanJungle} from '../src/court-environments';
+import {NeighborhoodPark,CityRooftop,GlowballHall,CostaRicanJungle} from '../src/court-environments';
 import {COURT_LOCATIONS,LOCATION_PALETTES,isCourtLocation,courtName} from '../src/locations';
 import {createPickleball,setPickleballGlow} from '../src/pickleball';
 import {OpenPlayStore} from '../src/persistence/open-play-store';
@@ -11,11 +13,11 @@ import {parseSoloLaunch} from '../src/solo-launch';
 import {newPlayer} from '../src/player-design';
 
 test('every court has a palette, a picker image, and a distinct display name',()=>{
- assert.equal(new Set(COURT_LOCATIONS.map(c=>c.id)).size,6);
+ assert.equal(new Set(COURT_LOCATIONS.map(c=>c.id)).size,8);
  for(const court of COURT_LOCATIONS){assert.ok(LOCATION_PALETTES[court.id]);assert.ok(existsSync(new URL('../public'+court.image,import.meta.url)));assert.ok(isCourtLocation(court.id));assert.ok(courtName(court.id));}
  for(const value of [undefined,null,'unknown','toString',{}])assert.equal(isCourtLocation(value),false);
 });
-for(const [id,Environment] of [['city',CityRooftop],['glowball',GlowballHall],['jungle',CostaRicanJungle]] as const){
+for(const [id,Environment] of [['autumn',AutumnPark],['winter',WinterWonderland],['forest',NeighborhoodPark],['city',CityRooftop],['glowball',GlowballHall],['jungle',CostaRicanJungle]] as const){
  test(`${id} has finite scenery, batches geometry, and fades obstructions`,()=>{
   const environment=new Environment();let meshes=0;
   environment.group.traverse(o=>{if(o instanceof THREE.Mesh){meshes++;o.geometry.computeBoundingBox();const b=o.geometry.boundingBox!;assert.ok([...b.min,...b.max].every(Number.isFinite));}});

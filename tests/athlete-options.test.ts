@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {clone} from 'three/addons/utils/SkeletonUtils.js';
+import {animateCostumeWings} from '../src/athlete-costumes';
 import {dressAthlete} from '../src/athlete-options';
 import {LOOKS,applyPresentation} from '../src/player-looks';
 import {APPEARANCE_OPTIONS,newPlayer,validatePlayer,parseLibrary} from '../src/player-design';
@@ -14,8 +15,8 @@ test('every wardrobe option fits the production skeleton with finite geometry an
  for(const appearance of cases){
   const model=clone(asset.scene);model.rotation.y=Math.PI;dressAthlete(model,appearance);model.updateMatrixWorld(true);
   model.traverse(o=>{if(o instanceof THREE.Mesh){o.geometry.computeBoundingBox();const bounds=o.geometry.boundingBox!;assert.ok([...bounds.min,...bounds.max].every(Number.isFinite),`${JSON.stringify(appearance)} ${o.name}`)}if(o.userData.option)assert.ok(o.parent instanceof THREE.Bone,`${o.name} follows a bone`)});
-  if(appearance.top!=='tank')assert.ok(model.getObjectByName(`option-top-${appearance.top}`));
-  if(appearance.hat!=='none')assert.ok(model.getObjectByName(`option-hat-${appearance.hat}`));
+  if((!appearance.outfit||appearance.outfit==='none')&&appearance.top!=='tank')assert.ok(model.getObjectByName(`option-top-${appearance.top}`));
+  if((!appearance.outfit||appearance.outfit==='none')&&appearance.hat!=='none')assert.ok(model.getObjectByName(`option-hat-${appearance.hat}`));
   if(appearance.glasses!=='none')assert.ok(model.getObjectByName(`option-glasses-${appearance.glasses}`));
   for(const name of ['top','bottom','hair'])if((name==='top'&&appearance.top!=='tank')||(name==='bottom'&&appearance.bottom!=='skirt')||(name==='hair'&&appearance.hairStyle!=='ponytail'))model.traverse(o=>{if(o.userData.module_slot===name)assert.equal(o.visible,false)});
  }
@@ -119,4 +120,55 @@ test('lens translucency persists and controls every glasses style',()=>{
   model.traverse(o=>{if(o instanceof THREE.Mesh&&o.name==='glasses-lens'){lenses++;assert.equal((o.material as THREE.MeshStandardMaterial).opacity,1-translucency/100);}});assert.equal(lenses,2);
  }
  for(const value of [-1,101,NaN,'50']){const player=newPlayer('bad-lens');Object.assign(player.appearance,{lensTranslucency:value});assert.throws(()=>validatePlayer(player),/translucency/);}
+});
+
+
+test('premium costumes replace clothing on the rig without modifying saved choices',()=>{
+ for(const outfit of APPEARANCE_OPTIONS.outfit.filter(value=>value!=='none')){
+  const player=newPlayer('costume');Object.assign(player.appearance,{outfit,outfitColor:'#ac7bd8',hat:'crown',top:'hoodie',bottom:'pants',accessory:'dinosaur-tail'});
+  const original=structuredClone(player.appearance),model=clone(asset.scene);
+  dressAthlete(model,player.appearance);model.updateMatrixWorld(true);
+  assert.deepEqual(player.appearance,original);
+  assert.ok(model.getObjectByName(`outfit-${outfit}-hood`)?.parent instanceof THREE.Bone);
+  assert.ok(model.getObjectByName(`outfit-${outfit}-body`)?.parent instanceof THREE.Bone);
+  for(const name of ['option-hat-crown','option-top-hoodie','option-bottom-pants','option-dinosaur-tail'])assert.equal(model.getObjectByName(name),undefined);
+  model.traverse(o=>{if(['top','bottom','shoes','socks','hair'].includes(o.userData.module_slot))assert.equal(o.visible,false);});
+  const roundTrip=parseLibrary(JSON.stringify({version:1,activeId:player.id,players:[player]})).players[0];
+  assert.deepEqual(roundTrip.appearance,original);
+  roundTrip.appearance.outfit='none';const restored=clone(asset.scene);dressAthlete(restored,roundTrip.appearance);
+  for(const name of ['option-hat-crown','option-top-hoodie','option-bottom-pants','option-dinosaur-tail'])assert.ok(restored.getObjectByName(name));
+ }
+});
+
+test('legacy appearances gain safe outfit defaults and invalid costumes are rejected',()=>{
+ const legacy=JSON.parse(JSON.stringify(newPlayer('legacy-costume')));delete legacy.appearance.outfit;delete legacy.appearance.outfitColor;
+ const appearance=validatePlayer(legacy).appearance;assert.equal(appearance.outfit,'none');assert.equal(appearance.outfitColor,'#36936c');
+ assert.throws(()=>validatePlayer({...legacy,appearance:{...appearance,outfit:'dragon'}}));
+ assert.throws(()=>validatePlayer({...legacy,appearance:{...appearance,outfitColor:'invalid'}}));
+});
+
+
+test('insect wings flap slowly from their back hinges and loop continuously',()=>{
+ for(const outfit of ['bee','butterfly'] as const){
+  const model=clone(asset.scene);dressAthlete(model,{...LOOKS[0].appearance,outfit});
+  const hinges=model.userData.costumeWingHinges as THREE.Group[];assert.equal(hinges.length,2);
+  animateCostumeWings(model,0);const start=hinges.map(h=>h.rotation.y);
+  animateCostumeWings(model,1.5);hinges.forEach((h,i)=>assert.ok(Math.abs(h.rotation.y-start[i])>.3));
+  assert.ok(Math.abs(hinges[0].rotation.y+hinges[1].rotation.y)<1e-9);
+  animateCostumeWings(model,3);hinges.forEach((h,i)=>assert.ok(Math.abs(h.rotation.y-start[i])<1e-9));
+ }
+});
+
+test('outfits replace every shoe style and socks while retaining saved footwear',()=>{
+ for(const shoeStyle of APPEARANCE_OPTIONS.shoeStyle){
+  const a={...LOOKS[0].appearance,outfit:'frog' as const,shoeStyle,shoes:'#ff0000'},model=clone(asset.scene);dressAthlete(model,a);
+  assert.equal(model.getObjectByName('shoes_01')!.visible,false);assert.equal(model.getObjectByName('socks_01')!.visible,false);
+  assert.equal(model.getObjectByName('option-shoe-L'),undefined);assert.ok(model.getObjectByName('outfit-frog-foot-L'));
+  assert.equal(a.shoeStyle,shoeStyle);assert.equal(a.shoes,'#ff0000');
+ }
+});
+
+test('removed Toucan saves fall back to no outfit',()=>{
+ const player=newPlayer('retired');(player.appearance as unknown as {outfit:string}).outfit='toucan';
+ assert.equal(validatePlayer(player).appearance.outfit,'none');assert.ok(!(APPEARANCE_OPTIONS.outfit as readonly string[]).includes('toucan'));
 });

@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 320">
+<defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#98cfe4"/><stop offset="1" stop-color="#e3f2e5"/></linearGradient><g id="tree"><path d="M-4 0h8v-48h-8" fill="#866042"/><path d="M-33-36-40-65-20-87 8-94 34-72 31-42 8-29Z" fill="#3d855b"/><path d="m-20-87 28-7 26 22-26 17-36-4Z" fill="#6eab67"/></g><g id="bench"><path d="M-22 4v15m43-15v15" stroke="#34564d" stroke-width="4"/><path d="M-29-10h58v7h-58zm0 11h58v7h-58z" fill="#be8957"/></g></defs>
+<path fill="url(#sky)" d="M0 0h640v320H0z"/><circle cx="533" cy="42" r="23" fill="#fff2b1"/>
+<path d="M0 123Q150 98 316 122T640 112V320H0Z" fill="#8eb969"/><path d="M0 184 640 151v20L0 210Z" fill="#e0cfb0"/>
+<g><use href="#tree" transform="translate(30 155) scale(1.1)"/><use href="#tree" transform="translate(278 131) scale(.65)"/><use href="#tree" transform="translate(594 145)"/><use href="#tree" transform="translate(337 132) scale(.65)"/></g>
+<!-- Playground: roofed climbing tower, slide, and two swings. -->
+<path d="m67 154 34-41 134 7 32 39-155 22Z" fill="#d4b78a"/>
+<g stroke="#3b8594" stroke-width="5"><path d="M98 148V86m39 66V89m-39 28h39"/><path d="M100 120 90 153m12-23H97m2 11h-5" stroke-width="3"/></g>
+<path d="m88 91 29-29 32 32Z" fill="#e77f59"/><path d="M101 112h34v9h-34" fill="#e5b458"/><path d="m131 119 34 35-13 4-30-39" fill="#ffcd50"/>
+<g fill="none" stroke="#d87953" stroke-width="5" stroke-linecap="round"><path d="m178 157 10-56 15 53m-17-52 55 4m-13 53 11-53 17 50"/></g>
+<g stroke="#586d6c" stroke-width="2"><path d="M198 104v36m15-35v36m7-35v36m14-35v36"/></g><path d="M195 138h21v6h-21zm23 1h20v6h-20z" fill="#345b53"/>
+<!-- Basketball half-court beyond the path. -->
+<path d="m369 122 157-5 42 48-190 7Z" fill="#769796"/><path d="m426 121 44-1 11 24-49 2Z" fill="#c99a7e"/>
+<g fill="none" stroke="#f7eedc" stroke-width="2"><path d="m379 127 141-5 32 38-165 6Z"/><path d="m426 124 5 22 50-2-11-22m-54 8c-41 40 108 43 87-5"/></g>
+<path d="M457 117V69" stroke="#546e73" stroke-width="5"/><path d="M438 66h39v26h-39Z" fill="#f8f3df"/><path d="M451 79h15v10h-15" fill="none" stroke="#d57950" stroke-width="2"/><ellipse cx="458" cy="93" rx="10" ry="3" fill="none" stroke="#d57950" stroke-width="3"/><path d="m449 94 4 13h10l4-13" fill="none" stroke="#fff9e7" stroke-width="2"/>
+<!-- Centered baseline view shared by the court thumbnail family. -->
+ <path d="M103 288 220 145H420L537 288Z" fill="#178668"/>
+ <polygon points="237.00,161.00 403.00,161.00 494.00,275.00 146.00,275.00" fill="#08aabb"/>
+ <polygon points="218.99,183.56 421.01,183.56 446.66,215.69 193.34,215.69" fill="#83d9c9"/>
+ <g fill="none" stroke="#fff6e4" stroke-width="2.7" stroke-linejoin="round">
+  <polygon points="237.00,161.00 403.00,161.00 494.00,275.00 146.00,275.00"/>
+  <path d="M218.99,183.56 421.01,183.56 M193.34,215.69 446.66,215.69 M320.00,161.00 320.00,183.56 M320.00,215.69 320.00,275.00"/>
+ </g>
+ <path d="M198.06 177.82H441.94v20H198.06Z" fill="#244d45" fill-opacity=".78"/>
+ <path d="M205.00 177.82v20M212.00 177.82v20M219.00 177.82v20M226.00 177.82v20M233.00 177.82v20M240.00 177.82v20M247.00 177.82v20M254.00 177.82v20M261.00 177.82v20M268.00 177.82v20M275.00 177.82v20M282.00 177.82v20M289.00 177.82v20M296.00 177.82v20M303.00 177.82v20M310.00 177.82v20M317.00 177.82v20M324.00 177.82v20M331.00 177.82v20M338.00 177.82v20M345.00 177.82v20M352.00 177.82v20M359.00 177.82v20M366.00 177.82v20M373.00 177.82v20M380.00 177.82v20M387.00 177.82v20M394.00 177.82v20M401.00 177.82v20M408.00 177.82v20M415.00 177.82v20M422.00 177.82v20M429.00 177.82v20M436.00 177.82v20M198.06 192.82H441.94M198.06 187.82H441.94M198.06 182.82H441.94" fill="none" stroke="#f1f0dc" stroke-width=".55" opacity=".4"/>
+ <path d="M198.06 199.82v-24M441.94 199.82v-24" stroke="#244d45" stroke-width="3.5"/>
+ <path d="M198.06 177.82H441.94" stroke="#fff6e4" stroke-width="3"/>
+<use href="#bench" transform="translate(110 214) rotate(-10)"/><use href="#bench" transform="translate(524 228) rotate(12)"/>
+<use href="#tree" transform="translate(31 299) scale(1.1)"/><use href="#tree" transform="translate(600 300) scale(1.05)"/>
+</svg>

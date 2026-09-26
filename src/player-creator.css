@@ -606,3 +606,9 @@
 #player-creator[data-view=editor] .appearance-page .creator-choices{display:flex!important;flex-wrap:nowrap;min-width:0;max-width:100%;overflow-x:auto;overflow-y:hidden;padding:4px;touch-action:pan-x pan-y pinch-zoom}
 #player-creator[data-view=editor] .appearance-page .creator-choices>*{flex-shrink:0}
 #player-creator[data-view=editor] .appearance-page .creator-choices:not(.color-choices) button{flex:0 0 58px!important;width:58px!important;height:58px!important;min-width:58px;min-height:58px}
+
+/* Tier groups share the existing item palette and keep colors in their own free row. */
+#player-creator[data-view=editor] .creator-customization-tier{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;flex:0 0 100%;min-width:0;max-width:100%}
+#player-creator[data-view=editor] .creator-customization-tier+.creator-customization-tier{padding-top:12px;border-top:1px solid var(--pb-border)}
+#player-creator[data-view=editor] .creator-tier-label{font-size:12px;font-weight:650;color:var(--pb-text)}
+#player-creator[data-view=editor] .creator-tier-label>span{font-weight:400;color:var(--pb-text-secondary)}
