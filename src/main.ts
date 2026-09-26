@@ -1,3 +1,4 @@
+import {type CourtLocation,isCourtLocation} from './locations';
 import {loadScoringPreference,saveScoringPreference} from './scoring-preference';
 import {loadFlightGuide,saveFlightGuide} from './flight-guide-preference';
 import {showGameXp} from './account-xp';
@@ -74,11 +75,11 @@ document.querySelector('#game-settings .settings-lineup')!.insertAdjacentHTML('a
 await preloadAthletes();
 const match=new Match();match.partnerAutonomy=true;match.randomizeSeedOnReset=true;let scene:CourtScene;
 try{scene=new CourtScene(document.querySelector('#court')!,id=>openPlayerDrawer(id))}catch(error){document.querySelector('#court')!.innerHTML='<div class="webgl-error"><h2>3D rendering is unavailable</h2><p>Enable hardware acceleration in your browser, then reload to play.</p></div>';throw error}
-function applyCourtLocation(court:'forest'|'venice'|'arizona'){
+function applyCourtLocation(court:CourtLocation){
  scene.setLocation(court);document.body.dataset.location=court;
  browserStorage.setItem('picklebash-location-v1',court);
 }
-let savedCourt:'forest'|'venice'|'arizona'='forest';const savedLocation=browserStorage.getItem('picklebash-location-v1');if(savedLocation==='venice'||savedLocation==='arizona')savedCourt=savedLocation;
+let savedCourt:CourtLocation='forest';const savedLocation=browserStorage.getItem('picklebash-location-v1');if(isCourtLocation(savedLocation))savedCourt=savedLocation;
 applyCourtLocation(savedCourt);
 const byId=(id:string)=>document.getElementById(id)!;
  const gamesLink=document.createElement('a');gamesLink.className='open-play-games-link';gamesLink.href='/?openplay=1';gamesLink.onclick=event=>{event.preventDefault();closeGameSurface();};gamesLink.setAttribute('aria-label','Close game');gamesLink.title='Close game';gamesLink.innerHTML=hudButtonIcon('close');document.querySelector('.court-wrap')!.append(gamesLink);
@@ -594,7 +595,7 @@ function initializeResume(owner:string){
   localStore=new OpenPlayStore(browserStorage,owner);
   const saved=localStore.load(requestedGame??undefined);
   if(requestedGame&&!saved)throw new Error('This saved game is not available for this account on this browser.');
-  match.onCheckpoint=c=>{if(endedGames.has(match.scoring))return;try{localStore!.save(c,document.body.dataset.location as 'forest'|'venice'|'arizona');saveStatus.hidden=true;if(!onStartScreen)history.replaceState(null,'',`/?game=${encodeURIComponent(c.matchId)}`)}catch(error){reportSaveError(error);throw error}};
+  match.onCheckpoint=c=>{if(endedGames.has(match.scoring))return;try{localStore!.save(c,document.body.dataset.location as CourtLocation);saveStatus.hidden=true;if(!onStartScreen)history.replaceState(null,'',`/?game=${encodeURIComponent(c.matchId)}`)}catch(error){reportSaveError(error);throw error}};
   if(saved){
    match.restoreCheckpoint(saved.checkpoint);applyCourtLocation(saved.court);
    if(saved.ended)endedGames.add(match.scoring);

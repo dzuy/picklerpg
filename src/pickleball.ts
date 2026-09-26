@@ -52,3 +52,9 @@ export function createPickleball() {
  }
  return ball;
 }
+
+/** Preserve the perforated shell and restore daylight materials on court changes. */
+export function setPickleballGlow(ball:THREE.Group,enabled:boolean){
+ const shell=ball.children[0] as THREE.Mesh<THREE.BufferGeometry,THREE.MeshStandardMaterial>;
+ shell.material.emissiveIntensity=enabled?2.4:.12;
+}

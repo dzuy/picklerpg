@@ -1,3 +1,4 @@
+import {type CourtLocation} from '../../src/locations';
 /** Local-only simulated accounts/challenges backed by the real match engine. */
 import {randomBytes,randomUUID} from 'node:crypto';
 import {MatchService} from '../../server/multiplayer/service';
@@ -17,7 +18,7 @@ export function createInviteLab(){
  const get=(token:string)=>{const invite=invites.get(token);if(!invite)throw new ApiError(404,'challenge','Challenge not found.');return invite;};
  const friends={
   get:async(token:string)=>get(token),preview:(invite:Invite)=>invite,event:async()=>{},clientEvent:async()=>({ok:true}),
-  async create(actor:string,input:{name:string;team?:TeamSelection;requestId?:string;scoring?:'rally-doubles'|'side-out-doubles';target?:number;court?:'forest'|'venice'|'arizona'}){
+  async create(actor:string,input:{name:string;team?:TeamSelection;requestId?:string;scoring?:'rally-doubles'|'side-out-doubles';target?:number;court?:CourtLocation}){
    const request=creation();request.creationId=input.requestId??randomUUID();request.opponentId=actor===A?B:A;
    if(input.team){request.roster.you=input.team[0];request.roster.partner=input.team[1];}
    request.roster['opponent-left'].name=input.name||'Bob';

@@ -1,3 +1,4 @@
+import {COURT_LOCATIONS} from './locations';
 import type {DesignedPlayer} from './player-design';
 import type {SoloLaunch} from './solo-launch';
 
@@ -8,5 +9,5 @@ export function quickSolo(publicPlayers:DesignedPlayer[],home:DesignedPlayer[]|n
  const count=home?2:4;
  if(pool.length<count)throw Error('Not enough public players are available. Please try again.');
  const players=home?[...home,...pool.slice(0,2)]:pool.slice(0,4);
- return {players:structuredClone({you:players[0],partner:players[1],'opponent-left':players[2],'opponent-right':players[3]}),scoring:'rally-doubles',target:5,court:(['forest','venice','arizona'] as const)[Math.floor(random()*3)]};
+ return {players:structuredClone({you:players[0],partner:players[1],'opponent-left':players[2],'opponent-right':players[3]}),scoring:'rally-doubles',target:5,court:COURT_LOCATIONS[Math.floor(random()*COURT_LOCATIONS.length)].id};
 }

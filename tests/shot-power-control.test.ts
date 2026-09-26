@@ -41,7 +41,7 @@ test('tap plays once at the unchanged default and never opens a meter with a hol
 test('hold opens at the midpoint; sliding and release commits only the adjusted shot',t=>{
  const f=fixture(t);f.button.fire('pointerdown');t.mock.timers.tick(100);
  assert.deepEqual(f.previews,[.5]);assert.deepEqual(f.plays,[]);
- assert.equal(f.popup()!.style.top,'202px');assert.equal(f.popup()!.style.width,'208px');
+ assert.equal(f.popup()!.style.top,'170px');assert.equal(f.popup()!.style.width,'208px');
  f.button.fire('pointermove',{clientX:340});assert.equal(f.previews.at(-1),1);
  f.button.fire('pointerup',{clientX:340});f.button.fire('click');assert.deepEqual(f.plays,[1]);assert.equal(f.popup()!.isConnected,false);
 });

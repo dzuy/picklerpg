@@ -1,3 +1,4 @@
+import {isCourtLocation} from '../../src/locations';
 import {resolvePublicTeam} from './public-players';
 import {friendIds} from '../../src/multiplayer/team-directory';
 import {starterPlayer} from '../../src/starter-player';
@@ -24,7 +25,7 @@ export class FriendService {
   if(!input||Object.keys(input).some(k=>!['name','requestId','team','court','scoring','target'].includes(k))||!uuid(input.requestId))throw new ApiError(400,'challenge','Enter your friend’s name.');
   const name=playerName(input.name);if(name.length>24)throw new ApiError(400,'name','Use a friend’s name of up to 24 characters.');const self=this.matches.config(actor).selfName;
   const court=input.court??'forest',scoring=input.scoring??'rally-doubles',target=input.target??3;
-  if(!['forest','venice','arizona'].includes(court)||!['rally-doubles','side-out-doubles'].includes(scoring)||!isValidTargetScore(target))throw new ApiError(400,'settings','Choose valid scoring, points limit, and court.');
+  if(!isCourtLocation(court)||!['rally-doubles','side-out-doubles'].includes(scoring)||!isValidTargetScore(target))throw new ApiError(400,'settings','Choose valid scoring, points limit, and court.');
   const team=await resolvePublicTeam(this.client,parseTeam(input.team),actor);
   const make=(name:string)=>({...newPlayer(randomUUID()),name:name.slice(0,24),appearance:{...LOOKS[randomInt(LOOKS.length)].appearance}});
   const m=this.matches.prepare(actor,{creationId:input.requestId,opponentId:randomUUID(),scoring,roster:{you:team[0],partner:team[1],'opponent-left':make(name),'opponent-right':make('Partner')}},true);

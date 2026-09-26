@@ -1,5 +1,5 @@
 import {parseCheckpoint,type MatchCheckpoint} from '../engine/checkpoint';
-import type {CourtLocation} from '../locations';
+import {type CourtLocation,isCourtLocation} from '../locations';
 import type {MatchStorage} from './local-match-store';
 export interface OpenPlayGame {checkpoint:MatchCheckpoint;court:CourtLocation;updatedAt:string;archived:boolean;ended:boolean}
 /** Account-scoped experiment saves. The legacy single save stays intact for rollback. */
@@ -12,12 +12,12 @@ export class OpenPlayStore {
    const legacy=this.storage.getItem(`pickle-rpg-match-v1:${this.owner}`);
    if(!legacy)return [];
    const savedCourt=this.storage.getItem('picklebash-location-v1');
-   const game:OpenPlayGame={checkpoint:parseCheckpoint(JSON.parse(legacy)),court:savedCourt==='venice'||savedCourt==='arizona'?savedCourt:'forest',updatedAt:new Date().toISOString(),archived:false,ended:false};
+   const game:OpenPlayGame={checkpoint:parseCheckpoint(JSON.parse(legacy)),court:isCourtLocation(savedCourt)?savedCourt:'forest',updatedAt:new Date().toISOString(),archived:false,ended:false};
    this.write([game]);return [game];
   }
   const data=JSON.parse(raw);if(!Array.isArray(data))throw new Error('Your saved games could not be read.');
   return data.map(game=>{
-   if(!game||!['forest','venice','arizona'].includes(game.court)||typeof game.archived!=='boolean'||typeof game.ended!=='boolean'||typeof game.updatedAt!=='string')throw new Error('Your saved games could not be read.');
+   if(!game||!isCourtLocation(game.court)||typeof game.archived!=='boolean'||typeof game.ended!=='boolean'||typeof game.updatedAt!=='string')throw new Error('Your saved games could not be read.');
    return {...game,checkpoint:parseCheckpoint(game.checkpoint)};
   });
  }

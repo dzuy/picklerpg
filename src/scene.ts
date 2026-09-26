@@ -1,3 +1,5 @@
+import {BallFire} from './ball-fire';
+import {CityRooftop,GlowballHall,CostaRicanJungle,type CourtEnvironment} from './court-environments';
 import {BodyHitReaction,type ReplayBodyHit} from './body-hit-reaction';
 import {MatchCelebration} from './match-celebration';
 import {AtpCelebration,atpWinner} from './atp-celebration';
@@ -11,7 +13,7 @@ import * as THREE from 'three';
 import {CourtTrees} from './trees';
 import {VeniceSunset} from './venice-sunset';
 import {LOCATION_PALETTES,type CourtLocation} from './locations';
-import {createPickleball} from './pickleball';
+import {createPickleball,setPickleballGlow} from './pickleball';
 import {createAthlete, animateAthlete, disposeAthlete, setAthleteHandedness} from './athlete';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {COURT, type GameState, type PlayerId, type RallyShot, type Team} from './engine/model';
@@ -58,6 +60,13 @@ export class CourtScene {
  private venice:VeniceSunset|undefined;
  private arizona:ArizonaDesert|undefined;
  private location:CourtLocation='forest';
+ private themed=new Map<CourtLocation,CourtEnvironment>();
+ private daylight:{light:THREE.Light;intensity:number}[]=[];
+ private courtLines:THREE.Mesh<THREE.BoxGeometry,THREE.MeshStandardMaterial>[]=[];
+ private lineHalos=new THREE.Group();
+ private netGlow=new THREE.Group();
+ private ballFire=new BallFire();
+ private ballLight=new THREE.PointLight('#dfff32',0,4,2);
  private surfaces:THREE.Mesh<THREE.BoxGeometry,THREE.MeshStandardMaterial>[]=[];
  private motion=new Map<PlayerId,{x:number;z:number;distance:number;time:number}>();
  private retainedTrajectory:RallyShot|null=null;
@@ -120,15 +129,23 @@ export class CourtScene {
   this.scene.add(new THREE.HemisphereLight('#e4f2ff','#91a58d',2.1));const sun=new THREE.DirectionalLight('#fff1d8',2.9);sun.position.set(-9,18,10);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);Object.assign(sun.shadow.camera,{left:-14,right:14,top:14,bottom:-14});sun.shadow.bias=-.00015;sun.shadow.normalBias=.022;sun.shadow.radius=2;sun.shadow.camera.near=.5;sun.shadow.camera.far=65;sun.shadow.camera.updateProjectionMatrix();this.scene.add(sun);
   const rim=new THREE.DirectionalLight('#e0f4ff',1.1);rim.position.set(8,9,-10);this.scene.add(rim);
   const faceFill=new THREE.DirectionalLight('#fff6e9',.65);faceFill.position.set(0,4,12);this.scene.add(faceFill);
+  this.scene.traverse(o=>{if(o instanceof THREE.Light)this.daylight.push({light:o,intensity:o.intensity})});
   this.surfaces=[this.box(340,.15,340,0,-.22,0,'#76A64B'),this.box(12,.16,21,0,-.1,0,'#178668'),this.box(COURT.width+.32,.04,COURT.length+.32,0,-.005,0,'#07505A'),this.box(COURT.width,.03,COURT.length,0,.025,0,'#08AABB'),this.box(COURT.width,.012,COURT.kitchen*2,0,.047,0,'#83D9C9')];
+  const lineStart=this.scene.children.length;
   const w=COURT.width,l=COURT.length,k=COURT.kitchen,t=COURT.line;
   for(const x of [-w/2+t/2,w/2-t/2])this.box(t,.009,l,x,.06,0,'#F7F5EB');
   for(const z of [-l/2+t/2,l/2-t/2])this.box(w,.009,t,0,.06,z,'#F7F5EB');
   for(const sign of [-1,1]){this.box(w,.009,t,0,.06,sign*(k-t/2),'#F7F5EB');this.box(t,.009,l/2-k,0,.06,sign*(k+(l/2-k)/2),'#F7F5EB')}
+  this.courtLines=this.scene.children.slice(lineStart) as typeof this.courtLines;
+  for(const line of this.courtLines){
+   const {width,height,depth}=line.geometry.parameters;
+   for(const [spread,opacity] of [[.10,.32],[.22,.14],[.40,.055]]){const halo=new THREE.Mesh(new THREE.BoxGeometry(width+spread,height,depth+spread),new THREE.MeshBasicMaterial({color:'#40f5ef',transparent:true,opacity,depthWrite:false,blending:THREE.AdditiveBlending}));halo.position.copy(line.position);halo.position.y-=.003;this.lineHalos.add(halo);}
+  }
+  this.lineHalos.visible=false;this.scene.add(this.lineHalos,this.ballLight);
   this.net();this.environment();this.scene.add(this.trees.group);
   const configs:[PlayerId,string,string][]=[['you','#f3dc86','YOU'],['partner','#d8ebb0','FINN'],['opponent-left','#ec8058','JULES'],['opponent-right','#c95f4d','RIO']];
   for(const [id,color,label] of configs){const player=createAthlete(id,color);styleCourtAthlete(player,id);player.traverse(object=>object.userData.playerId=id);this.players.set(id,player);this.scene.add(player);const div=document.createElement('div');div.className='player-label '+(id==='you'?'is-you':'');div.dataset.team=id==='you'||id==='partner'?'home':'away';div.dataset.name=label;div.textContent=label;div.tabIndex=0;div.setAttribute('role','button');div.setAttribute('aria-label',`View ${label} skills`);div.addEventListener('click',()=>this.selectPlayer(id));div.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();this.selectPlayer(id)}});host.append(div);this.labels.set(id,div)}
-  this.ball=createPickleball();this.scene.add(this.ball);
+  this.ball=createPickleball();this.scene.add(this.ball,this.ballFire.group);
   this.ballHalo=new THREE.Mesh(new THREE.SphereGeometry(.16,12,8),new THREE.MeshBasicMaterial({color:'#DFFF32',transparent:true,opacity:.035,depthWrite:false,blending:THREE.AdditiveBlending}));this.ballHalo.renderOrder=24;this.scene.add(this.ballHalo);
   this.shadow=new THREE.Mesh(new THREE.CircleGeometry(.15,28),new THREE.MeshBasicMaterial({color:'#071A43',transparent:true,opacity:.34,depthWrite:false}));this.shadow.rotation.x=-Math.PI/2;this.scene.add(this.shadow);
   this.trajectoryArrow.renderOrder=22;this.trajectoryArrow.visible=false;this.scene.add(this.trajectoryArrow);
@@ -170,6 +187,20 @@ export class CourtScene {
   if(this.venice)this.venice.group.visible=location==='venice';
   if(location==='arizona'&&!this.arizona){this.arizona=new ArizonaDesert();this.scene.add(this.arizona.group)}
   if(this.arizona)this.arizona.group.visible=location==='arizona';
+  if(!this.themed.has(location)){
+   const environment=location==='city'?new CityRooftop():location==='glowball'?new GlowballHall():location==='jungle'?new CostaRicanJungle():null;
+   if(environment){this.themed.set(location,environment);this.scene.add(environment.group)}
+  }
+  for(const [id,environment] of this.themed)environment.group.visible=id===location;
+  this.surfaces[0].visible=location!=='city';
+  const glow=location==='glowball';
+  for(const {light,intensity} of this.daylight)light.intensity=intensity*(glow?(light instanceof THREE.HemisphereLight?.30:.18):location==='city'?.75:1);
+  this.lineHalos.visible=glow;this.netGlow.visible=glow;
+  for(const line of this.courtLines){line.material.color.set(glow?'#71ffed':'#F7F5EB');line.material.emissive.set(glow?'#35ffe5':'#000000');line.material.emissiveIntensity=glow?4:0;}
+  setPickleballGlow(this.ball,glow);
+  (this.ballHalo.material as THREE.MeshBasicMaterial).opacity=glow?.2:.035;
+  this.ballLight.intensity=glow?2.5:0;
+  this.scene.fog=location==='jungle'?null:new THREE.Fog(palette.sky,105,172);
   this.renderer.domElement.dataset.location=location;
  }
  private box(w:number,h:number,d:number,x:number,y:number,z:number,color:string){const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color,roughness:1}));mesh.position.set(x,y,z);mesh.receiveShadow=true;this.scene.add(mesh);return mesh}
@@ -179,6 +210,13 @@ export class CourtScene {
   for(let y=.09;y<.87;y+=.09)points.push(new THREE.Vector3(-COURT.netWidth/2,y,0),new THREE.Vector3(COURT.netWidth/2,y,0));
   this.scene.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(points),new THREE.LineBasicMaterial({color:'#101f30',transparent:true,opacity:.95})));
   const curve=new THREE.CatmullRomCurve3(Array.from({length:41},(_,i)=>{const x=-COURT.netWidth/2+i*COURT.netWidth/40;return new THREE.Vector3(x,top(x),0)}));this.scene.add(new THREE.Mesh(new THREE.TubeGeometry(curve,40,.028,6,false),new THREE.MeshStandardMaterial({color:'#F8FCFF'})));
+  // Green luminous tape follows the sagging top edge and the bottom of the mesh.
+  const bottom=new THREE.LineCurve3(new THREE.Vector3(-COURT.netWidth/2,.055,0),new THREE.Vector3(COURT.netWidth/2,.055,0));
+  for(const edge of [curve,bottom]){
+   const tape=new THREE.Mesh(new THREE.TubeGeometry(edge,40,.034,8,false),new THREE.MeshStandardMaterial({color:'#96ff58',emissive:'#65ff21',emissiveIntensity:3.5}));this.netGlow.add(tape);
+   for(const [radius,opacity] of [[.075,.22],[.13,.075]])this.netGlow.add(new THREE.Mesh(new THREE.TubeGeometry(edge,40,radius,8,false),new THREE.MeshBasicMaterial({color:'#6aff32',transparent:true,opacity,depthWrite:false,blending:THREE.AdditiveBlending})));
+  }
+  this.netGlow.visible=false;this.scene.add(this.netGlow);
   for(const x of [-COURT.netWidth/2,COURT.netWidth/2]){
    const post=new THREE.Mesh(new THREE.CylinderGeometry(.055,.063,1.03,12),new THREE.MeshStandardMaterial({color:'#122238',metalness:.5,roughness:.45}));post.position.set(x,.515,0);post.castShadow=true;this.scene.add(post);
    this.box(.19,.045,.24,x,.045,0,'#122238');this.box(.10,.025,.10,x,1.035,0,'#bec6af');
@@ -353,7 +391,8 @@ export class CourtScene {
   const arrowSize=THREE.MathUtils.clamp(16*2*Math.tan(THREE.MathUtils.degToRad(this.camera.fov/2))*this.camera.position.distanceTo(this.trajectoryArrow.position)/(Math.max(1,this.host.clientHeight)*this.camera.zoom),.3,1.1);
   this.trajectoryArrow.scale.setScalar(arrowSize);
   const ballScale=1.8*ballDisplayScale(this.camera.position.distanceTo(this.ball.position),this.host.clientHeight,this.camera.fov,this.camera.zoom);
-  this.ball.scale.setScalar(ballScale);this.ball.position.y=Math.max(this.ball.position.y,.058+.092*ballScale);this.ballHalo.position.copy(this.ball.position);this.ballHalo.scale.setScalar(ballScale);
+  this.ball.scale.setScalar(ballScale);this.ball.position.y=Math.max(this.ball.position.y,.058+.092*ballScale);this.ballHalo.position.copy(this.ball.position);this.ballHalo.scale.setScalar(ballScale*(this.location==='glowball'?1.5:1));this.ballLight.position.copy(this.ball.position);
+  const fiery=this.ballFire.update(state,shot,this.ball.position,ballScale,this.reducedMotion.matches);
   const ballScreen=this.ballScreenPosition.copy(this.ball.position).project(this.camera);
   this.pausedBallMarker.hidden=!(state.paused||state.phase==='decision')||ballScreen.z < -1||ballScreen.z > 1;
   if(!this.pausedBallMarker.hidden){
@@ -371,8 +410,8 @@ export class CourtScene {
   const pulse=bounce?bouncePulse(state.simulationTime-bounce.time):null;
   this.bounceRing.visible=!!pulse;
   if(pulse&&bounce?.type==='bounce'){this.bounceRing.position.set(bounce.position.x,.065,bounce.position.z);this.bounceRing.scale.setScalar(pulse.radius);this.bounceRing.material.opacity=pulse.opacity}
-  if(this.celebratingMatch){this.ball.visible=false;this.ballHalo.visible=false;this.shadow.visible=false;this.target.visible=false;this.turnArrow.hidden=true;this.pausedBallMarker.hidden=true;}else{this.ball.visible=true;this.ballHalo.visible=true;this.shadow.visible=true;}
+  if(this.celebratingMatch){this.ballFire.group.visible=false;this.ball.visible=false;this.ballHalo.visible=false;this.shadow.visible=false;this.target.visible=false;this.turnArrow.hidden=true;this.pausedBallMarker.hidden=true;}else{this.ball.visible=!fiery;this.ballHalo.visible=!fiery;this.shadow.visible=true;}
   if(this.location==='forest')this.trees.update(this.camera,this.ball.position,[...this.players.values()].map(player=>player.position.clone().add(new THREE.Vector3(0,1,0))));
-  else (this.location==='arizona'?this.arizona:this.venice)?.update(this.camera,[this.ball.position,...[...this.players.values()].map(player=>player.position.clone().add(new THREE.Vector3(0,1,0))),...[-1,1].flatMap(x=>[-1,1].map(z=>new THREE.Vector3(x*COURT.width/2,0,z*COURT.length/2)))]);this.renderer.render(this.scene,this.camera);
+  else (this.themed.get(this.location)??(this.location==='arizona'?this.arizona:this.venice))?.update(this.camera,[this.ball.position,...[...this.players.values()].map(player=>player.position.clone().add(new THREE.Vector3(0,1,0))),...[-1,1].flatMap(x=>[-1,1].map(z=>new THREE.Vector3(x*COURT.width/2,0,z*COURT.length/2)))]);this.renderer.render(this.scene,this.camera);
  }
 }

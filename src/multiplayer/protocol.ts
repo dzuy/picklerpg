@@ -1,3 +1,4 @@
+import {type CourtLocation} from '../locations';
 import type {AssessmentContact} from '../shot-assessment';
 import type {StrategyStory} from './strategy-story';
 import type {MatchStrategy} from './strategy';
@@ -18,7 +19,7 @@ export interface PublicMatch {
  strategyStory?:StrategyStory;
  friendState?:'pending'|'accepted'|'cancelled';invitedName?:string;
  notificationsMuted?:boolean;archived?:boolean;endedEarly?:boolean;
- court?:'forest'|'venice'|'arizona';
+ court?:CourtLocation;
  accountIds?:Record<Team,string|null>;
  createdAt?:string;completedAt?:string;
  id:string;version:number;status:'active'|'completed';viewerTeam:Team;currentTeam:Team|null;decisionId:string;

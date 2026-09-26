@@ -17,8 +17,8 @@ export function attachShotPower(button:HTMLButtonElement,wheel:HTMLElement,label
   popup.innerHTML='<input type="range" min="0" max="100" step="0.1" value="50" aria-label="Control to power" aria-description="Arrow keys to adjust, Enter to play, Escape to cancel">';
   document.body.append(popup);range=popup.querySelector('input')!;range.step=String(SHOT_POWER_UI.step);
   const rect=button.getBoundingClientRect();popup.style.width=`${Math.max(0,rect.width-32)}px`;popup.style.left=`${rect.left+16}px`;
-  // Anchor the track just inside this shot’s top edge, above the holding finger.
-  popup.style.top=`${Math.max(8,rect.top+2)}px`;
+  // The surrounding picker fades away, leaving room above the shot for the meter.
+  popup.style.top=`${Math.max(8,rect.top-30)}px`;
   range.addEventListener('input',()=>{value=Number(range!.value);preview()});
   popup.addEventListener('keydown',event=>{
    if(event.key==='Escape'){event.preventDefault();event.stopPropagation();close();button.focus()}

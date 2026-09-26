@@ -7,7 +7,7 @@ const pool=Array.from({length:8},(_,i)=>newPlayer('public-'+i));
 test('guest quick match samples four different public players and random courts',()=>{
  const first=quickSolo(pool,null,()=>0),last=quickSolo(pool,null,()=>.999);
  assert.equal(new Set(Object.values(first.players).map(p=>p.id)).size,4);
- assert.equal(first.court,'forest');assert.equal(last.court,'arizona');
+ assert.equal(first.court,'forest');assert.equal(last.court,'jungle');
  assert.notDeepEqual(first.players,last.players);
  assert.equal(first.scoring,'rally-doubles');assert.equal(first.target,5);
 });

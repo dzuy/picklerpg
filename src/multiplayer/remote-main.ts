@@ -1,3 +1,5 @@
+import {courtName} from '../locations';
+import {type CourtLocation} from '../locations';
 import {loadScoringPreference,saveScoringPreference} from '../scoring-preference';
 import {loadFlightGuide,saveFlightGuide} from '../flight-guide-preference';
 import {showGameXp} from '../account-xp';
@@ -462,7 +464,7 @@ async function respondToInvite(id:string,action:'accept'|'decline'){
 }
 async function showInvitation(id:string){const c=await matchCredentials();const invite=await remoteRequest<Invitation>(c.token,`/api/invitations/${id}`);if(invite.status==='accepted'&&invite.matchId){await open(invite.matchId);return;}selectedInvite=invite;el('remote-lobby').hidden=true;el('remote-setup').hidden=true;el('remote-invite').hidden=false;const url=new URL(location.href);url.searchParams.set('invite',id);url.searchParams.delete('match');history.replaceState(null,'',url);const incoming=invite.recipientId===account;
  el('remote-invite-title').textContent=incoming?`Play against ${invite.creatorName}`:`Waiting for ${invite.recipientName}`;
- el('remote-invite-copy').textContent=`${invite.creatorName} chose ${invite.team.map(p=>p.name).join(' & ')}. ${invite.court==='arizona'?'Arizona Desert':invite.court==='venice'?'The Beach':'The Forest'} · ${invite.scoring==='rally-doubles'?'Rally':'Side-out'} scoring · First to ${invite.target??3}. ${incoming?'Choose your player and partner. Your team serves first.':'Your opponent will choose their team before the game starts.'}`;
+ el('remote-invite-copy').textContent=`${invite.creatorName} chose ${invite.team.map(p=>p.name).join(' & ')}. ${courtName(invite.court)} · ${invite.scoring==='rally-doubles'?'Rally':'Side-out'} scoring · First to ${invite.target??3}. ${incoming?'Choose your player and partner. Your team serves first.':'Your opponent will choose their team before the game starts.'}`;
  el('remote-invite-preview').replaceChildren(invitationPreview(invite));
  const pending=invite.status==='pending';
  el('remote-accept-team-title').hidden=!incoming||!pending;
@@ -491,7 +493,7 @@ function renderGames(){
   const lineup=gameCardLineup(own.map(id=>game.roster[id]),away.map(id=>game.roster[id]));
   const score=document.createElement('span');score.className='remote-card-score';score.setAttribute('aria-label','Score, your team first');score.textContent=`${game.score[game.viewerTeam]} – ${game.score[game.viewerTeam==='home'?'away':'home']}`;
   const action=document.createElement('span');action.className='remote-card-action';action.textContent=done?'View result ↗':yours?'Take your shot ↗':'Open game ↗';
-  const ref=document.createElement('span');ref.className='remote-card-ref';ref.textContent=`${game.court==='venice'?'The Beach':game.court==='arizona'?'Arizona Desert':'The Forest'} · ${game.rules.scoring==='rally-doubles'?'Rally':'Side-out'} · First to ${game.rules.target}`;
+  const ref=document.createElement('span');ref.className='remote-card-ref';ref.textContent=`${courtName(game.court)} · ${game.rules.scoring==='rally-doubles'?'Rally':'Side-out'} · First to ${game.rules.target}`;
   const created=document.createElement('time');created.className='remote-card-created';
   if(game.createdAt&&Number.isFinite(Date.parse(game.createdAt))){created.dateTime=game.createdAt;created.textContent=`Created ${new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(new Date(game.createdAt))}`;created.title=new Intl.DateTimeFormat(undefined,{dateStyle:'full',timeStyle:'long'}).format(new Date(game.createdAt));}
   const heading=document.createElement('span');heading.className='remote-card-heading';
@@ -536,7 +538,7 @@ async function create(){
  if(sent?.status==='accepted'&&sent.matchId){await open(sent.matchId);showGameShare(invitationShare(sent)).addEventListener('close',showTurnPromptAfterInvite,{once:true});return;}
  await lobby();teamLobby?.selectTab('games');if(sent)showGameShare(invitationShare(sent)).addEventListener('close',showTurnPromptAfterInvite,{once:true});
 }
-let selectedCourt:'forest'|'venice'|'arizona'='forest';
+let selectedCourt:CourtLocation='forest';
 for(const button of Array.from(document.querySelectorAll<HTMLButtonElement>('[data-remote-court]')))button.onclick=()=>{selectedCourt=button.dataset.remoteCourt as typeof selectedCourt;for(const other of Array.from(document.querySelectorAll('[data-remote-court]')))other.setAttribute('aria-pressed',String(other===button));};
 const existingPlayer=document.createElement('button');existingPlayer.className='remote-quiet';existingPlayer.textContent='Invite an existing player';el('remote-start-setup').after(existingPlayer);
 el('remote-start-setup').textContent='Create a Game';el('remote-start-setup').onclick=()=>challengeTeam();

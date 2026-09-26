@@ -1,0 +1,8 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Shot power focus preview</title><link rel="stylesheet" href="/src/style.css"><style>body{margin:0}#court{position:fixed;inset:0}.player-label,.turn-arrow,.serve-bubble,.thinking-bubble,.paused-ball-marker,.serve-aim-hint{display:none}#reopen{position:fixed;top:12px;left:12px;z-index:50;padding:12px}</style><div id="court"></div><button id="reopen">Open shot picker</button><script type="module">
+import {CourtScene} from '/src/scene.ts';import {preloadAthletes} from '/src/athlete.ts';import {Match} from '/src/match.ts';import {CourtTargetPicker} from '/src/target-picker.ts';
+await preloadAthletes();const scene=new CourtScene(document.querySelector('#court')),match=new Match();scene.setGuides(false);scene.resetCamera(35);
+const choices=['drive','drop','lob'].map(type=>({intent:{...match.shot.intent,type},timing:'bounce'}));
+const source={incoming:'Soft return incoming',team:'home',choices,context:{},decision:'preview',enabled:true,assess(){return {risk:'Low',pressure:'High'}},validate(){},play(){picker.clear()}};
+const picker=new CourtTargetPicker(source,scene);function open(){picker.sync(true);scene.onCourtTap({x:0,z:-3});}document.querySelector('#reopen').onclick=open;open();
+function frame(now){scene.render(match.state,now/1000,match.shot);picker.sync(true);requestAnimationFrame(frame)}requestAnimationFrame(frame);
+</script></html>

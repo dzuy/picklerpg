@@ -1,3 +1,4 @@
+import {type CourtLocation} from '../../src/locations';
 import type {ShotMixRow} from './shot-mix';
 import {loadStrategy} from './strategy';
 import type {MatchStrategy} from '../../src/multiplayer/strategy';
@@ -7,8 +8,8 @@ import type {MatchCheckpoint} from '../../src/engine/checkpoint';
 import type {PointResult} from '../../src/engine/model';
 import type {TurnAnimation} from '../../src/multiplayer/protocol';
 import {ApiError,conflict,missing} from './errors';
-export interface StoredMatch {muted_home?:boolean;muted_away?:boolean;ended_by?:string|null;friend_state?:'pending'|'accepted'|'cancelled';invited_name?:string;archived_home?:boolean;archived_away?:boolean;id:string;home_user_id:string;away_user_id:string|null;version:number;status:'active'|'completed';current_action_user_id:string|null;checkpoint:MatchCheckpoint&{court?:'forest'|'venice'|'arizona'};last_result:PointResult|null;animation:TurnAnimation[];creation_request_id:string;creation_hash:string;resolution_secret:string;seed_version:number;engine_version:string;created_at?:string;updated_at?:string;completed_at?:string|null}
-export interface StoredReceipt {created_at?:string;match_id:string;action_id:string;actor_id:string;request_hash:string;from_version:number;to_version:number;checkpoint:MatchCheckpoint&{court?:'forest'|'venice'|'arizona'};result:Pick<StoredMatch,'status'|'current_action_user_id'|'animation'|'last_result'> & {completed_at?:string|null;archived_home?:boolean;archived_away?:boolean}}
+export interface StoredMatch {muted_home?:boolean;muted_away?:boolean;ended_by?:string|null;friend_state?:'pending'|'accepted'|'cancelled';invited_name?:string;archived_home?:boolean;archived_away?:boolean;id:string;home_user_id:string;away_user_id:string|null;version:number;status:'active'|'completed';current_action_user_id:string|null;checkpoint:MatchCheckpoint&{court?:CourtLocation};last_result:PointResult|null;animation:TurnAnimation[];creation_request_id:string;creation_hash:string;resolution_secret:string;seed_version:number;engine_version:string;created_at?:string;updated_at?:string;completed_at?:string|null}
+export interface StoredReceipt {created_at?:string;match_id:string;action_id:string;actor_id:string;request_hash:string;from_version:number;to_version:number;checkpoint:MatchCheckpoint&{court?:CourtLocation};result:Pick<StoredMatch,'status'|'current_action_user_id'|'animation'|'last_result'> & {completed_at?:string|null;archived_home?:boolean;archived_away?:boolean}}
 export interface CommitInput {match:StoredMatch;actor:string;hash:string;actionId:string;expectedVersion:number;action:unknown;selection?:SelectionCapture}
 export interface MatchRepository {
  shotMixPage?(actor:string,before:string,cursorTime:string|null,cursorId:string|null):Promise<ShotMixRow[]>;

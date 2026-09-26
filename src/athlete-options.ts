@@ -121,7 +121,7 @@ export function dressAthlete(model:THREE.Group,a:Appearance){
     }
    }else{
    box(g,H(0,1.865,.01),[.68,.18,.53],hair,.035);
-   const long=style==='long'||style==='bob';
+   const long=style==='long'||style==='bob'||style==='long-waves';
    box(g,H(0,long?1.59:1.73,.215),[.65,long?.54:.29,.11],hair,.022);
    for(const sign of [-1,1])box(g,H(sign*.30,long?1.57:1.72,.035),[.073,long?.49:.21,.43],hair,.018);
    if(style==='curls'){
@@ -142,6 +142,32 @@ export function dressAthlete(model:THREE.Group,a:Appearance){
     box(g,H(0,2.075,.14),[.25,.19,.24],hair,.04);
    }
    if(style==='long')for(const sign of [-1,1])box(g,H(sign*.285,1.46,.04),[.13,.39,.40],hair,.025);
+   if(style==='pigtails')for(const sign of [-1,1]){
+    box(g,H(sign*.355,1.77,.13),[.12,.07,.17],a.accent,.018);
+    link(g,H(sign*.39,1.76,.14),H(sign*.46,1.53,.17),.17,.19,hair,.035);
+    link(g,H(sign*.46,1.55,.17),H(sign*.42,1.32,.12),.14,.16,hair,.03);
+   }
+   if(style==='twin-buns')for(const sign of [-1,1]){
+    box(g,H(sign*.28,1.94,.06),[.18,.055,.20],a.accent,.014);
+    box(g,H(sign*.32,2.025,.07),[.25,.21,.25],hair,.055).rotation.z=-sign*.18;
+   }
+   if(style==='side-braid'){
+    // Overlapping alternating locks form a braid beside the cheek and shoulder.
+    link(g,H(.28,1.77,.12),H(.375,1.59,-.04),.17,.18,hair,.035);
+    for(let i=0;i<6;i++){
+     const lock=box(g,H(.375+(i%2?.025:-.025),1.58-i*.065,-.10-i*.018),[.135-i*.008,.11,.13-i*.007],hair,.025);
+     lock.rotation.z=i%2?-.38:.38;
+    }
+    box(g,H(.375,1.205,-.205),[.095,.045,.10],a.accent,.012);
+    box(g,H(.375,1.145,-.21),[.09,.095,.095],hair,.02);
+   }
+   if(style==='long-waves')for(const sign of [-1,1]){
+    for(let i=0;i<5;i++){
+     const x=sign*(.325+(i%2)*.04),z=1.70-i*.105;
+     const wave=box(g,H(x,z,-.025),[.16,.19,.46],hair,.045);
+     wave.rotation.z=sign*(i%2?.16:-.16);
+    }
+   }
    }
    attach(g,'head');
   }

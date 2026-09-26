@@ -7,3 +7,17 @@
 .shot-power-popover input::-moz-range-track{height:16px;border-radius:8px;background:linear-gradient(to right,#00f078 0%,#ffe600 48%,#ff7900 72%,#ff1700 88%,#f00000 100%)}
 .shot-power-popover input::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;width:21px;height:21px;margin-top:-2.5px;border:3px solid var(--pb-white);border-radius:50%;background:var(--pb-shot-panel);box-shadow:var(--pb-shadow-card)}
 .shot-power-popover input::-moz-range-thumb{width:15px;height:15px;border:3px solid var(--pb-white);border-radius:50%;background:var(--pb-shot-panel)}
+
+/* Keep the held shot in place while revealing the court around its power meter. */
+.target-picker{transition:filter 90ms ease-out}
+.target-picker .target-wheel{transition:background-color 90ms ease-out,border-color 90ms ease-out,box-shadow 90ms ease-out}
+.target-wheel > :not(.target-shots),.target-wheel .target-shot{transition:opacity 90ms ease-out,visibility 0s}
+.target-picker:has(.is-power-adjusting){filter:none}
+.target-picker .target-wheel:has(.is-power-adjusting){background:transparent;border-color:transparent;box-shadow:none}
+.target-wheel:has(.is-power-adjusting) .target-shots{scrollbar-color:transparent transparent}
+.target-wheel:has(.is-power-adjusting) > :not(.target-shots),
+.target-wheel:has(.is-power-adjusting) .target-shot:not(.is-power-adjusting){opacity:0;visibility:hidden;pointer-events:none;transition:opacity 90ms ease-out,visibility 0s 90ms}
+.target-wheel .target-shot.is-power-adjusting{opacity:1;visibility:visible}
+@media(prefers-reduced-motion:reduce){
+ .target-picker,.target-picker .target-wheel,.target-wheel > :not(.target-shots),.target-wheel .target-shot{transition:none!important}
+}

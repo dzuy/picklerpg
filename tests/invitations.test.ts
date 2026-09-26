@@ -6,7 +6,7 @@ import {database,PgRepository} from './helpers/postgres';
 import {A,B,C,creation,testers,action} from './helpers/remote';
 import {InvitationService,type InviteRepository,type InviteRow} from '../server/multiplayer/invitations';
 import {MatchService} from '../server/multiplayer/service';
-for(const court of ['venice','arizona'] as const)test(`invitations preserve ${court} through acceptance and turns`,async()=>{
+for(const court of ['venice','arizona','city','glowball','jungle'] as const)test(`invitations preserve ${court} through acceptance and turns`,async()=>{
  const db=await database();try{
  await db.pool.query('insert into auth.users(id) values($1),($2),($3)',[A,B,C]);const repo=new PgRepository(db.pool);
  const invites=pgInvitations(repo);
