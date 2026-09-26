@@ -71,6 +71,8 @@ Use two player accounts A/B and, for multiple-device cases, two physical install
 
 ## Local validation
 
+The Vite development server handles multiplayer moves locally, even when it uses the production Supabase database. To test turn alerts from `127.0.0.1:5173`, configure the same four server-only `APNS_*` variables in the ignored `.env.local` and restart Vite (Vite also restarts when that env file changes). Without these credentials, local moves still save successfully but cannot send native alerts. The production badge worker can independently update the iPhone's badge from the shared database, so a working badge does not prove that the server handling the move can send alerts. Alternatively, make the opponent's moves on `https://picklebash.app`.
+
 Commands used for automated checks:
 
 ```sh

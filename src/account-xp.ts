@@ -24,7 +24,7 @@ export function renderAccountProgress(host:HTMLElement,p:AccountProgress,styled=
  host.append(title,copy);if(p.currentSkillBudget<p.maxSkillBudget)host.append(bar);
  if(p.currentPlayStreak){const streak=document.createElement('small');streak.textContent=`${p.currentPlayStreak}-day play streak`;host.append(streak);}
 }
-export async function loadAccountProgress(host:HTMLElement,styled=false){host.textContent='Loading account XP…';try{renderAccountProgress(host,await accountProgress(),styled);const client=authClient();if(client){const {data}=await client.from('xp_events').select('source,final_xp,skill_points_earned,current_skill_budget').order('awarded_at',{ascending:false}).limit(1).maybeSingle();if(data&&['invite','player_creation'].includes(data.source)){const receipt=document.createElement('p');receipt.textContent=`Latest reward: ${data.source==='invite'?'Friend activated':'Player created'} +${data.final_xp} XP${data.skill_points_earned?` · Skill Point Earned! Your Skill Budget increased to ${data.current_skill_budget}.`:''}`;host.append(receipt);}}}catch{host.textContent='Account XP is unavailable. Reconnect to refresh.';}}
+export async function loadAccountProgress(host:HTMLElement,styled=false){host.textContent='Loading account XP…';try{renderAccountProgress(host,await accountProgress(),styled);}catch{host.textContent='Account XP is unavailable. Reconnect to refresh.';}}
 /** Keep the existing guest identity when registering so its saved progress survives. */
 async function createProgressAccount(){
  const {createYourPlayer}=await import('./multiplayer/friend-flow');
