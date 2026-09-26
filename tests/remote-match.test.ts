@@ -6,7 +6,7 @@ import {A,B,C,testers,creation,action,MemoryRepository} from './helpers/remote';
 
 test('remote full game commits once per action, advances points, restores after service restart and redacts every response',async()=>{
  const db=new MemoryRepository();let service=new MatchService(db,testers),s=await service.create(A,creation()),sameOwner=false;
- db.rows.get(s.id)!.resolution_secret='7'.repeat(64);
+ db.rows.get(s.id)!.resolution_secret='8'.repeat(64);
  for(let i=0;i<600&&s.status!=='completed';i++){
   const actor=s.currentTeam==='home'?A:B;s=await service.get(s.id,actor);assert.ok(s.choices.length);
   assert.equal(s.nextHitter,s.choices[0].intent.actor);

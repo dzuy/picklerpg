@@ -15,7 +15,7 @@ test('point overlay and countdown wait for the body-hit reaction, including its 
  Object.defineProperty(globalThis,'document',{configurable:true,value:{createElement:()=>({hidden:true,setAttribute(){}})}});
  try{
   const reaction=new BodyHitReaction({append(){}} as any);
-  const context:any={byId,performance:{now:()=>now*1000},match:{scoring:{winner:null},state:{phase:'complete'},engine:{},replayIndex:null,isLocalHuman:false,playerAutonomy:false},
+  const context:any={playerDetailsOpen:()=>false,byId,performance:{now:()=>now*1000},match:{scoring:{winner:null},state:{phase:'complete'},engine:{},replayIndex:null,isLocalHuman:false,playerAutonomy:false},
    scene:{observeBodyHit(){reaction.update(now);if(!started){started=true;reaction.start('you',1.4,now)}},get reactingToHit(){return reaction.active},celebratingAtp:false},
    document:{body:{dataset:{panel:'play'}},hidden:false,querySelector:()=>({classList:{remove(){hasResult=false},toggle(_:string,value:boolean){hasResult=value}}})},
    settingsDialog:{open:false},creator:{dialog:{open:false}},playerDrawer:{open:false},resultEngine:null,resultReadyAt:null,RESULT_DELAY_SECONDS:1.5,resultElapsed:0,resultExpired:false,resultTimer:true,RESULT_WINDOW_SECONDS:10,advancePoint(){throw Error('Advanced before countdown finished')}};
