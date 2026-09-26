@@ -102,3 +102,21 @@ test('custom catchphrases survive saving and older players remain compatible',()
  assert.throws(()=>validatePlayer({...player,catchphrase:'x'.repeat(31)}));
  assert.throws(()=>validatePlayer({...player,catchphrase:42}));
 });
+
+test('community starting builds retain 10/10 skills through save and reload',()=>{
+ const player=newPlayer('owned-specialist');player.isPublic=true;
+ // A 35-point starting build: Power 10, Control 7, Speed 4, Hands 7, Defense 7.
+ player.publishedSkills={...player.skills,serve:100,drive:100,overhead:100,movement:40};
+ let saved='';const storage={setItem:(_key:string,value:string)=>{saved=value}};
+ const library=savePlayer(storage,parseLibrary(null),player,true);
+ assert.deepEqual(library.players[0].publishedSkills,player.publishedSkills);
+ assert.deepEqual(parseLibrary(saved).players[0].publishedSkills,player.publishedSkills);
+});
+
+test('community starting builds reject out-of-range, fractional, and missing skills',()=>{
+ for(const value of [-1,101,99.5,NaN,undefined]){
+  const player=newPlayer('invalid-community-build');
+  player.publishedSkills={...player.skills,drive:value as number};
+  assert.throws(()=>validatePlayer(player),/Invalid community skill build/);
+ }
+});
