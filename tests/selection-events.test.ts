@@ -21,7 +21,10 @@ test('selection snapshots retain offered timing variants and pre-action context,
  assert.equal(capture.execution.selectedShotExecuted,true);assert.equal(capture.execution.contactOrdinal,1);
  assert.equal(capture.completedContacts,0);
  assert.equal(capture.offered[0].intent.type,choice.intent.type);
- const serialized=JSON.stringify(capture);
+ const {gameplay,...selection}=capture;
+ assert.ok(gameplay);assert.ok(gameplay.events.some(e=>e.type==='shot'));
+ assert.equal(JSON.stringify(gameplay).includes('"seed"'),false);
+ const serialized=JSON.stringify(selection);
  for(const key of ['resolution_secret','seed','receptionChoice','legs'])assert.equal(serialized.includes(`"${key}"`),false);
 });
 

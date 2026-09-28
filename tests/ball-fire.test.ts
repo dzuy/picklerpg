@@ -4,10 +4,10 @@ import * as THREE from 'three';
 import {BallFire,isFireballShot,fireballTrailPoint} from '../src/ball-fire';
 import {Match} from '../src/match';
 
-test('fireball starts at 90% selected power and only during flight',()=>{
+test('fireball starts at 80% selected power and only during flight',()=>{
  const shot=structuredClone(new Match().shot);
- for(const power of [undefined,.5,.899,NaN]){shot.intent.power=power;assert.equal(isFireballShot({phase:'flight'},shot),false);}
- for(const power of [.9,1]){shot.intent.power=power;assert.equal(isFireballShot({phase:'flight'},shot),true);for(const phase of ['decision','complete'] as const)assert.equal(isFireballShot({phase},shot),false);}
+ for(const power of [undefined,.5,.799,NaN]){shot.intent.power=power;assert.equal(isFireballShot({phase:'flight'},shot),false);}
+ for(const power of [.8,.9,1]){shot.intent.power=power;assert.equal(isFireballShot({phase:'flight'},shot),true);for(const phase of ['decision','complete'] as const)assert.equal(isFireballShot({phase},shot),false);}
 });
 test('smoke samples the actual curved flight and follows the bounce into the next leg',()=>{
  const shot=structuredClone(new Match().shot);shot.legs=[{from:{x:0,y:1,z:0},to:{x:1,y:0,z:2},duration:.5,arc:1},{from:{x:1,y:0,z:2},to:{x:2,y:1,z:4},duration:.5,arc:.4}];

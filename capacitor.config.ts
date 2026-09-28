@@ -5,7 +5,8 @@ const config:CapacitorConfig={
  appName:'PickleBash',
  webDir:'dist',
  ios:{contentInset:'never'},
- plugins:{PushNotifications:{presentationOptions:['badge','sound','banner','list']}},
+ // Foreground play stays quiet; iOS still presents alerts when the app is backgrounded.
+ plugins:{PushNotifications:{presentationOptions:['badge']}},
 };
 
 export default config;

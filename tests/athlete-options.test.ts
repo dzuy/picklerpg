@@ -172,3 +172,20 @@ test('removed Toucan saves fall back to no outfit',()=>{
  const player=newPlayer('retired');(player.appearance as unknown as {outfit:string}).outfit='toucan';
  assert.equal(validatePlayer(player).appearance.outfit,'none');assert.ok(!(APPEARANCE_OPTIONS.outfit as readonly string[]).includes('toucan'));
 });
+
+
+test('angel arms clear the torso and the waving hand stays below the face',async()=>{
+ const {animateAthlete}=await import('../src/athlete');
+ const {angelWavePose}=await import('../src/body-hit-angel');
+ const model=clone(asset.scene),root=new THREE.Group();model.rotation.y=Math.PI;root.add(model);
+ const bones=new Map<string,THREE.Bone>(),rest=new Map(),positions=new Map();
+ model.traverse(o=>{if(o instanceof THREE.Bone){const name=o.name.replace(/(L|R)$/ ,'.$1');bones.set(name,o);rest.set(name,o.quaternion.clone());positions.set(name,o.position.clone());}});
+ root.userData.playerRig={bones,rest,positions};
+ for(let age=1.6;age<3.8;age+=.05){
+  animateAthlete(root,angelWavePose(age),0);root.updateMatrixWorld(true);
+  const wave=bones.get('hand.L')!.getWorldPosition(new THREE.Vector3());
+  const idle=bones.get('hand.R')!.getWorldPosition(new THREE.Vector3());
+  assert.ok(wave.x<-.38&&wave.y<1.06,'waving hand clears the cheek');
+  assert.ok(idle.x>.35,'resting hand stays outside the torso');
+ }
+});

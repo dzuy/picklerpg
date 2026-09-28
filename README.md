@@ -29,6 +29,10 @@ Click the shot card or press Space at a decision. During flight, Space pauses/re
 
 The agreed color direction, usage rules, and foundation for future marketing content are documented in [docs/STYLE-GUIDE.md](docs/STYLE-GUIDE.md). Shared page and panel gradient tokens live in [src/page-theme.css](src/page-theme.css).
 
+## Premium access
+
+[docs/PREMIUM.md](docs/PREMIUM.md) defines the growing Premium / PickleBash+ feature collection, current access behavior, and decisions reserved for future billing and in-app purchases.
+
 ## Backlog and build order
 
 The complete agreed roadmap is tracked in [docs/BACKLOG.md](docs/BACKLOG.md), with the original supplied text in [docs/roadmap-source.txt](docs/roadmap-source.txt). Work proceeds in numbered increments; Phase 2 is complete through item 14; Phase 3 player ratings come next.

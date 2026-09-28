@@ -12,7 +12,7 @@ test('point overlay and countdown wait for the body-hit reaction, including its 
  const byId=(id:string)=>{if(!elements.has(id))elements.set(id,{hidden:true,textContent:''});return elements.get(id)};
  let now=0,started=false,hasResult=false;
  const previous=Object.getOwnPropertyDescriptor(globalThis,'document');
- Object.defineProperty(globalThis,'document',{configurable:true,value:{createElement:()=>({hidden:true,setAttribute(){}})}});
+ Object.defineProperty(globalThis,'document',{configurable:true,value:{createElement:()=>({hidden:true,setAttribute(){},querySelector:()=>({textContent:''}),dataset:{},style:{}})}});
  try{
   const reaction=new BodyHitReaction({append(){}} as any);
   const context:any={playerDetailsOpen:()=>false,byId,performance:{now:()=>now*1000},match:{scoring:{winner:null},state:{phase:'complete'},engine:{},replayIndex:null,isLocalHuman:false,playerAutonomy:false},

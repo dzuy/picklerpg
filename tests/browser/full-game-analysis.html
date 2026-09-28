@@ -1,0 +1,15 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Full Game Analysis · Design Preview</title><style>body{margin:0;padding:24px;box-sizing:border-box;background:var(--pb-surface-inset);font-family:var(--pb-font-body);color:var(--pb-text)}#game-end{max-width:430px;margin:40px auto;background:var(--pb-surface);padding:24px;border-radius:24px;text-align:center}#game-end h1{font-size:28px}.preview-note{font-size:12px;text-align:center}.game-end-actions{display:flex;gap:10px;justify-content:center}.game-end-actions button,.example-button{padding:12px;border-radius:24px;border:1px solid var(--pb-border-strong);background:var(--pb-surface);color:var(--pb-text)}</style><body><p class="preview-note">Design preview · Example report</p><section id="game-end"><small>GAME COMPLETE</small><h1>Anna Leigh & dzuy</h1><h2>7 – 5</h2><p>vs Nico & Max</p><div class="game-end-actions"><button>New Game</button><button>Rematch</button></div></section><p style="text-align:center"><button class="example-button">Preview report layout</button> <button class="example-button loading-preview">Preview loading animation</button></p><script type="module">
+import '/src/design-system/tokens.css';
+import '/src/style.css';
+import {coachingReport} from '/tests/helpers/coaching-report.ts';
+import {installFullGameAnalysis,renderFullGameAnalysis,renderFullGameAnalysisProgress} from '/src/full-game-analysis.ts';
+import {showViewDialog} from '/src/view-focus.ts';
+installFullGameAnalysis(document.querySelector('.game-end-actions'),()=>({id:'63c0bb0b-e1b3-499e-8636-32ded22ff56b',mode:'solo'}));
+document.querySelector('.loading-preview').onclick=()=>{
+ const d=document.createElement('dialog');d.className='full-analysis-dialog';d.setAttribute('aria-label','Analysis loading preview');d.innerHTML='<header class="full-analysis-header"><h2>Full Game Analysis</h2><button aria-label="Close loading preview">✕</button></header><div class="full-analysis-content"></div>';document.body.append(d);d.querySelector('button').onclick=()=>d.close();d.addEventListener('close',()=>d.remove());renderFullGameAnalysisProgress(d.querySelector('.full-analysis-content'));showViewDialog(d);
+};
+document.querySelector('.example-button').onclick=()=>{
+ const d=document.createElement('dialog');d.className='full-analysis-dialog';d.setAttribute('aria-label','Example game analysis');d.innerHTML='<header class="full-analysis-header"><div><span class="full-analysis-eyebrow">PREMIUM · EXAMPLE REPORT</span><h2>Full Game Analysis</h2></div><button aria-label="Close example">✕</button></header><div class="full-analysis-content"></div>';document.body.append(d);d.querySelector('button').onclick=()=>d.close();d.addEventListener('close',()=>d.remove());
+ renderFullGameAnalysis(d.querySelector('.full-analysis-content'),{coverage:{complete:false,rallies:12,shots:48,fireballs:15},shotStats:[{type:'drive',you:12,opponents:6},{type:'reset',you:3,opponents:8},{type:'return',you:4,opponents:4},{type:'serve',you:5,opponents:6}],report:coachingReport});showViewDialog(d);
+};
+</script></body></html>

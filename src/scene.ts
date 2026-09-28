@@ -19,7 +19,7 @@ import {createPickleball,setPickleballGlow} from './pickleball';
 import {createAthlete, animateAthlete, disposeAthlete, setAthleteHandedness} from './athlete';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {COURT, type GameState, type PlayerId, type RallyShot, type Team} from './engine/model';
-import {sampleLeg} from './engine/rally-engine';
+import {flightGuidePoints} from './flight-guide';
 export class CourtScene {
  private celebration:AtpCelebration;
  private bodyHit:BodyHitReaction;
@@ -96,7 +96,7 @@ export class CourtScene {
  private trajectoryArrow=new THREE.Mesh(new THREE.ConeGeometry(.23,.64,12).translate(0,-.32,0),new THREE.MeshBasicMaterial({color:'#efff58',depthTest:false,depthWrite:false}));
  private scene=new THREE.Scene(); private camera=new THREE.PerspectiveCamera(38,1,.1,180); private renderer:THREE.WebGLRenderer;
  private controls:OrbitControls;private customizedView=false;
- private players=new Map<PlayerId,THREE.Group>();private ball:THREE.Group;private ballHalo:THREE.Mesh;private shadow:THREE.Mesh;private trail:THREE.Line;private trailDots:THREE.Points;private target:THREE.Group;private labels=new Map<PlayerId,HTMLDivElement>();private cameraDistance=50;private guides=true;private lastShot:RallyShot|null=null;private previewShot:RallyShot|null=null;private lastOpponentShot:RallyShot|null=null;
+ private players=new Map<PlayerId,THREE.Group>();private ball:THREE.Group;private ballHalo:THREE.Mesh;private shadow:THREE.Mesh;private trail:THREE.Line;private trailDots:THREE.Points;private target:THREE.Group;private labels=new Map<PlayerId,HTMLDivElement>();private cameraDistance=50;private guides=true;private lastShot:RallyShot|null=null;private lastGuideCursor='';private previewShot:RallyShot|null=null;private lastOpponentShot:RallyShot|null=null;
  constructor(private host:HTMLElement,private selectPlayer:(id:PlayerId)=>void=()=>{}){
   this.bodyHit=new BodyHitReaction(host);this.celebration=new AtpCelebration(this.scene,host);this.matchCelebration=new MatchCelebration(this.scene,host);
   this.turnArrow.className='turn-arrow';this.turnArrow.hidden=true;this.turnArrow.setAttribute('role','img');this.turnArrow.innerHTML='<svg viewBox="-2 -2 28 46" aria-hidden="true"><path d="M7.68 0H16.32V24.36H24L12 42L0 24.36H7.68Z"/></svg>';host.append(this.turnArrow);
@@ -329,8 +329,9 @@ export class CourtScene {
   const actualShotByOpponent=state.players.find(player=>player.id===shot.actor)?.team!==this.viewTeam;
   if(state.phase==='flight'&&actualShotByOpponent)this.lastOpponentShot=shot;
   const retainedOpponentShot=this.retainedTrajectory??(state.phase==='decision'&&state.possession===this.viewTeam&&!this.previewShot?this.lastOpponentShot:null);
-  const displayShot=this.previewShot??retainedOpponentShot??shot;
-  const thinker=thinkingPlayer?state.players.find(p=>p.id===thinkingPlayer):undefined;
+  const displayShot=state.phase==='flight'?shot:this.previewShot??retainedOpponentShot??shot;
+  const serving=serveCall!==null&&state.phase==='decision'&&shot.intent.type==='serve';
+  const thinker=thinkingPlayer&&!(serving&&thinkingPlayer===shot.actor)?state.players.find(p=>p.id===thinkingPlayer):undefined;
   const head=thinker?new THREE.Vector3(thinker.position.x,1.65,thinker.position.z).project(this.camera):null;
   const thought=head?{x:(head.x*.5+.5)*this.host.clientWidth,y:(-head.y*.5+.5)*this.host.clientHeight,visible:head.z>=-1&&head.z<=1}:null;
   this.thinkingBubble.hidden=!thought?.visible;
@@ -340,14 +341,13 @@ export class CourtScene {
    this.thinkingBubble.style.left=`${Math.max(54,Math.min(this.host.clientWidth-54,thought.x+side*72))}px`;
    this.thinkingBubble.style.top=`${Math.max(60,Math.min(this.host.clientHeight-24,thought.y+8))}px`;
   }
-  const serving=serveCall!==null&&state.phase==='decision'&&shot.intent.type==='serve';
   this.serveBubble.hidden=!serving;
   if(serving){
    const server=state.players.find(p=>p.id===shot.actor)!;
    const point=new THREE.Vector3(server.position.x,1.45,server.position.z).project(this.camera);
    const text=serveCall.replaceAll('–','-');
    if(this.serveBubble.textContent!==text)this.serveBubble.textContent=text;
-   const playerX=(point.x*.5+.5)*this.host.clientWidth,side=(playerX>this.host.clientWidth/2?-1:1)*(thinkingPlayer===shot.actor?-1:1);
+   const playerX=(point.x*.5+.5)*this.host.clientWidth,side=playerX>this.host.clientWidth/2?-1:1;
    this.serveBubble.style.left=`${Math.max(45,Math.min(this.host.clientWidth-45,playerX+side*48))}px`;
    this.serveBubble.style.top=`${Math.max(48,Math.min(this.host.clientHeight-20,(-point.y*.5+.5)*this.host.clientHeight))}px`;
   }
@@ -360,7 +360,7 @@ export class CourtScene {
    const moving=advanced?step>.0001&&step<1:previous?.time===state.simulationTime&&!!mesh.userData.moving;
    mesh.userData.moving=state.simulationTime===0?false:moving;
    const pose=athletePose(p,state,shot,distance,mesh.userData.moving);if(p.position.y>.05){pose.crouch=.16;pose.stride=.5;pose.offArm=-1.1;}if(this.celebration.team===p.team){pose.celebrate=true;pose.armX=-2.8;pose.offArm=-2.8;pose.crouch=0;mesh.position.y+=victoryJump;}this.matchCelebration.pose(p,state.players,mesh,pose,this.reducedMotion.matches);this.bodyHit.pose(p.id,pose,time,this.reducedMotion.matches);animateAthlete(mesh,pose,this.reducedMotion.matches?0:performance.now()/1000);
-   this.bodyHit.speech(p.id,this.projectSpeech(mesh.position));
+   this.bodyHit.visual(p.id,mesh,time,this.reducedMotion.matches,this.projectSpeech(mesh.position));
    this.matchCelebration.speech(state.players.indexOf(p),this.projectSpeech(mesh.position));
    if(p.id==='you'){const pulse=this.reducedMotion.matches?1:1+Math.sin(time*2.6)*.035;mesh.getObjectByName('ground-ring')?.scale.setScalar(pulse);const halo=mesh.getObjectByName('selection-halo') as THREE.Mesh<THREE.RingGeometry,THREE.MeshBasicMaterial>;halo.material.opacity=this.reducedMotion.matches?.13:.13+Math.sin(time*2.6)*.035;}
    this.motion.set(p.id,{x:p.position.x,z:p.position.z,distance,time:state.simulationTime});
@@ -372,7 +372,8 @@ export class CourtScene {
   const spin=displayShot.intent.spin,strength={light:1,medium:1.8,strong:3}[spin?.strength??'medium'];
   const verticalRate=spin?.vertical==='topspin'?7*strength:spin?.vertical==='slice'?-5*strength:3.2,sideRate=spin?.side==='left'?-6*strength:spin?.side==='right'?6*strength:2.1;
   this.ball.position.set(state.ball.position.x,state.ball.position.y,state.ball.position.z);this.ballHalo.position.copy(this.ball.position);this.ballHalo.scale.setScalar(1);this.ball.rotation.x=state.simulationTime*verticalRate;this.ball.rotation.z=state.simulationTime*sideRate;this.shadow.position.set(state.ball.position.x,.056,state.ball.position.z);const shadowScale=1+state.ball.position.y*.22;this.shadow.scale.setScalar(shadowScale);(this.shadow.material as THREE.MeshBasicMaterial).opacity=Math.max(.12,.45-state.ball.position.y*.065);
-  if(this.lastShot!==displayShot){this.lastShot=displayShot;const points=displayShot.legs.flatMap(leg=>Array.from({length:41},(_,i)=>{const p=sampleLeg(leg,i/40);return new THREE.Vector3(p.x,p.y,p.z)}));const geometry=new THREE.BufferGeometry().setFromPoints(points);this.trail.geometry.dispose();this.trail.geometry=geometry;this.trailDots.geometry=geometry;this.trail.computeLineDistances();
+  const guideCursor=state.phase==='flight'?`${state.legIndex}:${state.elapsed}`:'complete';
+  if(this.lastShot!==displayShot||this.lastGuideCursor!==guideCursor){this.lastShot=displayShot;this.lastGuideCursor=guideCursor;const points=flightGuidePoints(displayShot.legs,state.phase==='flight'?state:undefined).map(p=>new THREE.Vector3(p.x,p.y,p.z));const geometry=new THREE.BufferGeometry().setFromPoints(points);this.trail.geometry.dispose();this.trail.geometry=geometry;this.trailDots.geometry=geometry;this.trail.computeLineDistances();
    const end=points.at(-1),previous=end?points.slice(0,-1).reverse().find(point=>point.distanceToSquared(end)>1e-8):undefined;
    this.trajectoryArrow.userData.hasDirection=!!previous;
    if(end&&previous){this.trajectoryArrow.position.copy(end);this.trajectoryArrow.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),end.clone().sub(previous).normalize())}

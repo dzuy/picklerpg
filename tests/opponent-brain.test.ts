@@ -22,7 +22,7 @@ test('a pending LLM strategy never pauses play and costs at most one call per po
   const m=new Match();m.brainMode='llm';playPoint(m);
   assert.equal(calls,1);assert.equal(payload.kind,'strategy');assert.equal(payload.options.length,STRATEGIES.length);assert.equal(payload.ball,undefined);
   resolve(new Response(JSON.stringify({choice:0})));await new Promise(r=>setTimeout(r,0));
-  assert.match(m.brainStatus,/LLM strategy/);
+  assert.match(m.brainStatus,/Opponent strategy/);
   m.nextPoint();m.update(0);assert.equal(calls,2);
   m.reset();const before=m.snapshot();resolve(new Response(JSON.stringify({choice:1})));await new Promise(r=>setTimeout(r,0));
   assert.deepEqual(m.snapshot(),before);assert.doesNotMatch(m.brainStatus,/Patient soft game/);

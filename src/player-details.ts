@@ -1,4 +1,4 @@
-import {focusView,showViewDialog} from './view-focus';
+import {focusView} from './view-focus';
 import {AvatarPreview} from './avatar-preview';
 import {fillPlayerCard,playerSkillDetails} from './player-card';
 import {canModerateCommunity,removeFromCommunity} from './community-players';
@@ -6,6 +6,8 @@ import {summarizeSkills} from './player-skill-summary';
 import type {DesignedPlayer} from './player-design';
 import './player-details.css';
 let drawer:HTMLDialogElement|undefined;
+let disposeCurrent:(()=>void)|undefined;
+let closeTimer:ReturnType<typeof setTimeout>|undefined;
 export function playerDetailsOpen(){return !!drawer?.open;}
 export function attachPlayerDetails(card:HTMLElement,player:DesignedPlayer,role:string,portrait:string,edit?:()=>void,membership?:{label:string;primary?:boolean;change:()=>Promise<void|boolean>},requestDelete?:()=>void){
  card.querySelector(':scope > dl')?.remove();
@@ -17,9 +19,10 @@ export function attachPlayerDetails(card:HTMLElement,player:DesignedPlayer,role:
 
 export function openPlayerDetails(player:DesignedPlayer,role:string,portrait='',returnFocus?:HTMLElement,edit?:()=>void,membership?:{label:string;primary?:boolean;change:()=>Promise<void|boolean>},requestDelete?:()=>void){
 
+  clearTimeout(closeTimer);closeTimer=undefined;disposeCurrent?.();disposeCurrent=undefined;
   drawer??=document.createElement('dialog');drawer.className='roster-details-drawer';drawer.id='roster-details';drawer.setAttribute('aria-labelledby','roster-details-title');drawer.replaceChildren();if(!drawer.isConnected)document.body.append(drawer);
   let closing=false;let preview:AvatarPreview|undefined;
-  const dismiss=(after?:()=>void)=>{if(closing)return;closing=true;preview?.dispose();preview=undefined;const finish=()=>{drawer!.close();after?.()};if(matchMedia('(prefers-reduced-motion: reduce)').matches){finish();return;}drawer!.classList.add('is-closing');window.setTimeout(finish,180)};
+  const dismiss=(after?:()=>void)=>{if(closing)return;closing=true;const finish=()=>{closeTimer=undefined;drawer!.close();after?.()};if(matchMedia('(prefers-reduced-motion: reduce)').matches){finish();return;}drawer!.classList.add('is-closing');closeTimer=setTimeout(finish,220)};
   drawer.oncancel=event=>{event.preventDefault();dismiss()};
   let outsideDown=false;const outside=(event:MouseEvent)=>{const r=drawer!.getBoundingClientRect();return event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom};
   drawer.onpointerdown=event=>{outsideDown=outside(event)};drawer.onclick=event=>{if(event.target===drawer&&outsideDown&&outside(event))dismiss()};
@@ -46,7 +49,8 @@ export function openPlayerDetails(player:DesignedPlayer,role:string,portrait='',
    button.onclick=()=>{button.disabled=true;status.textContent='';void membership.change().then(changed=>{if(changed!==false)dismiss();}).catch(error=>{status.textContent=(error as Error).message;}).finally(()=>{button.disabled=false;});};
    drawer.append(button,status);
   }
-  drawer.onclose=()=>{preview?.dispose();preview=undefined;focusView()};showViewDialog(drawer);focusView(drawer);
+  disposeCurrent=()=>{preview?.dispose();preview=undefined};
+  drawer.onclose=()=>{clearTimeout(closeTimer);closeTimer=undefined;disposeCurrent?.();disposeCurrent=undefined;drawer!.classList.remove('is-closing');focusView(returnFocus?.isConnected?returnFocus:undefined)};if(!drawer.open)drawer.showModal();focusView(drawer);
   const banner=profile.querySelector<HTMLElement>('.roster-banner')!,host=document.createElement('div');host.className='roster-live-preview';
   banner.prepend(host);
   try{preview=new AvatarPreview(host,true,1.3,{allowZoom:true,verticalOffset:.08});preview.setPlayer(player);banner.classList.add('has-live-preview');banner.querySelector('img')?.remove();}catch{preview?.dispose();preview=undefined;host.remove();}

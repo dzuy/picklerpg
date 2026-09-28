@@ -13,7 +13,10 @@ export function assessShot(intent:ShotIntent,context:ShotContext,players:PlayerS
   const shot=executeShot(intent,context,players,{seed:(0x9e3779b9*(i+1))>>>0,balance:1});
   errors.push(shot.endpointError);
   const serveFault=intent.type==='serve'&&shot.leg.bounceAtEnd&&(shot.actualEndpoint.x*context.contact.x>=0||Math.abs(shot.actualEndpoint.z)<=COURT.kitchen);
-  if(shot.outcome==='net'||shot.outcome==='out'||serveFault||shot.mishit||shot.endpointError>.85)poor++;
+  // A legal serve is safe even when it misses the aim point or comes off the paddle poorly.
+  // Keep that dispersion in accuracyRadius, rather than counting it as a service fault.
+  const placementRisk=intent.type!=='serve'&&(shot.mishit||shot.endpointError>.85);
+  if(shot.outcome==='net'||shot.outcome==='out'||serveFault||placementRisk)poor++;
  }
  // How much movement must the best-positioned defender make before a reachable contact?
  // Consider the whole incoming path, not just the landing, so easy volleys lower pressure.
@@ -31,7 +34,7 @@ export function assessShot(intent:ShotIntent,context:ShotContext,players:PlayerS
  const pace=Math.hypot(trajectory.leg.to.x-trajectory.leg.from.x,trajectory.leg.to.z-trajectory.leg.from.z)/trajectory.leg.duration;
  const pressure=demand+Math.max(0,pace-9)*.13;
  errors.sort((a,b)=>a-b);const accuracyRadius=errors[Math.floor(sampleCount*.8)];
- return {accuracyRadius,riskFill:Math.min(3,.3+poor/sampleCount*2.4+accuracyRadius*.4),pressureFill:Math.min(3,.2+demand*.45+pace*.07),risk:poor/sampleCount<=.05?'Low':poor/sampleCount<=.20?'Medium':'High',pressure:pressure<1.6?'Low':pressure<3.6?'Medium':'High'};
+ return {accuracyRadius,riskFill:Math.min(3,.3+poor/sampleCount*2.4+(intent.type==='serve'?0:accuracyRadius*.4)),pressureFill:Math.min(3,.2+demand*.45+pace*.07),risk:poor/sampleCount<=.05?'Low':poor/sampleCount<=.20?'Medium':'High',pressure:pressure<1.6?'Low':pressure<3.6?'Medium':'High'};
 }
 export function assessChoice(choice:{intent:ShotIntent;timing?:'air'|'bounce'},point:{x:number;z:number;playerId?:ShotIntent['actor']},contacts:AssessmentContact[]):ShotAssessment|undefined{
  const contact=contacts.find(c=>c.actor===choice.intent.actor&&(c.timing??undefined)===choice.timing);

@@ -1,7 +1,8 @@
+import {computerOpponent} from './computer-opponents';
 import {loadScoringPreference} from './scoring-preference';
 import {focusView} from './view-focus';
 import {fillSetupPlayerCard} from './setup-player-card';
-import {courtSelector} from './court-selector';
+import {courtSelector,courtShuffleButton,randomCourt,scrollToCourt} from './court-selector';
 import {COURT_LOCATIONS,type CourtLocation} from './locations';
 import {rosterStarters,ownedRosterPlayers,starterIds} from './roster-membership';
 import {CommunitySection} from './community-section';
@@ -31,7 +32,7 @@ export class MatchSetup {
  private restrictTeam(){for(let i=0;i<2;i++)if(!this.eligible.includes(this.selected[i])&&this.eligible.length)this.selected[i]=this.eligible.find(id=>!this.selected.slice(0,i).includes(id))??this.eligible[0];}
  private community=new CommunitySection(players=>this.setRoster(players));
  private starting=false;
- private async startSelected(){if(this.starting||!this.canStart())return;this.starting=true;const button=this.element.querySelector<HTMLButtonElement>('[data-action=start]')!;button.disabled=true;const selection=this.selected.join('|'),mode=this.mode,court=this.court,target=this.target;try{const players=await refreshCommunityDesigns(this.selected.map(id=>this.players.find(p=>p.id===id)!));if(this.element.hidden||this.selected.join('|')!==selection||this.mode!==mode||this.court!==court||this.target!==target)return;this.start(Object.fromEntries(slots.map((slot,i)=>[slot,players[i]])) as Record<PlayerId,DesignedPlayer>,mode,court,target);}catch(e){const status=this.element.querySelector<HTMLElement>('[role=status]')!;status.className='setup-community-error';status.textContent=(e as Error).message;}finally{this.starting=false;button.disabled=!this.canStart();}}
+ private async startSelected(){if(this.starting||!this.canStart())return;this.starting=true;const button=this.element.querySelector<HTMLButtonElement>('[data-action=start]')!;button.disabled=true;const selection=this.selected.join('|'),mode=this.mode,court=this.court,target=this.target;try{const players=await refreshCommunityDesigns(this.selected.map(id=>this.players.find(p=>p.id===id)!));if(this.element.hidden||this.selected.join('|')!==selection||this.mode!==mode||this.court!==court||this.target!==target)return;this.start(Object.fromEntries(slots.map((slot,i)=>[slot,mode==='solo'&&i>=2?computerOpponent(players[i]):players[i]])) as Record<PlayerId,DesignedPlayer>,mode,court,target);}catch(e){const status=this.element.querySelector<HTMLElement>('[role=status]')!;status.className='setup-community-error';status.textContent=(e as Error).message;}finally{this.starting=false;button.disabled=!this.canStart();}}
  private selected:string[]=[];
  private court:CourtLocation='venice';
  private mode:PlayMode='solo';
@@ -49,6 +50,10 @@ export class MatchSetup {
    if(button.dataset.action==='random'){
     this.selected=[...this.selected.slice(0,2),...shufflePlayers(this.players.map(p=>p.id)).slice(0,2)];
     this.restrictTeam();this.refresh('[data-action=random]','New matchup selected.');
+   }
+   if(button.dataset.action==='shuffle-court'){
+    this.court=randomCourt(this.court);this.refresh('[data-action=shuffle-court]',`${courts.find(c=>c.id===this.court)!.name} selected.`);
+    scrollToCourt(this.element.querySelector<HTMLElement>(`[data-court="${this.court}"]`)!);
    }
    if(button.dataset.step)this.cycle(Number(button.dataset.slot),Number(button.dataset.step));
    if(button.dataset.court&&courts.some(c=>c.id===button.dataset.court&&c.playable)){
@@ -114,12 +119,12 @@ export class MatchSetup {
   this.element.innerHTML=`<div class="setup-shell"><header class="setup-page-header"><nav class="setup-navigation" aria-label="Game setup navigation"><button type="button" data-action="back"><span aria-hidden="true">←</span> Back to Play Menu</button></nav><h1 id="setup-title">Play Solo</h1></header>
    <div class="setup-rules">
    <label class="setup-scoring" for="setup-scoring">Scoring <select id="setup-scoring"><option value="rally-doubles" ${this.scoring==='rally-doubles'?'selected':''}>Rally scoring</option><option value="side-out-doubles" ${this.scoring==='side-out-doubles'?'selected':''}>Side-out scoring</option></select></label><label class="setup-scoring" for="setup-target">Points limit <input id="setup-target" type="number" inputmode="numeric" min="1" max="99" step="1" required value="${Number.isFinite(this.target)?this.target:''}" aria-describedby="setup-win-by"><span id="setup-win-by">Win by 2</span></label></div><div class="setup-matchup"><section class="setup-team setup-home" aria-label="${this.mode==='solo'?'Your team':'Player A team'}"><h2 class="setup-team-title">Choose Your Players</h2><p class="setup-manager">Managed by you · You choose both athletes’ shots</p><div class="setup-team-players">${card(0)}${card(1)}</div></section><div class="setup-versus" aria-hidden="true"><img src="${graphics}/badges/picklebash-badge-vs.png" alt="" draggable="false"></div><section class="setup-team setup-away" aria-label="${this.mode==='solo'?'Opponent team':'Player B team'}"><div class="setup-opponents-heading"><h2 class="setup-team-title">Choose Your Opponents</h2><button type="button" class="setup-shuffle" data-action="random" aria-label="Shuffle matchup" title="Shuffle matchup"><span aria-hidden="true">⤨</span></button></div><p class="setup-manager">Computer managed · Ready to play</p><div class="setup-team-players">${card(2)}${card(3)}</div></section></div>
-   <div class="setup-lower"><section class="setup-locations" aria-labelledby="setup-location-title"><h2 id="setup-location-title">Choose your court</h2><div class="setup-courts court-selector">${courtSelector(this.court,'data-court')}</div></section><button type="button" class="setup-start" data-action="start" aria-label="Start Game" ${this.canStart()?'':'disabled'}><span>Start Game</span><span aria-hidden="true">↗</span></button></div>
+   <div class="setup-lower"><section class="setup-locations" aria-labelledby="setup-location-title"><div class="court-heading"><h2 id="setup-location-title">Choose your court</h2>${courtShuffleButton}</div><div class="setup-courts court-selector">${courtSelector(this.court,'data-court')}</div></section><button type="button" class="setup-start" data-action="start" aria-label="Start Game" ${this.canStart()?'':'disabled'}><span>Start Game</span><span aria-hidden="true">↗</span></button></div>
    <p class="setup-sr-only" role="status" aria-live="polite" aria-atomic="true"></p></div>`;
   chosen.forEach((player,i)=>{
    const article=this.element.querySelector<HTMLElement>(`[data-card-slot="${i}"]`)!;
    const credit=player.id.startsWith('preset-')?'Starting Lineup':player.id.startsWith('community-')?'Community player':this.owned.some(p=>p.id===player.id)?'Your player':'Community player';
-   fillSetupPlayerCard(article,player,credit);
+   fillSetupPlayerCard(article,this.mode==='solo'&&i>=2?computerOpponent(player):player,credit);
    const controls=document.createElement('div');controls.className='roster-card-actions';
    for(const step of [-1,1]){const button=document.createElement('button');button.type='button';button.dataset.slot=String(i);button.dataset.step=String(step);button.textContent=step<0?'‹':'›';button.setAttribute('aria-label',`${step<0?'Previous':'Next'} ${labels[i].toLowerCase()}`);controls.append(button);}
    article.append(controls);

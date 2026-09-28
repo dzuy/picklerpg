@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
-import {cleanTrashTalk,replayTrashTalk,type TrashTalk} from '../src/multiplayer/trash-talk';
+import {cleanTrashTalk,replayTrashTalk,reactionReplayDuration,type TrashTalk} from '../src/multiplayer/trash-talk';
 import {parseTrashTalk} from '../server/multiplayer/trash-talk';
 import {database,PgRepository} from './helpers/postgres';
 import {MatchService} from '../server/multiplayer/service';
@@ -16,9 +16,15 @@ test('trash talk filters whole words before storage and validates Unicode length
 });
 test('replay ties messages to the next move, replaces bubbles, and supports scrubbing',()=>{
  const messages:TrashTalk[]=[{id:'1',player:'you',text:'First',version:3,createdAt:''},{id:'2',player:'you',text:'Second',version:3,createdAt:''},{id:'3',player:'opponent-left',text:'Nice try!',version:3,createdAt:''},{id:'4',player:'you',text:'Next move',version:4,createdAt:''}];
- assert.deepEqual(replayTrashTalk(messages,4,0).map(m=>m.id),['2','3']);
- assert.deepEqual(replayTrashTalk(messages,4,4.999).map(m=>m.id),['2','3']);
- assert.deepEqual(replayTrashTalk(messages,4,5),[]);
+ assert.deepEqual(replayTrashTalk(messages,4,0,6).map(m=>m.id),['2','3']);
+ assert.deepEqual(replayTrashTalk(messages,4,4.999,6).map(m=>m.id),['2','3']);
+ assert.deepEqual(replayTrashTalk(messages,4,5,6),[]);
+ assert.deepEqual(replayTrashTalk(messages,4,6,6).map(m=>m.id),['4']);
+ assert.deepEqual(replayTrashTalk(messages,4,11,6),[]);
+ assert.equal(reactionReplayDuration(messages,4,6),11);
+ assert.equal(reactionReplayDuration([],4,6),6);
+ assert.deepEqual(replayTrashTalk(messages,4,-1,6),[]);
+ assert.deepEqual(replayTrashTalk(messages,4,0,6).map(m=>m.id),['2','3'],'rewinding restores earlier reactions');
 });
 test('trash talk database: membership, concurrent cooldown, idempotency, replay persistence, and isolated gameplay',async()=>{
  const db=await database();try{

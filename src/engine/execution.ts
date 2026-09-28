@@ -31,7 +31,10 @@ export function executeShot(value:unknown,context:ShotContext,players:PlayerStat
  if(specialDifficulty)contact.labels.push(intent.technique==='erne'?'Erne timing':'ATP timing');
  if(techniqueIssue)contact.labels.push(`Difficult technique: ${techniqueIssue}`);
  const quality=clamp(.2+.8*skill/100-.2*difficulty-.2*lowContact-.3*(1-conditions.balance)-contact.penalty-handsPenalty-.1*lobRisk-.25*specialDifficulty-(techniqueIssue?.65:0));
- const benchmark=skillBenchmark(skill);
+ // Serving is self-paced: Control contributes to placement, while the serve
+ // skill still governs execution quality and power-related demands.
+ const placementSkill=intent.type==='serve'?(skill+(hitter.skills.drop+hitter.skills.dink)/2)/2:skill;
+ const benchmark=skillBenchmark(placementSkill);
  const pressure=clamp(.2*difficulty+.2*lowContact+.3*(1-conditions.balance)+contact.penalty+handsPenalty);
  // A steep, short landing needs finer distance control than a comfortable deep target.
  // The old model fitted an ideal arc to every spot but charged no extra control cost.

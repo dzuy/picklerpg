@@ -6,3 +6,12 @@
 :is(#match-setup,#remote-setup) div.court-selector button[aria-pressed=true]::after{content:'✓';position:absolute;top:9px;right:9px;display:grid;place-items:center;width:25px;height:25px;background:var(--pb-surface-inset);color:var(--pb-text);border-radius:50%;font-weight:800;}
 @media(max-width:600px){:is(#match-setup,#remote-setup) div.court-selector{gap:12px;}:is(#match-setup,#remote-setup) div.court-selector button{flex-basis:220px;}}
 @media(prefers-reduced-motion:reduce){:is(#match-setup,#remote-setup) div.court-selector button{transition:none;}}
+
+.court-premium-badge{position:absolute;top:9px;left:9px;z-index:1;display:inline-flex;align-items:center;padding:5px 9px;border-radius:var(--pb-radius-pill);background:var(--pb-sunshine);color:var(--pb-teal);font:800 11px/1.2 var(--pb-font-body);letter-spacing:.02em;box-shadow:0 2px 6px var(--pb-shadow-color);pointer-events:none;}
+.invitation-location{position:relative;}
+.court-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.court-heading h2{margin:0}
+:is(#match-setup,#remote-setup) .court-heading .court-shuffle{display:grid;place-items:center;flex:0 0 40px;width:40px;height:40px;min-height:40px;padding:9px;margin:0;border:1px solid var(--pb-border);border-radius:50%;background:var(--pb-surface);color:var(--pb-text);cursor:pointer}
+.court-shuffle svg{display:block;width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.court-shuffle:hover{background:var(--pb-surface-hover)}
+.court-shuffle:focus-visible{outline:3px solid var(--pb-focus);outline-offset:3px}

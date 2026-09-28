@@ -52,6 +52,7 @@ export class AvatarThumbnails {
   if(category==='roster'){y=.95;z=-3.2;x=-.25}
   if(category==='profile'){y=1.08;z=-2.15;x=-.38}
   if(category==='hairStyle'||category==='hat'){y=1.23;z=-1.8;x=-.3}
+  if(category==='hairStyle'&&appearance.hairStyle==='afro'){y=1.38;z=-2.65;x=-.35}
   if(category==='hat'&&['viking','cowboy','santa','sombrero'].includes(appearance.hat)){y=1.32;z=appearance.hat==='sombrero'?-3.6:-3.2;x=-.32}
   if(category==='outfit'){y=.86;z=-4.4;x=-.7}
   if(category==='full'||category==='presentation'||category.startsWith('hand-')){y=.78;z=-3.2;x=-.4}

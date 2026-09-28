@@ -39,6 +39,7 @@ export function dressAthlete(model:THREE.Group,appearance:Appearance){
  const expression=slot(`expression-${a.expression}`),mouth='#713c2c';
  const curve=(x:number,y:number,w:number,h:number,color:string,r=.010)=>line(expression,Array.from({length:17},(_,i)=>{const t=i/16;return H(x+(t-.5)*w,y+h*4*t*(1-t),-.269)}),color,r);
  for(const sign of [-1,1]){
+  const eyeStart=expression.children.length;
   const x=sign*.137,wink=a.expression==='confident'&&sign===1;
   if(a.expression==='happy'||wink)curve(x,1.587,.083,.037,ink,.012);
   else if(a.expression==='crying'){
@@ -46,6 +47,7 @@ export function dressAthlete(model:THREE.Group,appearance:Appearance){
    box(expression,H(x,1.537,-.262),[.032,.10,.013],'#71c9ee',.013);
    mesh(expression,new THREE.SphereGeometry(.021,12,8),'#71c9ee',H(x,1.482,-.271));
   }else box(expression,H(x,1.601,-.260),[.061,.112,.015],ink,.024);
+  for(const eye of expression.children.slice(eyeStart))eye.userData.bodyHitEye=true;
   const browY=a.expression==='confident'&&sign===1?1.702:1.692;
   const brow=box(expression,H(x,browY,-.265),[.081,.025,.015],hair,.010);
   brow.rotation.z=a.expression==='determined'||a.expression==='angry'?sign*.38:a.expression==='crying'?-sign*.34:a.expression==='confident'&&sign===1?-.20:0;
@@ -115,7 +117,32 @@ export function dressAthlete(model:THREE.Group,appearance:Appearance){
   hide('hair');
   if(a.hairStyle!=='none'){
    const g=slot(`hair-${a.hairStyle}`),style=a.hairStyle;
-   if(style==='mohawk'){
+   if(style==='high-fade'){
+    // Closely clipped temples transition into a full, squared crown.
+    for(let band=0;band<3;band++){
+     const shade=`#${new THREE.Color(a.skin).lerp(new THREE.Color(hair),.22+band*.25).getHexString()}`;
+     const height=1.72+band*.055;
+     for(const sign of [-1,1])box(g,H(sign*.321,height,.015),[.038,.062,.46],shade,.009);
+     box(g,H(0,height,.238),[.65,.062,.035],shade,.009);
+    }
+    box(g,H(0,1.915,.005),[.66,.19,.52],hair,.045);
+    box(g,H(0,1.836,-.253),[.61,.055,.028],hair,.01);
+    for(let i=0;i<6;i++)box(g,H((i-2.5)*.096,2.007,.015),[.108,.045,.43],hair,.022);
+   }else if(style==='afro'){
+    // A rounded crown and a halo of curls leave the face and eyes unobstructed.
+    const crown=mesh(g,new THREE.SphereGeometry(.51,28,18,0,Math.PI*2,0,Math.PI*.57),hair,H(0,1.89,.025));
+    crown.scale.z=.85;
+    for(let i=0;i<180;i++){
+     const vertical=1-(i+.5)/180*1.20,phi=i*Math.PI*(3-Math.sqrt(5));
+     const radius=.50*Math.sqrt(1-vertical*vertical);
+     const curl=mesh(g,new THREE.SphereGeometry(.061+(i%3)*.004,8,6),hair,H(radius*Math.cos(phi),1.89+.50*vertical,.025+radius*.85*Math.sin(phi)));
+     curl.scale.set(1,.95,.9);
+    }
+    for(const sign of [-1,1])for(let i=0;i<3;i++){
+     const curl=mesh(g,new THREE.SphereGeometry(.115,10,8),hair,H(sign*(.445-i*.014),1.83-i*.095,.055));
+     curl.scale.z=1.9;
+    }
+   }else if(style==='mohawk'){
     // A narrow front-to-back crest leaves the sides of the head exposed.
     box(g,H(0,1.915,.01),[.14,.065,.51],hair,.018);
     for(let i=0;i<5;i++){

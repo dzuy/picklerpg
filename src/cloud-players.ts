@@ -1,3 +1,4 @@
+import type {GameplayRecord} from './persistence/gameplay-record';
 import {normalizeSkillBudget} from './skill-budget';
 import {accountSkillBudget} from './account-skill-budget';
 import {normalizeTeamName} from './team-name';
@@ -76,6 +77,10 @@ export class CloudPlayerSync{
  async recordMatch(result:{id:string;home_names:string;away_names:string;home_score:number;away_score:number;ended_early?:boolean;participants?:MatchParticipant[];difficulty?:string;target?:number},owner:string){
   if(!this.client||this.ownerId!==owner)throw new Error('Reconnect to the account that played this match.');
   const {error}=await this.client.rpc('record_solo_xp',{p_id:result.id,p_home_names:result.home_names,p_away_names:result.away_names,p_home_score:result.home_score,p_away_score:result.away_score,p_ended_early:!!result.ended_early,p_participants:result.participants??[],p_difficulty:result.difficulty??'normal',p_target:result.target??11});if(error)throw error;
+ }
+ async recordGameplay(record:GameplayRecord,owner:string){
+  if(!this.client||this.ownerId!==owner)throw new Error('Reconnect to the account that played this match.');
+  const {error}=await this.client.rpc('record_solo_gameplay',{p_record:record});if(error)throw error;
  }
  async history(){
   if(!this.client||!this.ownerId)throw new Error('Connect to view your match history.');

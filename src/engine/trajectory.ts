@@ -57,7 +57,11 @@ export function generateTrajectory(value:unknown,context:ShotContext,players:Pla
  const softPlacement=['drop','dink','reset','block'].includes(intent.type);
  const shapeLift=softPlacement?0:intent.shape==='flat'?family.lift*.35:intent.shape==='descending'?0:family.lift*1.3;
  const power=shotPower(intent);
- const arc=Math.max(0,shapeLift,required)*power.loft;
+ // Near-net targets make t*(1-t) approach zero. Do not turn an impossible
+ // clearance/landing combination into an unbounded arc; retain the target and
+ // report the clearance this bounded flight actually achieves.
+ const clearanceArc=Math.min(required,Math.max(2,intent.intendedNetClearance+2));
+ const arc=Math.min(12,Math.max(0,shapeLift,clearanceArc)*power.loft);
  // A powered lob spends its extra energy climbing and stays airborne longer.
  if(power.loft>1)duration*=Math.sqrt(power.loft);
  // No shot should suspend a low arc in mid-air, regardless of stacked pace modifiers.
@@ -100,9 +104,12 @@ export function finishRebound(leg:FlightLeg):FlightLeg{
 export function outBallContinuation(landing:FlightLeg):FlightLeg[]{
  if(!landing.bounceAtEnd)return [];
  const velocity=sampleFlightVelocity(landing,1),gravity=9.81;
- let vx=velocity.x*.8,vz=velocity.z*.8,vy=Math.max(.35,Math.abs(velocity.y)*.5),from={...landing.to};
+ // Stylized flight durations can imply excessive impact velocity. A bounce
+ // must lose energy: its apex cannot exceed a quarter of the incoming drop.
+ const drop=Math.max(0,flightApex(landing)-landing.to.y);
+ let vx=velocity.x*.8,vz=velocity.z*.8,vy=Math.min(Math.max(.35,Math.abs(velocity.y)*.5),Math.sqrt(2*gravity*drop)*.5),from={...landing.to};
  const legs:FlightLeg[]=[];
- for(let bounce=0;bounce<3;bounce++){
+ for(let bounce=0;bounce<3&&vy>1e-6;bounce++){
   const duration=2*vy/gravity;
   const to={x:from.x+vx*duration,y:from.y,z:from.z+vz*duration};
   legs.push({from,to,duration,arc:gravity*duration*duration/8,bounceAtEnd:true});
@@ -112,6 +119,21 @@ export function outBallContinuation(landing:FlightLeg):FlightLeg[]{
  for(let step=0;step<6;step++){
   const duration=.1,to={x:from.x+vx*duration*.75,y:from.y,z:from.z+vz*duration*.75};
   legs.push({from,to,duration,arc:0});from={...to};vx*=.5;vz*=.5;
+ }
+ // Even a faulted ball remains solid: later bounces/rolls can reach the net
+ // after the initial shot landed short on the hitter's side.
+ for(let i=0;i<legs.length;i++){
+  const leg=legs[i],side=Math.sign(leg.from.z),radius=.037;
+  if(!side||leg.to.z*side>radius||leg.from.z*side<=radius)continue;
+  const t=(leg.from.z-side*radius)/(leg.from.z-leg.to.z);
+  if(t<=0||t>1)continue;
+  const point=sampleFlight(leg,t);
+  const net=COURT.netCenter+(COURT.netSideline-COURT.netCenter)*(point.x/(COURT.width/2))**2;
+  if(Math.abs(point.x)>COURT.netWidth/2+radius||point.y-radius>net)continue;
+  const clipped=t<1?interceptFlight(leg,t):{...leg,bounceAtEnd:false};
+  const impact=sampleFlightVelocity(leg,t),duration=Math.max(.12,Math.sqrt(2*Math.max(0,point.y-radius)/gravity));
+  // The mesh absorbs most momentum; fall and recoil on the incoming side.
+  return [...legs.slice(0,i),clipped,{from:{...point},to:{x:point.x+impact.x*duration*.15,y:radius,z:point.z+side*Math.min(.2,Math.abs(impact.z)*duration*.15)},duration,arc:gravity*duration*duration/8,bounceAtEnd:true}];
  }
  return legs;
 }

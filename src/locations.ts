@@ -22,3 +22,6 @@ export const LOCATION_PALETTES={
  forest:{ground:'#76A64B',apron:'#178668',border:'#07505A',court:'#08AABB',kitchen:'#83D9C9',sky:'#a8d4e5'},
  venice:{ground:'#eac29a',apron:'#cf6384',border:'#713f70',court:'#157f92',kitchen:'#51b9b4',sky:'#eab2aa'},
 } as const;
+
+/** New courts are premium unless explicitly part of the free collection. */
+export function isPremiumCourt(court:CourtLocation){return !(['forest','arizona','venice'] as readonly CourtLocation[]).includes(court)}

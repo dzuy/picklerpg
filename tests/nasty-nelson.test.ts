@@ -17,7 +17,8 @@ test('body contact and dodges are deterministic and misses continue the original
  const leg={from:{x:1,y:.65,z:6},to:{...p.position,y:1.05},duration:1,arc:.6,bounceAtEnd:false};
  const samples=Array.from({length:100},(_,i)=>resolveBodyServe(leg,p,i*104729));
  assert.ok(samples.some(s=>s.hit));assert.ok(samples.some(s=>s.dodge));
- const miss=samples.find(s=>!s.hit)!;assert.equal(miss.leg.bounceAtEnd,true);assert.equal(miss.leg.to.y,.037);
+ const miss=samples.find(s=>!s.hit)!;assert.equal(miss.continuation!.bounceAtEnd,true);assert.equal(miss.continuation!.to.y,.037);
+ assert.deepEqual(miss.continuation!.from,leg.to);
  const at=sampleLeg(miss.leg,leg.duration/miss.leg.duration);assert.ok(Math.hypot(at.x-leg.to.x,at.y-leg.to.y,at.z-leg.to.z)<1e-8);
  assert.deepEqual(resolveBodyServe(leg,p,42),resolveBodyServe(leg,p,42));
 });
@@ -33,4 +34,29 @@ test('missed same-side body serve faults, while body contact awards serving team
   assert.equal(r.winner,r.reason==='body-hit'?'home':'away');results.add(r.reason);
  }
  assert.ok(results.has('body-hit'));assert.ok(results.has('out'));
+});
+
+test('missed spinning body serves continue under gravity instead of extrapolating spin',()=>{
+ const p=new Match().state.players.find(p=>p.team==='away')!;
+ for(const verticalSpin of [-.374,.272]){
+  const leg={from:{x:1.5,y:.65,z:7},to:{x:.6,y:1.05,z:-2.6},duration:1.2,arc:.6,verticalSpin,bounceAtEnd:false};
+  const miss=resolveBodyServe(leg,{...p,position:{x:3,y:0,z:-7}},42);
+  assert.deepEqual(miss.leg,leg,'keep the original approach and its spin');
+  const tail=miss.continuation!;
+  assert.ok(tail.duration>0&&tail.duration<2);
+  assert.ok(Math.abs(tail.to.z)<25);
+  for(let i=0;i<=100;i++)assert.ok(sampleLeg(tail,i/100).y>=.037-1e-8);
+ }
+});
+
+test('topspin body serve generates a bounded full shot including dead ball bounces',()=>{
+ for(let seed=0;seed<20;seed++){
+  const m=new Match();m.seed=seed*104729;
+  const choice=m.targetingMenu.find(c=>c.intent.spin?.vertical==='topspin')!;
+  const shot=m.previewMenuTarget({...choice,intent:{...choice.intent,power:.6046831955922864}},{x:1.5,z:-2.5836,playerId:'opponent-right'});
+  assert.ok(shot.legs.reduce((n,l)=>n+l.duration,0)<15);
+  for(const leg of shot.legs)for(let i=0;i<=20;i++){
+   const p=sampleLeg(leg,i/20);assert.ok(p.y>=-.001&&p.y<10);assert.ok(Math.abs(p.z)<80);
+  }
+ }
 });

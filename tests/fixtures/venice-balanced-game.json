@@ -1,0 +1,14 @@
+{
+  "id": "venice-attack-defense",
+  "sourceGame": "63c0bb0b-e1b3-499e-8636-32ded22ff56b",
+  "observed": {"score": [7,5], "rallies":28, "scoring":"side-out-doubles", "target":7},
+  "coverage": "Original match has only a final-rally checkpoint and recent choices. Automated evaluations of this lineup are new games, not reconstructions.",
+  "a": [
+    {"id":"Anna Leigh","skills":{"serve":100,"return":90,"drive":100,"drop":10,"dink":10,"reset":90,"volley":90,"counter":90,"overhead":100,"movement":90,"hands":90}},
+    {"id":"dzuy","skills":{"serve":90,"return":60,"drive":90,"drop":80,"dink":80,"reset":60,"volley":80,"counter":80,"overhead":90,"movement":70,"hands":80}}
+  ],
+  "b": [
+    {"id":"Nico","skills":{"serve":100,"return":89,"drive":100,"drop":85,"dink":85,"reset":89,"volley":93,"counter":93,"overhead":100,"movement":97,"hands":93}},
+    {"id":"Max","skills":{"serve":66,"return":100,"drive":66,"drop":96,"dink":96,"reset":100,"volley":76,"counter":76,"overhead":66,"movement":86,"hands":76}}
+  ]
+}

@@ -5,7 +5,7 @@ import type {APPEARANCE_OPTIONS} from './player-design';
 export const PREMIUM_APPEARANCE_OPTIONS:Partial<{
  [Key in keyof typeof APPEARANCE_OPTIONS]:readonly (typeof APPEARANCE_OPTIONS)[Key][number][]
 }>={
- hairStyle:['bun','side-part','curls','mohawk','long','pigtails','twin-buns','side-braid','long-waves'],
+ hairStyle:['bun','side-part','curls','mohawk','long','pigtails','twin-buns','side-braid','long-waves','high-fade','afro'],
  facialHair:['goatee','long-beard','chops'],
  expression:['angry','crying','confident'],
  hat:['beanie','bucket','crown','tiara','viking','cowboy','santa','sombrero'],

@@ -1,3 +1,4 @@
+import {courtPremiumBadge} from '../court-selector';
 import {COURT_LOCATIONS} from '../locations';
 import {fillPlayerCard} from '../player-card';
 import {attachPlayerDetails} from '../player-details';
@@ -23,7 +24,7 @@ export function invitationPreview(invite:Invitation){
  const venue=document.createElement('figure');venue.className='invitation-location';
  const image=document.createElement('img');image.src=location.image;image.alt='';
  const caption=document.createElement('figcaption'),name=document.createElement('strong'),description=document.createElement('span');
- name.textContent=invite.court==='venice'?'The Beach':location.name;description.textContent=location.description;caption.append(name,description);venue.append(image,caption);
+ name.textContent=invite.court==='venice'?'The Beach':location.name;description.textContent=location.description;caption.append(name,description);venue.append(image,caption);venue.insertAdjacentHTML('beforeend',courtPremiumBadge(location.id));
  const label=document.createElement('h2');label.textContent='Location';
  const note=document.createElement('p');note.className='remote-team-stat-note';note.textContent='Your players use their actual skills in this match.';
  section.append(heading,team,note,label,venue);

@@ -1,3 +1,4 @@
+import {tacticalPlacement} from './tactical-placement';
 import {archetypeShotPreference} from './archetype-style';
 import {resolveTarget} from './targeting';
 import {overheadPressure} from './overhead-pressure';
@@ -41,7 +42,7 @@ export function localDecision(s:TacticalSnapshot,strategy?:{shots:readonly strin
  if(s.personality==='Wall')score+=['reset','block'].includes(o.type)?4:0;
  if(s.personality==='Technician')score+=isSoft?2:0;
  if(s.personality==='Gambler')score+=(o.target.kind==='zone'&&o.target.zone==='wide'?3:0)+(isAttack?2:0);
- if(s.personality==='Chess Player')score+=o.target.kind==='zone'&&o.target.zone==='open-court'?2:0;
+ if(s.intelligence>=.5)score+=tacticalPlacement(s,o)*(s.personality==='Chess Player'?1:.6);
  if(s.intelligence>=.5&&s.memory.samples>=3){if(s.memory.drives/s.memory.samples>.45)score+=['block','reset'].includes(o.type)?4:0;if(s.memory.speedups/s.memory.samples>.6)score+=o.type==='block'?2:0;if(s.memory.crashes>=2&&o.type==='lob'&&s.ball.position.y<1.5&&Math.hypot(s.ball.velocity.x,s.ball.velocity.y,s.ball.velocity.z)<10){const hitter=s.players.find(p=>p.id===o.actor);if(s.players.filter(p=>p.team!==hitter?.team).every(p=>Math.abs(p.position.z)<3.5))score+=1;}if(s.memory.lowBackhandErrors>=2)score+=o.target.kind==='player'&&['backhand-side','feet'].includes(o.target.aim)?6:0;const recent=s.memory.recentTypes;if(recent.length>=3&&new Set(recent.slice(-3)).size===1)score+=o.type==='counter'?1:0;const max=Math.max(0,...Object.values(s.memory.targets));if(max/s.memory.samples>.6)score+=o.target.kind==='zone'&&o.target.zone==='wide'?2:0;}
  const actor=s.players.find(p=>p.id===o.actor);
  if(actor)score+=archetypeShotPreference(actor.skills,o,s.ball.position.y,Math.hypot(s.ball.velocity.x,s.ball.velocity.y,s.ball.velocity.z));

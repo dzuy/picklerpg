@@ -28,3 +28,34 @@ test('local reactions persist by owner and match, sanitize and replay at their o
  await assert.rejects(()=>reactions.request('','/api/matches/match/trash-talk',{id:'stale',text:'Hi'}));
  await assert.rejects(()=>reactions.request('','/api/matches/different/trash-talk',{id:'long',text:'x'.repeat(41)}));
 });
+
+test('body bag replay includes the complete animation and scrubs using replay time',()=>{
+ const match=new Match(),before=match.snapshot();
+ match.state.phase='complete';match.state.result={winner:'home',reason:'body-hit',playerId:'opponent-left'};
+ match.state.simulationTime=3;match.update(0);
+ const live=match.snapshot();match.startReplay();
+ assert.equal(match.replayView()!.bodyHit?.age,0);
+ match.scrubReplayTime(2.2);
+ assert.ok(Math.abs(match.replayView()!.bodyHit!.age-2.2)<1e-9);
+ const paused=match.replayView();match.update(1);assert.deepEqual(match.replayView(),paused);
+ match.scrubReplayTime(4.8);assert.equal(match.replayView()!.bodyHit,null);
+ match.scrubReplayTime(0);assert.equal(match.replayView()!.bodyHit?.age,0);
+ match.stopReplay();assert.deepEqual(match.snapshot(),live);assert.notDeepEqual(live,before);
+ match.scoring.winner='home';match.startGameReplay();match.scrubReplayTime(2.2);
+ assert.ok(Math.abs(match.replayView()!.bodyHit!.age-2.2)<1e-9);
+ match.stopReplay();
+});
+
+test('full game replay maps message times back to each original point',()=>{
+ const match=new Match();
+ const frame=match.snapshot(),shot=structuredClone(match.shot);
+ // The second rally starts at a different source time than its concatenated video time.
+ (match as any).gameReplay=[{frames:[{...frame,simulationTime:10},{...frame,simulationTime:13}],shots:[shot,shot]},
+  {frames:[{...frame,simulationTime:20},{...frame,simulationTime:26}],shots:[shot,shot]}];
+ match.scoring.score.home=match.scoring.rules.target;match.scoring.winner='home';
+ match.startGameReplay();
+ match.scrubReplayTime(4);
+ assert.equal(match.replayView()!.reactionContext.point,1);
+ assert.equal(match.replayView()!.reactionContext.time,21.5);
+ match.stopReplay();assert.equal(match.replayScope,'point');
+});

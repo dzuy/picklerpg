@@ -30,3 +30,29 @@ test('unreadable catalogue and failed writes never silently replace saved games'
  assert.throws(()=>store.save(m.exportCheckpoint(),'forest'));assert.equal(storage.getItem(store.key),'bad data');
  const failing=new OpenPlayStore({...memory(),setItem:()=>{throw new Error('quota')}},'b');assert.throws(()=>failing.save(m.exportCheckpoint(),'forest'),/Could not save/);
 });
+
+test('analysis retains every completed rally across saves and reloads without duplicating boundaries',()=>{
+ const storage=memory(),store=new OpenPlayStore(storage,'analysis'),m=new Match();
+ m.playerAutonomy=true;m.partnerAutonomy=true;m.reset();
+ m.onCheckpoint=c=>store.save(c,'venice');store.save(m.exportCheckpoint(),'venice');
+ const expected:unknown[]=[];
+ for(let point=0;point<3;point++){
+  for(let i=0;i<5000&&m.state.phase!=='complete';i++)m.update(.05);
+  assert.equal(m.state.phase,'complete');
+  const checkpoint=m.exportCheckpoint();expected.push(structuredClone(checkpoint.rally.state.rallyHistory));
+  assert.deepEqual(store.load(m.matchId)!.analysis!.points.at(-1)!.events,checkpoint.rally.state.rallyHistory,'normal checkpoint saves capture the whole completed rally');
+  store.save(checkpoint,'venice');store.save(checkpoint,'venice');
+  if(point<2)m.nextPoint();
+ }
+ const saved=new OpenPlayStore(storage,'analysis').load(m.matchId)!;
+ assert.equal(saved.analysis!.firstPoint,0);
+ assert.equal(saved.analysis!.points.length,3);
+ assert.deepEqual(saved.analysis!.points.map(p=>p.events),expected);
+ assert.ok(saved.analysis!.points.every(p=>p.complete&&p.events.some(e=>e.type==='shot')&&p.events.some(e=>e.type==='point-end')));
+ store.archive(m.matchId,true);assert.deepEqual(store.load(m.matchId)!.analysis,saved.analysis);
+});
+
+test('analysis marks partial coverage for games first recorded mid-match',()=>{
+ const store=new OpenPlayStore(memory(),'partial'),m=new Match(),c=m.exportCheckpoint();c.pointIndex=9;
+ store.save(c,'forest');assert.equal(store.load(m.matchId)!.analysis!.firstPoint,9);
+});

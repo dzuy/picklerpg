@@ -1,3 +1,5 @@
+import {openGameHistory} from './game-history';
+import {profileGameHistory} from '../profile-game-history';
 import {loadAccountProgress} from '../account-xp';
 import {playerFromRow} from '../cloud-players';
 import {starterPlayer} from '../starter-player';
@@ -56,9 +58,15 @@ export function profilePanel(portraits:AvatarThumbnails|undefined,authenticate:(
   identity.append(node('span','Your corner of the court','profile-eyebrow'),node('h2',username||'Player'),node('p',name!==username?name:'PickleBash player','profile-display-name'));
   if(player?.catchphrase?.trim())identity.append(node('p',player.catchphrase.trim(),'profile-bio'));
   header.append(identity);panel.append(header);
+  const loadHistory=async()=>{
+   const history=async()=>{const matches:HistoryMatch[]=[];for(let offset=0;;offset+=500){const result=await client!.from('match_history').select('id,home_names,away_names,home_score,away_score,ended_early,completed_at').eq('owner_id',user.id).order('completed_at',{ascending:false}).order('id').range(offset,offset+499);if(result.error)throw result.error;matches.push(...result.data);if(result.data.length<500)return matches;}};
+   const [saved,remote]=await Promise.all([history(),remoteRequest<PublicMatch[]>(session!.data.session!.access_token,'/api/matches')]);
+   return {saved,remote,local:new OpenPlayStore(browserStorage,user.id).list()};
+  };
   const actions=node('div','','profile-actions');
   if(player){const edit=node('a','Edit player','profile-edit');edit.href=`/?openplay=1&tab=roster&editPlayer=${encodeURIComponent(player.id)}`;actions.append(edit);}
   const roster=node('a','My roster','profile-roster');roster.href='/?openplay=1&tab=roster';actions.append(roster);
+  const games=node('button','Game history','profile-history');games.type='button';games.setAttribute('aria-haspopup','dialog');games.onclick=()=>openGameHistory(games,async()=>{const {saved,remote,local}=await loadHistory();return profileGameHistory(saved,local,remote)});actions.append(games);
   const stats=node('dl','','lobby-profile-stats');
   const values=['Games','Wins','Losses'].map(label=>{const stat=node('div'),value=node('dd','—');stat.append(node('dt',label),value);stats.append(stat);return value;});
   const note=node('p','Loading your game record…','lobby-profile-note');note.setAttribute('role','status');panel.append(stats,actions,note);
@@ -71,9 +79,8 @@ export function profilePanel(portraits:AvatarThumbnails|undefined,authenticate:(
   footer.append(signOutButton,accountStatus);panel.append(footer);
   signOutButton.onclick=()=>{signOutButton.disabled=true;signOutButton.textContent='Signing out…';accountStatus.textContent='';void signOut().catch(()=>{accountStatus.textContent='Could not sign out. Please try again.';}).finally(()=>{signOutButton.disabled=false;signOutButton.textContent='Sign out';});};
   try{
-   const history=async()=>{const matches:HistoryMatch[]=[];for(let offset=0;;offset+=500){const result=await client!.from('match_history').select('id,home_names,away_names,home_score,away_score,ended_early,completed_at').eq('owner_id',user.id).order('completed_at',{ascending:false}).order('id').range(offset,offset+499);if(result.error)throw result.error;matches.push(...result.data);if(result.data.length<500)return matches;}};
-   const [saved,remote]=await Promise.all([history(),remoteRequest<PublicMatch[]>(session!.data.session!.access_token,'/api/matches')]);
-   const record=profileRecord(saved,new OpenPlayStore(browserStorage,user.id).list(),remote);
+   const {saved,remote,local}=await loadHistory();
+   const record=profileRecord(saved,local,remote);
    [record.games,record.wins,record.losses].forEach((value,i)=>values[i].textContent=String(value));
    note.remove();
   }catch{note.textContent='Your game record is unavailable right now.';}

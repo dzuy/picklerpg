@@ -1,7 +1,7 @@
 import type {GameState,PlayerState,RallyShot} from './engine/model';
 export type SwingStyle='ready'|'serve'|'forehand'|'backhand'|'soft'|'lob'|'overhead';
 export type Reaction='Stretched'|'Jammed'|'Late'|'Pop-up'|'Overhead finish'|null;
-export interface AthletePose {style:SwingStyle;reaction:Reaction;armX:number;armY:number;armZ:number;elbow:number;wrist:number;offArm:number;torso:number;lean:number;crouch:number;stride:number;celebrate:boolean;shoulderLift?:number}
+export interface AthletePose {style:SwingStyle;reaction:Reaction;armX:number;armY:number;armZ:number;elbow:number;wrist:number;offArm:number;torso:number;lean:number;crouch:number;stride:number;celebrate:boolean;shoulderLift?:number;offShoulderLift?:number;offArmZ?:number;offElbow?:number;offWrist?:number}
 const clamp=(n:number)=>Math.max(0,Math.min(1,n));
 const smooth=(n:number)=>{const t=clamp(n);return t*t*(3-2*t)};
 /** Shot age is independent of flight-leg boundaries (a bounce must not replay a swing). */

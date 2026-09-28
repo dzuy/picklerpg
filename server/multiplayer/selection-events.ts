@@ -1,3 +1,4 @@
+import {gameplayRecord,type GameplayRecord} from '../../src/persistence/gameplay-record';
 import type {Match} from '../../src/match';
 import type {PlayerId,PointResult,ShotIntent} from '../../src/engine/model';
 import type {ShotContext} from '../../src/engine/shot-families';
@@ -6,6 +7,7 @@ import type {RemoteAction} from '../../src/multiplayer/protocol';
 /** Private server contract. Versions change whenever menu/context semantics change. */
 export interface SelectionCapture {
  schemaVersion:1;
+ gameplay?:GameplayRecord;
  definitionVersion:'selection-1';
  pointIndex:number;
  completedContacts:number;
@@ -31,7 +33,7 @@ export function selectionCapture(before:SelectionOpportunity,match:Match,action:
  const executed=added===1;
  if(executed&&history.at(-1)!.actor!==action.intent.actor)throw new Error('Unexpected selected hitter.');
  const result=match.state.result?structuredClone(match.state.result):null;
- return {...before,execution:{selectedShotExecuted:executed,contactOrdinal:executed?history.length:null,
+ return {...before,gameplay:gameplayRecord(match.exportCheckpoint(),match.turnPlayback.map(({start})=>({shotIndex:start.state.shotHistory.length-1,shot:start.shot}))),execution:{selectedShotExecuted:executed,contactOrdinal:executed?history.length:null,
   terminalContactOrdinal:result&&history.length?history.length:null,
   terminalIntent:result&&history.length?structuredClone(history.at(-1)!):null,pointResult:result}};
 }

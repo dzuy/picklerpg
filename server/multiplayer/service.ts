@@ -140,6 +140,7 @@ export class MatchService {
   catch{throw new ApiError(400,'illegal_action','That shot or reception timing is not legal for this decision.');}
   const animation=animations(match);match.settleCommittedPlayback();
   const selection=selectionCapture(opportunity,match,request.action);
+  if(selection.gameplay)selection.gameplay.court=row.checkpoint.court??null;
   const result=match.state.result?structuredClone(match.state.result):null;
   if(match.state.phase==='complete'&&!match.scoring.winner)match.nextPoint();
   // Network versions count accepted actions, including point advancement in the same transaction.

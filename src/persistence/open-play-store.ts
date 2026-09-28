@@ -1,7 +1,9 @@
+import type {PlayedShot} from './gameplay-record';
+import {recordGameAnalysis,type GameAnalysis} from './game-analysis';
 import {parseCheckpoint,type MatchCheckpoint} from '../engine/checkpoint';
 import {type CourtLocation,isCourtLocation} from '../locations';
 import type {MatchStorage} from './local-match-store';
-export interface OpenPlayGame {checkpoint:MatchCheckpoint;court:CourtLocation;updatedAt:string;archived:boolean;ended:boolean}
+export interface OpenPlayGame {checkpoint:MatchCheckpoint;court:CourtLocation;updatedAt:string;archived:boolean;ended:boolean;analysis?:GameAnalysis}
 /** Account-scoped experiment saves. The legacy single save stays intact for rollback. */
 export class OpenPlayStore {
  readonly key:string;
@@ -22,13 +24,14 @@ export class OpenPlayStore {
   });
  }
  load(id?:string){const games=this.list();return id?games.find(g=>g.checkpoint.matchId===id)??null:games.filter(g=>!g.archived&&!g.ended&&!g.checkpoint.scoring.winner).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt))[0]??null;}
- save(checkpoint:MatchCheckpoint,court:CourtLocation){
+ save(checkpoint:MatchCheckpoint,court:CourtLocation,played:PlayedShot[]=[]){
   const games=this.list(),previous=games.find(g=>g.checkpoint.matchId===checkpoint.matchId);
-  const game:OpenPlayGame={checkpoint:parseCheckpoint(checkpoint),court,updatedAt:new Date().toISOString(),archived:previous?.archived??false,ended:previous?.ended??false};
+  const game:OpenPlayGame={checkpoint:parseCheckpoint(checkpoint),court,updatedAt:new Date().toISOString(),archived:previous?.archived??false,ended:previous?.ended??false,analysis:recordGameAnalysis(previous?.analysis,checkpoint,played)};
+  if(game.analysis){const point=game.analysis.points.find(p=>p.index===checkpoint.pointIndex);if(point?.telemetry)point.telemetry.court=court;}
   this.write([game,...games.filter(g=>g.checkpoint.matchId!==checkpoint.matchId)]);
  }
  archive(id:string,archived:boolean){this.change(id,g=>({...g,archived}));}
- end(id:string){this.change(id,g=>({...g,ended:true,updatedAt:new Date().toISOString()}));}
+ end(id:string){this.change(id,g=>{const record=g.analysis?.points.at(-1)?.telemetry;if(record)record.endedEarly=true;return {...g,ended:true,updatedAt:new Date().toISOString()}});}
  private change(id:string,change:(game:OpenPlayGame)=>OpenPlayGame){const games=this.list();if(!games.some(g=>g.checkpoint.matchId===id))throw new Error('Saved game not found.');this.write(games.map(g=>g.checkpoint.matchId===id?change(g):g));}
  private write(games:OpenPlayGame[]){try{this.storage.setItem(this.key,JSON.stringify(games));}catch{throw new Error('Could not save your game on this device. Free browser storage and try again.');}}
 }

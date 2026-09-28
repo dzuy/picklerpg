@@ -6,8 +6,9 @@ export interface ReactionMatch {id:string;version:number}
 import type {Credentials,Transport} from './match-session';
 import {remoteRequest} from './api';
 import {browserStorage} from '../browser-storage';
+import {playerId} from '../player-design';
 import {sounds} from '../sound';
-import {CHAT_LIMIT,CHAT_DURATION,CHAT_COOLDOWN,TRASH_TALK_OPTIONS,replayTrashTalk,type TrashTalk,type TrashTalkFeed} from './trash-talk';
+import {CHAT_LIMIT,CHAT_DURATION,CHAT_COOLDOWN,TRASH_TALK_OPTIONS,replayTrashTalk,reactionReplayDuration,type TrashTalk,type TrashTalkFeed} from './trash-talk';
 import './trash-talk.css';
 export class TrashTalkControl {
  private host=document.createElement('div');
@@ -59,14 +60,15 @@ export class TrashTalkControl {
  }
  private async send(text:string,remember=false){const match=this.match,owner=this.owner,generation=this.generation;if(!match||this.sending)return;
   if(performance.now()<this.cooldown){this.hint.textContent='Give it three seconds between messages.';return;}if(!text.trim())return;
-  const message=this.pending?.text===text?this.pending:{id:crypto.randomUUID(),text};this.pending=message;this.sending=true;this.hint.textContent='Sending…';
-  try{const c=await this.credentials();if(c.owner!==owner)throw Error('Account changed. Reopen the match.');const feed=await this.request<TrashTalkFeed>(c.token,`/api/matches/${match.id}/trash-talk`,message);if(generation!==this.generation)return;this.accept(feed);const delivered=feed.messages.find(item=>item.id===message.id)?.text??message.text.trim();if(remember)this.remember(delivered);this.cooldown=performance.now()+CHAT_COOLDOWN;this.pending=null;this.input.value='';this.count.textContent=`0 / ${CHAT_LIMIT}`;this.hint.textContent='';this.open(false);}
+  this.sending=true;this.hint.textContent='Sending…';
+  try{const message=this.pending?.text===text?this.pending:{id:playerId(),text};this.pending=message;const c=await this.credentials();if(c.owner!==owner)throw Error('Account changed. Reopen the match.');const feed=await this.request<TrashTalkFeed>(c.token,`/api/matches/${match.id}/trash-talk`,message);if(generation!==this.generation)return;this.accept(feed);const delivered=feed.messages.find(item=>item.id===message.id)?.text??message.text.trim();if(remember)this.remember(delivered);this.cooldown=performance.now()+CHAT_COOLDOWN;this.pending=null;this.input.value='';this.count.textContent=`0 / ${CHAT_LIMIT}`;this.hint.textContent='';this.open(false);}
   catch(e){if(generation===this.generation)this.hint.textContent=(e as Error).message;}finally{if(generation===this.generation)this.sending=false;}
  }
- frame(scene:CourtScene,state:GameState,replayTime:number|null,visible:boolean,replayMessages?:TrashTalk[]){
+ replayDuration(version:number,contactTime:number){return reactionReplayDuration(this.messages,version,contactTime)}
+ frame(scene:CourtScene,state:GameState,replayTime:number|null,visible:boolean,replayMessages?:TrashTalk[],replayContext?:{version:number;contactTime:number}){
   if(visible&&!document.hidden&&performance.now()-this.checkedAt>1500)void this.refresh();
   this.host.hidden=!visible||replayTime!==null;
-  const messages=replayTime===null?[...this.live.values()].filter(v=>v.until>performance.now()).map(v=>v.message):replayMessages??replayTrashTalk(this.messages,this.match?.version??0,replayTime);
+  const messages=replayTime===null?[...this.live.values()].filter(v=>v.until>performance.now()).map(v=>v.message):replayMessages??replayTrashTalk(this.messages,replayContext?.version??this.match?.version??0,replayTime,replayContext?.contactTime??0);
   for(const b of this.bubbles.values())b.hidden=true;
   if(this.muted||!visible)return;
   for(const message of messages){const player=state.players.find(p=>p.id===message.player);if(!player)continue;const p=scene.projectSpeech(player.position);if(!p.visible)continue;

@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import {sampleLeg} from './engine/rally-engine';
 import type {GameState,RallyShot} from './engine/model';
 
-export const FIREBALL_POWER=.9;
+export const FIREBALL_POWER=.8;
 export function isFireballShot(state:Pick<GameState,'phase'>,shot:Pick<RallyShot,'intent'>){
  const power=shot.intent.power;
  return state.phase==='flight'&&typeof power==='number'&&Number.isFinite(power)&&power>=FIREBALL_POWER;

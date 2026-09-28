@@ -355,11 +355,11 @@
 #roster-details.roster-details-drawer .roster-skill meter::-moz-meter-bar{background:var(--pb-royal);border-radius:5px}
 
 /* Player details fill the viewport rather than sitting inside a nested card. */
-#roster-details.roster-details-drawer{inset:0;width:100vw;height:100dvh;max-width:none;margin:0;padding:0;border:0;border-radius:0;box-shadow:none;background:var(--pb-surface)}
+#roster-details.roster-details-drawer{inset:0 0 0 auto;width:min(420px,calc(100vw - 24px));height:100dvh;max-width:none;margin:0;padding:0;border:0;border-left:1px solid var(--pb-border);border-radius:22px 0 0 22px;box-shadow:var(--pb-shadow-card);background:var(--pb-surface)}
 #roster-details.roster-details-drawer>header{margin:0;padding:max(20px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) 20px max(20px,env(safe-area-inset-left))}
 #roster-details.roster-details-drawer .roster-card{width:100%;box-sizing:border-box;margin:0;padding:0 0 max(20px,env(safe-area-inset-bottom));border:0;border-radius:0;box-shadow:none;background:transparent}
 #roster-details.roster-details-drawer .roster-card .roster-banner{border:0;border-radius:0;box-shadow:none}
-#roster-details.roster-details-drawer .roster-card .roster-banner.has-live-preview{--portrait-height:clamp(340px,52dvh,600px)}
+#roster-details.roster-details-drawer .roster-card .roster-banner.has-live-preview{--portrait-height:clamp(240px,36dvh,340px)}
 #roster-details.roster-details-drawer>.roster-details-edit,#roster-details.roster-details-drawer>.roster-details-membership{display:block;width:calc(100% - 40px);margin:16px 20px}
 
 /* Give the information below the full-width portrait comfortable breathing room. */

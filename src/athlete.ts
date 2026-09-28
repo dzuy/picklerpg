@@ -60,8 +60,9 @@ export function animateAthlete(root:THREE.Group,pose:AthletePose,wingTime=perfor
  const rig=resetRig(root);const pelvis=rig.bones.get('pelvis');if(pelvis)pelvis.position.y=rig.positions.get('pelvis')!.y-pose.crouch;
  // Elevate the hitting shoulder so an overhead clears the stylized oversized head.
  const shoulder=rig.bones.get('clavicle.R');if(shoulder&&pose.shoulderLift){shoulder.position.y+=pose.shoulderLift;shoulder.position.x-=pose.shoulderLift*.65;}
+ const offShoulder=rig.bones.get('clavicle.L');if(offShoulder&&pose.offShoulderLift)offShoulder.position.y+=pose.offShoulderLift;
  rotate(rig,'chest',pose.lean*.4,pose.torso,pose.lean);rotate(rig,'upper_arm.R',pose.armX,pose.armY,pose.armZ);rotate(rig,'forearm.R',pose.elbow,pose.wrist*.18,pose.wrist*.35);rotate(rig,'hand.R',pose.wrist*.45,0,pose.wrist*.18);
- rotate(rig,'upper_arm.L',pose.offArm,0,-.12);rotate(rig,'thigh.L',pose.stride,0,.045);rotate(rig,'shin.L',Math.max(0,-pose.stride)*.6);rotate(rig,'thigh.R',-pose.stride,0,-.045);rotate(rig,'shin.R',Math.max(0,pose.stride)*.6);root.rotation.z=pose.lean;animateCostumeWings(root,wingTime);
+ rotate(rig,'upper_arm.L',pose.offArm,0,pose.offArmZ??-.12);rotate(rig,'forearm.L',pose.offElbow??0);rotate(rig,'hand.L',0,0,pose.offWrist??0);rotate(rig,'thigh.L',pose.stride,0,.045);rotate(rig,'shin.L',Math.max(0,-pose.stride)*.6);rotate(rig,'thigh.R',-pose.stride,0,-.045);rotate(rig,'shin.R',Math.max(0,pose.stride)*.6);root.rotation.z=pose.lean;animateCostumeWings(root,wingTime);
 }
 export function poseAthleteForPortrait(root:THREE.Group){
  const rig=resetRig(root);rotate(rig,'chest',0,.1);rotate(rig,'head',0,-.16,.025);rotate(rig,'upper_arm.R',-.08,0,.12);rotate(rig,'forearm.R',-.2);rotate(rig,'upper_arm.L',-.08,0,-.12);rotate(rig,'forearm.L',-.2);rotate(rig,'thigh.L',0,0,-.055);rotate(rig,'thigh.R',0,0,.055);

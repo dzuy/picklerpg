@@ -94,3 +94,26 @@ for(const [type,limit] of [['dink',.65],['block',.85],['drop',1],['reset',.85]] 
  }
  assert.ok(mishits>0,'includes mishits as well as ordinary contacts');
 });
+
+test('slice serve power increases are controlled and full power remains playable',()=>{
+ const match=new Match(),contact=match.shotAssessmentContexts[0];
+ const choice=match.targetingMenu.find(c=>c.intent.spin?.side==='right')!;
+ for(const control of [50,100]){
+  const players=contact.players.map(p=>({...p,skills:{...p.skills,serve:50,drop:control,dink:control}}));
+  const measure=(power:number)=>{
+   let faults=0,wrongBox=0;const errors:number[]=[];
+   for(let i=0;i<1000;i++){
+    const s=executeShot({...choice.intent,power,target:{kind:'point',x:-1.5,z:-4.4}},contact.context,players,{seed:(0x9e3779b9*(i+1))>>>0,balance:1});
+    errors.push(s.endpointError);
+    const wrong=s.actualEndpoint.x*contact.context.contact.x>=0;if(wrong)wrongBox++;
+    if(s.outcome==='net'||s.outcome==='out'||wrong||Math.abs(s.actualEndpoint.z)<=2.134)faults++;
+   }
+   errors.sort((a,b)=>a-b);return {faults,wrongBox,error80:errors[799]};
+  };
+  const normal=measure(.5),small=measure(.6),full=measure(1);
+  assert.ok(small.error80<normal.error80*1.08,'A small power increase should only slightly widen placement');
+  assert.ok(full.faults<(control===100?100:450),'Full power must leave a majority of centre-box serves playable');
+  assert.ok(full.wrongBox<(control===100?20:100),'Full power must not routinely reverse the intended service box');
+  assert.ok(full.error80>normal.error80*1.3,'Power still has a meaningful accuracy cost');
+ }
+});

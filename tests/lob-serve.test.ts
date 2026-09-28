@@ -37,3 +37,19 @@ test('multiplayer advertises and accepts the lob serve',async()=>{
  const index=game.choices.findIndex(c=>choiceCopy(c.intent).name==='Lob');assert.ok(index>=0);
  const result=await service.act(game.id,A,action(game,index));assert.equal(result.toVersion,1);assert.equal(result.state.animation[0].intent.type,'serve');assert.equal(choiceCopy(result.state.animation[0].intent).name,'Lob');
 });
+
+test('near-net lob serve cannot create a sky-high flight or an energy-gaining bounce',async()=>{
+ for(const z of [-.001,-.25158699873426116,-.6,-2.2]){
+  const service=new MatchService(new MemoryRepository(),testers),game=await service.create(A,creation());
+  const index=game.choices.findIndex(c=>choiceCopy(c.intent).name==='Lob');
+  const request=action(game,index);request.action.intent={...request.action.intent,target:{kind:'point',x:-1.2543677914062563,z}};
+  const receipt=await service.act(game.id,A,request),segment=receipt.state.animation[0];
+  assert.ok(segment.duration<10,`bounded flight: ${segment.duration}s`);
+  assert.ok(segment.path.every(p=>p.y>=-.001&&p.y<10),'No underground or sky-high samples');
+  const bounce=segment.path.findIndex((p,i)=>i>0&&Math.abs(p.y-.037)<1e-8);
+  if(bounce<0)continue; // Some execution misses land legally and stop at a reception.
+  const before=Math.max(...segment.path.slice(0,bounce+1).map(p=>p.y));
+  const after=Math.max(...segment.path.slice(bounce).map(p=>p.y));
+  if(receipt.state.result?.reason==='out')assert.ok(after<before,'Bounce loses height');
+ }
+});
