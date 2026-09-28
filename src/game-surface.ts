@@ -25,3 +25,8 @@ export function closeGameSurface(){
  if(window.parent!==window){window.parent.postMessage(CLOSE,location.origin);return;}
  location.assign('/?openplay=1');
 }
+
+/** Leave both the court iframe and its launcher before opening skill allocation. */
+export function openPlayerSkills(){
+ (window.top??window).location.assign('/?openplay=1&tab=roster&upgradeSkills=1');
+}

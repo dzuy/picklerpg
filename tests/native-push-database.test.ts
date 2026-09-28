@@ -39,3 +39,26 @@ test('native devices rotate atomically, isolate accounts, enforce RLS; badges tr
   await db.pool.query('delete from async_matches where id=$1',[other.id]);assert.equal(await count(A),0);
  }finally{await db.close();}
 });
+
+test('incoming invitations count with turns and queue icon updates through their lifecycle',async()=>{
+ const db=await database();try{
+  await db.pool.query('insert into auth.users(id) values($1),($2)',[A,B]);
+  const repo=new PgRepository(db.pool),service=new MatchService(repo,testers);
+  const count=async(user:string)=>(await repo.query('select turn_badge_count($1) as count',[user])).rows[0].count;
+  const {InvitationService}=await import('../server/multiplayer/invitations');
+  const {pgInvitations}=await import('./helpers/invitations');
+  const {starterPlayer}=await import('../src/starter-player');
+  const invites=new InvitationService(pgInvitations(repo),service,testers);
+  const create=()=>invites.create(A,{requestId:randomUUID(),opponentId:B,team:[starterPlayer('You','starter'),starterPlayer('Partner','partner')],court:'forest',scoring:'rally-doubles',target:3});
+  await service.create(A,creation());assert.equal(await count(A),1);
+  const first=await create(),second=await create();assert.equal(await count(B),2);assert.equal(await count(A),1,'outgoing invites do not count');
+  const claims=await Promise.all(Array.from({length:6},()=>repo.query('select claim_invitation_push($1,$2) as claimed',[first.id,B])));assert.equal(claims.filter(r=>r.rows[0].claimed).length,1);
+  assert.equal((await repo.query('select claim_invitation_push($1,$2) as claimed',[second.id,A])).rows[0].claimed,false);
+  const revision=(await repo.query('select revision from push_badge_jobs where user_id=$1',[B])).rows[0].revision;
+  await invites.close(first.id,B,'decline');assert.equal(await count(B),1);
+  assert.notEqual((await repo.query('select revision from push_badge_jobs where user_id=$1',[B])).rows[0].revision,revision);
+  const accepted=await invites.accept(second.id,B,{team:[starterPlayer('Guest','starter'),starterPlayer('Mate','partner')]});
+  assert.equal(await count(B),accepted.currentTeam===accepted.viewerTeam?1:0,'acceptance replaces invitation with any actionable turn');
+  const extra=await create();await invites.close(extra.id,A,'cancel');assert.equal((await repo.query('select claim_invitation_push($1,$2) as claimed',[extra.id,B])).rows[0].claimed,false);assert.equal(await count(B),accepted.currentTeam===accepted.viewerTeam?1:0);
+ }finally{await db.close();}
+});

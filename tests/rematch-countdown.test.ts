@@ -12,3 +12,5 @@ test('uses elapsed time, shows 10 through 1, and expires without displaying zero
 test('delayed callbacks use the deadline rather than count ticks',()=>{const s=setup();s.timer.start('game');s.at(6400);assert.equal(s.timer.remaining,4);s.at(10300);assert.equal(s.sends,1);});
 test('cancellation and backgrounding consume the only attempt',()=>{for(const background of [false,true]){const s=setup();s.timer.start('game');if(background)s.background();else s.timer.cancel();s.timer.start('game');s.at(12000);assert.equal(s.sends,0);assert.equal(s.timer.remaining,null);}});
 test('a new match gets its own countdown',()=>{const s=setup();s.timer.start('old');s.timer.cancel();s.timer.start('new');assert.equal(s.timer.remaining,10);s.timer.cancel();});
+
+test('explicit restart gives a cancelled screen a fresh ten seconds',()=>{const s=setup();s.timer.start('game');s.at(3000);s.timer.cancel();s.timer.start('game',true);assert.equal(s.timer.remaining,10);s.at(12000);assert.equal(s.sends,0);s.at(13000);assert.equal(s.sends,1);});

@@ -3,6 +3,7 @@ authClient();
 import {installMenuSounds} from './sound';
 installMenuSounds();
 import './pwa';
+import './play-turn-badge';
 // Keep legacy roster bookmarks inside the Open Play shell.
 const route=new URL(location.href);
 if(route.searchParams.get('roster')==='1'&&!route.searchParams.has('match')){route.search='?openplay=1&tab=roster';history.replaceState(null,'',route);}

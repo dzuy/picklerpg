@@ -33,7 +33,7 @@ test('decline, sender dismissal, cancellation and acceptance races preserve invi
  const team={team:[r['opponent-left'],r['opponent-right']]};
  const declined=await create();await assert.rejects(service.close(declined.id,A,'decline'));await assert.rejects(service.close(declined.id,C,'cancel'));await assert.rejects(service.close(declined.id,B,'delete'));
  assert.equal((await service.close(declined.id,B,'decline')).status,'declined');assert.equal((await service.close(declined.id,B,'decline')).status,'declined');
- assert.equal((await service.list(B)).length,0);assert.equal((await service.list(A))[0].status,'declined');await assert.rejects(service.accept(declined.id,B,team));
+ assert.equal((await service.list(B)).length,0);assert.equal((await service.list(A)).length,0);await assert.rejects(service.accept(declined.id,B,team));
  await service.close(declined.id,A,'delete');await service.close(declined.id,A,'delete');assert.equal((await service.list(A)).length,0);
  const cancelled=await create();await assert.rejects(service.close(cancelled.id,B,'cancel'));await service.close(cancelled.id,A,'cancel');await service.close(cancelled.id,A,'cancel');await assert.rejects(service.accept(cancelled.id,B,team));assert.equal((await service.list(B)).length,0);
  for(const action of ['cancel','decline'] as const){const invite=await create();const results=await Promise.allSettled([service.accept(invite.id,B,team),service.close(invite.id,action==='cancel'?A:B,action)]);assert.equal(results.filter(r=>r.status==='fulfilled').length,1);const current=await service.get(invite.id,A);assert.equal(!!(await matches.list(A)).find(m=>m.id===invite.id),current.status==='accepted');}

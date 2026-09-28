@@ -690,10 +690,66 @@ body[data-screen=start], .roster-route-loading { background: var(--pb-bg); backg
 #game-end.rematch-end .game-end-score{margin:12px 0;padding:12px 8px}
 #game-end.rematch-end .game-end-score strong{font-size:48px}
 #game-end.rematch-end .run-it-back{margin:12px 0;padding:16px 12px}
-#game-end.rematch-end .game-end-actions{display:flex;gap:8px}
+#game-end.rematch-end .game-end-actions{display:flex;flex-direction:row;gap:8px}
 @media(max-width:480px){#game-end.rematch-end .game-end-card{padding:16px}#game-end.rematch-end .rematch-countdown{font-size:56px}#game-end.rematch-end .run-it-back h2{font-size:28px}}
 #game-end.rematch-end .account-xp:has(.xp-reward){margin:10px 0}
 #game-end.rematch-end .xp-reward:not(.has-skill-point):not(:has(.xp-guest-title)){display:grid;grid-template-columns:1fr auto;align-items:center;column-gap:12px;padding:10px 12px;text-align:left;background:var(--pb-surface-inset);box-shadow:none;border:1px solid var(--pb-border)}
 #game-end.rematch-end .xp-reward:not(.has-skill-point):not(:has(.xp-guest-title))::before,#game-end.rematch-end .xp-reward:not(.has-skill-point):not(:has(.xp-guest-title))::after{display:none}
 #game-end.rematch-end .xp-reward:not(.has-skill-point):not(:has(.xp-guest-title)) .xp-reward-amount{font-size:28px;color:var(--pb-text);text-shadow:none;letter-spacing:-1px}
 #game-end.rematch-end .xp-reward:not(.has-skill-point):not(:has(.xp-guest-title)) progress{grid-column:1/-1;margin:8px 0;height:8px;box-shadow:none}
+
+/* Rematch-first completion hierarchy. */
+#game-end.rematch-end{width:min(460px,calc(100vw - 24px))}
+#game-end.rematch-end .game-end-card{padding:24px;text-align:center;background:var(--pb-surface)}
+#game-end.rematch-end .game-end-kicker{font-size:11px;letter-spacing:1px;margin:0 0 6px;color:var(--pb-text-secondary)}
+#game-end.rematch-end .game-end-label,#game-end.rematch-end.rivalry-game-end .game-end-kicker{display:none}
+#game-end.rematch-end h1{font-size:18px;line-height:1.3;margin:0;font-weight:650}
+#game-end.rematch-end .run-it-back{border:0;background:none;padding:20px 0 8px;margin:0}
+#game-end.rematch-end .run-it-back h2{font-size:32px;line-height:1.12}
+#game-end.rematch-end .rematch-opponent{margin:8px 0 18px;font-size:14px}
+#game-end.rematch-end .rematch-primary{min-height:54px;font-size:18px;padding:14px}
+#game-end.rematch-end .rematch-status:empty{display:none}
+#game-end.rematch-end .game-end-score{display:flex;justify-content:center;align-items:center;gap:10px;background:none;color:var(--pb-text-secondary);padding:8px 0;margin:0;border:0;border-radius:0;box-shadow:none}
+#game-end.rematch-end .game-end-score>div{display:flex;align-items:center;gap:6px}
+#game-end.rematch-end .game-end-score strong,#game-end.rematch-end .game-end-score .game-end-dash{font-size:16px;color:var(--pb-text);line-height:1.3}
+#game-end.rematch-end .game-end-score span{font-size:12px;margin:0}
+#game-end.rematch-end .account-xp:has(.xp-reward){margin:0 0 16px}
+#game-end.rematch-end .xp-reward:not(.has-skill-point):not(:has(.xp-guest-title)){display:flex;justify-content:center;flex-wrap:wrap;gap:5px 12px;border:0;background:none;padding:4px 0;box-shadow:none}
+#game-end.rematch-end .xp-reward:not(.has-skill-point):not(:has(.xp-guest-title)) .xp-reward-label,#game-end.rematch-end .xp-reward:not(.has-skill-point):not(:has(.xp-guest-title)) progress,#game-end.rematch-end .xp-reward:not(.has-skill-point):not(:has(.xp-guest-title)) .xp-reward-profile-link{display:none}
+#game-end.rematch-end .xp-reward:not(.has-skill-point):not(:has(.xp-guest-title)) .xp-reward-amount{font-size:12px;font-weight:650;letter-spacing:0;font-style:normal;animation:none;color:var(--pb-text-secondary)}
+#game-end.rematch-end .xp-reward .xp-reward-next{font-size:12px;font-weight:500;color:var(--pb-text-secondary)}
+#game-end.rematch-end .rivalry-completion{padding:16px;border:1px solid var(--pb-border);border-radius:16px;margin:8px 0;text-align:left;background:var(--pb-surface-inset)}
+#game-end.rematch-end .rivalry-completion .rivalry-box-title{font-size:14px;margin:0 0 12px;font-weight:750}
+#game-end.rematch-end #rivalry-headline{font-size:13px;font-weight:500;margin:0;color:var(--pb-text-secondary)}
+#game-end.rematch-end .rivalry-stats{margin:14px 0 0;gap:0}
+#game-end.rematch-end .rivalry-stats>div{padding:0 6px;background:none;border-radius:0}
+#game-end.rematch-end .rivalry-stats>div+div{border-left:1px solid var(--pb-border)}
+#game-end.rematch-end .rivalry-stats dd{font-size:18px}
+#game-end.rematch-end .full-analysis-button{margin:8px 0 0;padding:10px 0;border:0;border-radius:0;background:none;min-height:44px;gap:8px}
+#game-end.rematch-end .full-analysis-button strong{font-size:13px;font-weight:600}
+#game-end.rematch-end .full-analysis-button small,#game-end.rematch-end .full-analysis-icon{display:none}
+#game-end.rematch-end .full-analysis-premium{font-size:10px;background:var(--pb-warning);color:var(--pb-warning-ink);padding:5px 8px}
+#game-end.rematch-end .full-analysis-button{justify-content:center}
+#game-end.rematch-end .full-analysis-button>span:nth-child(2){flex:0 1 auto}
+#game-end.rematch-end .game-end-actions{margin-top:8px;justify-content:center}
+#game-end.rematch-end .game-end-actions button{background:none;border:0;box-shadow:none;color:var(--pb-text-secondary);font-size:13px;min-height:44px;padding:10px 14px}
+@media(max-width:480px){#game-end.rematch-end .game-end-card{padding:20px}}
+
+#game-end.rematch-end.rivalry-game-end #game-end-title{display:none}
+#game-end.rematch-end.rivalry-game-end .game-end-score{align-items:flex-start;gap:18px;padding:0 0 4px}
+#game-end.rematch-end.rivalry-game-end .game-end-score>div{display:flex;flex-direction:column;gap:4px;min-width:48px;max-width:40%}
+#game-end.rematch-end.rivalry-game-end .game-end-score strong{font-size:28px;line-height:1.2;letter-spacing:0}
+#game-end.rematch-end.rivalry-game-end .game-end-score .game-end-dash{align-self:flex-start;font-size:24px;line-height:1.4}
+#game-end.rematch-end.rivalry-game-end .run-it-back h2{margin-bottom:20px}
+#game-end.rematch-end.rivalry-game-end .rivalry-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+
+/* Match-end lineups use the same portraits and names as the games list. */
+#game-end.rematch-end.rivalry-game-end .game-end-score{display:grid;grid-template-columns:minmax(0,1fr) 20px minmax(0,1fr);gap:10px 8px}
+#game-end.rematch-end.rivalry-game-end .game-end-score>div{max-width:none;width:100%}
+#game-end.rematch-end.rivalry-game-end .game-card-lineup{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1fr) 20px minmax(0,1fr);gap:8px}
+#game-end.rematch-end.rivalry-game-end .game-card-versus{visibility:hidden}
+#game-end.rematch-end.rivalry-game-end .game-card-team{display:grid;grid-template-columns:repeat(2,minmax(0,56px));justify-content:center;gap:6px;min-width:0}
+#game-end.rematch-end.rivalry-game-end .game-card-player{display:flex;flex-direction:column;align-items:center;gap:5px;min-width:0}
+#game-end.rematch-end.rivalry-game-end .game-card-face{display:grid;place-items:center;width:100%;max-width:56px;aspect-ratio:1;overflow:hidden;border-radius:50%;background:var(--pb-surface);border:1px solid var(--pb-border-accent)}
+#game-end.rematch-end.rivalry-game-end .game-card-face img{display:block;width:100%;height:100%;object-fit:contain}
+#game-end.rematch-end.rivalry-game-end .game-card-name{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;line-height:1.3;font-weight:600;color:var(--pb-text);letter-spacing:0}

@@ -324,12 +324,12 @@ body[data-screen=remote]:has(#remote-lobby:not([hidden])){background:var(--pb-su
 .friend-profile-dialog .rivalry-profile{margin:0;padding:0;border:0}
 .friend-profile-dialog .friend-profile-close{display:grid;place-items:center;padding:0;min-height:44px}
 
-#remote-lobby .remote-share-action{display:block;margin:0;padding:10px 20px;width:100%;min-height:44px;border:0;border-top:1px solid var(--pb-border);border-radius:0;text-align:right;color:var(--pb-text-secondary);background:var(--pb-surface);font-size:12px;font-weight:700;}
+#remote-lobby .remote-share-action{display:block;margin:0 0 0 auto;padding:5px 12px;width:fit-content;max-width:65%;min-height:30px;border:0;border-radius:8px;text-align:center;overflow-wrap:anywhere;color:var(--pb-text);background:var(--pb-lime);font-size:13px;font-weight:800;cursor:pointer;}
 #remote-lobby .remote-share-action:focus-visible{outline:2px solid var(--pb-focus);outline-offset:-3px;}
 
 #remote-lobby .pending-invite-controls:has(.pending-invite-share){width:44px;top:50%;transform:translateY(-50%);}
 #remote-lobby .pending-invite-controls .pending-invite-share{width:44px;height:44px;padding:9px;display:grid;place-items:center;}
-#remote-lobby .remote-share-action svg{display:inline-block;vertical-align:middle;}
+#remote-lobby .remote-share-action:disabled{opacity:.6;cursor:default;}
 /* Open Play uses the same court artwork and controls as match setup. */
 #remote-lobby .team-lobby[data-tab=games] .team-lobby-heading{flex-direction:row;align-items:center;justify-content:space-between;gap:20px;padding-bottom:28px}
 #remote-lobby .team-lobby[data-tab=games] .team-lobby-heading h1{margin:0;font-size:clamp(36px,5vw,58px)}
@@ -376,3 +376,16 @@ body[data-screen=remote]:has(#remote-lobby:not([hidden])){background:var(--pb-su
 #remote-lobby .own-profile .lobby-profile-account{align-items:center;padding:8px 0 0}
 #remote-lobby .own-profile .profile-sign-out{min-height:44px;min-width:0;padding:8px 12px;border:0;background:none;color:var(--pb-text-secondary);font:inherit;font-size:13px;text-decoration:underline;text-underline-offset:4px;cursor:pointer}
 #remote-lobby .own-profile .profile-sign-out:hover{color:var(--pb-text)}
+
+#remote-lobby .remote-game-footer{box-sizing:border-box;margin:0;padding:4px 20px 14px;align-items:center}
+#remote-lobby .remote-game-footer>span{min-width:0;text-align:left}
+
+#remote-lobby .remote-share-action.remote-get-link{background:transparent;color:var(--pb-text-secondary);font-size:12px;font-weight:500;padding:5px 0;border-radius:4px}
+#remote-lobby .remote-share-action.remote-get-link:hover{text-decoration:underline;text-underline-offset:3px}
+
+#remote-setup .recent-opponent-chips{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px}
+#remote-setup .recent-opponent-chips[hidden]{display:none}
+#remote-setup .recent-opponents-label{width:100%;font-size:12px;font-weight:600;color:var(--pb-text-secondary)}
+#remote-setup .recent-opponent-chips button{width:auto;min-height:36px;margin:0;padding:7px 14px;border:1px solid var(--pb-border-accent);border-radius:999px;background:var(--pb-surface);color:var(--pb-text);font:600 13px var(--pb-font-body);cursor:pointer}
+#remote-setup .recent-opponent-chips button:hover{background:var(--pb-surface-inset)}
+#remote-setup .recent-opponent-chips button:focus-visible{outline:3px solid var(--pb-focus);outline-offset:2px}

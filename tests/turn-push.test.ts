@@ -91,3 +91,26 @@ test('muting a game suppresses both turn and nudge delivery',async()=>{
  const push=new PushService(db.client,'p','s','mailto:test@example.com',async()=>{sent++;return {} as any});
  await push.notify(event);await push.notifyNudge(event);assert.equal(sent,0);
 });
+
+test('foreground browser activity suppresses native alerts before channel selection',async()=>{
+ const db=fakeStore([{id:'active',active_until:new Date(Date.now()+40000).toISOString()}]);let native=0,web=0;
+ const push=new PushService(db.client,'public','private','mailto:test@example.com',async()=>{web++;return {} as any;},{deliver:async()=>{native++;return true;}} as any);
+ await push.notify(event);assert.equal(native,0);assert.equal(web,0);
+});
+
+ test('invitation web alerts are deduplicated and foreground activity suppresses delivery',async()=>{
+  for(const active of [false,true]){
+   const db=fakeStore([{id:'web',endpoint:'ok',p256dh:'key',auth:'secret',active_until:active?new Date(Date.now()+40000).toISOString():null}]);const payloads:any[]=[];
+   const push=new PushService(db.client,'public','private','mailto:test@example.com',async(_s,payload)=>{payloads.push(JSON.parse(String(payload)));return {} as any;});
+   const invite={id:event.matchId,recipientId:B,creatorName:'Chris'} as any;
+   await push.notifyInvitation(invite);await push.notifyInvitation(invite);
+   assert.equal(payloads.length,active?0:1);if(!active)assert.deepEqual(payloads[0],{type:'invitation',invitationId:event.matchId,opponentName:'Chris'});
+  }
+ });
+
+test('web invitation tap opens the invitation and rejects external targets',async()=>{
+ const w=await worker();await w.fire('push',{data:{json:()=>({type:'invitation',invitationId:event.matchId,opponentName:'Chris'})}});
+ assert.equal(w.shown[0][1].body,'Chris invited you to play.');
+ await w.fire('notificationclick',{notification:{data:w.shown[0][1].data,close(){}}});
+ assert.equal(w.opened[0],`https://pickle.test/?openplay=1&invite=${event.matchId}`);
+});

@@ -5,9 +5,9 @@ export class RematchCountdown {
  private deadline=0;
  private handle:ReturnType<typeof setTimeout>|undefined;
  constructor(private storage:Pick<Storage,'getItem'|'setItem'>,private active:()=>boolean,private changed:()=>void,private expired:()=>void,private now=()=>performance.now()){}
- start(key:string){
+ start(key:string,restart=false){
   this.cancel();
-  try{if(this.storage.getItem(key))return;this.storage.setItem(key,'1');}catch{return;}
+  try{if(!restart&&this.storage.getItem(key))return;this.storage.setItem(key,'1');}catch{return;}
   if(!this.active())return;
   this.deadline=this.now()+10000;this.remaining=10;this.changed();this.schedule();
  }

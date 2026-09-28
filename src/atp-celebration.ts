@@ -14,7 +14,7 @@ export class AtpCelebration {
  private light=new THREE.PointLight(0xffcf45,0,25);
  private title:HTMLDivElement;
  private reduced=matchMedia('(prefers-reduced-motion: reduce)');
- constructor(scene:THREE.Scene,host:HTMLElement,className=''){
+ constructor(scene:THREE.Scene,host:HTMLElement,className='',private showBanner=true){
   const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array(180*3),3));
   const colors=new Float32Array(180*3),palette=[0xffdf52,0x5fefff,0xff61b7,0xadff58];
   for(let i=0;i<180;i++){const c=new THREE.Color(palette[Math.floor(i/45)]);colors.set([c.r,c.g,c.b],i*3)}
@@ -28,10 +28,10 @@ export class AtpCelebration {
   this.title=document.createElement('div');this.title.className=`atp-celebration ${className}`;this.title.hidden=true;this.title.setAttribute('role','status');this.title.innerHTML='<span>AROUND THE POST</span><strong>ATP WINNER!</strong><small>That’s highlight-reel material.</small>';host.append(this.title);
  }
  stop(){this.team=null;this.started=-Infinity;this.title.hidden=true;this.group.visible=false;}
- start(team:Team,time:number,copy={eyebrow:'AROUND THE POST',title:'ATP WINNER!',detail:'That’s highlight-reel material.'}){this.team=team;this.started=time;this.title.querySelector('span')!.textContent=copy.eyebrow;this.title.querySelector('strong')!.textContent=copy.title;this.title.querySelector('small')!.textContent=copy.detail;this.title.hidden=false;}
+ start(team:Team,time:number,copy={eyebrow:'AROUND THE POST',title:'ATP WINNER!',detail:'That’s highlight-reel material.'}){this.team=team;this.started=time;this.title.querySelector('span')!.textContent=copy.eyebrow;this.title.querySelector('strong')!.textContent=copy.title;this.title.querySelector('small')!.textContent=copy.detail;this.title.hidden=!this.showBanner;}
  update(time:number){
   const age=time-this.started,active=age>=0&&age<2.8;
-  this.title.hidden=!active;this.group.visible=active&&!this.reduced.matches;
+  this.title.hidden=!active||!this.showBanner;this.group.visible=active&&!this.reduced.matches;
   if(!active){this.team=null;return 0;}
   if(this.reduced.matches)return 0;
   const fade=Math.min(1,(2.8-age)/.5),pulse=(1+Math.sin(age*Math.PI*3))/2;

@@ -3,7 +3,7 @@ import {loadScoringPreference,saveScoringPreference,type ScoringPreference} from
 import './account-dialog.css';
 import {showViewDialog} from '../view-focus';
 import {hudButtonIcon} from '../hud-button';
-import {matchShare,showGameShare} from './game-share';
+import {matchShare,showGameShare,type MatchShareContext} from './game-share';
 import {showTurnPromptAfterInvite} from '../pwa';
 import {copyInviteLink} from './pending-invite-card';
 import {TeamPicker} from './team-picker';
@@ -26,7 +26,7 @@ export function inviteFriend(done:(game:string)=>Promise<void>,initial?:TeamSele
  form.onsubmit=e=>{e.preventDefault();if(create.disabled)return;track('invite_name_entered');create.disabled=true;teamHost.inert=true;input.disabled=true;void(async()=>{const c=await matchCredentials(),key=`pickle-friend-draft:${c.owner}`,team=await picker.freshTeam(),name=input.value.trim();const preference=loadScoringPreference();let draft:{name:string;team:TeamSelection;requestId:string}&ScoringPreference;let cached;try{cached=JSON.parse(browserStorage.getItem(key)??'null')}catch{}draft=cached&&cached.name===name&&JSON.stringify(cached.team)===JSON.stringify(team)&&cached.scoring===preference.scoring&&cached.target===preference.target?cached:{name,team,requestId:playerId(),...preference};browserStorage.setItem(key,JSON.stringify(draft));const challenge=await remoteRequest<FriendChallenge>(c.token,'/api/multiplayer/challenges',draft);saveScoringPreference(draft);browserStorage.removeItem(key);d.close();await done(challenge.matchId);shareChallenge(challenge,true).addEventListener('close',showTurnPromptAfterInvite,{once:true});})().catch(e=>{status.textContent=e.message;create.disabled=false;teamHost.inert=false;input.disabled=false;});};
 }
 export function shareChallenge(i:FriendChallenge,openShare=false){
- if(i.status!=='pending')return showGameShare(matchShare(i.matchId));
+ if(i.status!=='pending')return showGameShare(matchShare(i.matchId,{opponentName:i.invitedName,opponentTurn:false}));
  const d=panel(`Waiting for ${i.invitedName}`);d.classList.add('friend-share-dialog');
  const close=d.querySelector('button')!;close.className='friend-share-close';close.setAttribute('aria-label','Close');close.title='Close';close.innerHTML=hudButtonIcon('close');
  const intro=document.createElement('p');intro.className='friend-share-intro';intro.textContent='Share the game link with your friends to start playing.';
@@ -43,7 +43,7 @@ export function shareChallenge(i:FriendChallenge,openShare=false){
  if(openShare&&typeof navigator.share==='function')void nativeShare().then(()=>track('invite_share_completed',i.token)).catch(()=>{});
  let checking=false;const refresh=setInterval(()=>{if(document.hidden||checking)return;checking=true;void matchCredentials().then(c=>remoteRequest<FriendChallenge>(c.token,`/api/multiplayer/challenge-for-match/${i.matchId}`)).then(next=>{if(next.status!=='pending')d.close();}).catch(()=>{}).finally(()=>{checking=false;});},5000);d.addEventListener('close',()=>clearInterval(refresh));return d;
 }
-export async function shareMatch(id:string,pending=false){if(!pending){showGameShare(matchShare(id));return;}const c=await matchCredentials();shareChallenge(await remoteRequest<FriendChallenge>(c.token,`/api/multiplayer/challenge-for-match/${id}`));}
+export async function shareMatch(id:string,pending=false,context?:MatchShareContext){if(!pending){showGameShare(matchShare(id,context));return;}const c=await matchCredentials();shareChallenge(await remoteRequest<FriendChallenge>(c.token,`/api/multiplayer/challenge-for-match/${id}`));}
 export interface CreatePlayerAccountOptions {playerName?:string;onSignIn?:()=>Promise<void>;onSignInSelected?:()=>void}
 export async function createYourPlayer(onComplete:()=>Promise<void>=async()=>{},options:CreatePlayerAccountOptions={}):Promise<boolean>{
  const client=authClient();if(!client)throw Error('Account creation is unavailable. Please try again later.');const {data:{session}}=await client.auth.getSession();if(session&&!session.user.is_anonymous)return true;

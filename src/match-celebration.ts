@@ -26,7 +26,7 @@ export class MatchCelebration {
  private bubbles:HTMLDivElement[]=[];
  active=false;
  constructor(scene:THREE.Scene,host:HTMLElement){
-  this.fireworks=new AtpCelebration(scene,host,'match-fireworks');
+  this.fireworks=new AtpCelebration(scene,host,'match-fireworks',false);
   this.title=document.createElement('div');this.title.className='match-celebration';this.title.hidden=true;this.title.setAttribute('role','status');host.append(this.title);
   for(const text of ['Good game!','GG!','Well played!','What a game!']){const bubble=document.createElement('div');bubble.className='match-good-game';bubble.textContent=text;bubble.hidden=true;host.append(bubble);this.bubbles.push(bubble)}
  }
@@ -40,7 +40,7 @@ export class MatchCelebration {
   if(!this.active)return;
   if(this.previous!==null&&!document.hidden)this.age+=Math.min(.1,Math.max(0,time-this.previous));this.previous=time;
   if(this.age>=MATCH_CELEBRATION_SECONDS){this.seen.add(this.key);this.cancel();this.holding=true;return}
-  if(this.age>=3.4&&!this.burst){this.burst=true;this.fireworks.start(this.winner,time,{eyebrow:'THAT’S A WRAP',title:'GOOD GAME!',detail:'Four paddles. One great game.'})}
+  if(this.age>=3.4&&!this.burst){this.burst=true;this.fireworks.start(this.winner,time)}
   this.fireworks.update(time);
   this.title.hidden=this.age<6.3;
  }

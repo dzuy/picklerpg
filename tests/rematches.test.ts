@@ -25,15 +25,16 @@ for(const first of [A,B,null])test(`shared rematch: ${first===null?'both players
  }finally{await db.close();}
 });
 
-test('automatic races stay pending; explicit acceptance creates one match; countdown is claimed once',async()=>{
+test('automatic races stay pending; explicit acceptance creates one match; countdown can restart until an invitation exists',async()=>{
  const db=await database();try{
  await db.pool.query('insert into auth.users(id) values($1),($2)',[A,B]);
  const repo=new PgRepository(db.pool),matches=new MatchService(repo,testers),invites=new InvitationService(pgInvitations(repo),matches,testers);
  let source=await matches.create(A,creation());
  for(let n=0;n<600&&source.status!=='completed';n++){const actor=source.currentTeam==='home'?A:B;source=await matches.get(source.id,actor);source=(await matches.act(source.id,actor,action(source,n))).state;}
- const claims=await Promise.all(Array.from({length:6},()=>invites.claimCountdown(source.id,A)));assert.equal(claims.filter(c=>c.claimed).length,1);
+ const claims=await Promise.all(Array.from({length:6},()=>invites.claimCountdown(source.id,A)));assert.equal(claims.filter(c=>c.claimed).length,6);
  assert.equal((await invites.claimCountdown(source.id,B)).claimed,true);
  const sent=await Promise.all([invites.rematch(source.id,A,'automatic'),invites.rematch(source.id,B,'automatic')]);
+ assert.equal((await invites.claimCountdown(source.id,A)).claimed,false);
  assert.equal(sent[0].invitationId,sent[1].invitationId);assert.ok(sent.every(s=>s.matchId===null));assert.equal((await matches.list(A)).length,1);
  const pending=await invites.rematchStatus(source.id,A),receiver=pending.requesterId===A?B:A;
  const manual=await invites.rematch(source.id,receiver,'manual');assert.equal(manual.matchId,null,'a crossed automatic request is not consent');

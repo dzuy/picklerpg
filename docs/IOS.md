@@ -1,5 +1,7 @@
 # PickleBash on iPhone
 
+For uploaded versions, source revisions, and remaining release checks, see the [TestFlight release record](TESTFLIGHT.md).
+
 The iOS app is a Capacitor 8 shell around the existing Vite/Three.js build. Its bundle ID is `com.picklebash.app`. The native project uses Capacitor push notifications and app lifecycle plugins; it does not load remote application code. The compiled game is copied from `dist/` into the Xcode app when you sync.
 
 ## Build and open

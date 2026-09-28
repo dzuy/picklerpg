@@ -3,9 +3,9 @@ import {rematchSection,bindRematchLifecycle} from '/src/rematch-presentation.ts'
 import {RematchCountdown} from '/src/rematch-countdown.ts';
 const dialog=document.querySelector('dialog'),button=document.querySelector('#game-end-rematch'),view=rematchSection(dialog,button);
 document.querySelector('.game-end-score').after(document.querySelector('.account-xp'));
-const now=document.createElement('button');now.textContent='Not Now';document.querySelector('.game-end-actions').append(now);
+const now=document.createElement('button');now.textContent='Your Games';document.querySelector('.game-end-actions').prepend(now);
 let active=()=>dialog.open&&!document.hidden;
-const timer=new RematchCountdown({getItem:()=>null,setItem:()=>{}},()=>active(),()=>{view.renderCountdown(timer.remaining);view.message.textContent=timer.remaining===null?'Ready when you are.':'Rematch request sending automatically…';},()=>{view.title.textContent='REMATCH SENT';view.message.textContent='Waiting for Nico…';button.textContent='CONFIRM REMATCH';});
+const timer=new RematchCountdown({getItem:()=>null,setItem:()=>{}},()=>active(),()=>{view.renderCountdown(null);view.title.textContent=timer.remaining===null?'RUN IT BACK?':`RUN IT BACK?… ${timer.remaining}`;view.message.textContent='';},()=>{view.title.textContent='REMATCH SENT';view.message.textContent='Waiting for Nico…';button.textContent='CONFIRM REMATCH';});
 active=bindRematchLifecycle(dialog,button,timer);button.textContent='REMATCH NOW';view.opponent.textContent='vs Nico';
 button.onclick=()=>{timer.cancel();view.title.textContent='REMATCH SENT';view.message.textContent='Waiting for Nico…';button.disabled=true;};now.onclick=()=>timer.cancel();
 dialog.showModal();timer.start('preview');

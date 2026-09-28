@@ -25,8 +25,10 @@ test('native startup never asks permission; contextual API saves token and resum
 test('native registration failures reject cleanly and notification taps accept only internal game IDs',async()=>{
  const c=await setup();c.fail();await assert.rejects(c.context.Native.requestNativeNotifications(),/register with Apple/);
  const tap=(data:any)=>c.handlers.pushNotificationActionPerformed({notification:{data}});
+ tap({type:'invitation',invitationId:'https://evil.test'});
  tap({type:'your_turn',gameId:'https://evil.test'});assert.equal(c.calls.filter(x=>x[0]==='route').length,0);
  tap({type:'your_turn',gameId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'});assert.equal(c.calls.at(-1)[1],'/?multiplayer=1&match=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+ tap({type:'invitation',invitationId:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'});assert.equal(c.calls.at(-1)[1],'/?openplay=1&invite=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
 });
 test('account switching disables the previous account installation before restoring the new user',async()=>{
  const c=await setup();await c.context.Native.requestNativeNotifications();

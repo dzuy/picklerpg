@@ -22,7 +22,7 @@ export function rematchSection(dialog:HTMLDialogElement,button:HTMLButtonElement
  const section=document.createElement('section');section.className='run-it-back';section.setAttribute('aria-label','Rematch');
  const title=document.createElement('h2'),opponent=document.createElement('p'),number=document.createElement('strong'),message=document.createElement('p');
  title.textContent='RUN IT BACK?';opponent.className='rematch-opponent';number.className='rematch-countdown';number.setAttribute('aria-label','Seconds until rematch request');message.className='rematch-status';message.setAttribute('role','status');
- section.append(title,opponent,number,button,message);dialog.querySelector('.game-end-score')!.after(section);
+ section.append(title,opponent,number,button,message);dialog.querySelector('.game-end-score')!.before(section);
  button.classList.add('rematch-primary');
  return {section,title,opponent,number,message,renderCountdown(value:number|null){number.hidden=value===null;number.textContent=value===null?'':String(value);number.dataset.urgency=value!==null&&value<=2?'high':value!==null&&value<=5?'medium':'normal';}};
 }

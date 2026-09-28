@@ -12,3 +12,6 @@ body[data-screen=remote]:not(:has(#remote-lobby:not([hidden])))>.lobby-bottom-na
 .lobby-nav-item>span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lobby-nav-item[aria-current=page] .nav-icon-outline{display:none}
 .lobby-nav-item[aria-current=page] .nav-icon-filled{display:inline}
+
+.lobby-bottom-nav .lobby-nav-item#lobby-nav-games{position:relative}
+.lobby-bottom-nav .lobby-nav-item .play-turn-badge{position:absolute;top:2px;left:calc(50% + 7px);display:flex;align-items:center;justify-content:center;min-width:18px;height:18px;box-sizing:border-box;padding:0 4px;border-radius:999px;background:#d92d3e;color:#fff;font-size:11px;line-height:1;font-weight:800;pointer-events:none;font-variant-numeric:tabular-nums;box-shadow:0 0 0 2px var(--pb-surface)}

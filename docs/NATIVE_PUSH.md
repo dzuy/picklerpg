@@ -63,7 +63,7 @@ Use two player accounts A/B and, for multiple-device cases, two physical install
 - [ ] Background/lock A's iPhone; B plays. Verify `Your turn` / `B just played. You're up.` and the correct app badge.
 - [ ] Tap the notification with the app foregrounded, backgrounded and fully terminated; each opens the specified game. Sign-in and server participant authorization must still apply. Try an ended game notification too.
 - [ ] Put A's turn in two active games: badge is 2. Complete A's turn in one: badge drops by one when ownership changes. Finish/leave the other: badge clears to 0. Repeat while acting from the web or A's second device; allow a queue cycle.
-- [ ] Mute an active game: no turn alert for that game, but it still contributes to A's turn count. Pending invitations and completed games contribute zero. Unread notification banners do not change the count.
+- [ ] Mute an active game: no turn alert for that game, but it still contributes to A's turn count. Pending incoming invitations also contribute to the badge; completed games contribute zero. Unread notification banners do not change the count.
 - [ ] Resume after offline play changes; badge reconciles to the server count. Repeat when a notification arrives while app is open.
 - [ ] Enable A on two devices: two rows, both receive pushes. Rotate/re-register one token; no duplicate row or corruption of the other device. Simulate APNs `Unregistered`; only that exact stale registration is disabled.
 - [ ] Sign out A on one device and sign in B: A's other device remains enabled, the signed-out installation receives no A alerts, and B opts in independently. Repeat a failed/offline logout and retry.

@@ -1,3 +1,4 @@
+import {renderPlayTurnBadge} from './play-turn-badge';
 import './app-navigation.css';
 import {authClient} from './auth-session';
 import type {User} from '@supabase/supabase-js';
@@ -29,6 +30,7 @@ export function appNavigation(active:NavigationPage,navigate?:(page:NavigationPa
   const item=document.createElement('a');item.className='lobby-nav-item';item.id=`lobby-nav-${key}`;item.href=routes[key];
   item.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g class="nav-icon-outline">${icons[key]}</g><g class="nav-icon-filled" fill="currentColor" stroke="none">${filledIcons[key]}</g></svg>`;
   const label=document.createElement('span');label.textContent=key==='games'?'Play':key[0].toUpperCase()+key.slice(1);item.append(label);
+  if(key==='games')renderPlayTurnBadge(item);
   if(active===key)item.setAttribute('aria-current','page');
   if(navigate)item.addEventListener('click',event=>{if(event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;event.preventDefault();navigate(key,routes[key]);});
   nav.append(item);

@@ -5,7 +5,7 @@ test('existing-player invitations retain their invitation URL until a match exis
  const pending=invitationShare({id:'invite-id',recipientName:'maeling',status:'pending',matchId:null});
  assert.equal(pending.path,'/?openplay=1&invite=invite-id');assert.match(pending.description,/sign in as that player/);
  const accepted=invitationShare({id:'invite-id',recipientName:'maeling',status:'accepted',matchId:'match-id'});
- assert.equal(accepted.path,matchShare('match-id').path);assert.match(accepted.description,/players who joined/);
+ assert.equal(accepted.path,matchShare('match-id').path);assert.equal(accepted.description,'Send maeling this link to reopen your game together.');
 });
 class Element {
  classList={add:()=>{}};

@@ -32,7 +32,7 @@ All product names are snake_case. Standard SDK adapter properties: `environment`
 | `turn_started` | Client multiplayer own decision presentation, once per decision ID |
 | `shot_selected`, `turn_completed` | Committed multiplayer human decisions, once per action; client solo/local human shots; no animation events or bot decisions |
 | `rematch_prompt_shown`, `rematch_request_received` | Client observed UI, deduplicated by original match/invitation |
-| `rematch_manual_requested`, `rematch_auto_requested`, `rematch_accepted`, `rematch_declined`, `rematch_started`, `rematch_completed` | Backend committed multiplayer lifecycle; local manual rematch request/start/completion from client |
+| `rematch_manual_requested`, `rematch_auto_requested`, `rematch_accepted`, `rematch_declined`, `rematch_started`, `rematch_completed` | Backend committed multiplayer lifecycle; solo/local rematch request/start/completion from client, preserving manual or automatic origin |
 | `xp_earned`, `skill_point_earned` | Existing committed XP receipts, unchanged award economics |
 | `skill_point_allocated`, `skill_points_reallocated` | Committed custom-player/community-player skill edits; allocation increases used budget, other changed builds are reallocation |
 | `plus_paywall_viewed` | Existing locked full-game report preview; no new paywall or checkout |
@@ -104,3 +104,5 @@ Client IP storage is disabled in project privacy settings. Replay is enabled in 
 Validation: `npm test` passed all 771 tests, including real PostgreSQL migrations, XP invariants, rematch races and analytics retry/identity/privacy tests. `npm run build` passed for client and server; the existing large-bundle warning remains. Live flag evaluation, SQL-view aggregate validation and PostHog ingestion counts were independently checked.
 
 SDK references: [JavaScript](https://posthog.com/docs/libraries/js), [Node](https://posthog.com/docs/libraries/node), [feature flags](https://posthog.com/docs/feature-flags), [replay privacy](https://posthog.com/docs/session-replay/privacy).
+
+Local change (not deployed): solo countdown expiry now restarts the match and records `rematch_auto_requested` and `rematch_started` after reset, with automatic origin retained through completion. Local two-human games remain manual. Existing multiplayer event ownership and metric definitions are unchanged.

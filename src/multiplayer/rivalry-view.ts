@@ -26,9 +26,10 @@ export function rivalryHeadline(s:RivalrySummary,opponent:string):{key:string;te
  return {key:'series_record',text:seriesLine(s)+'.'};
 }
 function node<K extends keyof HTMLElementTagNameMap>(tag:K,cls:string,text=''){const el=document.createElement(tag);el.className=cls;el.textContent=text;return el;}
-export function rivalryStats(s:RivalrySummary){
+export function rivalryStats(s:RivalrySummary,includeGames=true){
  const stats=node('dl','rivalry-stats');
  for(const [label,value] of [['Your series',`${s.wins}–${s.losses}`],['Current streak',`${s.streak.owner==='you'?'You':'Opponent'} · ${s.streak.length}`],['Games together',String(s.games)]]){
+  if(label==='Games together'&&!includeGames)continue;
   const row=node('div','');row.append(node('dt','',label),node('dd','',value));stats.append(row);
  }
  return stats;

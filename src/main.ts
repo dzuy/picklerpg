@@ -16,7 +16,7 @@ import {TeamPicker} from './multiplayer/team-picker';
 import {focusView,showViewDialog} from './view-focus';
 import {parseSoloLaunch} from './solo-launch';
 import {serveDotCount,updateServeIndicator} from './serve-indicator';
-import {closeGameSurface} from './game-surface';
+import {closeGameSurface,openPlayerSkills} from './game-surface';
 import {hudButtonIcon} from './hud-button';
 import {TrashTalkControl} from './multiplayer/trash-talk-control';
 import {LocalReactions} from './local-reactions';
@@ -429,24 +429,34 @@ document.body.append(gameEnd);
 const localRematch=byId('game-end-rematch') as HTMLButtonElement;
 const localRematchView=rematchSection(gameEnd,localRematch);
 let localRematchActive=()=>gameEnd.open&&!document.hidden,localRematchReady=false;
-const localRematchTimer=new RematchCountdown(browserStorage,()=>localRematchActive()&&FeatureFlags.isEnabled('rematch_auto_countdown'),renderLocalRematch,()=>{localRematchReady=true;renderLocalRematch();});
+const localRematchTimer=new RematchCountdown(browserStorage,()=>localRematchActive()&&FeatureFlags.isEnabled('rematch_auto_countdown'),renderLocalRematch,()=>{if(match.isLocalHuman){localRematchReady=true;renderLocalRematch();}else startLocalRematch('automatic');});
 localRematchActive=bindRematchLifecycle(gameEnd,localRematch,localRematchTimer);
 function renderLocalRematch(){
- localRematchView.title.textContent=localRematchReady?'REMATCH READY':'RUN IT BACK?';
- localRematchView.renderCountdown(localRematchTimer.remaining);
+ localRematchView.title.textContent=localRematchReady?'REMATCH READY':localRematchTimer.remaining!==null?`RUN IT BACK?… ${localRematchTimer.remaining}`:'RUN IT BACK?';
+ localRematchView.renderCountdown(null);
  localRematch.textContent='REMATCH NOW';
- localRematchView.message.textContent=localRematchTimer.remaining!==null?'Getting your rematch ready… Tap to play now.':'Same teams. Tap to start another game.';
+ localRematchView.message.textContent='';
 }
-const localNotNow=document.createElement('button');localNotNow.type='button';localNotNow.textContent='Not Now';gameEnd.querySelector('.game-end-actions')!.append(localNotNow);
-localNotNow.onclick=()=>localRematchTimer.cancel();
+const localYourGames=document.createElement('button');localYourGames.type='button';localYourGames.textContent='Your Games';localYourGames.id='game-end-games';gameEnd.querySelector('.game-end-actions')!.prepend(localYourGames);
+localYourGames.onclick=()=>{localRematchTimer.cancel();gameEnd.close();closeGameSurface();};
 
 installFullGameAnalysis(gameEnd.querySelector('.game-end-actions')!,()=>({id:match.matchId,mode:'solo',endedEarly:endedGames.has(match.scoring)}),async()=>{await accountControls.retry();await gameplaySync?.flush();});
 const gameXp=document.createElement('section');gameEnd.querySelector('.game-end-score')!.after(gameXp);
-window.addEventListener('account-xp-saved',event=>{const id=(event as CustomEvent).detail.gameId;if(id===match.matchId)void showGameXp(gameXp,id,()=>{gameEnd.close();creator.open()});});
+window.addEventListener('account-xp-saved',event=>{const id=(event as CustomEvent).detail.gameId;if(id===match.matchId)void showGameXp(gameXp,id,()=>{localRematchTimer.cancel();gameEnd.close();openPlayerSkills();});});
 
 gameEnd.addEventListener('cancel',event=>event.preventDefault());
-byId('game-end-new').addEventListener('click',()=>{gameEnd.close();closeGameSurface()});
-byId('game-end-rematch').addEventListener('click',()=>{localRematchTimer.cancel();gameEnd.close();scene.cancelMatchCelebration();const original=match.matchId;Analytics.track('rematch_manual_requested',{original_match_id:original,manual_vs_auto:'manual'},original);match.reset();Analytics.track('rematch_started',{original_match_id:original,rematch_match_id:match.matchId,manual_vs_auto:'manual'},match.matchId);browserStorage.setItem(`pickle-analytics-rematch:${match.matchId}`,original);lastUI='';updateUI();focusView()});
+byId('game-end-new').addEventListener('click',()=>{localRematchTimer.cancel();gameEnd.close();scene.cancelMatchCelebration();showMatchSetup();});
+function startLocalRematch(origin:'manual'|'automatic'){
+ if(!localRematchActive()||(origin==='automatic'&&(match.isLocalHuman||!FeatureFlags.isEnabled('rematch_auto_countdown'))))return;
+ const original=match.matchId;
+ localRematchTimer.cancel();gameEnd.close();scene.cancelMatchCelebration();match.reset();
+ Analytics.track(origin==='automatic'?'rematch_auto_requested':'rematch_manual_requested',{original_match_id:original,manual_vs_auto:origin},original);
+ Analytics.track('rematch_started',{original_match_id:original,rematch_match_id:match.matchId,manual_vs_auto:origin},match.matchId);
+ browserStorage.setItem(`pickle-analytics-rematch:${match.matchId}`,original);
+ browserStorage.setItem(`pickle-analytics-rematch-origin:${match.matchId}`,origin);
+ lastUI='';updateUI();focusView();
+}
+byId('game-end-rematch').addEventListener('click',()=>startLocalRematch('manual'));
 function renderGameStats(){
  const shots=match.gameShotHistory,names=playerNames();
  byId('game-end-stats-summary').textContent=`${match.recordedPoints} ${match.recordedPoints===1?'rally':'rallies'} · ${shots.length} ${shots.length===1?'shot':'shots'}`;
@@ -477,7 +487,7 @@ function syncGameEnd(){
  gameStats.hidden=match.mode==='solo';
  if(!gameStats.hidden)renderGameStats();
  gameEnd.dataset.winner=match.scoring.winner??'';
- if(!gameEnd.open){(gameEnd.querySelector('.game-end-stats') as HTMLDetailsElement).open=false;gameXp.replaceChildren();if(early)gameXp.textContent='Incomplete game · 0 XP';else void showGameXp(gameXp,match.matchId,()=>{gameEnd.close();creator.open()});showViewDialog(gameEnd);focusView();localRematchReady=false;localRematchView.opponent.textContent=`vs ${away}`;const countdownEnabled=FeatureFlags.isEnabled('rematch_auto_countdown');Analytics.track('rematch_prompt_shown',{original_match_id:match.matchId,countdown_enabled:countdownEnabled},match.matchId);if(countdownEnabled)localRematchTimer.start(`pickle-rematch-countdown:local:${match.matchId}`);renderLocalRematch()}
+ if(!gameEnd.open){(gameEnd.querySelector('.game-end-stats') as HTMLDetailsElement).open=false;gameXp.replaceChildren();if(early)gameXp.textContent='Incomplete game · 0 XP';else void showGameXp(gameXp,match.matchId,()=>{localRematchTimer.cancel();gameEnd.close();openPlayerSkills();});showViewDialog(gameEnd);focusView();localRematchReady=false;localRematchView.opponent.textContent=`vs ${away}`;const countdownEnabled=FeatureFlags.isEnabled('rematch_auto_countdown');Analytics.track('rematch_prompt_shown',{original_match_id:match.matchId,countdown_enabled:countdownEnabled},match.matchId);if(countdownEnabled)localRematchTimer.start(`pickle-rematch-countdown:local:${match.matchId}`);renderLocalRematch()}
 }
 
 function syncReplayUI(replay:ReturnType<Match['replayView']>){
@@ -629,7 +639,7 @@ function initializeResume(owner:string){
  for(const action of played??[]){if(action.shot.intent.actor!=='you'&&!match.isLocalHuman||match.playerAutonomy)continue;
  Analytics.track('shot_selected',{match_id:c.matchId,game_mode,turn_number:c.revision,shot_type:action.shot.intent.type,home_score:c.scoring.score.home,away_score:c.scoring.score.away},`${c.matchId}:${c.pointIndex}:${action.shotIndex}`);
  Analytics.track('turn_completed',{match_id:c.matchId,game_mode,turn_number:c.revision},`${c.matchId}:${c.revision}`);}
- if(c.scoring.winner){const original=browserStorage.getItem(`pickle-analytics-rematch:${c.matchId}`);if(original)Analytics.track('rematch_completed',{original_match_id:original,rematch_match_id:c.matchId,manual_vs_auto:'manual'},c.matchId);
+ if(c.scoring.winner){const original=browserStorage.getItem(`pickle-analytics-rematch:${c.matchId}`);if(original)Analytics.track('rematch_completed',{original_match_id:original,rematch_match_id:c.matchId,manual_vs_auto:browserStorage.getItem(`pickle-analytics-rematch-origin:${c.matchId}`)==='automatic'?'automatic':'manual'},c.matchId);
  if(game_mode==='local')Analytics.track('match_completed',{match_id:c.matchId,game_mode,won:c.scoring.winner==='home',home_score:c.scoring.score.home,away_score:c.scoring.score.away,number_of_turns:c.revision},c.matchId);}
  saveStatus.hidden=true;if(!onStartScreen)history.replaceState(null,'',`/?game=${encodeURIComponent(c.matchId)}`)}catch(error){reportSaveError(error);throw error}};
   if(saved){

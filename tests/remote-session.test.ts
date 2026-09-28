@@ -69,3 +69,46 @@ test('shot analysis appears only after an accepted turn and is tied to its versi
  assert.equal(client.selectionCommentary?.version,client.state!.version);
  assert.equal(client.pending,null);
 });
+
+for(const failRefresh of [false,true])test(`confirmed shot is published before a delayed refresh (${failRefresh?'failed':'successful'})`,async()=>{
+ const service=new MatchService(new MemoryRepository(),testers),initial=await service.create(A,creation()),store=storage();
+ let reads=0,release!:()=>void;
+ const blocked=new Promise<void>(resolve=>{release=resolve});
+ const shown:{version:number;busy:boolean;pending:boolean}[]=[];
+ const client=new RemoteSession(A,initial.id,async()=>({owner:A,token:'test'}),async<T>(_token,_path,body)=>{
+  if(body)return await service.act(initial.id,A,body) as T;
+  if(++reads>1){await blocked;if(failRefresh)throw Error('Refresh unavailable');}
+  return await service.get(initial.id,A) as T;
+ },store,()=>{if(client.state)shown.push({version:client.state.version,busy:client.busy,pending:!!client.pending});});
+ await client.refresh();
+ const submitted=client.submit(initial.choices[0]);
+ try{
+  await Promise.race([submitted,new Promise<never>((_,reject)=>{const t=setTimeout(()=>reject(Error('Shot waited for reconciliation')),1000);t.unref();})]);
+  assert.equal(client.state!.version,1);assert.equal(client.busy,false);assert.equal(client.pending,null);
+  assert.equal(store.getItem(`pickle-remote:${A}:${initial.id}:pending`),null);
+  assert.ok(shown.some(s=>s.version===1&&!s.busy&&!s.pending));
+ }finally{release();}
+ await client.refresh();
+ assert.equal(client.state!.version,1);assert.equal(client.pending,null);
+ assert.equal(client.offline,failRefresh);
+});
+
+test('read throttling preserves playable state',async()=>{
+ const service=new MatchService(new MemoryRepository(),testers),s=await service.create(A,creation());let reads=0;
+ const client=new RemoteSession(A,s.id,async()=>({owner:A,token:'test'}),async<T>(_t,_p,body)=>{
+  if(body)return await service.act(s.id,A,body) as T;
+  if(++reads>1)throw new RemoteError(429,'rate_limited','Slow down',1);
+  return s as T;
+ },storage());
+ await client.refresh();await client.refresh();assert.equal(client.offline,false);
+ await client.submit(s.choices[0]);assert.equal(client.state!.version,1);assert.equal(client.pending,null);
+});
+test('throttled turn automatically retries the same saved action',async()=>{
+ const service=new MatchService(new MemoryRepository(),testers),s=await service.create(A,creation());let posts=0;const ids:string[]=[];
+ let done!:()=>void;const confirmed=new Promise<void>(resolve=>{done=resolve});
+ const client=new RemoteSession(A,s.id,async()=>({owner:A,token:'test'}),async<T>(_t,_p,body)=>{
+  if(body){ids.push((body as {actionId:string}).actionId);if(++posts===1)throw new RemoteError(429,'rate_limited','Slow down',1);return await service.act(s.id,A,body) as T;}
+  return await service.get(s.id,A) as T;
+ },storage(),()=>{if(client.state?.version===1&&!client.pending)done();});
+ try{await client.refresh();await client.submit(s.choices[0]);assert.ok(client.pending);await confirmed;assert.equal(posts,2);assert.equal(ids[0],ids[1]);}finally{client.dispose();}
+});

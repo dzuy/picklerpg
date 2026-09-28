@@ -14,7 +14,6 @@ import {focusView,showViewDialog} from '../view-focus';
 import {publicOrigin} from '../native-origin';
 import {parseSoloLaunch} from '../solo-launch';
 import {courtSelector,courtShuffleButton,randomCourt,scrollToCourt} from '../court-selector';
-import {shareIcon} from './share-icon';
 import {invitationShare,showGameShare} from './game-share';
 import {installGameListExit} from '../game-list-exit';
 import {serveDotCount,updateServeIndicator} from '../serve-indicator';
@@ -23,6 +22,7 @@ import {openPlayerDetails,playerDetailsOpen} from '../player-details';
 import {thinkingOpponent} from './thinking';
 import {AvatarThumbnails} from '../avatar-preview';
 import {FriendSearch} from './friend-search';
+import {recentOpponents} from './recent-opponents';
 import {strategyDetails,strategyStoryDetails} from './strategy-view';
 import {rivalryData,rivalryHeadline,rivalryStats,seriesLine} from './rivalry-view';
 import {RematchFlow} from './rematch-flow';
@@ -34,7 +34,7 @@ import {PlayerCreator} from '../player-creator';
 import {addPlayerToSignedInAccount,CloudPlayerSync,PENDING_ACCOUNT_PLAYER_KEY} from '../cloud-players';
 import {friendActionNeedsAccount,setupModeForAccount} from './guest-access';
 import {initialLobbyPage} from '../app-navigation';
-import {openGameSurface} from '../game-surface';
+import {openGameSurface,openPlayerSkills} from '../game-surface';
 import '../game-surface.css';
 import {hudButtonIcon} from '../hud-button';
 import {TeamLobby} from './team-lobby';
@@ -81,7 +81,7 @@ el('remote-friend-name-field').querySelector('small')!.textContent='Share the li
 const createStatus=document.createElement('p');createStatus.id='remote-create-status';createStatus.setAttribute('role','status');createStatus.setAttribute('aria-live','polite');el('remote-create').before(createStatus);
 const inviteStatus=document.createElement('p');inviteStatus.id='remote-invite-status';inviteStatus.setAttribute('role','status');el('remote-accept').before(inviteStatus);
 const claimPlayer=document.createElement('button');claimPlayer.className='remote-quiet';claimPlayer.textContent='Create your player';claimPlayer.hidden=true;claimPlayer.onclick=()=>void createYourPlayer(async()=>{location.assign('/?openplay=1&setup=1');}).catch(e=>status(e.message));el('game-settings').append(claimPlayer);
-const reshare=document.createElement('button');reshare.className='remote-quiet';reshare.textContent='Share game';reshare.hidden=true;reshare.onclick=()=>{if(session)void shareMatch(session.state!.id,session.state!.friendState==='pending').catch(e=>status(e.message));};el('game-settings').append(reshare);
+const reshare=document.createElement('button');reshare.className='remote-quiet';reshare.textContent='Share game';reshare.hidden=true;reshare.onclick=()=>{if(session)void shareMatch(session.state!.id,session.state!.friendState==='pending',{opponentName:opponentLabel(session.state!),opponentTurn:session.state!.status==='active'&&session.state!.currentTeam!==session.state!.viewerTeam}).catch(e=>status(e.message));};el('game-settings').append(reshare);
 let session:RemoteSession|null=null,scene:CourtScene|undefined,account='',config:RemoteConfig|null=null;
 let signup=true,accountEmail='',shownRoster='';
 const settings=el('game-settings') as HTMLDialogElement;
@@ -115,6 +115,8 @@ installFullGameAnalysis(gameEnd.querySelector('.game-end-actions')!,()=>session?
 const rivalryCompletion=document.createElement('section');rivalryCompletion.className='rivalry-completion';gameEnd.querySelector('.game-end-score')!.after(rivalryCompletion);
 const rematch=document.createElement('button');rematch.id='remote-rematch';rematch.type='button';
 const rematchView=rematchSection(gameEnd,rematch);
+gameEnd.querySelector('.game-end-score')!.after(rematchView.section);
+rematchView.opponent.hidden=true;
 let rematchActive=()=>gameEnd.open&&!document.hidden;
 let countdownClaimed=false,countdownGeneration=0;
 const rematchTimer=new RematchCountdown(browserStorage,()=>rematchActive()&&FeatureFlags.isEnabled('rematch_auto_countdown')&&rematchFlow.status.status==='none',renderRematch,()=>{
@@ -130,53 +132,55 @@ const rematchFlow=new RematchFlow(matchCredentials,remoteRequest,()=>{
 function renderRematch(){
  const incoming=rematchFlow.status.status==='pending'&&!rematchFlow.waiting;
  const opponent=session?.state?opponentLabel(session.state):'your opponent';
- rematchView.title.textContent=rematchFlow.closed?'MAYBE NEXT TIME':incoming?`${opponent.toUpperCase()} WANTS A REMATCH`:rematchFlow.waiting?'REMATCH SENT':'RUN IT BACK?';
+ rematchView.title.textContent=rematchFlow.closed?'MAYBE NEXT TIME':incoming?`${opponent.toUpperCase()} WANTS A REMATCH`:rematchFlow.waiting?'REMATCH SENT':rematchTimer.remaining!==null?`RUN IT BACK?… ${rematchTimer.remaining}`:'RUN IT BACK?';
  rematchView.opponent.textContent=`vs ${opponent}`;
- rematchView.renderCountdown(rematchTimer.remaining);
+ rematchView.renderCountdown(null);
  rematch.textContent=rematchFlow.busy?'ONE MOMENT…':rematchFlow.closed?'REMATCH CLOSED':rematchFlow.message&&!rematchFlow.closed?'TRY AGAIN':incoming?'ACCEPT REMATCH':rematchFlow.status.status==='accepted'?'OPEN REMATCH':rematchFlow.waiting&&rematchFlow.status.automaticRequest?'CONFIRM REMATCH':rematchFlow.waiting?'REMATCH SENT':'REMATCH NOW';
  rematch.disabled=rematchFlow.busy||(rematchFlow.waiting&&!rematchFlow.status.automaticRequest)||rematchFlow.closed||!config?.creationEnabled||!session?.state?.accountIds?.[session.state.viewerTeam==='home'?'away':'home'];
  rematch.setAttribute('aria-busy',String(rematchFlow.busy));
- rematchView.message.textContent=rematchFlow.message||(rematchFlow.waiting?`Waiting for ${opponent}…`:incoming?'One tap. Same teams. Another game.':rematchTimer.remaining!==null?'Rematch request sending automatically…':'Same teams. Ready when you are.');
+ rematchView.message.textContent=rematchFlow.message||(rematchFlow.waiting?`Waiting for ${opponent}…`:incoming?'Same teams.':'');
 }
 rematch.onclick=()=>{rematchTimer.cancel();void rematchFlow.submit(rematchFlow.status.status==='pending'&&!rematchFlow.waiting?'accept':'manual',rematchActive);};
-const rematchNotNow=document.createElement('button');rematchNotNow.textContent='Not Now';rematchNotNow.type='button';el('remote-end-back').before(rematchNotNow);
-rematchNotNow.onclick=()=>{rematchTimer.cancel();void rematchFlow.decline();};
 async function startRematchCountdown(id:string,owner:string){
  const generation=++countdownGeneration;countdownClaimed=false;
  const enabled=FeatureFlags.isEnabled('rematch_auto_countdown');
  Analytics.track('rematch_prompt_shown',{original_match_id:id,countdown_enabled:enabled},id);
  if(!enabled){rematchTimer.cancel();return;}
- rematchTimer.start(`pickle-rematch-countdown:${owner}:${id}`);
- if(rematchTimer.remaining===null)return;
- try{const c=await matchCredentials();if(c.owner!==owner)return;
-  // Record the consumed attempt even if navigation happened while credentials loaded.
+ const revision=rematchTimer.revision;
+ try{
+  await rematchFlow.refresh();
+  if(generation!==countdownGeneration||rematchFlow.status.status!=='none'||rematchFlow.message)return;
+  const c=await matchCredentials();if(c.owner!==owner)return;
   const result=await remoteRequest<{claimed:boolean}>(c.token,`/api/matches/${id}/rematch-countdown`,{});
-  if(generation!==countdownGeneration)return;
-  countdownClaimed=result.claimed;if(!result.claimed)rematchTimer.cancel();
+  if(generation!==countdownGeneration||revision!==rematchTimer.revision||!rematchActive())return;
+  countdownClaimed=result.claimed;
+  if(result.claimed)rematchTimer.start(`pickle-rematch-countdown:${owner}:${id}`,true);
  }catch{if(generation===countdownGeneration){rematchTimer.cancel();rematchFlow.message='Could not connect. Tap to try again.';renderRematch();}}
 }
-const gameXp=document.createElement('section');gameEnd.querySelector('.game-end-score')!.after(gameXp);
+const gameXp=document.createElement('section');rematchView.section.after(gameXp);
 // Temporarily hide the shot breakdown on the friends game end screen.
 const shotSelections=document.createElement('section');shotSelections.hidden=true;gameXp.after(shotSelections);
 let completionKey='';
 function renderCompletion(s:PublicMatch){
  const opponent=opponentLabel(s),key=JSON.stringify([s.id,s.version,s.rivalry,s.strategy,s.strategyStory,opponent,s.endedEarly]);if(key===completionKey)return;completionKey=key;
- if(s.endedEarly){gameXp.dataset.xpGame='';gameXp.textContent='Incomplete game · 0 XP';}else void showGameXp(gameXp,s.id,()=>{gameEnd.close();openRoster()},'friends');
+ if(s.endedEarly){gameXp.dataset.xpGame='';gameXp.textContent='Incomplete game · 0 XP';}else void showGameXp(gameXp,s.id,()=>{leaveCourt();session?.dispose();session=null;el('remote-game').hidden=true;openPlayerSkills();},'friends');
  const own=s.score[s.viewerTeam],other=s.score[s.viewerTeam==='home'?'away':'home'];
  gameEnd.querySelector('.game-end-kicker')!.textContent=`YOU VS ${opponent}`;
  const subtitle=gameEnd.querySelector<HTMLElement>('.game-end-subtitle')!;subtitle.textContent=s.endedEarly?'A player left this game.':'';subtitle.hidden=!s.endedEarly;
- const winnerSlots=s.score.home>s.score.away?['you','partner'] as const:['opponent-left','opponent-right'] as const;
- el('game-end-title').textContent=s.endedEarly?'Game ended':winnerSlots.map(id=>s.roster[id].name).join(' & ');
+ el('game-end-title').textContent=s.endedEarly?'Game ended':'Game complete';
  gameEnd.querySelector('.game-end-label')!.textContent=s.endedEarly?'ENDED EARLY':'THE WINNERS';
  el('game-end-home-score').textContent=String(own);el('game-end-away-score').textContent=String(other);
  el('game-end-home-names').textContent='You';el('game-end-away-names').textContent=opponent;
+ const score=gameEnd.querySelector('.game-end-score')!;score.querySelector('.game-card-lineup')?.remove();
+ const home=[s.roster.you,s.roster.partner],away=[s.roster['opponent-left'],s.roster['opponent-right']];
+ score.append(gameCardLineup(s.viewerTeam==='home'?home:away,s.viewerTeam==='home'?away:home));
  rivalryCompletion.replaceChildren();shotSelections.replaceChildren();const data=rivalryData(s.rivalry),summary=s.endedEarly?data?.current:data?.atCompletion;
  const headline=document.createElement('h2');headline.id='rivalry-headline';
  if(s.endedEarly)headline.textContent='Your rivalry record stays the same.';
  else if(summary){const selected=rivalryHeadline(summary,opponent);headline.textContent=selected.text;headline.dataset.storyKey=selected.key;}
  else headline.textContent='Another game, another chance.';
- rivalryCompletion.append(headline);
- if(summary){rivalryCompletion.append(rivalryStats(summary));if(!s.endedEarly&&data?.current&&data.current.games>summary.games){const note=document.createElement('p');note.className='rivalry-note';note.textContent='Record at the end of this game.';rivalryCompletion.append(note);}}
+ const rivalryTitle=document.createElement('h2');rivalryTitle.textContent='Rivalry Stats';rivalryTitle.className='rivalry-box-title';rivalryCompletion.append(rivalryTitle,headline);
+ if(summary){rivalryCompletion.append(rivalryStats(summary,false));if(!s.endedEarly&&data?.current&&data.current.games>summary.games){const note=document.createElement('p');note.className='rivalry-note';note.textContent='Record at the end of this game.';rivalryCompletion.append(note);}}
  else{const note=document.createElement('p');note.className='rivalry-note';note.textContent=s.endedEarly?'Early exits do not count toward wins or streaks.':'Your rivalry record is unavailable right now.';rivalryCompletion.append(note);}
  if(!s.endedEarly){const story=strategyStoryDetails(s.strategyStory,opponent);if(story)rivalryCompletion.append(story);shotSelections.append(strategyDetails(s.strategy));}
 }
@@ -370,7 +374,7 @@ function openRoster(){
  if(!roster){
   const sync=new CloudPlayerSync(state=>roster?.setCloudStatus(state),state=>{roster?.setCreatorName(state.playerName);roster?.setTeamName(state.teamName)});
   roster=new PlayerCreator(()=>location.assign('/?openplay=1&setup=1'),()=>{},(library,change)=>sync.save(library,change));
-  const ready=sync.connect(roster.playerLibrary).then(library=>{roster!.applyCloudLibrary(library);const id=new URLSearchParams(location.search).get('editPlayer');if(id){const player=library.players.find(p=>p.id===id);if(player)roster!.editPlayer(player);}});
+  const ready=sync.connect(roster.playerLibrary).then(library=>{roster!.applyCloudLibrary(library);const params=new URLSearchParams(location.search);if(params.get('upgradeSkills')==='1'){roster!.editSkills();const url=new URL(location.href);url.searchParams.delete('upgradeSkills');history.replaceState(null,'',url);return;}const id=params.get('editPlayer');if(id){const player=library.players.find(p=>p.id===id);if(player)roster!.editPlayer(player);}});
   roster.loadHistory=async()=>{await ready;return (await sync.history()).matches};
   roster.saveTeamName=name=>sync.saveTeamName(name);
   roster.beforeSave=async player=>{
@@ -440,6 +444,16 @@ const friendSearch=new FriendSearch(el('remote-friend-name') as HTMLInputElement
  updateSetupAction();
 },team=>{friendSearchPortraits??=new AvatarThumbnails(128);return friendSearchPortraits.get(team.avatar,'face');});
 
+const recentOpponentChips=document.createElement('div');recentOpponentChips.className='recent-opponent-chips';recentOpponentChips.setAttribute('role','group');recentOpponentChips.setAttribute('aria-label','Recent opponents');
+el('remote-friend-name-field').append(recentOpponentChips);
+function renderRecentOpponents(){
+ recentOpponentChips.replaceChildren();
+ const recent=recentOpponents(games,teamDirectory?.teams??[],account);recentOpponentChips.hidden=!recent.length;
+ if(!recent.length)return;
+ const label=document.createElement('span');label.textContent='Recent opponents';label.className='recent-opponents-label';recentOpponentChips.append(label);
+ for(const opponent of recent){const chip=document.createElement('button');chip.type='button';chip.textContent=opponent.manager;chip.setAttribute('aria-label',`Play again with ${opponent.manager}`);chip.onclick=()=>{friendSearch.reset(opponent);};recentOpponentChips.append(chip);}
+}
+
 function challengeTeam(team?:LobbyTeam){
  if(team&&anonymousAccount){accountRequired(()=>challengeTeam(team));return;}
  const preference=loadScoringPreference();
@@ -447,7 +461,7 @@ function challengeTeam(team?:LobbyTeam){
  const target=el('remote-target') as HTMLSelectElement;
  if(!Array.from(target.options).some(option=>option.value===String(preference.target)))target.add(new Option(String(preference.target),String(preference.target)));
  target.value=String(preference.target);
- friendSearch.reset(team);
+ friendSearch.reset(team);renderRecentOpponents();
  el('remote-lobby').hidden=true;el('remote-setup').hidden=false;
  const heading=el('remote-setup').querySelector('h1')!;heading.textContent='Set Up a Game';selectSetupMode(setupModeForAccount(anonymousAccount));
  el('remote-opponent-field').hidden=true;
@@ -486,13 +500,17 @@ async function refreshLobbyCards(){
   [games,invitations]=loaded;gamesLoadState('ready');renderGames();renderInvitations();
  }catch(error){if(account===owner&&el('remote-lobby').dataset.gamesState!=='ready')gamesLoadState('error');throw error;}
 }
-function renderInvitations(){const host=el('remote-invitations'),waiting=el('remote-waiting-invitations');host.replaceChildren();waiting.replaceChildren();if(gameFilter==='completed'||gameFilter==='archived')return;for(const invite of invitations){const incoming=invite.recipientId===account;if(gameFilter==='turn'&&(!incoming||invite.status!=='pending'))continue;const card=invitationCard(invite,incoming,(invite.recipientId===teamDirectory?.self.id?teamDirectory.self:teamDirectory?.teams.find(team=>team.id===invite.recipientId))?.avatar);card.onclick=()=>void showInvitation(invite.id).catch(e=>status(e.message));if(invite.status==='declined'&&!incoming){
- const entry=document.createElement('div');entry.className='remote-declined-entry';
- const trash=document.createElement('button');trash.type='button';trash.className='remote-invite-trash';trash.title='Remove declined invitation';trash.setAttribute('aria-label',`Remove declined invitation to ${invite.recipientName}`);
- trash.innerHTML='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M9 6V4h6v2M5 6l1 14h12l1-14M10 10v6M14 10v6"/></svg>';
- trash.onclick=()=>{if(accepting)return;accepting=true;trash.disabled=true;void(async()=>{const c=await matchCredentials();if(c.owner!==account)throw Error('Account changed. Reload and try again.');await remoteRequest(c.token,`/api/invitations/${invite.id}/delete`,{});invitations=invitations.filter(i=>i.id!==invite.id);renderInvitations();status('Declined invitation removed.');})().catch(e=>status(e.message)).finally(()=>{accepting=false;trash.disabled=false;});};
- entry.append(card,trash);host.append(entry);
- }else (invite.status==='pending'&&!incoming?waiting:host).append(invite.status==='pending'?pendingInviteCard(card,async()=>new URL(`/?openplay=1&invite=${encodeURIComponent(invite.id)}`,publicOrigin()).href,invite.recipientName,incoming?{accept:()=>respondToInvite(invite.id,'accept'),decline:()=>respondToInvite(invite.id,'decline')}:undefined,()=>{showGameShare(invitationShare(invite));}):card);}}
+function renderInvitations(){
+ const host=el('remote-invitations'),waiting=el('remote-waiting-invitations');host.replaceChildren();waiting.replaceChildren();
+ if(gameFilter==='completed'||gameFilter==='archived')return;
+ for(const invite of invitations){
+  if(invite.status!=='pending')continue;
+  const incoming=invite.recipientId===account;if(gameFilter==='turn'&&!incoming)continue;
+  const card=invitationCard(invite,incoming,(invite.recipientId===teamDirectory?.self.id?teamDirectory.self:teamDirectory?.teams.find(team=>team.id===invite.recipientId))?.avatar);
+  card.onclick=()=>void showInvitation(invite.id).catch(e=>status(e.message));
+  (incoming?host:waiting).append(pendingInviteCard(card,async()=>new URL(`/?openplay=1&invite=${encodeURIComponent(invite.id)}`,publicOrigin()).href,invite.recipientName,incoming?{accept:()=>respondToInvite(invite.id,'accept'),decline:()=>respondToInvite(invite.id,'decline')}:undefined,()=>{showGameShare(invitationShare(invite));}));
+ }
+}
 async function respondToInvite(id:string,action:'accept'|'decline'){
  if(accepting)return;accepting=true;
  try{
@@ -514,8 +532,8 @@ async function showInvitation(id:string){const c=await matchCredentials();const 
  el('remote-invite-preview').replaceChildren(invitationPreview(invite));
  const pending=invite.status==='pending';
  el('remote-accept-team-title').hidden=!incoming||!pending;
- el('remote-accept-team').hidden=!incoming||!pending;el('remote-accept').hidden=!incoming||!pending;el('remote-decline').hidden=!incoming||!pending;el('remote-cancel-invite').hidden=incoming||!pending;el('remote-delete-invite').hidden=incoming||invite.status!=='declined';
- if(!pending){el('remote-invite-title').textContent=invite.status==='declined'?`${invite.recipientName} declined the game`:'Invitation cancelled';el('remote-invite-copy').textContent=invite.status==='declined'?'This game will not start. The sender can delete this invitation.':'This invitation is no longer available.';}
+ el('remote-accept-team').hidden=!incoming||!pending;el('remote-accept').hidden=!incoming||!pending;el('remote-decline').hidden=!incoming||!pending;el('remote-cancel-invite').hidden=incoming||!pending;el('remote-delete-invite').hidden=true;
+ if(!pending){el('remote-invite-title').textContent=invite.status==='declined'?`${invite.recipientName} declined the game`:'Invitation cancelled';el('remote-invite-copy').textContent=invite.status==='declined'?'This invitation is no longer available.':'This invitation is no longer available.';}
  if(incoming&&pending)acceptTeam=new TeamPicker(el('remote-accept-team'),undefined,teamDirectory?.self.players);status('');}
 for(const [buttonId,action] of [['remote-decline','decline'],['remote-cancel-invite','cancel'],['remote-delete-invite','delete']] as const){el(buttonId).onclick=()=>{if(!selectedInvite||accepting)return;accepting=true;const id=selectedInvite.id;for(const key of ['remote-accept','remote-decline','remote-cancel-invite','remote-delete-invite'])(el(key) as HTMLButtonElement).disabled=true;void(async()=>{const c=await matchCredentials();await remoteRequest<Invitation>(c.token,`/api/invitations/${id}/${action}`,{});await lobby();status(action==='decline'?'Game declined.':action==='cancel'?'Invitation cancelled.':'Invitation deleted.');})().catch(e=>status(e.message)).finally(()=>{accepting=false;for(const key of ['remote-accept','remote-decline','remote-cancel-invite','remote-delete-invite'])(el(key) as HTMLButtonElement).disabled=false;});};}
  el('remote-invite-back').onclick=()=>void lobby().catch(e=>status(e.message));
@@ -545,13 +563,15 @@ function renderGames(){
   const heading=document.createElement('span');heading.className='remote-card-heading';
   const opponent=document.createElement('strong');opponent.className='remote-card-username';opponent.textContent=`vs ${opponentLabel(game)}`;
   heading.append(opponent,badge);
-  card.append(heading,lineup,score);if(created.textContent)card.append(created);const rivalry=rivalryData(game.rivalry);if(rivalry?.current){const line=document.createElement('span');line.className='remote-card-rivalry';const together=document.createElement('span');together.textContent=`${rivalry.current.games} ${rivalry.current.games===1?'game':'games'} together`;const series=document.createElement('span');series.textContent=seriesLine(rivalry.current);line.append(together,series);card.append(line);}card.append(ref,action);card.onclick=()=>void (game.friendState==='pending'?shareMatch(game.id,true):open(game.id)).catch(e=>status(e.message));const entry=document.createElement('div');entry.className='remote-game-entry';
+  card.append(heading,lineup,score);if(created.textContent)card.append(created);const rivalry=rivalryData(game.rivalry),footer=document.createElement('div');footer.className='remote-card-rivalry remote-game-footer';const series=document.createElement('span');series.textContent=rivalry?.current?seriesLine(rivalry.current):'';footer.append(series);card.append(ref,action);card.onclick=()=>void (game.friendState==='pending'?shareMatch(game.id,true):open(game.id)).catch(e=>status(e.message));const entry=document.createElement('div');entry.className='remote-game-entry';
   if(!done&&!game.archived&&game.friendState!=='pending')installGameListExit(card,{
    title:'Leave this game?',message:'This ends the game for both players and moves it to your archive.',action:'Leave game',
    confirm:async()=>{const c=await matchCredentials();await remoteRequest(c.token,`/api/matches/${game.id}/leave`,{});await refreshLobbyCards();}
   });
-  const share=document.createElement('button');share.type='button';share.className='remote-quiet remote-share-action';share.innerHTML=shareIcon;share.title='Share game';share.setAttribute('aria-label',`Share game vs ${opponentLabel(game)}`);share.onclick=()=>{share.disabled=true;void shareMatch(game.id,game.friendState==='pending').catch(e=>status(e.message)).finally(()=>{share.disabled=false;});};
-  const archive=document.createElement('button');archive.className='remote-quiet remote-archive-action';archive.textContent=game.archived?'Restore game':'Archive game';archive.setAttribute('aria-label',`${game.archived?'Restore':'Archive'} game vs ${opponentLabel(game)}`);archive.title='Only changes your game list';archive.onclick=()=>{archive.disabled=true;void archiveGame(game.id,!game.archived).catch(e=>{status(e.message);archive.disabled=false})};entry.append(game.friendState==='pending'?pendingInviteCard(card,async()=>{const c=await matchCredentials();const challenge=await remoteRequest<{token:string}>(c.token,`/api/multiplayer/challenge-for-match/${game.id}`);return new URL(`/challenge/${challenge.token}`,publicOrigin()).href;},game.invitedName??'your friend',undefined,()=>shareMatch(game.id,true)):card,...(game.friendState==='pending'?[]:[share]),archive);(game.friendState==='pending'?waiting:container).append(entry);
+  const share=document.createElement('button');share.type='button';share.className='remote-quiet remote-share-action';share.textContent=game.status==='active'&&game.currentTeam!==game.viewerTeam?`Nudge ${opponentLabel(game)} →`:'Send link →';share.title=game.friendState==='pending'?`Send ${opponentLabel(game)} their invitation`:game.status==='active'&&game.currentTeam!==game.viewerTeam?`Remind ${opponentLabel(game)} it’s their turn`:`Send ${opponentLabel(game)} the game link`;share.setAttribute('aria-label',share.title);share.onclick=()=>{share.disabled=true;void shareMatch(game.id,game.friendState==='pending',{opponentName:opponentLabel(game),opponentTurn:game.status==='active'&&game.currentTeam!==game.viewerTeam}).catch(e=>status(e.message)).finally(()=>{share.disabled=false;});};
+  if(!done&&yours){share.textContent='Get Link';share.classList.add('remote-get-link');}
+  footer.append(share);
+  const archive=document.createElement('button');archive.className='remote-quiet remote-archive-action';archive.textContent=game.archived?'Restore game':'Archive game';archive.setAttribute('aria-label',`${game.archived?'Restore':'Archive'} game vs ${opponentLabel(game)}`);archive.title='Only changes your game list';archive.onclick=()=>{archive.disabled=true;void archiveGame(game.id,!game.archived).catch(e=>{status(e.message);archive.disabled=false})};entry.append(game.friendState==='pending'?pendingInviteCard(card,async()=>{const c=await matchCredentials();const challenge=await remoteRequest<{token:string}>(c.token,`/api/multiplayer/challenge-for-match/${game.id}`);return new URL(`/challenge/${challenge.token}`,publicOrigin()).href;},game.invitedName??'your friend',undefined,()=>shareMatch(game.id,true)):card,...(game.friendState==='pending'?[]:[footer]),archive);(game.friendState==='pending'?waiting:container).append(entry);
  }
 }
 for(const button of Array.from(document.querySelectorAll<HTMLButtonElement>('[data-filter]')))button.onclick=()=>{gameFilter=button.dataset.filter!;for(const sibling of Array.from(document.querySelectorAll('[data-filter]')))sibling.setAttribute('aria-pressed',String(sibling===button));renderGames();renderInvitations();};

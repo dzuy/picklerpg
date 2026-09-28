@@ -35,6 +35,7 @@ async function listeners(){
  await PushNotifications.addListener('pushNotificationReceived',()=>void syncNativeBadge());
  await PushNotifications.addListener('pushNotificationActionPerformed',event=>{
   const data=event.notification.data;
+  if(data?.type==='invitation'&&typeof data.invitationId==='string'&&/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(data.invitationId)){location.assign(`/?openplay=1&invite=${encodeURIComponent(data.invitationId)}`);return;}
   if((data?.type==='your_turn'||data?.type==='nudge')&&typeof data.gameId==='string'&&/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(data.gameId)){
    // Internal route preserves the existing sign-in and match authorization flow.
    location.assign(`/?multiplayer=1&match=${encodeURIComponent(data.gameId)}`);

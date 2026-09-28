@@ -4,6 +4,7 @@ self.addEventListener('activate', event => event.waitUntil(self.clients.claim())
 const matchUrl = id => /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(id || '')
   ? new URL('/?multiplayer=1&match=' + encodeURIComponent(id), self.location.origin).href
   : new URL('/?multiplayer=1', self.location.origin).href;
+const invitationUrl = id => /^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(id || '') ? new URL('/?openplay=1&invite='+encodeURIComponent(id),self.location.origin).href : new URL('/?openplay=1',self.location.origin).href;
 self.addEventListener('push', event => {
  event.waitUntil((async () => {
   let data; try { data = event.data.json() || {}; } catch { data = {}; }
@@ -11,8 +12,8 @@ self.addEventListener('push', event => {
   // before delivery by a short server-side lease, never by silently dropping push.
   const name = typeof data.opponentName === 'string' ? data.opponentName.slice(0,32) : 'Your opponent';
   await self.registration.showNotification('PickleBash', {
-   body: data.type === 'nudge' ? `${name} nudged you. Your turn.` : `${name} played. Your turn.`, icon:'/icons/icon-192.png?v=2',
-   tag:`turn-${data.matchId || 'ready'}`, data:{url:matchUrl(data.matchId)}
+   body: data.type === 'invitation' ? `${name} invited you to play.` : data.type === 'nudge' ? `${name} nudged you. Your turn.` : `${name} played. Your turn.`, icon:'/icons/icon-192.png?v=2',
+   tag:data.type==='invitation'?`invite-${data.invitationId}`:`turn-${data.matchId || 'ready'}`, data:{url:data.type==='invitation'?invitationUrl(data.invitationId):matchUrl(data.matchId)}
   });
  })());
 });
@@ -20,7 +21,7 @@ self.addEventListener('notificationclick', event => {
  event.notification.close();
  event.waitUntil((async () => {
   let target;
-  try { const url = new URL(event.notification.data.url); target = url.origin === self.location.origin ? matchUrl(url.searchParams.get('match')) : matchUrl(null); }
+  try { const url = new URL(event.notification.data.url); target = url.origin === self.location.origin ? (url.searchParams.has('invite')?invitationUrl(url.searchParams.get('invite')):matchUrl(url.searchParams.get('match'))) : matchUrl(null); }
   catch { target = matchUrl(null); }
   const windows = await self.clients.matchAll({type:'window',includeUncontrolled:true});
   const candidates = windows.filter(client => new URL(client.url).origin === self.location.origin);

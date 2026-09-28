@@ -22,21 +22,21 @@ export class NativePushService {
   const {error}=await this.client.from('push_devices').update({enabled:false,updated_at:new Date().toISOString()}).eq('id',id).eq('user_id',userId);if(error)throw Error('device storage');
  }
  async count(userId:string){const {data,error}=await this.client.rpc('turn_badge_count',{p_user_id:userId});if(error)throw Error('badge count');return Number(data);}
- async deliver(userId:string,event?:TurnReady,type:'turn'|'nudge'='turn'){
+ async deliver(userId:string,event?:TurnReady,type:'turn'|'nudge'|'invitation'='turn'){
   const previous=this.deliveries.get(userId)??Promise.resolve(false);
   const delivery=previous.catch(()=>false).then(()=>this.sendToDevices(userId,event,type));
   this.deliveries.set(userId,delivery);
   try{return await delivery}finally{if(this.deliveries.get(userId)===delivery)this.deliveries.delete(userId);}
  }
- private async sendToDevices(userId:string,event?:TurnReady,type:'turn'|'nudge'='turn'){
+ private async sendToDevices(userId:string,event?:TurnReady,type:'turn'|'nudge'|'invitation'='turn'){
   if(!this.send)return false;
   const {data:devices,error}=await this.client.from('push_devices').select('*').eq('user_id',userId).eq('enabled',true);
   if(error)throw Error('native push devices');if(!devices?.length)return false;
   const badge=await this.count(userId);
-  const payload=event?{aps:{alert:{title:type==='turn'?'Your turn':'Turn reminder',body:`${event.opponentName.slice(0,32)} just played. You're up.`},sound:'default',badge},type:type==='turn'?'your_turn':'nudge',gameId:event.matchId}:{aps:{badge},type:'badge_sync'};
+  const payload=event?{aps:{alert:{title:type==='invitation'?'Game invitation':type==='turn'?'Your turn':'Turn reminder',body:type==='invitation'?`${event.opponentName.slice(0,32)} invited you to play.`:`${event.opponentName.slice(0,32)} just played. You're up.`},sound:'default',badge},type:type==='turn'?'your_turn':type,...(type==='invitation'?{invitationId:event.matchId}:{gameId:event.matchId})}:{aps:{badge},type:'badge_sync'};
   const results=await Promise.all(devices.map(async device=>{
    try{
-    const result=await this.send!(device.device_token,device.environment,payload,event?`turn-${event.matchId}`:'turn-badge');
+    const result=await this.send!(device.device_token,device.environment,payload,event?`${type==='invitation'?'invite':'turn'}-${event.matchId}`:'turn-badge');
     if(result.status===200)return true;
     if(result.reason==='Unregistered'||result.reason==='BadDeviceToken'||result.reason==='DeviceTokenNotForTopic'){
      // A late rejection must never disable a refreshed token or another account's device.

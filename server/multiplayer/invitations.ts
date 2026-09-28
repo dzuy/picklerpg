@@ -23,15 +23,15 @@ export class SupabaseInviteRepository implements InviteRepository {
  async rematchFor(source:string,actor:string){const {data,error}=await this.client.from('async_invitations').select('*').eq('rematch_of',source).or(`creator_id.eq.${actor},recipient_id.eq.${actor}`).maybeSingle();this.check(error);return data as InviteRow|null;}
  async rematch(source:string,actor:string,row:InviteRow){const {data,error}=await this.client.rpc('create_async_rematch',{p_source:source,p_actor:actor,p_invite:row});this.check(error);return data as InviteRow}
  async close(id:string,actor:string,action:CloseInvitationAction){const {data,error}=await this.client.rpc('close_async_invitation',{p_id:id,p_actor:actor,p_action:action});this.check(error);return data as InviteRow}
- async list(actor:string){const {data,error}=await this.client.from('async_invitations').select('*').or(`creator_id.eq.${actor},recipient_id.eq.${actor}`).in('status',['pending','declined']).order('created_at',{ascending:false});this.check(error);return (data as InviteRow[]).filter(i=>i.status==='pending'||i.creator_id===actor)}
+ async list(actor:string){const {data,error}=await this.client.from('async_invitations').select('*').or(`creator_id.eq.${actor},recipient_id.eq.${actor}`).eq('status','pending').order('created_at',{ascending:false});this.check(error);return data as InviteRow[]}
  async get(id:string,actor:string){const {data,error}=await this.client.from('async_invitations').select('*').eq('id',id).or(`creator_id.eq.${actor},recipient_id.eq.${actor}`).maybeSingle();this.check(error);return data as InviteRow|null}
  async create(row:InviteRow){const {data,error}=await this.client.rpc('create_async_invitation',{p_invite:row});this.check(error);return data as InviteRow}
  async accept(id:string,actor:string,hash:string,match:StoredMatch){const {data,error}=await this.client.rpc('accept_async_invitation',{p_id:id,p_actor:actor,p_hash:hash,p_match:match});this.check(error);return data as StoredMatch}
 }
 export class InvitationService {
- constructor(private repo:InviteRepository,private matches:MatchService,private names:ReadonlyMap<string,string>,private resolveTeam:(team:TeamSelection,owner:string)=>Promise<TeamSelection>=async team=>team,private onCreated?:(invite:Invitation)=>Promise<void>){}
+ constructor(private repo:InviteRepository,private matches:MatchService,private names:ReadonlyMap<string,string>,private resolveTeam:(team:TeamSelection,owner:string)=>Promise<TeamSelection>=async team=>team,private onCreated?:(invite:Invitation)=>Promise<void>,private onInvitation?:(invite:Invitation)=>Promise<void>){}
  private view(r:InviteRow):Invitation{return {id:r.id,creatorId:r.creator_id,recipientId:r.recipient_id,creatorName:this.names.get(r.creator_id)??'Player',recipientName:this.names.get(r.recipient_id)??'Player',team:r.team,court:r.court,scoring:r.scoring,target:r.points_limit??3,status:r.status,createdAt:r.created_at,matchId:r.match_id,...(r.rematch_manual===false?{automaticRematch:true}:{})}}
- async list(actor:string){return (await this.repo.list(actor)).map(r=>this.view(r))}
+ async list(actor:string){return (await this.repo.list(actor)).filter(r=>r.status==='pending').map(r=>this.view(r))}
  async get(id:string,actor:string){const r=await this.repo.get(id,actor);if(!r)throw missing();return this.view(r)}
  async close(id:string,actor:string,action:CloseInvitationAction){const r=await this.repo.get(id,actor);if(!r)throw missing();if((action==='decline'?r.recipient_id:r.creator_id)!==actor)throw new ApiError(403,'invitation','This action is not available to you.');return this.view(await this.repo.close(id,actor,action))}
  async create(actor:string,input:any){
@@ -41,12 +41,15 @@ export class InvitationService {
   const parsed=parseTeam(input.team),normalized={...input,team:parsed},team=await this.resolveTeam(parsed,actor);const row=await this.repo.create({id:randomUUID(),creator_id:actor,recipient_id:input.opponentId,team,court:input.court,scoring:input.scoring,points_limit:input.target??3,status:'pending',created_at:new Date().toISOString(),match_id:null,request_id:input.requestId,request_hash:requestHash(normalized)});
   return this.created(row,actor);
  }
+ private alert(row:InviteRow){
+  if(row.status==='pending'&&this.onInvitation)void this.onInvitation(this.view(row)).catch(()=>console.warn('Invitation notification unavailable'));
+ }
  private async created(row:InviteRow,actor:string){
   if(row.status==='pending'&&this.onCreated){
    try{await this.onCreated(this.view(row));}catch{console.warn('Automatic invitation acceptance deferred to bot worker.');}
-   return this.get(row.id,actor);
+   const current=await this.repo.get(row.id,actor);if(current)this.alert(current);return this.get(row.id,actor);
   }
-  return this.view(row);
+  this.alert(row);return this.view(row);
  }
  async rematchStatus(source:string,actor:string):Promise<RematchStatus>{
   await this.matches.get(source,actor);
@@ -54,7 +57,14 @@ export class InvitationService {
   const row=await this.repo.rematchFor(source,actor);
   return row?{invitationId:row.id,matchId:row.match_id,requesterId:row.creator_id,status:row.status,...(row.rematch_manual===false?{automaticRequest:true}:{})}:{invitationId:null,matchId:null,requesterId:null,status:'none'};
  }
- async claimCountdown(source:string,actor:string){await this.matches.get(source,actor);return {claimed:await this.repo.claimCountdown?.(source,actor)??false};}
+ async claimCountdown(source:string,actor:string){
+  const game=await this.matches.get(source,actor);
+  if(game.status!=='completed'||!this.matches.config(actor).creationEnabled||!this.repo.rematchFor)return {claimed:false};
+  if(await this.repo.rematchFor(source,actor))return {claimed:false};
+  // Keep the first-view receipt, but a cancelled screen may retry until an invitation exists.
+  await this.repo.claimCountdown?.(source,actor);
+  return {claimed:true};
+ }
  async rematch(source:string,actor:string,intent:'manual'|'automatic'|'accept'='manual'){
   const game=await this.matches.get(source,actor);
   if(game.status!=='completed')throw new ApiError(409,'rematch','Finish this game before requesting a rematch.');
@@ -66,7 +76,7 @@ export class InvitationService {
   if(row.status!=='pending')throw new ApiError(409,'rematch','This rematch was cancelled or declined. Start a new challenge to play again.');
   // The second player's Rematch tap is their acceptance of the shared request.
   if(row.recipient_id===actor&&intent!=='automatic'&&(intent==='accept'||row.rematch_manual!==false)){const next=await this.accept(row.id,actor,{team});return {invitationId:row.id,matchId:next.id};}
-  if(intent==='automatic'||row.rematch_manual===false)return {invitationId:row.id,matchId:null,requesterId:row.creator_id,automaticRequest:row.rematch_manual===false};
+  if(intent==='automatic'||row.rematch_manual===false){this.alert(row);return {invitationId:row.id,matchId:null,requesterId:row.creator_id,automaticRequest:row.rematch_manual===false};}
   const invitation=await this.created(row,actor);
   return {invitationId:row.id,matchId:invitation.matchId};
  }

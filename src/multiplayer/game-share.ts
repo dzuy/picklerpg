@@ -3,10 +3,14 @@ import {hudButtonIcon} from '../hud-button';
 import {copyInviteLink} from './pending-invite-card';
 import type {Invitation} from './invitation-protocol';
 import {publicOrigin} from '../native-origin';
-export interface GameShare {title:string;description:string;path:string;text:string}
-export function matchShare(id:string):GameShare{return {title:'Share game',description:'Send this link to your opponent to reopen this game. It opens for the players who joined it.',path:`/?multiplayer=1&match=${encodeURIComponent(id)}`,text:'Open our PickleBash game.'};}
+export interface GameShare {title:string;description:string;path:string;text:string;buttonLabel?:string}
+export interface MatchShareContext {opponentName:string;opponentTurn:boolean}
+export function matchShare(id:string,context?:MatchShareContext):GameShare{
+ const opponent=context?.opponentName||'your opponent',reminder=context?.opponentTurn===true;
+ return {title:reminder?`Remind ${opponent} it’s their turn`:`Send ${opponent} the game link`,description:`${reminder?`Send ${opponent} this link to remind them to take their turn.`:`Send ${opponent} this link to reopen your game together.`}`,path:`/?multiplayer=1&match=${encodeURIComponent(id)}`,text:reminder?'Your turn! Open our PickleBash game.':'Open our PickleBash game.',buttonLabel:'Share link'};
+}
 export function invitationShare(invite:Pick<Invitation,'id'|'recipientName'|'status'|'matchId'>):GameShare{
- if(invite.status==='accepted'&&invite.matchId)return matchShare(invite.matchId);
+ if(invite.status==='accepted'&&invite.matchId)return matchShare(invite.matchId,{opponentName:invite.recipientName,opponentTurn:false});
  return {title:`Invite ${invite.recipientName}`,description:`The invitation is in ${invite.recipientName}’s games list. You can also send them this link. They’ll need to sign in as that player.`,path:`/?openplay=1&invite=${encodeURIComponent(invite.id)}`,text:'Join me for a game of PickleBash.'};
 }
 /** Native sharing stays on the button tap; unsupported browsers can always copy the URL. */
@@ -18,7 +22,7 @@ export function showGameShare(share:GameShare){
  const description=document.createElement('p');description.className='friend-share-intro';description.textContent=share.description;
  const url=new URL(share.path,publicOrigin()).href,link=document.createElement('input');link.value=url;link.readOnly=true;link.setAttribute('aria-label','Game link');link.onclick=()=>link.select();
  const copy=document.createElement('button');copy.type='button';copy.className='remote-quiet';copy.textContent='Copy Link';
- const shareButton=document.createElement('button');shareButton.type='button';shareButton.className='remote-primary';shareButton.textContent='Share game';
+ const shareButton=document.createElement('button');shareButton.type='button';shareButton.className='remote-primary';shareButton.textContent=share.buttonLabel??'Share game';
  const message=document.createElement('p');message.setAttribute('role','status');
  const copyLink=async()=>{try{await copyInviteLink(url);message.textContent='Link copied.';}catch{link.focus();link.select();message.textContent='Select and copy the link above.';}};
  copy.onclick=()=>void copyLink();

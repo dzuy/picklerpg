@@ -273,6 +273,7 @@ export class PlayerCreator {
  createPlayer(){this.open();this.switchDraft(()=>{this.loadDraft(this.shuffledPlayer());this.showEditor()})}
  resumeCreatePlayer(player:DesignedPlayer){this.open();this.loadDraft(player);this.showEditor()}
  editPlayer(player:DesignedPlayer|null){this.open();if(player&&isCommunityPlayer(player)){this.el('[data-roster-status]').textContent='Open this player from Your Roster to customize its skills.';return;}this.showEditor();if(player&&player.id!==this.draft.id)this.switchDraft(()=>this.loadDraft(player))}
+ editSkills(){this.editPlayer(this.activePlayer);this.el('[data-tab=skills]').click();}
  open(){void this.refreshBudget();if(!this.dialog.open)showViewDialog(this.dialog);this.showRoster();void this.community.load()}
 
  private async refreshBudget(){try{this.budget=await accountSkillBudget();this.budgetReady=true;this.library.players=this.library.players.map(p=>({...p,skills:normalizeSkillBudget(p.skills,this.budget)}));this.draft.skills=normalizeSkillBudget(this.draft.skills,this.budget);this.fillSkills();this.updateSummary();}catch(error){this.el('[data-status]').textContent=(error as Error).message;}}

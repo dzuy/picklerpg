@@ -41,7 +41,7 @@ if(process.argv[1]&&pathToFileURL(resolve(process.argv[1])).href===import.meta.u
  const port=Number(process.env.PORT||5173);
  if(!Number.isInteger(port)||port<1||port>65535)throw new Error('PORT must be between 1 and 65535.');
  const {configuredMatchHandler,serverAnalytics}=await import('../dist-server/multiplayer.mjs');
- const server=createProductionServer({matchHandler:configuredMatchHandler()});
+ const server=createProductionServer({matchHandler:configuredMatchHandler({...process.env,RATE_LIMIT_STORE:process.env.RATE_LIMIT_STORE??'database'})});
  server.requestTimeout=15000;server.headersTimeout=10000;
  server.listen(port,'0.0.0.0',()=>console.log(`Pickle RPG listening on 0.0.0.0:${port}`));
  for(const signal of ['SIGTERM','SIGINT'])process.on(signal,()=>{server.close(()=>{void serverAnalytics.shutdown().finally(()=>process.exit(0))});setTimeout(()=>process.exit(1),10000).unref()});

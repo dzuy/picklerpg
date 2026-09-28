@@ -1,3 +1,4 @@
+import type {Invitation} from '../../src/multiplayer/invitation-protocol';
 import webpush from 'web-push';
 import type {SupabaseClient} from '@supabase/supabase-js';
 import {configuredAPNs} from './apns';
@@ -44,20 +45,27 @@ export class NotificationService {
   if(error)throw Error('nudge match check');if(!data)return;
   await this.deliverToUser(event,'nudge');
  }
- private async deliverToUser(event:TurnReady,type:'turn'|'nudge'){
+ async notifyInvitation(invite:Invitation){
+  const {data,error}=await this.client.rpc('claim_invitation_push',{p_invitation_id:invite.id,p_user_id:invite.recipientId});
+  if(error)throw Error('invitation push claim');if(!data)return;
+  await this.deliverToUser({userId:invite.recipientId,matchId:invite.id,version:0,opponentName:invite.creatorName},'invitation');
+ }
+ private async deliverToUser(event:TurnReady,type:'turn'|'nudge'|'invitation'){
+  if(type!=='invitation'){
   const {data:match,error:matchError}=await this.client.from('async_matches').select('*').eq('id',event.matchId).maybeSingle();
   if(matchError)throw Error('push preference check');
   if(!match||!(event.userId===match.home_user_id||event.userId===match.away_user_id)||(event.userId===match.home_user_id?match.muted_home:match.muted_away))return;
 
-  try{if(await this.native?.deliver(event.userId,event,type))return;}catch{console.warn('Native delivery unavailable; trying fallback');}
-  // A legacy SMS adapter can be supplied here without changing any game event logic.
-  if(this.smsFallback){await this.smsFallback(event);return;}
-  if(!this.publicKey)return;
+  }
   const {data:rows,error:readError}=await this.client.from('push_subscriptions').select('id,endpoint,p256dh,auth,active_until').eq('user_id',event.userId);
   if(readError)throw Error('push subscriptions');
-  // Any active device means the account is already seeing normal match updates.
+  // Check foreground activity before choosing a channel, including native alerts.
   if(rows?.some(row=>Date.parse(row.active_until)>Date.now()))return;
-  const payload=JSON.stringify({type,matchId:event.matchId,version:event.version,opponentName:event.opponentName.slice(0,32)});
+  try{if(await this.native?.deliver(event.userId,event,type))return;}catch{console.warn('Native delivery unavailable; trying fallback');}
+  // A legacy SMS adapter can be supplied here without changing any game event logic.
+  if(this.smsFallback&&type!=='invitation'){await this.smsFallback(event);return;}
+  if(!this.publicKey)return;
+  const payload=JSON.stringify({type,...(type==='invitation'?{invitationId:event.matchId}:{matchId:event.matchId,version:event.version}),opponentName:event.opponentName.slice(0,32)});
   await Promise.allSettled((rows??[]).map(async row=>{
    try{
     await this.deliver({endpoint:row.endpoint,keys:{p256dh:row.p256dh,auth:row.auth}},payload,{TTL:300,urgency:'normal',timeout:5000,vapidDetails:{subject:this.subject,publicKey:this.publicKey,privateKey:this.privateKey}});

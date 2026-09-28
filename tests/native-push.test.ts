@@ -56,3 +56,11 @@ test('APNs uses ES256 provider authentication, fixed environment endpoints and b
  assert.equal(verify('sha256',Buffer.from(`${head}.${body}`),{key:publicKey,dsaEncoding:'ieee-p1363'},Buffer.from(signature,'base64url')),true);
  assert.equal(calls[0].headers.authorization,calls[1].headers.authorization,'provider JWT is cached');
 });
+
+test('invitation alert identifies sender and opens invitation rather than a match',async()=>{
+ const db=store(['ok']);let payload:any,collapse='';
+ const native=new NativePushService(db.client,async(_token,_env,value,key)=>{payload=value;collapse=key;return {status:200};});
+ await native.deliver(A,event,'invitation');
+ assert.deepEqual(payload,{aps:{alert:{title:'Game invitation',body:'Pat invited you to play.'},sound:'default',badge:3},type:'invitation',invitationId:B});
+ assert.equal(collapse,`invite-${B}`);
+});
