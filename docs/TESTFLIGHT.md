@@ -14,6 +14,16 @@
 
 [TestFlight builds](https://appstoreconnect.apple.com/teams/69a6de6e-ab8b-47e3-e053-5b8c7c11a4d1/apps/6815925616/testflight/ios)
 
+## 2026-09-28 — 1.0 (7)
+
+- Source: `8af8c6b10e7044136f4c73b5a16dce127e02e3b4`, pushed to `main`. Includes rematch/end-screen cleanup, invitation alerts and badges, recent opponents, skill-editor navigation, and multiplayer responsiveness/rate-limit fixes.
+- Validation: all 790 tests passed; production build and client/server type checks passed.
+- Railway deployment `d8af22b9-d548-4562-9449-7d968ad6305f` reached Active; production `/healthz` returned `{"status":"ok"}`. Database migrations `202609280004`, `202609280005`, and `202609280006` were applied before rollout. Production defaults to shared database rate counters.
+- Production assets rebuilt/synced with analytics and replay enabled, environment `production`, debug disabled, and `VITE_APP_VERSION=1.0(7)`. Archive bundle `com.picklebash.app`, version/build, backend URL, and analytics configuration verified.
+- Signed Release archive succeeded. App Store Connect upload succeeded at 11:43 Costa Rica time. The TestFlight page shows processing Complete and Missing Compliance. The platform-only encryption selection was prepared, but the App Store Connect Save control did not respond through browser automation. The open dialog is left for user completion; no tester group is assigned yet. No physical-device invitation-delivery claim is made.
+- Archive `/tmp/PickleBash-1.0-7.xcarchive`; logs `/tmp/picklebash-ios7-archive.log`, `/tmp/picklebash-ios7-upload.log`, and `/tmp/picklebash-release-tests-final.log`. Temporary paths are not durable release storage.
+- Install build 7 when available to test invitation tap routing, rematches, skill upgrades, badges, and foreground/background notification behavior on a physical iPhone.
+
 ## Next release
 
-Read [iOS build instructions](IOS.md), [analytics configuration](ANALYTICS.md), and [native push requirements](NATIVE_PUSH.md). Check the latest build number in App Store Connect before archiving; do not reuse 6. Build from an explicit reviewed revision, configure production client variables before syncing, and verify the archive contents before uploading. Confirm processing, export-compliance state, and the intended existing tester groups in App Store Connect; do not assume upload success means testing is enabled.
+Read [iOS build instructions](IOS.md), [analytics configuration](ANALYTICS.md), and [native push requirements](NATIVE_PUSH.md). Check the latest build number in App Store Connect before archiving; do not reuse 7. Build from an explicit reviewed revision, configure production client variables before syncing, and verify the archive contents before uploading. Confirm processing, export-compliance state, and the intended existing tester groups in App Store Connect; do not assume upload success means testing is enabled.

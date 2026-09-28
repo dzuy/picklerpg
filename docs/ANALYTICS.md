@@ -105,4 +105,6 @@ Validation: `npm test` passed all 771 tests, including real PostgreSQL migration
 
 SDK references: [JavaScript](https://posthog.com/docs/libraries/js), [Node](https://posthog.com/docs/libraries/node), [feature flags](https://posthog.com/docs/feature-flags), [replay privacy](https://posthog.com/docs/session-replay/privacy).
 
-Local change (not deployed): solo countdown expiry now restarts the match and records `rematch_auto_requested` and `rematch_started` after reset, with automatic origin retained through completion. Local two-human games remain manual. Existing multiplayer event ownership and metric definitions are unchanged.
+September 28 follow-up (released in `8af8c6b`): solo countdown expiry now restarts the match and records `rematch_auto_requested` and `rematch_started` after reset, with automatic origin retained through completion. Local two-human games remain manual. Existing multiplayer event ownership and metric definitions are unchanged.
+
+Release follow-up: `8af8c6b` reached Active on Railway on September 28, 2026. TestFlight 1.0 (7) uploaded with production analytics configuration; Apple processing completed; export compliance, tester assignment, and physical-device checks remain pending. This release does not change remote flag targeting, event ownership, privacy rules, or dashboard metric definitions. See [release record](TESTFLIGHT.md).

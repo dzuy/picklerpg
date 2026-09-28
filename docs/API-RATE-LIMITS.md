@@ -1,6 +1,6 @@
 # Multiplayer request limits
 
-Local implementation, September 28, 2026. These changes have not been deployed to the production server or bundled into a new iOS build.
+Released September 28, 2026 in `8af8c6b`: Railway deployment reached Active and health passed. Included in uploaded TestFlight 1.0 (7), pending export compliance; see [release record](TESTFLIGHT.md).
 
 Authenticated requests are keyed by account and traffic type: 300 reads, 60 turn submissions, and 120 other writes per minute. Existing sensitive route limits (sign-in, invitations, analysis, nudges, and others) still apply. Background reads cannot consume turn allowances. Authenticated traffic does not share an IP quota; anonymous requests retain network-based protections. Registration is limited per network rather than globally across all players.
 

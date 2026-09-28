@@ -115,4 +115,6 @@ Billing was inspected on 2026-09-28: 515/500 PostHog AI credits, 221/1,000,000 p
 
 Prefer direct saved queries and ordinary dashboard configuration for follow-up work. Track product usage after release and set explicit per-product spending limits if upgrading. Budget limits can stop collection/evaluation; preserve application fallbacks and monitor missing telemetry. Keep deployment state, metric changes, and later cost decisions updated in these documents so another agent does not have to reconstruct them from chat.
 
-Local follow-up (not deployed): solo countdowns now restart automatically at expiry; client-owned request/start/completion events preserve their automatic origin. Multiplayer lifecycle remains server-owned; dashboard metric definitions are unchanged.
+September 28 follow-up (released in `8af8c6b`): solo countdowns now restart automatically at expiry; client-owned request/start/completion events preserve their automatic origin. Multiplayer lifecycle remains server-owned; dashboard metric definitions are unchanged.
+
+Release follow-up: `8af8c6b` reached Active on Railway on September 28, 2026. TestFlight 1.0 (7) uploaded with production analytics configuration; Apple processing completed; export compliance, tester assignment, and physical-device checks remain pending. This release does not change remote flag targeting, event ownership, privacy rules, or dashboard metric definitions. See [release record](TESTFLIGHT.md).
