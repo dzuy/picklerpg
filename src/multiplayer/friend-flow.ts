@@ -1,3 +1,4 @@
+import {Analytics} from '../analytics';
 import {loadScoringPreference,saveScoringPreference,type ScoringPreference} from '../scoring-preference';
 import './account-dialog.css';
 import {showViewDialog} from '../view-focus';
@@ -33,20 +34,20 @@ export function shareChallenge(i:FriendChallenge,openShare=false){
  const send=button(`Text ${i.invitedName} a link`,true),copy=button('Copy Link'),message=document.createElement('p');message.setAttribute('role','status');
  async function copyLink(){try{await copyInviteLink(url);message.textContent='Link copied.';track('invite_link_copied',i.token);}catch{link.focus();link.select();message.textContent='Select and copy the link above.';}}
  const nativeShare=()=>navigator.share({title:'PickleBash challenge',text:`${i.inviterName} challenged you to PickleBash. Think you can outplay them?`,url});
- send.onclick=()=>{track('invite_share_opened',i.token);if(typeof navigator.share==='function')void nativeShare().catch(e=>{if(e.name!=='AbortError')void copyLink();});else void copyLink();};copy.onclick=()=>void copyLink();
+ send.onclick=()=>{track('invite_share_opened',i.token);if(typeof navigator.share==='function')void nativeShare().then(()=>track('invite_share_completed',i.token)).catch(e=>{if(e.name!=='AbortError')void copyLink();});else void copyLink();};copy.onclick=()=>void copyLink();
  const actions=document.createElement('div');actions.className='friend-share-actions';actions.append(copy,send);
  const cancel=document.createElement('a');cancel.href='#';cancel.className='friend-share-cancel';cancel.textContent='Cancel Invitation';
  let cancelling=false;
  cancel.onclick=event=>{event.preventDefault();if(cancelling)return;cancelling=true;cancel.setAttribute('aria-disabled','true');message.textContent='';void matchCredentials().then(c=>remoteRequest(c.token,`/api/multiplayer/challenges/${i.token}/cancel`,{})).then(()=>{d.close();location.assign('/?openplay=1');}).catch(error=>{message.textContent=(error as Error).message||'Could not cancel the invitation. Please try again.';cancelling=false;cancel.removeAttribute('aria-disabled');});};
  d.append(intro,link,actions,message,cancel);
- if(openShare&&typeof navigator.share==='function')void nativeShare().then(()=>track('invite_share_opened',i.token)).catch(()=>{});
+ if(openShare&&typeof navigator.share==='function')void nativeShare().then(()=>track('invite_share_completed',i.token)).catch(()=>{});
  let checking=false;const refresh=setInterval(()=>{if(document.hidden||checking)return;checking=true;void matchCredentials().then(c=>remoteRequest<FriendChallenge>(c.token,`/api/multiplayer/challenge-for-match/${i.matchId}`)).then(next=>{if(next.status!=='pending')d.close();}).catch(()=>{}).finally(()=>{checking=false;});},5000);d.addEventListener('close',()=>clearInterval(refresh));return d;
 }
 export async function shareMatch(id:string,pending=false){if(!pending){showGameShare(matchShare(id));return;}const c=await matchCredentials();shareChallenge(await remoteRequest<FriendChallenge>(c.token,`/api/multiplayer/challenge-for-match/${id}`));}
 export interface CreatePlayerAccountOptions {playerName?:string;onSignIn?:()=>Promise<void>;onSignInSelected?:()=>void}
 export async function createYourPlayer(onComplete:()=>Promise<void>=async()=>{},options:CreatePlayerAccountOptions={}):Promise<boolean>{
  const client=authClient();if(!client)throw Error('Account creation is unavailable. Please try again later.');const {data:{session}}=await client.auth.getSession();if(session&&!session.user.is_anonymous)return true;
- track('guest_registration_started');
+ track('guest_registration_started');Analytics.track('onboarding_started',{source:'account_dialog'});
  const d=panel('Create An Account',false),copy=document.createElement('p');dismissOnBackdrop(d);copy.textContent=`Save ${options.playerName?.trim()||'your player'}, start games on any device, and challenge friends.`;const form=document.createElement('form');
  d.classList.add('friend-account-dialog');
  const close=button('×');close.className='friend-account-close';close.setAttribute('aria-label','Close account creation');close.onclick=()=>d.close();d.prepend(close);
@@ -61,6 +62,6 @@ export async function createYourPlayer(onComplete:()=>Promise<void>=async()=>{},
   const fresh=await playerPasswordSession(credentials);
   const {error}=await client.auth.setSession(fresh);if(error)throw error;
  };
- form.onsubmit=e=>{e.preventDefault();if(save.disabled)return;save.disabled=true;signIn.disabled=true;message.textContent='Creating your account…';void(async()=>{await register({email:fields[0].value.trim(),password:fields[1].value});fields[1].value='';await onComplete();completed=true;d.close();})().catch(e=>{message.textContent=e.message;save.disabled=false;signIn.disabled=false;});};
+ form.onsubmit=e=>{e.preventDefault();if(save.disabled)return;save.disabled=true;signIn.disabled=true;message.textContent='Creating your account…';void(async()=>{await register({email:fields[0].value.trim(),password:fields[1].value});fields[1].value='';await onComplete();Analytics.track('onboarding_completed',{source:'account_dialog'});completed=true;d.close();})().catch(e=>{message.textContent=e.message;save.disabled=false;signIn.disabled=false;});};
  return outcome;
 }

@@ -1,3 +1,4 @@
+export {serverAnalytics} from './analytics';
 import {createServer} from 'node:http';
 import {configuredMatchHandler} from './routes';
 import {pathToFileURL} from 'node:url';

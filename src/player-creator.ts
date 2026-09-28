@@ -1,3 +1,4 @@
+import {Analytics} from './analytics';
 import {rosterTrashIcon,rosterEditIcon} from './roster-action-icons';
 import {focusView,showViewDialog} from './view-focus';
 import {accountSkillBudget} from './account-skill-budget';
@@ -140,7 +141,7 @@ export class PlayerCreator {
   this.input('#creator-public').addEventListener('change',()=>{this.draft.isPublic=(this.input('#creator-public') as HTMLInputElement).checked;if(this.draft.isPublic&&!this.draft.publishedSkills)this.draft.publishedSkills=normalizeSkillBudget(this.draft.skills,35);this.updateSummary();this.changed()});
   this.input('#creator-catchphrase').addEventListener('input',()=>{this.draft.catchphrase=this.input('#creator-catchphrase').value;this.changed()});
   this.input('#creator-name').addEventListener('input',()=>{this.draft.name=this.input('#creator-name').value;this.updateCaption();this.changed()});
-  this.dialog.querySelectorAll<HTMLButtonElement>('[data-choice]').forEach(button=>button.addEventListener('click',()=>{if(button.dataset.key==='presentation')this.draft.appearance=applyPresentation(this.draft.appearance,button.dataset.choice as Appearance['presentation']);else {Object.assign(this.draft.appearance,{[button.dataset.key!]:button.dataset.choice});if(button.dataset.key==='outfit'&&button.dataset.choice!=='none')this.draft.appearance.outfitColor=OUTFIT_COLORS[button.dataset.choice as keyof typeof OUTFIT_COLORS];}this.syncAppearance();this.refreshPreview();this.changed()}));
+  this.dialog.querySelectorAll<HTMLButtonElement>('[data-choice]').forEach(button=>button.addEventListener('click',()=>{Analytics.track('cosmetic_viewed',{category:button.dataset.key!,item_id:button.dataset.choice!,tier:((PREMIUM_APPEARANCE_OPTIONS as Record<string,readonly string[]|undefined>)[button.dataset.key!]?.includes(button.dataset.choice!)?'premium':'standard')});if(button.dataset.key==='presentation')this.draft.appearance=applyPresentation(this.draft.appearance,button.dataset.choice as Appearance['presentation']);else {Object.assign(this.draft.appearance,{[button.dataset.key!]:button.dataset.choice});if(button.dataset.key==='outfit'&&button.dataset.choice!=='none')this.draft.appearance.outfitColor=OUTFIT_COLORS[button.dataset.choice as keyof typeof OUTFIT_COLORS];}this.syncAppearance();this.refreshPreview();this.changed()}));
   this.dialog.querySelectorAll<HTMLInputElement>('[data-color]').forEach(control=>{const apply=()=>{if(this.draft.appearance[control.dataset.color as keyof Appearance]===control.value)return;Object.assign(this.draft.appearance,{[control.dataset.color!]:control.value});this.syncAppearance();this.refreshPreview();this.changed()};control.addEventListener('input',apply);control.addEventListener('change',apply)});
   this.el('[data-preview-play]').addEventListener('click',()=>{
    if(!this.preview||this.previewFailed)return;
@@ -403,7 +404,9 @@ export class PlayerCreator {
   try{if(!await this.beforeSave(structuredClone(this.draft)))return false;}
   catch(error){this.el('[data-status]').textContent=error instanceof Error?error.message:'Account access is unavailable. Please try again.';return false;}
   try{
+   const previous=this.library.players.find(p=>p.id===this.draft.id);
    this.library=savePlayer(browserStorage,this.library,this.draft,play||this.activateOnSave);this.draft=structuredClone(this.library.players.find(p=>p.id===this.draft.id)!);this.baseline=JSON.stringify(this.draft);this.fill();this.onLibraryChange(structuredClone(this.library),{kind:'save',playerId:this.draft.id});
+   for(const key of Object.keys(APPEARANCE_OPTIONS) as (keyof typeof APPEARANCE_OPTIONS)[]){const value=String(this.draft.appearance[key]);if(previous?.appearance[key]!==this.draft.appearance[key])Analytics.track('cosmetic_equipped',{category:key,item_id:value,tier:((PREMIUM_APPEARANCE_OPTIONS as Record<string,readonly string[]|undefined>)[key]?.includes(value)?'premium':'standard')});}
    this.pending=null;(this.el('.creator-confirm') as HTMLDialogElement).close();this.el('[data-status]').textContent='Player saved.';
    if(play){this.onPlay(structuredClone(this.draft));this.dialog.close()}else this.showRoster();
    if(!play&&this.afterSave(structuredClone(this.draft)))this.dialog.close();

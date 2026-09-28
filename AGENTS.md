@@ -1,5 +1,9 @@
 # Project design rules
 
+## Analytics and feature flags
+
+Before changing analytics, flags, or building an internal dashboard, read [the analytics implementation](docs/ANALYTICS.md), [architecture decisions and dashboard handoff](docs/ANALYTICS-ARCHITECTURE.md), and [flag workflow](docs/FEATURE-FLAGS.md). Preserve event ownership, identity, privacy, and metric definitions. Update these references when behavior or deployment status changes; dated setup snapshots are not proof of current production state.
+
 ## Player-facing language
 
 Never mention AI, language models, or related implementation jargon in player-facing copy, loading states, reports, or settings. Focus on the game, friends, and coaching. Apply this rule to generated report instructions as well as UI text. Technical identifiers and developer documentation may retain accurate implementation terminology.

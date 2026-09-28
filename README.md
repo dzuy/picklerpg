@@ -33,6 +33,10 @@ The agreed color direction, usage rules, and foundation for future marketing con
 
 [docs/PREMIUM.md](docs/PREMIUM.md) defines the growing Premium / PickleBash+ feature collection, current access behavior, and decisions reserved for future billing and in-app purchases.
 
+## Analytics and feature flags
+
+Start with [analytics architecture and future dashboard decisions](docs/ANALYTICS-ARCHITECTURE.md). The [implementation reference](docs/ANALYTICS.md) covers event ownership, identity, privacy, environment settings, live dashboard links, and release checks. The [feature-flag guide](docs/FEATURE-FLAGS.md) covers defaults, targeting, rollout, and removal. Deployment status in these documents is a dated snapshot; verify it before resuming work.
+
 ## Backlog and build order
 
 The complete agreed roadmap is tracked in [docs/BACKLOG.md](docs/BACKLOG.md), with the original supplied text in [docs/roadmap-source.txt](docs/roadmap-source.txt). Work proceeds in numbered increments; Phase 2 is complete through item 14; Phase 3 player ratings come next.

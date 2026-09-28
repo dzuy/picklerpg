@@ -1,3 +1,6 @@
+import {Analytics,FeatureFlags} from '../analytics';
+import {RematchCountdown} from '../rematch-countdown';
+import {bindRematchLifecycle,rematchSection} from '../rematch-presentation';
 import {flightCursor} from '../engine/rally-engine';
 import {installFullGameAnalysis} from '../full-game-analysis';
 import {loadGamePreference,saveGamePreference} from '../game-preferences';
@@ -110,16 +113,49 @@ const gameEnd=document.createElement('dialog');gameEnd.id='game-end';gameEnd.set
 gameEnd.classList.add('rivalry-game-end');
 installFullGameAnalysis(gameEnd.querySelector('.game-end-actions')!,()=>session?.state?{id:session.state.id,mode:'friends',endedEarly:session.state.endedEarly}:null);
 const rivalryCompletion=document.createElement('section');rivalryCompletion.className='rivalry-completion';gameEnd.querySelector('.game-end-score')!.after(rivalryCompletion);
-const rematchStatus=document.createElement('p');rematchStatus.className='rematch-status';rematchStatus.setAttribute('role','status');rivalryCompletion.after(rematchStatus);
-const rematch=document.createElement('button');rematch.id='remote-rematch';rematch.className='rematch-primary';el('remote-end-back').before(rematch);
+const rematch=document.createElement('button');rematch.id='remote-rematch';rematch.type='button';
+const rematchView=rematchSection(gameEnd,rematch);
+let rematchActive=()=>gameEnd.open&&!document.hidden;
+let countdownClaimed=false,countdownGeneration=0;
+const rematchTimer=new RematchCountdown(browserStorage,()=>rematchActive()&&FeatureFlags.isEnabled('rematch_auto_countdown')&&rematchFlow.status.status==='none',renderRematch,()=>{
+ const revision=rematchTimer.revision;
+ if(countdownClaimed)void rematchFlow.submit('automatic',()=>rematchActive()&&revision===rematchTimer.revision);
+ else{rematchFlow.message='Could not send the request. Tap to try again.';renderRematch();}
+});
+rematchActive=bindRematchLifecycle(gameEnd,rematch,rematchTimer);
 const rematchFlow=new RematchFlow(matchCredentials,remoteRequest,()=>{
- rematch.textContent=rematchFlow.busy?'Opening rematch…':rematchFlow.waiting?'Rematch requested':rematchFlow.closed?'Rematch closed':rematchFlow.status.status==='accepted'?'Open rematch':rematchFlow.status.status==='pending'?'Accept rematch':'Rematch';
- rematch.disabled=rematchFlow.busy||rematchFlow.waiting||rematchFlow.closed||!config?.creationEnabled||!session?.state?.accountIds?.[session.state.viewerTeam==='home'?'away':'home'];
+ if(rematchFlow.status.status!=='none'||rematchFlow.message)rematchTimer.cancel();
+ renderRematch();
+},async id=>{if(!rematchActive())return;gameEnd.close();await open(id);});
+function renderRematch(){
+ const incoming=rematchFlow.status.status==='pending'&&!rematchFlow.waiting;
+ const opponent=session?.state?opponentLabel(session.state):'your opponent';
+ rematchView.title.textContent=rematchFlow.closed?'MAYBE NEXT TIME':incoming?`${opponent.toUpperCase()} WANTS A REMATCH`:rematchFlow.waiting?'REMATCH SENT':'RUN IT BACK?';
+ rematchView.opponent.textContent=`vs ${opponent}`;
+ rematchView.renderCountdown(rematchTimer.remaining);
+ rematch.textContent=rematchFlow.busy?'ONE MOMENT…':rematchFlow.closed?'REMATCH CLOSED':rematchFlow.message&&!rematchFlow.closed?'TRY AGAIN':incoming?'ACCEPT REMATCH':rematchFlow.status.status==='accepted'?'OPEN REMATCH':rematchFlow.waiting&&rematchFlow.status.automaticRequest?'CONFIRM REMATCH':rematchFlow.waiting?'REMATCH SENT':'REMATCH NOW';
+ rematch.disabled=rematchFlow.busy||(rematchFlow.waiting&&!rematchFlow.status.automaticRequest)||rematchFlow.closed||!config?.creationEnabled||!session?.state?.accountIds?.[session.state.viewerTeam==='home'?'away':'home'];
  rematch.setAttribute('aria-busy',String(rematchFlow.busy));
- rematchStatus.textContent=rematchFlow.message||(rematchFlow.waiting?`Waiting for ${session?.state?opponentLabel(session.state):'your opponent'}. You’ll join when they accept.`:rematchFlow.status.status==='pending'?`${session?.state?opponentLabel(session.state):'Your opponent'} is ready for another game.`:'');
-},async id=>{gameEnd.close();await open(id);});
-rematch.onclick=()=>void rematchFlow.submit();
-const gameXp=document.createElement('section');rivalryCompletion.after(gameXp);
+ rematchView.message.textContent=rematchFlow.message||(rematchFlow.waiting?`Waiting for ${opponent}…`:incoming?'One tap. Same teams. Another game.':rematchTimer.remaining!==null?'Rematch request sending automatically…':'Same teams. Ready when you are.');
+}
+rematch.onclick=()=>{rematchTimer.cancel();void rematchFlow.submit(rematchFlow.status.status==='pending'&&!rematchFlow.waiting?'accept':'manual',rematchActive);};
+const rematchNotNow=document.createElement('button');rematchNotNow.textContent='Not Now';rematchNotNow.type='button';el('remote-end-back').before(rematchNotNow);
+rematchNotNow.onclick=()=>{rematchTimer.cancel();void rematchFlow.decline();};
+async function startRematchCountdown(id:string,owner:string){
+ const generation=++countdownGeneration;countdownClaimed=false;
+ const enabled=FeatureFlags.isEnabled('rematch_auto_countdown');
+ Analytics.track('rematch_prompt_shown',{original_match_id:id,countdown_enabled:enabled},id);
+ if(!enabled){rematchTimer.cancel();return;}
+ rematchTimer.start(`pickle-rematch-countdown:${owner}:${id}`);
+ if(rematchTimer.remaining===null)return;
+ try{const c=await matchCredentials();if(c.owner!==owner)return;
+  // Record the consumed attempt even if navigation happened while credentials loaded.
+  const result=await remoteRequest<{claimed:boolean}>(c.token,`/api/matches/${id}/rematch-countdown`,{});
+  if(generation!==countdownGeneration)return;
+  countdownClaimed=result.claimed;if(!result.claimed)rematchTimer.cancel();
+ }catch{if(generation===countdownGeneration){rematchTimer.cancel();rematchFlow.message='Could not connect. Tap to try again.';renderRematch();}}
+}
+const gameXp=document.createElement('section');gameEnd.querySelector('.game-end-score')!.after(gameXp);
 // Temporarily hide the shot breakdown on the friends game end screen.
 const shotSelections=document.createElement('section');shotSelections.hidden=true;gameXp.after(shotSelections);
 let completionKey='';
@@ -163,7 +199,7 @@ function syncGameEnd(){const s=session?.state;
  gameEndReadyAt??=performance.now()+(s.endedEarly?GAME_END_PAUSE_MS:0);
  if(performance.now()<gameEndReadyAt)return;
  renderCompletion(s);clearTarget();settings.close();showViewDialog(gameEnd);
- rematchFlow.reset(s.id,session!.owner);void rematchFlow.refresh();focusView(gameEnd);
+ rematchFlow.reset(s.id,session!.owner);void rematchFlow.refresh();focusView(gameEnd);if(config?.creationEnabled)void startRematchCountdown(s.id,session!.owner);
 }
 function animationShot(segment:TurnAnimation,state:GameState):RallyShot{return {...presentation(state,segment.intent),contact:{...segment.path[0]},aimPoint:{...segment.path.at(-1)!},legs:segment.path.slice(1).map((to,i)=>({from:{...segment.path[i]},to:{...to},duration:segment.pathTimes?segment.pathTimes[i+1]-segment.pathTimes[i]:segment.duration/(segment.path.length-1),arc:0}))}}
 
@@ -173,7 +209,7 @@ function saveView(){saveGamePreference('names',playerNames);browserStorage.setIt
 function saveCameraView(){if(scene&&session?.state&&!el('remote-game').hidden){const view=JSON.stringify(scene.cameraView());browserStorage.setItem(`pickle-camera:${session.owner}:${session.matchId}`,view);browserStorage.setItem(`pickle-camera-default:${session.owner}:${session.state.viewerTeam}`,view);}}
 window.addEventListener('pagehide',saveCameraView);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)saveCameraView();});
-function leaveCourt(){rematchFlow.reset();completionKey='';saveCameraView();trashTalk.reset();endReplay();pointPauseRemaining=0;gameEndReadyAt=null;document.body.classList.remove('remote-playing');settings.close();gameEnd.close();scene?.setRetainedTrajectory(null);}
+function leaveCourt(){rematchTimer.cancel();countdownGeneration++;rematchFlow.reset();completionKey='';saveCameraView();trashTalk.reset();endReplay();pointPauseRemaining=0;gameEndReadyAt=null;document.body.classList.remove('remote-playing');settings.close();gameEnd.close();scene?.setRetainedTrajectory(null);}
 (el('remote-guides') as HTMLInputElement).checked=flightGuides;
 (el('remote-names') as HTMLInputElement).checked=playerNames;
 el('remote-guides').onchange=()=>{flightGuides=(el('remote-guides') as HTMLInputElement).checked;scene?.setGuides(flightGuides);saveFlightGuide(flightGuides);saveView()};
@@ -229,6 +265,7 @@ const guestArea=document.createElementNS('http://www.w3.org/2000/svg','svg');gue
 const guestPolygon=document.createElementNS('http://www.w3.org/2000/svg','polygon');guestArea.append(guestPolygon);el('remote-game').append(guestArea);
 function syncGuestGuide(){
  const s=session?.state??null,step=guestStep(s,guestPlayer);
+ if(s&&guestPlayer&&s.friendState==='accepted'&&s.viewerTeam==='away'){if(step==='serve')Analytics.track('onboarding_started',{source:'guest_challenge'},s.id);else if(s.version>2)Analytics.track('onboarding_completed',{source:'guest_challenge'},s.id);}
  const visible=!!step&&!el('remote-game').hidden&&!settings.open&&!gameEnd.open&&!replayActive()&&!animation.length&&!pointPauseRemaining&&!session?.busy&&!session?.pending;
  guestGuide.hidden=!visible;el('remote-game').classList.toggle('guest-guided',visible);
  claimPlayer.hidden=!guestPlayer||!!step;
@@ -271,6 +308,7 @@ function choiceLabel(intent:PublicMatch['choices'][number]['intent']){
 }
 function clearTarget(){targetPicker?.clear();}
 function render(){
+ const observed=session?.state;if(observed?.status==='active'&&observed.currentTeam===observed.viewerTeam)Analytics.track('turn_started',{match_id:observed.id,game_mode:'multiplayer',turn_number:observed.version+1},observed.decisionId);
  if(!savingNotifications)gameNotifications.checked=!session?.state?.notificationsMuted;
  trashTalk.update(session?.state??null,session?.owner??'');
  if(!session){return;}const s=session.state;
@@ -306,7 +344,7 @@ function render(){
  targetPicker?.sync(!settings.open&&!trashTalk.isOpen&&!pointCelebrating()&&!replayActive());
 }
 function skip(){endReplay();pointPauseRemaining=0;animation=[];if(session?.state){display=structuredClone(session.state.display);shot=presentation(display);}syncGameEnd();}
-async function open(id:string){autoPlay=loadGamePreference('autoPlay',false);autoPlayDecision='';autoPlayInput.checked=autoPlay;rematchFlow.reset();completionKey='';gameEnd.close();gameEndReadyAt=null;saveCameraView();trashTalk.reset();selectedInvite=null;el('remote-invite').hidden=true;
+async function open(id:string){rematchTimer.cancel();countdownGeneration++;autoPlay=loadGamePreference('autoPlay',false);autoPlayDecision='';autoPlayInput.checked=autoPlay;rematchFlow.reset();completionKey='';gameEnd.close();gameEndReadyAt=null;saveCameraView();trashTalk.reset();selectedInvite=null;el('remote-invite').hidden=true;
  (el('remote-solo') as HTMLAnchorElement).href=`/?home=1&returnMatch=${encodeURIComponent(id)}`;
  clearTarget();session?.dispose();shownVersion=-1;shownRoster='';session=null;animation=[];display=null;shot=null;
  const credentials=await matchCredentials();if(account&&credentials.owner!==account)throw new Error('Account changed. Reload remote play.');account=credentials.owner;guestPlayer=!!(await authClient()?.auth.getSession())?.data.session?.user.is_anonymous;config=await remoteRequest<RemoteConfig>(credentials.token,'/api/multiplayer/config');el('remote-login').hidden=true;
@@ -470,7 +508,7 @@ async function respondToInvite(id:string,action:'accept'|'decline'){
   browserStorage.removeItem(key);invitations=invitations.filter(i=>i.id!==id);await open(game.id);
  }finally{accepting=false;}
 }
-async function showInvitation(id:string){const c=await matchCredentials();const invite=await remoteRequest<Invitation>(c.token,`/api/invitations/${id}`);if(invite.status==='accepted'&&invite.matchId){await open(invite.matchId);return;}selectedInvite=invite;el('remote-lobby').hidden=true;el('remote-setup').hidden=true;el('remote-invite').hidden=false;const url=new URL(location.href);url.searchParams.set('invite',id);url.searchParams.delete('match');history.replaceState(null,'',url);const incoming=invite.recipientId===account;
+async function showInvitation(id:string){const c=await matchCredentials();const invite=await remoteRequest<Invitation>(c.token,`/api/invitations/${id}`);if(invite.recipientId===c.owner)Analytics.track('invite_opened',{invite_id:invite.id,inviter_id:invite.creatorId,source:'in_app'},invite.id);if(invite.status==='accepted'&&invite.matchId){await open(invite.matchId);return;}selectedInvite=invite;el('remote-lobby').hidden=true;el('remote-setup').hidden=true;el('remote-invite').hidden=false;const url=new URL(location.href);url.searchParams.set('invite',id);url.searchParams.delete('match');history.replaceState(null,'',url);const incoming=invite.recipientId===account;
  el('remote-invite-title').textContent=incoming?`Play against ${invite.creatorName}`:`Waiting for ${invite.recipientName}`;
  el('remote-invite-copy').textContent=`${invite.creatorName} chose ${invite.team.map(p=>p.name).join(' & ')}. ${courtName(invite.court)} · ${invite.scoring==='rally-doubles'?'Rally':'Side-out'} scoring · First to ${invite.target??3}. ${incoming?'Choose your player and partner. Your team serves first.':'Your opponent will choose their team before the game starts.'}`;
  el('remote-invite-preview').replaceChildren(invitationPreview(invite));
@@ -605,7 +643,7 @@ setInterval(()=>{
  if(document.hidden)return;
  const now=Date.now(),otherDue=now-lastOtherPoll>=OTHER_POLL_MS;
  if(otherDue)lastOtherPoll=now;
- if(gameEnd.open&&otherDue)void rematchFlow.refresh();
+ if(gameEnd.open)void rematchFlow.refresh();
  if(session){
   const waitingForFriend=session.state?.status==='active'&&session.state.friendState!=='cancelled'&&session.state.currentTeam!==session.state.viewerTeam;
   if(!session.busy&&(waitingForFriend||otherDue))void session.refresh();

@@ -24,3 +24,21 @@ for(const first of [A,B,null])test(`shared rematch: ${first===null?'both players
  const connection=await db.pool.connect();try{await connection.query('set role authenticated');await assert.rejects(connection.query('select public.create_async_rematch($1,$2,$3)',[source.id,C,{}]),/permission denied/);}finally{await connection.query('reset role');connection.release();}
  }finally{await db.close();}
 });
+
+test('automatic races stay pending; explicit acceptance creates one match; countdown is claimed once',async()=>{
+ const db=await database();try{
+ await db.pool.query('insert into auth.users(id) values($1),($2)',[A,B]);
+ const repo=new PgRepository(db.pool),matches=new MatchService(repo,testers),invites=new InvitationService(pgInvitations(repo),matches,testers);
+ let source=await matches.create(A,creation());
+ for(let n=0;n<600&&source.status!=='completed';n++){const actor=source.currentTeam==='home'?A:B;source=await matches.get(source.id,actor);source=(await matches.act(source.id,actor,action(source,n))).state;}
+ const claims=await Promise.all(Array.from({length:6},()=>invites.claimCountdown(source.id,A)));assert.equal(claims.filter(c=>c.claimed).length,1);
+ assert.equal((await invites.claimCountdown(source.id,B)).claimed,true);
+ const sent=await Promise.all([invites.rematch(source.id,A,'automatic'),invites.rematch(source.id,B,'automatic')]);
+ assert.equal(sent[0].invitationId,sent[1].invitationId);assert.ok(sent.every(s=>s.matchId===null));assert.equal((await matches.list(A)).length,1);
+ const pending=await invites.rematchStatus(source.id,A),receiver=pending.requesterId===A?B:A;
+ const manual=await invites.rematch(source.id,receiver,'manual');assert.equal(manual.matchId,null,'a crossed automatic request is not consent');
+ const accepted=await Promise.all([invites.rematch(source.id,receiver,'accept'),invites.rematch(source.id,receiver,'accept')]);
+ assert.ok(accepted[0].matchId);assert.equal(accepted[0].matchId,accepted[1].matchId);assert.equal((await matches.list(A)).length,2);
+ const next=await matches.get(accepted[0].matchId!,A);assert.deepEqual(next.rules,source.rules);
+ }finally{await db.close();}
+});

@@ -1,3 +1,4 @@
+import {serverAnalytics,startAnalyticsExport} from './analytics';
 import {GameAnalysisService} from './game-analysis';
 import {startCommunityBots,acceptBotChallenge} from './community-bots';
 import {signInAccount} from './sign-in';
@@ -94,7 +95,14 @@ export function createMatchHandler(service:MatchService,authenticate:Authenticat
    }
    const rematch=pathname.match(/^\/api\/matches\/([^/]+)\/rematch$/);
    if(invitations&&rematch&&uuid(rematch[1])&&req.method==='GET'){send(res,200,await invitations.rematchStatus(rematch[1].toLowerCase(),actor));return;}
-   if(invitations&&rematch&&uuid(rematch[1])&&req.method==='POST'){limit(`rematch:${actor}`,12);send(res,200,await invitations.rematch(rematch[1].toLowerCase(),actor));return;}
+   if(invitations&&rematch&&uuid(rematch[1])&&req.method==='POST'){
+    limit(`rematch:${actor}`,12);const input=await body(req),intent=input?.intent??'manual';
+    if(!['manual','automatic','accept'].includes(intent))throw new ApiError(400,'rematch','Choose a rematch action.');
+    if(intent==='automatic'&&!await serverAnalytics.isEnabled('rematch_auto_countdown',actor))throw new ApiError(409,'rematch_disabled','Automatic rematches are unavailable. Tap to request a rematch.');
+    send(res,200,await invitations.rematch(rematch[1].toLowerCase(),actor,intent));return;
+   }
+   const countdown=pathname.match(/^\/api\/matches\/([^/]+)\/rematch-countdown$/);
+   if(invitations&&countdown&&uuid(countdown[1])&&req.method==='POST'){if(!await serverAnalytics.isEnabled('rematch_auto_countdown',actor)){send(res,200,{claimed:false});return;}send(res,200,await invitations.claimCountdown(countdown[1].toLowerCase(),actor));return;}
    const nudge=pathname.match(/^\/api\/matches\/([^/]+)\/nudge$/);
    if(nudge&&uuid(nudge[1])&&nudges){
     const id=nudge[1].toLowerCase();
@@ -130,6 +138,7 @@ export function configuredMatchHandler(env:NodeJS.ProcessEnv=process.env){
  const url=env.SUPABASE_URL??env.VITE_SUPABASE_URL,key=env.SUPABASE_SERVICE_ROLE_KEY;
  if(!url||!key)return unavailable('Remote play needs server database configuration.');
  const client=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
+ startAnalyticsExport(client,serverAnalytics,env);
  const testers=new Map<string,string>();
  let refreshed=0,refreshing:Promise<void>|null=null;
  async function refreshTesters(){if(Date.now()-refreshed<5000)return;if(!refreshing)refreshing=(async()=>{const enrolled=await loadPlaytesters(client);testers.clear();for(const [id,email] of enrolled)testers.set(id,email);refreshed=Date.now();})().finally(()=>{refreshing=null;});await refreshing;}

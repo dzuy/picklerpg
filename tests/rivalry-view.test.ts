@@ -46,3 +46,16 @@ test('an uncertain rematch request can be retried using the same source',async()
  const flow=new RematchFlow(async()=>({owner:A,token:A}),async(_token,path)=>{paths.push(path);if(++calls===1)throw Error('Network lost');return {invitationId:B,matchId:null} as any;},()=>{},async()=>{});
  flow.reset(A,A);await flow.submit();assert.equal(flow.message,'Network lost');assert.equal(flow.busy,false);await flow.submit();assert.equal(flow.waiting,true);assert.equal(paths[0],paths[1]);
 });
+
+test('incoming requests suppress automatic sends and preserve the sender identity',async()=>{
+ let posts=0;
+ const incoming={invitationId:B,matchId:null,requesterId:B,status:'pending' as const,automaticRequest:true};
+ const flow=new RematchFlow(async()=>({owner:A,token:A}),async(_token,_path,body)=>{if(body)posts++;return incoming as any;},()=>{},async()=>{});
+ flow.reset(A,A);await flow.refresh();await flow.submit('automatic');assert.equal(posts,0);assert.equal(flow.waiting,false);
+ await flow.submit('accept');assert.equal(posts,1);
+});
+test('leaving during credential lookup prevents an automatic request',async()=>{
+ let resolve:any,posts=0,visible=true;
+ const flow=new RematchFlow(()=>new Promise(r=>{resolve=r}),async()=>{posts++;return {} as any;},()=>{},async()=>{});
+ flow.reset(A,A);const pending=flow.submit('automatic',()=>visible);visible=false;resolve({owner:A,token:A});await pending;assert.equal(posts,0);assert.equal(flow.busy,false);
+});

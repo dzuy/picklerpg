@@ -45,6 +45,8 @@ test('challenging a generated bot immediately accepts and plays once; human acco
    game=(await matches.act(game.id,actor,action)).state;
   }
   assert.equal(game.status,'completed');
+  const automatic=await invites.rematch(game.id,A,'automatic');assert.equal(automatic.matchId,null,'a timer cannot start a bot rematch');
+  const pending=await invites.get(automatic.invitationId,A);await acceptBotChallenge(client as any,matches,invites,pending);assert.equal((await invites.get(automatic.invitationId,A)).status,'pending');
   const rematch=await invites.rematch(game.id,A);assert.ok(rematch.matchId);
   assert.equal((await matches.get(rematch.matchId!,B)).version,1,'bot rematch also starts automatically');
   automated=false;

@@ -1,0 +1,20 @@
+{
+  "date": "2026-09-28",
+  "posthog_project": 632654,
+  "database_reporting_migration": "applied",
+  "production_domain_events_delivered": 221,
+  "synthetic_events_sent": 0,
+  "rematch_flag": {
+    "dzuy": true,
+    "non_target": false
+  },
+  "tests": {
+    "passed": 771,
+    "failed": 0
+  },
+  "build": "passed",
+  "railway_analytics_variables": "12 staged, not deployed",
+  "application_release": "pending review and deployment",
+  "native_build": "requires rebuild and device smoke test",
+  "posthog_ingestion": "verified in PostHog aggregate query"
+}

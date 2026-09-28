@@ -1,3 +1,4 @@
+import {Analytics} from './analytics';
 import {matchCredentials} from './auth-session';
 import {apiUrl} from './native-origin';
 import {showViewDialog} from './view-focus';
@@ -39,6 +40,7 @@ export function openFullGameAnalysis(game:AnalysisGame,trigger:HTMLElement,befor
     const access=await request<{premium:boolean;available:boolean}>('/api/multiplayer/game-analysis/access',credentials.token);
     if(!dialog.open)return;
     if(!access.premium){
+     Analytics.track('plus_paywall_viewed',{feature:'full_game_analysis',source:game.mode},game.id);
      message('There’s a story behind that score.','Meet your post-game coach: sharp reads, big moments, and one more reason to hit Rematch.');
      const list=document.createElement('ul');for(const [title,copy] of [['The game within the game','What worked, what got answered, and why.'],['Your signature moves','The counters, fireballs, and sneaky placements that shaped the action.'],['A smarter rematch','One specific adjustment to take back to the court.']]){const item=document.createElement('li'),strong=document.createElement('strong'),p=document.createElement('p');strong.textContent=title;p.textContent=copy;item.append(strong,p);list.append(item);}content.append(list);
      const note=document.createElement('p');note.className='full-analysis-note';note.textContent='Included with Premium. Premium access is not enabled for your account yet.';content.append(note);return;

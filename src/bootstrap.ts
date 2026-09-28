@@ -1,3 +1,5 @@
+import {authClient} from './auth-session';
+authClient();
 import {installMenuSounds} from './sound';
 installMenuSounds();
 import './pwa';
