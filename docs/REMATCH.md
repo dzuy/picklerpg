@@ -11,4 +11,4 @@ The primary action is **RUN IT BACK? / REMATCH NOW** for every match mode. Resul
 - Sent invitations remain in Your Games until accepted or closed. Leaving the end screen does not withdraw an invitation already sent.
 - Requests and acceptance use the existing unique rematch relationship and transactional invitation acceptance. Rematches preserve the source roster, court, and scoring rules.
 
-Deploy `202609280001_rematch_intent.sql` before the corresponding server/client changes.
+`202609280001_rematch_intent.sql` was applied to production on 2026-09-28 before release `541904c`. Do not rerun it blindly. Automatic countdown eligibility is controlled by `rematch_auto_countdown`, initially only for `dzuy`; see [feature flags](FEATURE-FLAGS.md). Manual rematch remains available to other players.

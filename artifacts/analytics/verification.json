@@ -13,8 +13,13 @@
     "failed": 0
   },
   "build": "passed",
-  "railway_analytics_variables": "12 staged, not deployed",
-  "application_release": "pending review and deployment",
+  "railway_analytics_variables": "12 applied",
+  "application_release": "541904c deployed to production",
   "native_build": "requires rebuild and device smoke test",
-  "posthog_ingestion": "verified in PostHog aggregate query"
+  "posthog_ingestion": "verified in PostHog aggregate query",
+  "railway_deployment_id": "3358e09f-405d-4501-bfbd-1f4095b7e494",
+  "rematch_intent_migration": "applied and service-only function access verified",
+  "production_health": "ok",
+  "live_browser_analytics_assets": "verified",
+  "full_gameplay_and_replay_smoke": "pending"
 }

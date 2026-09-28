@@ -6,11 +6,11 @@ Recorded 2026-09-28. This is the engineering handoff for agents returning to ana
 
 - Implemented: typed client events, PostHog adapters, stable account identity, committed database fact projection, background exporter, six flags, privacy controls, and four PostHog dashboards.
 - Production setup: analytics SQL definition applied; 221 real backend events commissioned and verified; rematch flag targets only `dzuy`; other flags follow the flag guide. No synthetic events were sent.
-- Pending at this snapshot: application deployment, continuous exporter deployment, separate rematch-intent migration, applying the 12 staged Railway variables, and an iOS rebuild/device smoke test. Do not equate configured PostHog with a released client.
+- Release follow-up on 2026-09-28: `541904c` was pushed to `main`; Railway deployment `3358e09f-405d-4501-bfbd-1f4095b7e494` reached Active. All 12 settings and the rematch-intent migration were applied. Production health and analytics-enabled browser assets were verified. Remaining: iOS rebuild/device checks and full two-account gameplay/replay smoke checks.
 - Verification at this snapshot: 771 tests passed and production build passed. Evidence: [verification.json](../artifacts/analytics/verification.json), [dashboard query snapshots](../artifacts/analytics/insight-queries.json), and screenshots in `artifacts/analytics/`.
 - No custom dashboard, dashboard API, analytics warehouse, billing integration, or experiment statistics engine has been built.
 
-Before resuming, inspect the current checkout, migrations, deployed revision, environment, and live dashboard definitions. Do not blindly replay the already-applied migration or assume staged settings are still pending. The checkout also contained pre-existing unpublished rematch work; it was preserved.
+Before resuming, inspect the current checkout, migrations, deployed revision, environment, and live dashboard definitions. Do not blindly replay the already-applied migration or assume staged settings are still pending. The checkout contained pre-existing rematch work required by the flag integration; it was reviewed and included in the authorized release. Screenshots remain local evidence; the query and verification JSON files are committed.
 
 ## Data flow and boundaries
 
