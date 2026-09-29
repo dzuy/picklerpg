@@ -1,3 +1,8 @@
+import {ownsPack} from './pack-catalog';
+import {premiumForPlay} from './premium';
+import {premiumAppearance} from './premium-appearance';
+import {openPremium} from './premium-dialog';
+import {isPremiumCourt} from './locations';
 import {computerOpponent} from './computer-opponents';
 import {loadScoringPreference} from './scoring-preference';
 import {focusView} from './view-focus';
@@ -32,7 +37,7 @@ export class MatchSetup {
  private restrictTeam(){for(let i=0;i<2;i++)if(!this.eligible.includes(this.selected[i])&&this.eligible.length)this.selected[i]=this.eligible.find(id=>!this.selected.slice(0,i).includes(id))??this.eligible[0];}
  private community=new CommunitySection(players=>this.setRoster(players));
  private starting=false;
- private async startSelected(){if(this.starting||!this.canStart())return;this.starting=true;const button=this.element.querySelector<HTMLButtonElement>('[data-action=start]')!;button.disabled=true;const selection=this.selected.join('|'),mode=this.mode,court=this.court,target=this.target;try{const players=await refreshCommunityDesigns(this.selected.map(id=>this.players.find(p=>p.id===id)!));if(this.element.hidden||this.selected.join('|')!==selection||this.mode!==mode||this.court!==court||this.target!==target)return;this.start(Object.fromEntries(slots.map((slot,i)=>[slot,mode==='solo'&&i>=2?computerOpponent(players[i]):players[i]])) as Record<PlayerId,DesignedPlayer>,mode,court,target);}catch(e){const status=this.element.querySelector<HTMLElement>('[role=status]')!;status.className='setup-community-error';status.textContent=(e as Error).message;}finally{this.starting=false;button.disabled=!this.canStart();}}
+ private async startSelected(){if(this.starting||!this.canStart())return;this.starting=true;const button=this.element.querySelector<HTMLButtonElement>('[data-action=start]')!;button.disabled=true;const selection=this.selected.join('|'),mode=this.mode,court=this.court,target=this.target;try{const membership=await premiumForPlay();if(membership.enforced&&!ownsPack(membership.ownedPacks,'court')&&isPremiumCourt(court)){openPremium(button);return;}const players=await refreshCommunityDesigns(this.selected.map(id=>this.players.find(p=>p.id===id)!));if(this.element.hidden||this.selected.join('|')!==selection||this.mode!==mode||this.court!==court||this.target!==target)return;this.start(Object.fromEntries(slots.map((slot,i)=>[slot,mode==='solo'&&i>=2?computerOpponent(players[i]):{...players[i],appearance:premiumAppearance(players[i].appearance,!membership.enforced?true:membership.ownedPacks)}])) as Record<PlayerId,DesignedPlayer>,mode,court,target);}catch(e){const status=this.element.querySelector<HTMLElement>('[role=status]')!;status.className='setup-community-error';status.textContent=(e as Error).message;}finally{this.starting=false;button.disabled=!this.canStart();}}
  private selected:string[]=[];
  private court:CourtLocation='venice';
  private mode:PlayMode='solo';

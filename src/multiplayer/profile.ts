@@ -1,3 +1,7 @@
+import {ownsPack} from '../pack-catalog';
+import {premiumStatus} from '../premium';
+import {premiumAppearance} from '../premium-appearance';
+import {openPremium} from '../premium-dialog';
 import {openGameHistory} from './game-history';
 import {profileGameHistory} from '../profile-game-history';
 import {loadAccountProgress} from '../account-xp';
@@ -57,7 +61,8 @@ export function profilePanel(portraits:AvatarThumbnails|undefined,authenticate:(
   }
   const player=players?.[0]?playerFromRow(players[0]):null;
   const header=node('header','','profile-identity');
-  if(portraits){const avatar=node('img','','profile-avatar');avatar.src=portraits.get(player?.appearance??profileAvatar(user.id,user.user_metadata.profile_avatar),'face');avatar.alt=`${name||'Player'}’s avatar`;header.append(avatar);}
+  const membership=await premiumStatus().catch(()=>null);
+  if(portraits){const avatar=node('img','','profile-avatar');avatar.src=portraits.get(premiumAppearance(player?.appearance??profileAvatar(user.id,user.user_metadata.profile_avatar),!!membership&&(!membership.enforced?true:membership.ownedPacks)),'face');avatar.alt=`${name||'Player'}’s avatar`;header.append(avatar);}
   const identity=node('div','','profile-identity-copy');
   const username=typeof user.user_metadata.username==='string'?user.user_metadata.username.trim():name;
   identity.append(node('span','Your corner of the court','profile-eyebrow'),node('h2',username||'Player'),node('p',name!==username?name:'PickleBash player','profile-display-name'));
@@ -69,6 +74,8 @@ export function profilePanel(portraits:AvatarThumbnails|undefined,authenticate:(
    return {saved,remote,local:new OpenPlayStore(browserStorage,user.id).list()};
   };
   const actions=node('div','','profile-actions');
+  const plus=node('button','Store','profile-premium');plus.type='button';plus.onclick=()=>openPremium(plus);actions.append(plus);
+  if(new URLSearchParams(location.search).get('premium')==='return')queueMicrotask(()=>openPremium(plus));
   if(player){const edit=node('a','Edit player','profile-edit');edit.href=`/?openplay=1&tab=roster&editPlayer=${encodeURIComponent(player.id)}`;actions.append(edit);}
   const roster=node('a','My roster','profile-roster');roster.href='/?openplay=1&tab=roster';actions.append(roster);
   const games=node('button','Game history','profile-history');games.type='button';games.setAttribute('aria-haspopup','dialog');games.onclick=()=>openGameHistory(games,async()=>{const {saved,remote,local}=await loadHistory();return profileGameHistory(saved,local,remote)});actions.append(games);

@@ -1,3 +1,7 @@
+import type {CosmeticAccess} from './pack-catalog';
+import {premiumStatus} from './premium';
+import {changedPremiumChoices,premiumAppearance} from './premium-appearance';
+import {openPremium} from './premium-dialog';
 import {Analytics} from './analytics';
 import {rosterTrashIcon,rosterEditIcon} from './roster-action-icons';
 import {focusView,showViewDialog} from './view-focus';
@@ -170,7 +174,7 @@ export class PlayerCreator {
   return player;
  }
  private shuffledSkills():DesignedPlayer['skills']{return randomBudgetSkills(this.budget);}
- private shuffledAppearance():Appearance{const pick=<T,>(items:readonly T[])=>items[Math.floor(Math.random()*items.length)];const look=pick(LOOKS);return {...look.appearance,expression:pick(APPEARANCE_OPTIONS.expression),paddleShape:pick(APPEARANCE_OPTIONS.paddleShape.filter(value=>value!=='rectangular'&&value!=='circular')),hairStyle:pick(APPEARANCE_OPTIONS.hairStyle),hat:pick(APPEARANCE_OPTIONS.hat.filter(value=>value!=='beanie'&&value!=='bucket')),glasses:pick(APPEARANCE_OPTIONS.glasses.filter(value=>value!=='sunglasses'&&value!=='sport')),glassesColor:pick(equipmentColors),shoeStyle:pick(APPEARANCE_OPTIONS.shoeStyle),top:pick(APPEARANCE_OPTIONS.top),bottom:pick(APPEARANCE_OPTIONS.bottom.filter(value=>value!=='skort')),accessory:pick(APPEARANCE_OPTIONS.accessory)};}
+ private shuffledAppearance():Appearance{const pick=<T,>(items:readonly T[])=>items[Math.floor(Math.random()*items.length)];const look=pick(LOOKS);return premiumAppearance({...look.appearance,expression:pick(APPEARANCE_OPTIONS.expression),paddleShape:pick(APPEARANCE_OPTIONS.paddleShape.filter(value=>value!=='rectangular'&&value!=='circular')),hairStyle:pick(APPEARANCE_OPTIONS.hairStyle),hat:pick(APPEARANCE_OPTIONS.hat.filter(value=>value!=='beanie'&&value!=='bucket')),glasses:pick(APPEARANCE_OPTIONS.glasses.filter(value=>value!=='sunglasses'&&value!=='sport')),glassesColor:pick(equipmentColors),shoeStyle:pick(APPEARANCE_OPTIONS.shoeStyle),top:pick(APPEARANCE_OPTIONS.top),bottom:pick(APPEARANCE_OPTIONS.bottom.filter(value=>value!=='skort')),accessory:pick(APPEARANCE_OPTIONS.accessory)},this.canWearPremium);}
  private setupAppearancePages(){
   const track=this.el('.creator-options');
   const rows=Array.from(track.children);
@@ -218,7 +222,8 @@ export class PlayerCreator {
   const values=APPEARANCE_OPTIONS[key].filter(value=>!['skort','beanie','bucket','rectangular','circular','sunglasses','sport'].includes(value)).sort((a,b)=>Number(b==='none')-Number(a==='none'));
   const premium:readonly string[]|undefined=PREMIUM_APPEARANCE_OPTIONS[key];
   const choices=(items:readonly string[],groupLabel:string)=>`<div class="creator-choices" role="group" aria-label="${groupLabel}">${items.map(value=>`<button type="button" data-key="${key}" data-choice="${value}" aria-label="${label}: ${title(value)}" aria-pressed="false" title="${title(value)}">${value==='none'?'<span class="none-icon">⊘</span>':`<img alt="" data-thumb-key="${key}" data-thumb-value="${value}">`}<span class="choice-label">${title(value)}</span></button>`).join('')}</div>`;
-  const tiers=key==='outfit'?`<div class="creator-customization-tier">${choices(['none'],'Remove outfit')}</div><div class="creator-customization-tier" data-customization-tier="premium"><span class="creator-tier-label">PickleBash+ <span>· Premium</span></span>${choices(values.filter(value=>value!=='none'),'Outfits: PickleBash+ (premium)')}</div>`:premium?`<div class="creator-customization-tier" data-customization-tier="standard"><span class="creator-tier-label">Standard <span>· Free</span></span>${choices(values.filter(value=>!premium.includes(value)),`${label}: Standard (free)`)}</div><div class="creator-customization-tier" data-customization-tier="premium"><span class="creator-tier-label">PickleBash+ <span>· Premium</span></span>${choices(values.filter(value=>premium.includes(value)),`${label}: PickleBash+ (premium)`)}</div>`:choices(values,label);
+  const packLabel=key==='paddleShape'?'Fun Pack':'Style Pack';
+  const tiers=premium?`<div class="creator-customization-tier" data-customization-tier="standard"><span class="creator-tier-label">Free</span>${choices(values.filter(value=>!premium.includes(value)),`${label}: Free`)}</div><div class="creator-customization-tier" data-customization-tier="premium"><span class="creator-tier-label">${packLabel}</span>${choices(values.filter(value=>premium.includes(value)),`${label}: ${packLabel}`)}</div>`:choices(values,label);
   return `<div class="creator-option-row"><span class="row-icon" aria-hidden="true">${rowIcon(key)}</span><span class="row-label">${label}</span>${tiers}</div>`;
  }
  private colorRow(key:keyof Appearance,label:string,colors:string[]){return `<div class="creator-option-row"><span class="row-icon" aria-hidden="true">${rowIcon(key)}</span><span class="row-label">${label}</span><div class="creator-choices color-choices" data-palette="${key}" role="group" aria-label="${label}"><label class="custom-color" title="Custom ${label.toLowerCase()}"><input type="color" data-color="${key}" aria-label="Custom ${label.toLowerCase()}"><span>＋</span></label>${key==='lensColor'?'<button type="button" class="color-choice" data-key="lensColor" data-choice="none" aria-label="Lens Color: None" title="None (clear lenses)" aria-pressed="false"><span class="none-icon">⊘</span></button>':''}${colors.map(color=>`<button type="button" class="color-choice" data-key="${key}" data-choice="${color}" aria-label="${label}: ${color}" aria-pressed="false" style="--swatch:${color}"><span></span></button>`).join('')}</div></div>`}
@@ -274,7 +279,8 @@ export class PlayerCreator {
  resumeCreatePlayer(player:DesignedPlayer){this.open();this.loadDraft(player);this.showEditor()}
  editPlayer(player:DesignedPlayer|null){this.open();if(player&&isCommunityPlayer(player)){this.el('[data-roster-status]').textContent='Open this player from Your Roster to customize its skills.';return;}this.showEditor();if(player&&player.id!==this.draft.id)this.switchDraft(()=>this.loadDraft(player))}
  editSkills(){this.editPlayer(this.activePlayer);this.el('[data-tab=skills]').click();}
- open(){void this.refreshBudget();if(!this.dialog.open)showViewDialog(this.dialog);this.showRoster();void this.community.load()}
+ private canWearPremium:CosmeticAccess=false;
+ open(){void premiumStatus().then(s=>{this.canWearPremium=!s.enforced?true:s.ownedPacks;if(this.dialog.open&&this.dialog.dataset.view==='roster')this.showRoster();}).catch(()=>{});void this.refreshBudget();if(!this.dialog.open)showViewDialog(this.dialog);this.showRoster();void this.community.load()}
 
  private async refreshBudget(){try{this.budget=await accountSkillBudget();this.budgetReady=true;this.library.players=this.library.players.map(p=>({...p,skills:normalizeSkillBudget(p.skills,this.budget)}));this.draft.skills=normalizeSkillBudget(this.draft.skills,this.budget);this.fillSkills();this.updateSummary();}catch(error){this.el('[data-status]').textContent=(error as Error).message;}}
  private showEditor(){
@@ -298,7 +304,7 @@ export class PlayerCreator {
   const card=(player:DesignedPlayer,role:string)=>{
    const article=document.createElement('article');article.className='roster-card';
    const edit=()=>{if(this.draft.id===player.id){this.showEditor();return}this.switchDraft(()=>{this.loadDraft(player);this.showEditor()})};
-   let portrait='';try{this.rosterThumbnails??=new AvatarThumbnails(384);portrait=this.rosterThumbnails.get(player.appearance,'roster',player.handedness)}catch{}
+   let portrait='';try{this.rosterThumbnails??=new AvatarThumbnails(384);portrait=this.rosterThumbnails.get(premiumAppearance(player.appearance,this.canWearPremium),'roster',player.handedness)}catch{}
    fillPlayerCard(article,player,role,portrait);
    article.querySelector('.roster-card-identity')!.append(playerRecord(player.id,history));
    const added=ownedRosterPlayers([player]).length>0;
@@ -406,6 +412,7 @@ export class PlayerCreator {
   catch(error){this.el('[data-status]').textContent=error instanceof Error?error.message:'Account access is unavailable. Please try again.';return false;}
   try{
    const previous=this.library.players.find(p=>p.id===this.draft.id);
+   if(changedPremiumChoices(previous?.appearance,this.draft.appearance)){const checked=JSON.stringify(this.draft),membership=await premiumStatus();if(JSON.stringify(this.draft)!==checked){this.el('[data-status]').textContent='Your design changed. Save again to use your latest choices.';return false;}this.canWearPremium=!membership.enforced?true:membership.ownedPacks;if(membership.enforced&&changedPremiumChoices(previous?.appearance,this.draft.appearance,membership.ownedPacks)){this.el('[data-status]').textContent='These new appearance choices need their cosmetic pack. Your saved design is unchanged.';openPremium(this.el('[data-save]'));return false;}}
    this.library=savePlayer(browserStorage,this.library,this.draft,play||this.activateOnSave);this.draft=structuredClone(this.library.players.find(p=>p.id===this.draft.id)!);this.baseline=JSON.stringify(this.draft);this.fill();this.onLibraryChange(structuredClone(this.library),{kind:'save',playerId:this.draft.id});
    for(const key of Object.keys(APPEARANCE_OPTIONS) as (keyof typeof APPEARANCE_OPTIONS)[]){const value=String(this.draft.appearance[key]);if(previous?.appearance[key]!==this.draft.appearance[key])Analytics.track('cosmetic_equipped',{category:key,item_id:value,tier:((PREMIUM_APPEARANCE_OPTIONS as Record<string,readonly string[]|undefined>)[key]?.includes(value)?'premium':'standard')});}
    this.pending=null;(this.el('.creator-confirm') as HTMLDialogElement).close();this.el('[data-status]').textContent='Player saved.';

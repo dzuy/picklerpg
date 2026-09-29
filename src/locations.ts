@@ -1,3 +1,4 @@
+import {COURT_PACK_LOCATIONS} from './pack-catalog';
 /** Locations contain presentation only. All play uses the shared COURT model. */
 export type CourtLocation=typeof COURT_LOCATIONS[number]['id'];
 export const COURT_LOCATIONS=[
@@ -23,5 +24,5 @@ export const LOCATION_PALETTES={
  venice:{ground:'#eac29a',apron:'#cf6384',border:'#713f70',court:'#157f92',kitchen:'#51b9b4',sky:'#eab2aa'},
 } as const;
 
-/** New courts are premium unless explicitly part of the free collection. */
-export function isPremiumCourt(court:CourtLocation){return !(['forest','arizona','venice'] as readonly CourtLocation[]).includes(court)}
+/** V1 court membership is explicit; future packs must declare their own courts. */
+export function isPremiumCourt(court:CourtLocation){return (COURT_PACK_LOCATIONS as readonly string[]).includes(court)}

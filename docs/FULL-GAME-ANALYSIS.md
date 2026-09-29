@@ -8,7 +8,7 @@ Solo and Friends endscreens and Profile → Game history open the same Full Game
 
 - Deploy the gameplay-recording migration and server/client recording flow first (see GAMEPLAY-RECORDING.md).
 - Configure server-only `OPENAI_API_KEY`. Optional `GAME_ANALYSIS_MODEL` overrides `OPENAI_MODEL`; otherwise the existing project default `gpt-5.6-luna` is used.
-- Grant access through trusted Supabase **app metadata**: `full_game_analysis: true`. Never put this flag in user-editable metadata. No entitlement is granted by this code, and no billing, pricing, checkout, or subscription workflow is implied. Future billing fulfillment should manage a shared server-side Premium entitlement, with an explicit mapping or migration for this temporary analysis flag.
+- Grant access through trusted Supabase **app metadata**: `full_game_analysis: true`. Never put this flag in user-editable metadata. No entitlement is granted by this code, and no billing, pricing, checkout, or subscription workflow is implied. Cosmetic pack ownership does not grant analysis access.
 - The analysis endpoint shares the existing authenticated multiplayer API configuration, including `MULTIPLAYER_ENABLED=true` and the server Supabase credentials.
 
 `GET /api/multiplayer/game-analysis/access` checks access without generating a report. `POST /api/multiplayer/game-analysis` accepts only `{gameId, mode:'solo'|'friends'}`. It verifies ownership/participation and completed status, then reads stored telemetry on the server. Solo client-supplied reports are never accepted in this request. Solo recorded gameplay itself remains client-reported.
@@ -30,3 +30,7 @@ The Responses request uses structured JSON output and `store:false`, following [
 ## Format compatibility
 
 New generations use structured report format version 2. Existing saved reports retain their original wording and are displayed within the coaching groups without a model call. They do not gain invented advice or chart data. No database migration is required for the new report shape; it lives in the existing JSON analysis field. The generation prompt distinguishes recorded game evidence from tactical hypotheses and suggested drills, and does not infer the human’s physical technique or real-world skill from simulation telemetry.
+
+## Shared membership update (local implementation, 2026-09-29)
+
+New analysis retains the trusted analysis-only permission and existing tester access. Cosmetic pack purchases and promotional cosmetic grants never unlock analysis. Saved reports are checked after game participation and before permission/provider availability, so access changes do not remove read access. See [pack policy](PREMIUM.md) and [billing rollout](BILLING.md); production deployment remains pending.

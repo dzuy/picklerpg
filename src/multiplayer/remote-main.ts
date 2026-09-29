@@ -1,3 +1,8 @@
+import {ownsPack} from '../pack-catalog';
+import {premiumForPlay} from '../premium';
+import {premiumAppearance} from '../premium-appearance';
+import {openPremium} from '../premium-dialog';
+import {isPremiumCourt} from '../locations';
 import {Analytics,FeatureFlags} from '../analytics';
 import {RematchCountdown} from '../rematch-countdown';
 import {bindRematchLifecycle,rematchSection} from '../rematch-presentation';
@@ -577,10 +582,11 @@ function renderGames(){
 for(const button of Array.from(document.querySelectorAll<HTMLButtonElement>('[data-filter]')))button.onclick=()=>{gameFilter=button.dataset.filter!;for(const sibling of Array.from(document.querySelectorAll('[data-filter]')))sibling.setAttribute('aria-pressed',String(sibling===button));renderGames();renderInvitations();};
 async function create(){
  if(!createTeam)throw Error('Choose your team.');
+ const membership=await premiumForPlay();if(membership.enforced&&!ownsPack(membership.ownedPacks,'court')&&isPremiumCourt(selectedCourt)){openPremium(el('remote-create'));return;}
  if(setupMode==='solo'){
   if(!soloOpponents)throw Error('Choose your opponents.');
   const [team,opponents]=await Promise.all([createTeam.freshTeam(),soloOpponents.freshTeam()]);
-  const setup=parseSoloLaunch({players:{you:team[0],partner:team[1],'opponent-left':opponents[0],'opponent-right':opponents[1]},court:selectedCourt,target:Number((el('remote-target') as HTMLSelectElement).value),scoring:(el('remote-scoring') as HTMLSelectElement).value});
+  const setup=parseSoloLaunch({players:{you:{...team[0],appearance:premiumAppearance(team[0].appearance,!membership.enforced?true:membership.ownedPacks)},partner:{...team[1],appearance:premiumAppearance(team[1].appearance,!membership.enforced?true:membership.ownedPacks)},'opponent-left':opponents[0],'opponent-right':opponents[1]},court:selectedCourt,target:Number((el('remote-target') as HTMLSelectElement).value),scoring:(el('remote-scoring') as HTMLSelectElement).value});
   openGameSurface('/?newgame=1&configured=1',setup);status('');return;
  }
  const c=await matchCredentials();if(c.owner!==account)throw Error('Account changed. Reload remote play.');

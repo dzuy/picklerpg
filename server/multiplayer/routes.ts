@@ -1,3 +1,6 @@
+import {PremiumService} from './premium';
+import {PremiumStripe} from './premium-stripe';
+import {premiumWebhook} from './premium-routes';
 import {RateLimitError,memoryRateLimits,databaseRateLimits,clientAddress,type RateLimitStore} from './rate-limit';
 import {serverAnalytics,startAnalyticsExport} from './analytics';
 import {GameAnalysisService} from './game-analysis';
@@ -25,13 +28,15 @@ async function body(req:IncomingMessage){
  for await(const chunk of req){size+=chunk.length;if(size>32768)throw new ApiError(413,'too_large','Request is too large.');chunks.push(Buffer.from(chunk));}
  try{return JSON.parse(Buffer.concat(chunks).toString('utf8'));}catch{throw new ApiError(400,'invalid_json','Invalid JSON.');}
 }
-export function createMatchHandler(service:MatchService,authenticate:Authenticate,register?: (input:unknown)=>Promise<unknown>,invitations?:InvitationService,push?:PushService,nudges?:NudgeService,trashTalk?:TrashTalkService,friends?:FriendService,teams?:TeamDirectoryService,signIn?:(input:unknown)=>Promise<unknown>,analysis?:GameAnalysisService,rateLimits:RateLimitStore=memoryRateLimits(),trustedProxyHops=0){
+export function createMatchHandler(service:MatchService,authenticate:Authenticate,register?: (input:unknown)=>Promise<unknown>,invitations?:InvitationService,push?:PushService,nudges?:NudgeService,trashTalk?:TrashTalkService,friends?:FriendService,teams?:TeamDirectoryService,signIn?:(input:unknown)=>Promise<unknown>,analysis?:GameAnalysisService,rateLimits:RateLimitStore=memoryRateLimits(),trustedProxyHops=0,premium?:PremiumService){
  async function limit(key:string,max:number){const delay=await rateLimits(key,max);if(delay)throw new RateLimitError(delay);}
  return async(req:IncomingMessage,res:ServerResponse)=>{
   try{
    // Native app requests use a local origin; bearer tokens still authorize every private route.
    const origin=req.headers.origin;
    if(origin&&origin!=='capacitor://localhost'){let host;try{host=new URL(origin).host}catch{throw new ApiError(403,'origin','Invalid origin.');}if(host!==req.headers.host)throw new ApiError(403,'origin','This origin is not allowed.');}
+   const webhookPath=new URL(req.url!,'http://localhost').pathname;
+   if(req.method==='POST'&&['/api/multiplayer/billing/webhooks/revenuecat','/api/multiplayer/billing/webhooks/stripe'].includes(webhookPath)){if(!premium)throw new ApiError(503,'billing_unavailable','Billing is not configured.');await premiumWebhook(req,premium,webhookPath);send(res,200,{ok:true});return;}
    const address=clientAddress(req,trustedProxyHops);
    // Authenticated players never share gameplay quotas with a network or proxy.
    if(!req.headers.authorization)await limit(`anonymous:${address}`,300);
@@ -45,6 +50,17 @@ export function createMatchHandler(service:MatchService,authenticate:Authenticat
    let actor:string;try{actor=await authenticate(token);}catch(error){await limit(`failed-auth:${address}`,30);throw error;}if(!uuid(actor))throw new ApiError(401,'authentication','Sign in again.');
    const traffic=req.method==='GET'?'read':/^\/api\/matches\/[^/]+\/actions$/.test(pathname)?'turn':'write';
    await limit(`${traffic}:${actor}`,traffic==='read'?300:traffic==='turn'?60:120);
+   if(pathname.startsWith('/api/multiplayer/premium')){
+    if(!premium){if(pathname==='/api/multiplayer/premium'&&req.method==='GET'){send(res,200,{ownedPacks:[],enforced:false,sources:[],availablePacks:[],appleReady:false,webReady:false,admin:false,privacyUrl:null,termsUrl:null});return;}throw new ApiError(503,'billing_unavailable','The store is being set up. Please check back soon.');}
+    if(pathname==='/api/multiplayer/premium'&&req.method==='GET'){send(res,200,await premium.status(actor));return;}
+    if(req.method==='POST'){
+     await limit(`billing:${actor}`,12);
+     if(pathname==='/api/multiplayer/premium/refresh'){await premium.requireAccount(actor);if(premium.env.REVENUECAT_SECRET_KEY)await premium.refreshApple(actor);if(premium.env.STRIPE_SECRET_KEY)await new PremiumStripe(premium).refresh(actor);send(res,200,await premium.status(actor));return;}
+     if(pathname==='/api/multiplayer/premium/checkout'){send(res,200,await new PremiumStripe(premium).checkout(actor,await body(req)));return;}
+     if(pathname==='/api/multiplayer/premium/grant'){send(res,200,await premium.grant(actor,await body(req)));return;}
+    }
+    throw new ApiError(404,'not_found','Membership endpoint not found.');
+   }
    if(analysis&&pathname==='/api/multiplayer/game-analysis/access'&&req.method==='GET'){send(res,200,await analysis.access(actor));return;}
    if(analysis&&pathname==='/api/multiplayer/game-analysis'&&req.method==='POST'){await limit(`analysis:${actor}`,6);send(res,200,await analysis.analyze(actor,await body(req)));return;}
    if(pathname==='/api/multiplayer/push/native/config'&&req.method==='GET'){send(res,200,{available:push?.native?.available??false});return;}
@@ -147,9 +163,10 @@ export function configuredMatchHandler(env:NodeJS.ProcessEnv=process.env){
  async function refreshTesters(){if(Date.now()-refreshed<5000)return;if(!refreshing)refreshing=(async()=>{const enrolled=await loadPlaytesters(client);testers.clear();for(const [id,email] of enrolled)testers.set(id,email);refreshed=Date.now();})().finally(()=>{refreshing=null;});await refreshing;}
  const authenticate:Authenticate=async token=>{const {data,error}=await client.auth.getUser(token);if(error||!data.user)throw new ApiError(401,'authentication','Your session expired. Sign in again, then retry.');await refreshTesters();if(testers.has(data.user.id)||data.user.is_anonymous||data.user.app_metadata?.multiplayer_playtest===true){try{testers.set(data.user.id,playerName(data.user.user_metadata?.username??data.user.user_metadata?.player_name));}catch{}}return data.user.id;};
  const register=env.MULTIPLAYER_CREATE_ENABLED==='true'?async(input:unknown)=>{const result=await registerPlaytester(client,input);refreshed=0;return result;}:undefined;
+ const premium=env.PACK_STORE_ENABLED==='true'?new PremiumService(client,env):undefined;
  const push=configuredPush(client,env);
  const service=new MatchService(new SupabaseMatchRepository(client),testers,env.MULTIPLAYER_CREATE_ENABLED==='true',push?event=>push.notify(event):undefined);
  const invitations:InvitationService=new InvitationService(new SupabaseInviteRepository(client),service,testers,(team,owner)=>resolveMatchTeam(client,team,owner),env.COMMUNITY_BOTS_ENABLED==='false'?undefined:invite=>acceptBotChallenge(client,service,invitations,invite),invite=>push.notifyInvitation(invite));
  if(env.MULTIPLAYER_CREATE_ENABLED==='true'&&env.COMMUNITY_BOTS_ENABLED!=='false')startCommunityBots(client,service,invitations,refreshTesters);
- return createMatchHandler(service,authenticate,register,invitations,push,new NudgeService(client,testers,push?event=>push.notifyNudge(event):undefined,env.NUDGE_TEST_UNLIMITED==='true'),new TrashTalkService(client),new FriendService(client,service),new TeamDirectoryService(client,testers),input=>signInAccount(client,async credentials=>{const exchange=createClient(url,env.VITE_SUPABASE_PUBLISHABLE_KEY??key,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});const {data,error}=await exchange.auth.signInWithPassword(credentials);return error?null:data.session;},input),new GameAnalysisService(client,env),env.RATE_LIMIT_STORE==='database'?databaseRateLimits(client):memoryRateLimits(),Number(env.TRUSTED_PROXY_HOPS??0));
+ return createMatchHandler(service,authenticate,register,invitations,push,new NudgeService(client,testers,push?event=>push.notifyNudge(event):undefined,env.NUDGE_TEST_UNLIMITED==='true'),new TrashTalkService(client),new FriendService(client,service),new TeamDirectoryService(client,testers,premium),input=>signInAccount(client,async credentials=>{const exchange=createClient(url,env.VITE_SUPABASE_PUBLISHABLE_KEY??key,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}});const {data,error}=await exchange.auth.signInWithPassword(credentials);return error?null:data.session;},input),new GameAnalysisService(client,env,undefined,premium),env.RATE_LIMIT_STORE==='database'?databaseRateLimits(client):memoryRateLimits(),Number(env.TRUSTED_PROXY_HOPS??0),premium);
 }

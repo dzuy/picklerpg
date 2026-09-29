@@ -1,7 +1,7 @@
 import type {APPEARANCE_OPTIONS} from './player-design';
 
 // Explicit assignments keep tiers stable when new styles are added or reordered.
-// This first pass organizes the picker only; subscription access is not enforced yet.
+// Paddle designs belong to Fun Pack; other paid appearance choices belong to Style Pack.
 export const PREMIUM_APPEARANCE_OPTIONS:Partial<{
  [Key in keyof typeof APPEARANCE_OPTIONS]:readonly (typeof APPEARANCE_OPTIONS)[Key][number][]
 }>={
@@ -12,7 +12,7 @@ export const PREMIUM_APPEARANCE_OPTIONS:Partial<{
  top:['polo','hoodie','long-sleeve'],
  bottom:['pleated-skirt','pants'],
  glasses:['wraparound','cat-eye','hexagon','stars','flowers','hearts','diamonds','oversized'],
- outfit:['frog','dinosaur','lion','bear','butterfly','bee'],
+ outfit:['dinosaur','lion','bear','butterfly'],
  accessory:['watch','dinosaur-tail','cape'],
  paddleShape:['rectangular','circular','squarish-circles','squarish-lines','rounded-circles','rounded-lines'],
 };

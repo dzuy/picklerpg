@@ -1,0 +1,14 @@
+#picklebash-store {max-width:640px}
+#picklebash-store [data-store-packs] {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+#picklebash-store .store-pack {padding:16px;border:1px solid #bfd0c6;border-radius:16px;background:#fffaf0;color:#214d43}
+#picklebash-store .store-pack[data-featured=true] {grid-column:1/-1;border:2px solid #27765b;background:#e8f2dc}
+#picklebash-store .store-pack h3 {margin:0 0 8px;font-size:1.1rem}
+#picklebash-store .store-pack p {font-size:.9rem;line-height:1.45}
+#picklebash-store .store-value {font-size:.85rem}
+#picklebash-store button:disabled {opacity:.6;cursor:default}
+#picklebash-store [data-store-actions] {display:flex;flex-wrap:wrap;gap:12px;margin-top:16px}
+#picklebash-store form {flex-basis:100%;display:grid;gap:12px;border-top:1px solid #bfd0c6;padding-top:16px}
+#picklebash-store form label {display:grid;gap:6px}
+#picklebash-store input,#picklebash-store select {padding:10px;max-width:100%;box-sizing:border-box}
+#picklebash-store [data-store-legal] a {margin-right:14px}
+@media(max-width:540px){#picklebash-store [data-store-packs]{grid-template-columns:1fr}}
