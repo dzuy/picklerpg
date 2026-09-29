@@ -36,6 +36,13 @@ test('webhook authentication fails closed and transfers refresh both known UUID 
  const denied=req();denied.headers.authorization='wrong';await assert.rejects(premiumWebhook(denied as any,service,'/revenuecat'),e=>(e as any).status===401);
 });
 
+test('RevenueCat test deliveries authenticate without refreshing synthetic accounts',async()=>{
+ let refreshes=0;const service={env:{REVENUECAT_WEBHOOK_AUTH:'Bearer secret'},refreshApple:async()=>{refreshes++;throw new Error('Synthetic account must not be refreshed');}} as unknown as PremiumService;
+ const request=(authorization:string)=>Object.assign(Readable.from([JSON.stringify({event:{id:'dashboard-test',type:'TEST',app_user_id:'11111111-1111-4111-8111-111111111111',aliases:['22222222-2222-4222-8222-222222222222']}})]),{headers:{authorization}});
+ await premiumWebhook(request('Bearer secret') as any,service,'/revenuecat');assert.equal(refreshes,0);
+ await assert.rejects(premiumWebhook(request('wrong') as any,service,'/revenuecat'),e=>(e as any).status===401);assert.equal(refreshes,0);
+});
+
 test('only a configured, non-guest admin can grant access and every grant records its actor',async()=>{
  const actor='11111111-1111-4111-8111-111111111111',target='22222222-2222-4222-8222-222222222222';let guest=false;const writes:any[]=[];
  const client={auth:{admin:{getUserById:async()=>({data:{user:{id:actor,is_anonymous:guest,user_metadata:{admin:true}}}})}},rpc:async(name:string,args:any)=>{writes.push({name,args});return {error:null}}};

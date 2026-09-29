@@ -13,6 +13,9 @@ export async function premiumWebhook(req:IncomingMessage,premium:PremiumService,
  const raw=Buffer.concat(chunks);
  if(!rc){const signature=req.headers['stripe-signature'];if(typeof signature!=='string')throw new ApiError(401,'authentication','Missing webhook signature.');await new PremiumStripe(premium).webhook(raw,signature);return;}
  const body=JSON.parse(raw.toString('utf8')),event=body?.event;if(!event||typeof event.id!=='string')throw new ApiError(400,'webhook','Invalid event.');
+ // Dashboard test deliveries contain synthetic UUIDs, not PickleBash accounts.
+ // Authentication and payload validation still apply; no ownership refresh is needed.
+ if(event.type==='TEST')return;
  // Transfer events must refresh both accounts. Never grant from the event's claims.
  const ids=new Set([event.app_user_id,...(event.aliases??[]),...(event.transferred_from??[]),...(event.transferred_to??[])].filter(uuid));
  if(ids.size>50)throw new ApiError(400,'webhook','Too many identities.');
