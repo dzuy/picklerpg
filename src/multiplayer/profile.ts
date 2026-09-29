@@ -22,7 +22,12 @@ function accountAccess(panel:HTMLElement,client:NonNullable<ReturnType<typeof au
  email.name='identifier';email.type='email';email.required=true;email.autocomplete='email';emailLabel.append(email);
  password.name='password';password.type='password';password.required=true;password.minLength=6;password.maxLength=128;password.autocomplete='new-password';passwordLabel.append(password);
  const submit=node('button','Create Account','team-lobby-primary') as HTMLButtonElement;submit.type='submit';const toggle=node('button','Already have an account? Sign in','team-lobby-quiet') as HTMLButtonElement;toggle.type='button';const message=node('p','','profile-auth-status');message.setAttribute('role','status');message.setAttribute('aria-live','polite');
- form.append(usernameLabel,emailLabel,passwordLabel,submit,message);panel.append(heading,copy,form,toggle);
+ const legal=node('p','','profile-auth-copy');
+ legal.append('By creating an account, you agree to the ');
+ const terms=node('a','Terms of Use');terms.href='https://picklebash.app/tos';terms.target='_blank';terms.rel='noopener';
+ const privacy=node('a','Privacy Policy');privacy.href='https://picklebash.app/privacy';privacy.target='_blank';privacy.rel='noopener';
+ legal.append(terms,' and acknowledge the ',privacy,'.');
+ form.append(usernameLabel,emailLabel,passwordLabel,legal,submit,message);panel.append(heading,copy,form,toggle);
  let signup=true;
  const sync=()=>{heading.textContent=signup?'Create your account':'Welcome back';copy.textContent=signup?'Save players, play with friends, and keep your games on every device.':'Sign in to see your roster, games, and profile.';usernameLabel.hidden=!signup;username.disabled=!signup;username.required=signup;emailLabel.firstChild!.textContent=signup?'Email *':'Username or email *';email.type=signup?'email':'text';email.autocomplete='username';password.autocomplete=signup?'new-password':'current-password';password.minLength=signup?6:1;submit.textContent=signup?'Create Account':'Sign in';toggle.textContent=signup?'Already have an account? Sign in':'New here? Create an account';message.textContent='';};
  toggle.onclick=()=>{signup=!signup;sync();(signup?username:email).focus();};

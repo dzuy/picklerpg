@@ -26,7 +26,8 @@ export function createProductionServer({root=defaultRoot,apiHandler=createOppone
   if(!['GET','HEAD'].includes(req.method)){res.writeHead(405,{'Allow':'GET, HEAD'}).end();return}
   if(pathname==='/healthz'){res.writeHead(200,{'Content-Type':'application/json'}).end(req.method==='HEAD'?undefined:'{"status":"ok"}');return}
   if(pathname.includes('\0')||pathname.split('/').some(part=>part.startsWith('.'))){res.writeHead(404).end();return}
-  const file=resolve(directory,'.'+(pathname==='/'||/^\/challenge\/[^/]{1,1024}$/.test(pathname)?'/index.html':pathname));
+  const legalPage=/^\/(privacy|tos)\/?$/.exec(pathname);
+  const file=resolve(directory,'.'+(legalPage?`/${legalPage[1]}.html`:pathname==='/'||/^\/challenge\/[^/]{1,1024}$/.test(pathname)?'/index.html':pathname));
   if(!file.startsWith(directory+sep)){res.writeHead(404).end();return}
   try{
    const info=await stat(file);if(!info.isFile()){res.writeHead(404).end();return}
