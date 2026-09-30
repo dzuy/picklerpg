@@ -5,7 +5,7 @@ import {build} from 'esbuild';
 
 const compiled=build({entryPoints:['src/multiplayer/trash-talk-control.ts'],bundle:true,write:false,format:'iife',globalName:'Reactions',loader:{'.css':'empty'},plugins:[{name:'ui-boundaries',setup(b){
  b.onResolve({filter:/view-focus$|hud-button$|\/api$|browser-storage$|\/sound$/},args=>({path:args.path,namespace:'mock'}));
- b.onLoad({filter:/.*/,namespace:'mock'},()=>({contents:'export const focusView=()=>{};export const hudButtonIcon=()=>"";export const remoteRequest=()=>{};export const browserStorage={getItem:()=>null};export const sounds={play:()=>{}};'}));
+ b.onLoad({filter:/.*/,namespace:'mock'},()=>({contents:'export const focusView=()=>{};export const showViewDialog=()=>{};export const hudButtonIcon=()=>"";export const remoteRequest=()=>{};export const browserStorage={getItem:()=>null};export const sounds={play:()=>{}};'}));
 }}]}).then(result=>result.outputFiles[0].text);
 
 test('reactions send on LAN HTTP and retries reuse the message ID',async()=>{
