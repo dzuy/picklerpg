@@ -1,0 +1,4 @@
+begin;
+-- All six outfit costumes require Style; no outfit remains the free default.
+create or replace function public.premium_cosmetic_options() returns jsonb language sql immutable set search_path='' as $$ select '{"hairStyle":["bun","side-part","curls","mohawk","long","pigtails","twin-buns","side-braid","long-waves","high-fade","afro"],"facialHair":["goatee","long-beard","chops"],"expression":["angry","crying","confident"],"hat":["beanie","bucket","crown","tiara","viking","cowboy","santa","sombrero"],"top":["polo","hoodie","long-sleeve"],"bottom":["pleated-skirt","pants"],"glasses":["wraparound","cat-eye","hexagon","stars","flowers","hearts","diamonds","oversized"],"outfit":["frog","dinosaur","lion","bear","butterfly","bee"],"accessory":["watch","dinosaur-tail","cape"],"paddleShape":["rectangular","circular","squarish-circles","squarish-lines","rounded-circles","rounded-lines"]}'::jsonb $$;
+commit;

@@ -1,0 +1,14 @@
+{
+  "at": "2026-09-29T22:42:40.687Z",
+  "source": "e931765",
+  "account": "purchase_phone",
+  "ownedPacks": [
+    "style",
+    "court",
+    "fun"
+  ],
+  "sandbox": true,
+  "checkoutStatus": 409,
+  "errorCode": "already_owned",
+  "noCheckoutUrl": true
+}

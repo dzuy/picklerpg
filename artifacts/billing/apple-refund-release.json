@@ -1,0 +1,22 @@
+{
+  "source": "eb460cd",
+  "version": "1.0",
+  "build": 11,
+  "uploadedAt": "2026-09-29T23:11:47Z",
+  "internalOnly": true,
+  "requiresAppleSignOut": false,
+  "testAccount": "purchase_phone",
+  "testsPassed": 22,
+  "simulatedUI": "pass",
+  "archiveVerification": "pass",
+  "appleProcessing": "complete",
+  "deviceRefund": "pending by owner request: same Cannot Connect error on Wi-Fi and cellular",
+  "appleEverythingPurchase": "pending",
+  "productionChanged": false,
+  "testFlightStatus": "Testing",
+  "buildId": "49e0bcc5-3468-46c4-8567-cbf7b3f54c21",
+  "group": "PickleBash Internal",
+  "testers": 1,
+  "refundOwnershipCheck": "2026-09-29T23:21:55Z: Style/Fun/Court unchanged",
+  "nextAction": "Continue review preparation; no further phone refund retries requested"
+}

@@ -92,7 +92,7 @@ export function showNativeTurnPrompt(){
  if(!nativeNotifications()||!owner||enabled||dialog?.open||browserSessionStorage.getItem(`native-prompt:${owner}`))return;
  const promptOwner=owner;
  dialog=document.createElement('dialog');dialog.className='turn-notification-modal';
- dialog.innerHTML='<section class="turn-prompt"><div class="turn-prompt-content"><strong>Know when it’s your turn</strong><p>We can notify you when your opponent plays, even when PickleBash is closed.</p><div class="turn-prompt-actions"><button class="turn-enable">Enable Notifications</button><button class="turn-later">Not right now</button></div><p role="status"></p></div></section>';
+ dialog.innerHTML='<section class="turn-prompt"><div class="turn-prompt-content"><strong>Know when it’s your turn</strong><p>Enable notifications to know when it’s your turn, even when PickleBash is closed.</p><div class="turn-prompt-actions"><button class="turn-enable">Enable Notifications</button><button class="turn-later">Not right now</button></div><p role="status"></p></div></section>';
  const view=dialog,button=view.querySelector<HTMLButtonElement>('.turn-enable')!;
  button.onclick=()=>{button.disabled=true;void requestNativeNotifications().then(()=>view.close()).catch(error=>{view.querySelector('[role=status]')!.textContent=error.message;button.disabled=false;});};
  view.querySelector<HTMLButtonElement>('.turn-later')!.onclick=()=>view.close();

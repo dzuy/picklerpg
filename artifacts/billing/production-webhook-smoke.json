@@ -1,0 +1,46 @@
+{
+  "checkedAt": "2026-09-29T18:06:21.633Z",
+  "checks": [
+    {
+      "name": "health",
+      "status": 200,
+      "body": {
+        "status": "ok"
+      }
+    },
+    {
+      "name": "revenuecat-invalid-auth",
+      "status": 401,
+      "body": {
+        "error": {
+          "code": "authentication",
+          "message": "Invalid webhook authorization."
+        }
+      }
+    },
+    {
+      "name": "revenuecat-authenticated-synthetic-test",
+      "status": 200,
+      "body": {
+        "ok": true
+      }
+    },
+    {
+      "name": "stripe-invalid-signature",
+      "status": 400,
+      "body": {
+        "error": {
+          "code": "webhook_signature",
+          "message": "Invalid webhook signature."
+        }
+      }
+    },
+    {
+      "name": "stripe-authenticated-no-customer",
+      "status": 200,
+      "body": {
+        "ok": true
+      }
+    }
+  ]
+}

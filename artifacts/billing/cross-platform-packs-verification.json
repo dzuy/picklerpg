@@ -1,0 +1,20 @@
+{
+  "checkedAt": "2026-09-29T19:57:10.877Z",
+  "accounts": {
+    "phone": [
+      {
+        "source": "revenuecat",
+        "pack_id": "style",
+        "active": true,
+        "observed_at": "2026-09-29T19:51:24.205+00:00"
+      },
+      {
+        "source": "stripe",
+        "pack_id": "court",
+        "active": true,
+        "observed_at": "2026-09-29T19:51:24.591+00:00"
+      }
+    ],
+    "free": []
+  }
+}

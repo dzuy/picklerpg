@@ -1,3 +1,7 @@
+import {openAccountDeletion,openBlockedPlayers} from '../account-safety';
+import {ownsPack} from '../pack-catalog';
+import {premiumStatus} from '../premium';
+import {premiumAppearance} from '../premium-appearance';
 import {openGameHistory} from './game-history';
 import {profileGameHistory} from '../profile-game-history';
 import {loadAccountProgress} from '../account-xp';
@@ -22,7 +26,12 @@ function accountAccess(panel:HTMLElement,client:NonNullable<ReturnType<typeof au
  email.name='identifier';email.type='email';email.required=true;email.autocomplete='email';emailLabel.append(email);
  password.name='password';password.type='password';password.required=true;password.minLength=6;password.maxLength=128;password.autocomplete='new-password';passwordLabel.append(password);
  const submit=node('button','Create Account','team-lobby-primary') as HTMLButtonElement;submit.type='submit';const toggle=node('button','Already have an account? Sign in','team-lobby-quiet') as HTMLButtonElement;toggle.type='button';const message=node('p','','profile-auth-status');message.setAttribute('role','status');message.setAttribute('aria-live','polite');
- form.append(usernameLabel,emailLabel,passwordLabel,submit,message);panel.append(heading,copy,form,toggle);
+ const legal=node('p','','profile-auth-copy');
+ legal.append('By creating an account, you agree to the ');
+ const terms=node('a','Terms of Use');terms.href='https://picklebash.app/tos';terms.target='_blank';terms.rel='noopener';
+ const privacy=node('a','Privacy Policy');privacy.href='https://picklebash.app/privacy';privacy.target='_blank';privacy.rel='noopener';
+ legal.append(terms,' and acknowledge the ',privacy,'.');
+ form.append(usernameLabel,emailLabel,passwordLabel,legal,submit,message);panel.append(heading,copy,form,toggle);
  let signup=true;
  const sync=()=>{heading.textContent=signup?'Create your account':'Welcome back';copy.textContent=signup?'Save players, play with friends, and keep your games on every device.':'Sign in to see your roster, games, and profile.';usernameLabel.hidden=!signup;username.disabled=!signup;username.required=signup;emailLabel.firstChild!.textContent=signup?'Email *':'Username or email *';email.type=signup?'email':'text';email.autocomplete='username';password.autocomplete=signup?'new-password':'current-password';password.minLength=signup?6:1;submit.textContent=signup?'Create Account':'Sign in';toggle.textContent=signup?'Already have an account? Sign in':'New here? Create an account';message.textContent='';};
  toggle.onclick=()=>{signup=!signup;sync();(signup?username:email).focus();};
@@ -39,7 +48,7 @@ export function profilePanel(portraits:AvatarThumbnails|undefined,authenticate:(
   const user=session?.data.session?.user;
   panel.replaceChildren();
   if(!user||user.is_anonymous){
-   if(!client)throw new Error('Accounts are unavailable right now.');accountAccess(panel,client,session?.data.session??null);return;
+   if(!client)throw new Error('Accounts are unavailable right now.');accountAccess(panel,client,session?.data.session??null);if(user?.is_anonymous){const deletion=node('button','Delete guest account','profile-sign-out');deletion.type='button';deletion.onclick=()=>openAccountDeletion(true);panel.append(deletion);}return;
   }
   const name=typeof user.user_metadata.player_name==='string'?user.user_metadata.player_name.trim():'Player';
   const columns='id,name,catchphrase,appearance,skills,handedness,is_active,is_public';
@@ -52,7 +61,8 @@ export function profilePanel(portraits:AvatarThumbnails|undefined,authenticate:(
   }
   const player=players?.[0]?playerFromRow(players[0]):null;
   const header=node('header','','profile-identity');
-  if(portraits){const avatar=node('img','','profile-avatar');avatar.src=portraits.get(player?.appearance??profileAvatar(user.id,user.user_metadata.profile_avatar),'face');avatar.alt=`${name||'Player'}’s avatar`;header.append(avatar);}
+  const membership=await premiumStatus().catch(()=>null);
+  if(portraits){const avatar=node('img','','profile-avatar');avatar.src=portraits.get(premiumAppearance(player?.appearance??profileAvatar(user.id,user.user_metadata.profile_avatar),!!membership&&(!membership.enforced?true:membership.ownedPacks)),'face');avatar.alt=`${name||'Player'}’s avatar`;header.append(avatar);}
   const identity=node('div','','profile-identity-copy');
   const username=typeof user.user_metadata.username==='string'?user.user_metadata.username.trim():name;
   identity.append(node('span','Your corner of the court','profile-eyebrow'),node('h2',username||'Player'),node('p',name!==username?name:'PickleBash player','profile-display-name'));
@@ -72,11 +82,13 @@ export function profilePanel(portraits:AvatarThumbnails|undefined,authenticate:(
   const note=node('p','Loading your game record…','lobby-profile-note');note.setAttribute('role','status');panel.append(stats,actions,note);
   const progression=node('section','','profile-skill-progress');
   panel.append(progression);void loadAccountProgress(progression,true);
+  const settings=node('details','','profile-account-settings');settings.append(node('summary','Account Settings'));
   const footer=node('footer','','lobby-profile-account'),signOutButton=node('button','Sign out','profile-sign-out'),accountStatus=node('p');
+  const blocked=node('button','Blocked Players','profile-sign-out');blocked.type='button';blocked.setAttribute('aria-haspopup','dialog');blocked.onclick=()=>openBlockedPlayers();
   signOutButton.type='button';accountStatus.setAttribute('role','status');
   const currentEmail=user.email??'';
   if(user.new_email&&user.new_email!==currentEmail)accountStatus.textContent=`Email change to ${user.new_email} awaits confirmation. Check your email inboxes.`;
-  footer.append(signOutButton,accountStatus);panel.append(footer);
+  const deletion=node('button','Delete account','profile-sign-out');deletion.type='button';deletion.onclick=()=>openAccountDeletion();const support=node('a','Help & support','profile-sign-out');support.href='https://picklebash.app/support';support.target='_blank';support.rel='noopener';footer.append(blocked,signOutButton,deletion,support,accountStatus);settings.append(footer);panel.append(settings);
   signOutButton.onclick=()=>{signOutButton.disabled=true;signOutButton.textContent='Signing out…';accountStatus.textContent='';void signOut().catch(()=>{accountStatus.textContent='Could not sign out. Please try again.';}).finally(()=>{signOutButton.disabled=false;signOutButton.textContent='Sign out';});};
   try{
    const {saved,remote,local}=await loadHistory();

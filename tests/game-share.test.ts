@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {matchShare,invitationShare,showGameShare} from '../src/multiplayer/game-share';
 test('existing-player invitations retain their invitation URL until a match exists',()=>{
  const pending=invitationShare({id:'invite-id',recipientName:'maeling',status:'pending',matchId:null});
- assert.equal(pending.path,'/?openplay=1&invite=invite-id');assert.match(pending.description,/sign in as that player/);
+ assert.equal(pending.path,'/play?openplay=1&invite=invite-id');assert.match(pending.description,/sign in as that player/);
  const accepted=invitationShare({id:'invite-id',recipientName:'maeling',status:'accepted',matchId:'match-id'});
  assert.equal(accepted.path,matchShare('match-id').path);assert.equal(accepted.description,'Send maeling this link to reopen your game together.');
 });
@@ -23,7 +23,7 @@ test('share window supports native sharing, copy fallback, cancellation and reop
   for(const name of names)Object.defineProperty(globalThis,name,{configurable:true,value:globals[name]});
   const dialog=showGameShare(matchShare('match-id')) as unknown as Element;
   assert.equal(dialog.open,true);dialog.find('Copy Link')!.onclick!();await new Promise(resolve=>setImmediate(resolve));
-  assert.equal(copies[0],'https://picklebash.app/?multiplayer=1&match=match-id');
+  assert.equal(copies[0],'https://picklebash.app/play?multiplayer=1&match=match-id');
   const button=dialog.children.find(c=>c.className==='friend-share-actions')!.children[1];
   button.onclick!();await new Promise(resolve=>setImmediate(resolve));assert.equal(copies.length,2);
   navigator.share=async(value:unknown)=>{shares.push(value);};button.onclick!();await new Promise(resolve=>setImmediate(resolve));assert.equal(shares[0].url,copies[0]);

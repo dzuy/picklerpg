@@ -1,0 +1,20 @@
+{
+  "at": "2026-09-29T22:26:31Z",
+  "source": "54bc2ba",
+  "railwayDeployment": "470c5561-b63a-4bc5-9331-6aaba811fca6",
+  "railwayStatus": "SUCCESS",
+  "supabaseProject": "drdvwfjkbyvfqnmxkksl",
+  "funMigrationApplied": true,
+  "ownershipRowsBefore": 4,
+  "ownershipRowsAfter": 4,
+  "build": "1.0 (9)",
+  "appleBuildId": "89380daa-9835-4e49-8502-0dba8c0e5647",
+  "processingComplete": true,
+  "complianceSaved": true,
+  "testInstructionsSaved": true,
+  "internalGroup": "PickleBash Internal",
+  "internalTesterCount": 1,
+  "externalGroupsAdded": false,
+  "physicalTestResult": "pending",
+  "productionChanged": false
+}

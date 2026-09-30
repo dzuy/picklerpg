@@ -24,7 +24,7 @@ export interface MatchRepository {
  create(row:StoredMatch):Promise<StoredMatch>;
  commit(input:CommitInput):Promise<StoredReceipt>;
 }
-function databaseError(error:any):never{if(['PT409','40001','23505'].includes(error?.code))throw conflict();if(error?.code==='P0002')throw missing();if(error?.code==='42501')throw new ApiError(403,'forbidden','That turn belongs to another player.');console.error('Match storage error code:',error?.code);throw new ApiError(503,'unavailable','Match storage is unavailable. Retry the same action.');}
+function databaseError(error:any):never{if(error?.code==='PT410')throw new ApiError(403,'blocked','This player is unavailable for new games.');if(['PT409','40001','23505'].includes(error?.code))throw conflict();if(error?.code==='P0002')throw missing();if(error?.code==='42501')throw new ApiError(403,'forbidden','That turn belongs to another player.');console.error('Match storage error code:',error?.code);throw new ApiError(503,'unavailable','Match storage is unavailable. Retry the same action.');}
 export class SupabaseMatchRepository implements MatchRepository {
  constructor(private client:SupabaseClient){}
  async shotMixPage(actor:string,before:string,cursorTime:string|null,cursorId:string|null){const {data,error}=await this.client.rpc('get_async_shot_mix_page',{p_actor:actor,p_before:before,p_cursor_time:cursorTime,p_cursor_id:cursorId});if(error)databaseError(error);return data as ShotMixRow[];}

@@ -1,7 +1,7 @@
 import type {APPEARANCE_OPTIONS} from './player-design';
 
 // Explicit assignments keep tiers stable when new styles are added or reordered.
-// This first pass organizes the picker only; subscription access is not enforced yet.
+// Paddle designs belong to Fun Pack; other paid appearance choices belong to Style Pack.
 export const PREMIUM_APPEARANCE_OPTIONS:Partial<{
  [Key in keyof typeof APPEARANCE_OPTIONS]:readonly (typeof APPEARANCE_OPTIONS)[Key][number][]
 }>={

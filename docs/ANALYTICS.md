@@ -35,7 +35,7 @@ All product names are snake_case. Standard SDK adapter properties: `environment`
 | `rematch_manual_requested`, `rematch_auto_requested`, `rematch_accepted`, `rematch_declined`, `rematch_started`, `rematch_completed` | Backend committed multiplayer lifecycle; solo/local rematch request/start/completion from client, preserving manual or automatic origin |
 | `xp_earned`, `skill_point_earned` | Existing committed XP receipts, unchanged award economics |
 | `skill_point_allocated`, `skill_points_reallocated` | Committed custom-player/community-player skill edits; allocation increases used budget, other changed builds are reallocation |
-| `plus_paywall_viewed` | Existing locked full-game report preview; no new paywall or checkout |
+| `plus_paywall_viewed` | Historical event; no longer emitted by the V1 report UI |
 | `plus_entitlement_changed` | Change to trusted `app_metadata.full_game_analysis`, including revocation |
 | `cosmetic_viewed`, `cosmetic_equipped` | Existing roster appearance preview/save |
 | `plus_purchase_started`, `plus_purchase_completed`, `plus_purchase_restored`, `cosmetic_purchase_started`, `cosmetic_purchase_completed` | Typed foundation only: no billing provider/checkout exists, so no fake purchase events are emitted |
@@ -97,7 +97,7 @@ Client IP storage is disabled in project privacy settings. Replay is enabled in 
 - The commissioning export contains backend facts only. Client onboarding/open/prompt/replay data starts after release; current empty UI stages are not evidence of abandonment.
 - Initial rollout captures future account/player/skill transitions; it does not reconstruct deleted players, old skill edits, historical account-created events, or old decline timestamps. Signup-source attribution uses the existing referral record.
 - Share success means the native share sheet succeeded; link copy means copied, not delivered. Recipient opening, activation and completion are separate facts. Existing users can accept invitations.
-- There is no general subscription or cosmetics purchase backend. Future purchase success must come from verified provider transactions and deduplication by transaction ID.
+- The cosmetic pack backend verifies ownership. Any future purchase analytics must use verified provider transactions and transaction-ID deduplication.
 - Web/server release: commit `541904c` was pushed to GitHub `main` on 2026-09-28 after explicit release authorization. Railway deployment `3358e09f-405d-4501-bfbd-1f4095b7e494` reached Active with all 12 analytics variables applied. The production build passed, `https://picklebash.app/healthz` returned `{"status":"ok"}`, and live browser assets contain the analytics adapter and production PostHog host. The release includes the rematch implementation required by the flag integration. iOS still requires a configured rebuild/sync and device smoke test; no native binary was released. Full two-account gameplay/replay smoke checks below remain follow-up work.
 - Smoke-test two separate accounts: first/second match, invite acceptance, auto request for `dzuy`, manual fallback for non-target, flag off while countdown is active, logout/account change, offline mode, one completion/XP receipt after retry, masked web/iOS replay. See [feature flags](FEATURE-FLAGS.md).
 
@@ -108,3 +108,24 @@ SDK references: [JavaScript](https://posthog.com/docs/libraries/js), [Node](http
 September 28 follow-up (released in `8af8c6b`): solo countdown expiry now restarts the match and records `rematch_auto_requested` and `rematch_started` after reset, with automatic origin retained through completion. Local two-human games remain manual. Existing multiplayer event ownership and metric definitions are unchanged.
 
 Release follow-up: `8af8c6b` reached Active on Railway on September 28, 2026. TestFlight 1.0 (7) uploaded with production analytics configuration; Apple processing completed; export compliance, tester assignment, and physical-device checks remain pending. This release does not change remote flag targeting, event ownership, privacy rules, or dashboard metric definitions. See [release record](TESTFLIGHT.md).
+
+September 28 subsequent rollout: `rematch_auto_countdown` enabled for 100% of all users, including guests, at the user’s request. This supersedes the initial dzuy-only targeting recorded above. Event ownership, privacy, and metric definitions are unchanged; see [feature flags](FEATURE-FLAGS.md).
+
+## Simple admin dashboard (local implementation)
+
+A private aggregate dashboard is implemented at `/admin/analytics`, with a separate allowlisted server API. It is not yet deployed or connected to a PostHog query credential; the user requested a clear setup state first. See [setup, architecture and metric version 1](ADMIN-ANALYTICS.md). Admin page visits are excluded from product telemetry/replay. Existing event ownership and live flag targeting are unchanged.
+
+Dashboard connection follow-up (2026-09-28): the local dashboard now loads live PostHog aggregates. Its server-only query settings and owner allowlist are saved on Railway for the next deployment; the dashboard code has not been deployed. See [dashboard connection and validation record](ADMIN-ANALYTICS.md#connection-follow-up--2026-09-28).
+
+Homepage routing follow-up (local, not deployed): `/` now serves public marketing without initializing the product adapter, auth identity, replay, or flags. `app_opened` still means a game launch/foreground, including `/play`, recognized legacy game links, and native launches; ordinary homepage traffic is excluded even for signed-in players. No marketing events, new identifiers, or metric formulas were added. See [homepage routing](HOMEPAGE.md).
+
+### Billing implementation handoff (2026-09-29; local)
+
+Permanent pack ownership now lives in server-owned billing tables; see [billing operations](BILLING.md). Purchase buttons and checkout redirects do not emit completed/restored payment facts. `plus_entitlement_changed` and `has_full_game_analysis` still describe historical trusted analysis metadata, not pack ownership. Existing metric/event ownership remains unchanged. The complimentary administration form is excluded from capture; account identifiers and reasons must never enter product events. The report UI no longer emits `plus_paywall_viewed` or routes to a subscription upsell. No new billing events are introduced; provider records and grant audits remain authoritative.
+
+Purchase-sandbox follow-up (2026-09-29): the separate Railway service and TestFlight 1.0 (8) use only sandbox database facts, with client/server PostHog and replay explicitly disabled and no ingestion keys copied. Standard account audit hooks were restored after schema-only branching; their facts remain local to that database. Event ownership, privacy rules, metric definitions and production remote targeting are unchanged. See [purchase testing](PURCHASE-TESTING.md) for the dated deployment and physical-test status.
+
+
+## Account-safety preparation — September 29, 2026
+
+Safety dialogs are blocked from menu session recording. Passwords, report details, message evidence and blocked-player lists produce no new analytics events/properties. Account deletion requests require exact-UUID PostHog provider cleanup before the operator marks external cleanup complete; this is a manual procedure, not deployed automation.

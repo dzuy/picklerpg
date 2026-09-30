@@ -1,0 +1,76 @@
+{
+  "checkedAt": "2026-09-30T05:22:21.593Z",
+  "keyMode": "live",
+  "storeEnabled": false,
+  "purchasesEnabled": false,
+  "environment": "production",
+  "prices": [
+    {
+      "pack": "STYLE",
+      "active": true,
+      "livemode": true,
+      "type": "one_time",
+      "currency": "usd",
+      "amount": 299,
+      "correctAmount": true,
+      "productActive": true,
+      "name": "PickleBash — Style Pack"
+    },
+    {
+      "pack": "COURT",
+      "active": true,
+      "livemode": true,
+      "type": "one_time",
+      "currency": "usd",
+      "amount": 299,
+      "correctAmount": true,
+      "productActive": true,
+      "name": "PickleBash — Court Pack"
+    },
+    {
+      "pack": "FUN",
+      "active": true,
+      "livemode": true,
+      "type": "one_time",
+      "currency": "usd",
+      "amount": 299,
+      "correctAmount": true,
+      "productActive": true,
+      "name": "PickleBash — Fun Pack"
+    },
+    {
+      "pack": "EVERYTHING",
+      "active": true,
+      "livemode": true,
+      "type": "one_time",
+      "currency": "usd",
+      "amount": 699,
+      "correctAmount": true,
+      "productActive": true,
+      "name": "PickleBash — Everything Pack"
+    }
+  ],
+  "publicPages": [
+    {
+      "setting": "BILLING_PRIVACY_URL",
+      "status": 200,
+      "url": "https://picklebash.app/privacy"
+    },
+    {
+      "setting": "BILLING_TERMS_URL",
+      "status": 200,
+      "url": "https://picklebash.app/tos"
+    },
+    {
+      "setting": "BILLING_RETURN_ORIGIN",
+      "status": 200,
+      "url": "https://picklebash.app/"
+    }
+  ],
+  "account": {
+    "error": "more_permissions_required"
+  },
+  "webhooks": {
+    "error": "more_permissions_required"
+  }
+}

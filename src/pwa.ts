@@ -1,4 +1,4 @@
-import {disableNativeNotifications} from './platform/notifications';
+import {disableNativeNotifications,showNativeTurnPrompt} from './platform/notifications';
 import {showViewDialog} from './view-focus';
 import {pushActivityState} from './push-activity';
 import {authClient,matchCredentials} from './auth-session';
@@ -25,7 +25,7 @@ const supported=()=> 'Notification' in window&&'PushManager' in window&&'service
 const notificationDismissed=()=>!!owner&&browserSessionStorage.getItem(`pickle-notifications-dismissed:${owner}`)==='1';
 const dismissed=()=>browserStorage.getItem('pickle-install-dismissed')==='1';
 export function showTurnPromptAfterInvite(){
- if(Capacitor.isNativePlatform())return;
+ if(Capacitor.isNativePlatform()){showNativeTurnPrompt();return;}
  if(!standalone()){showHomeScreenInstructions();return;}
  eligible=true;render();
 }

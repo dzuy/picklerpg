@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Fun Pack · PickleBash design studio</title><link rel="stylesheet" href="/src/design-system/tokens.css"><link rel="stylesheet" href="/art/fun-pack/preview.css"></head>
+<body>
+<header class="topbar"><a href="#">PickleBash<span>FUN PACK</span></a><a class="study-label" href="/fun-pack-lab.html">Try the live 3D court →</a></header>
+<main>
+<section class="intro"><div><p class="eyebrow">ONE PACK. FOUR WAYS TO PARTY.</p><h1>Your court.<br>A whole new mood.</h1><p>Dress up your favorite place to play. Bring your players along, or let everyone do their own thing.</p></div><div class="intro-stamp"><img src="/assets/fun-pack/disco/mirrorball.svg" alt=""><span>Same game.<br>More personality.</span></div></section>
+<nav id="themes" aria-label="Explore themes"></nav>
+<section class="workspace">
+ <div class="court-panel panel"><div class="panel-heading"><div><p class="eyebrow">01 / SET THE SCENE</p><h2>Make it a party</h2></div><button id="sound" type="button" aria-pressed="false">♫ Play music</button></div>
+ <div class="selectors"><label>Theme<select id="court-theme"></select></label><label>Court<select id="court"></select></label></div>
+ <div class="court-stage"><img id="base-court" alt=""><img id="court-overlay" alt=""><div class="court-caption"><span id="court-label"></span><strong id="theme-label"></strong></div></div>
+ <div class="court-footer"><p id="court-note">Your favorite court, dressed for the occasion.</p><span id="bpm"></span></div>
+ <div class="lineup-heading"><strong>Your players</strong><button id="undo" type="button" hidden>Undo theme change</button></div><div id="lineup"></div>
+ <p class="hint">Court themes and player looks are independent. Other players keep control of their own look.</p>
+ </div>
+ <div class="player-panel panel"><div class="panel-heading"><div><p class="eyebrow">02 / DRESS THE PART</p><h2>One tap. Full look.</h2></div><span class="tag" id="look-state">Full theme</span></div>
+ <label>Player theme<select id="player-theme"></select></label>
+ <div class="player-stage"><div class="halo"></div><img id="celebration" alt="" hidden><div id="player-figure"><img id="player-art" alt=""><img id="equipped-paddle" alt="Equipped paddle"></div><span id="look-name"></span></div>
+ <div id="looks" aria-label="Choose a coordinated look"></div>
+ <button id="celebrate" class="wide" type="button">Preview celebration</button>
+ <details><summary>Make it your own</summary><label>Paddle<select id="paddle-theme"></select></label><div class="paddle-preview"><img id="paddle" alt="Selected paddle"><p>Mix a paddle from another theme.<br>Your coordinated outfit stays put.</p></div><button id="reset-look" type="button">Reapply full theme</button></details>
+ <button id="save-look" class="primary wide" type="button">Use this look for Alex</button><p class="hint">Preview only. Your saved players stay unchanged.</p>
+ </div>
+</section>
+<section class="collection panel"><div class="panel-heading"><div><p class="eyebrow">THE DETAILS MAKE THE PARTY</p><h2 id="collection-title"></h2></div><span class="tag">Included in Fun Pack</span></div><p id="collection-description"></p><div id="assets"></div><div class="music-note"><strong id="music-title"></strong><p>Original eight-bar instrumental study. Music starts only when you press Play. Decorations stay outside the playing surface.</p></div></section>
+<section class="panel comparisons"><div class="panel-heading"><div><p class="eyebrow">SAME PLACE. FOUR DIFFERENT PARTIES.</p><h2>Every theme, every court</h2></div></div><div id="comparison-grid"></div><p class="hint">Actual selector crops: 240 × 108 desktop, 220 × 108 mobile. Original court geometry and colors are preserved.</p></section>
+<p class="footnote">Asset & interaction study. Character sheets and celebration motion are design references for the game’s 3D models. This page does not enable purchases or change live matches.</p>
+</main>
+<dialog id="apply-dialog"><form method="dialog"><img id="dialog-icon" alt=""><p class="eyebrow">TAKE THE WHOLE TEAM</p><h2 id="dialog-title"></h2><p>Apply matching outfits, paddles, and celebrations to Alex and Sam for this match.</p><p class="hint">Your saved designs stay the same. You can tweak the looks afterward.</p><button class="primary wide" value="apply">Apply theme</button><button class="wide" value="keep">Keep current looks</button></form></dialog>
+<div id="toast" role="status" aria-live="polite"></div><audio id="audio" loop preload="none"></audio>
+<script type="module" src="/art/fun-pack/preview.ts"></script>
+</body></html>

@@ -1,0 +1,10 @@
+{
+  "bundle": "com.picklebash.app",
+  "version": "1.0",
+  "build": "8",
+  "sandbox_server_embedded": true,
+  "sandbox_database_embedded": true,
+  "production_database_absent": true,
+  "private_credentials_absent": true,
+  "public_apple_key_embedded": true
+}

@@ -1,3 +1,4 @@
+import {openPlayerSafety} from './account-safety';
 import {focusView} from './view-focus';
 import {AvatarPreview} from './avatar-preview';
 import {fillPlayerCard,playerSkillDetails} from './player-card';
@@ -41,6 +42,7 @@ export function openPlayerDetails(player:DesignedPlayer,role:string,portrait='',
     };drawer!.append(button,status);
    });
   }
+  if(player.id.startsWith('community-')){const safety=document.createElement('button');safety.type='button';safety.textContent='Report / Block creator';safety.onclick=()=>openPlayerSafety({publicId:player.id.slice('community-'.length)},player.name,()=>{document.dispatchEvent(new Event('community-moderated'));dismiss();});drawer.append(safety);}
   if(edit){const button=document.createElement('button');button.type='button';button.className='roster-details-edit';button.textContent=player.id.startsWith('community-')?'Customize skills':'Edit player';button.onclick=()=>dismiss(edit);drawer.append(button);}
   if(requestDelete){const button=document.createElement('button');button.type='button';button.className='roster-details-delete';button.textContent='Delete player';button.onclick=()=>dismiss(requestDelete);drawer.append(button);}
   if(membership){

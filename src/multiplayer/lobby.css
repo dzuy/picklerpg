@@ -403,15 +403,20 @@ body[data-screen=remote]:has(.friend-page){background:var(--pb-bg,var(--pb-surfa
 /* Separate the setup decisions; pink is reserved for the header and primary action. */
 #remote-setup .setup-section-card{margin:20px 0 0;padding:22px;border:1px solid var(--pb-border);border-radius:20px;background:var(--pb-white);box-shadow:0 2px 8px rgba(18,65,85,.035);}
 #remote-setup .setup-section-card>h2{margin:0 0 18px;font-size:21px;letter-spacing:-.5px;}
-#remote-setup .unified-settings-card>.remote-setup-section{padding:0 0 22px;border:0;}
+#remote-setup .unified-settings-card>.remote-setup-section{padding:0 0 12px;border:0;}
 #remote-setup .unified-settings-card h3{font-size:14px;font-weight:700;margin:0;letter-spacing:0;}
-#remote-setup .unified-settings-card .court-selector{margin-top:12px;}
-#remote-setup .unified-settings-card .remote-setup-fields{padding:22px 0 0;border-top:1px solid var(--pb-border);}
+#remote-setup .unified-settings-card .court-selector{margin-top:6px;padding:4px 4px 6px;}
+#remote-setup .unified-settings-card .remote-setup-fields{padding:12px 0 0;gap:12px;border-top:1px solid var(--pb-border);}
+#remote-setup .unified-settings-card>h2{margin-bottom:10px;}
+#remote-setup .unified-settings-card .court-selector strong{padding:10px 8px;}
+#remote-setup .unified-settings-card .fun-theme-control{margin:8px 0 0;}
+#remote-setup .unified-settings-card label{display:grid;gap:4px;margin:0;}
+#remote-setup .unified-settings-card select{margin-top:0;}
 @media(max-width:600px){#remote-setup .setup-section-card{padding:16px 12px;margin-top:16px;border-radius:16px;}#remote-setup #remote-solo-opponents{gap:10px;}}
 /* Gentle section tints make the three setup decisions easier to scan. */
 #remote-setup .setup-section-card:has(#remote-create-team){background:#f0faff;}
 #remote-setup .setup-section-card.unified-opponents{background:#f5f2ff;}
-#remote-setup .setup-section-card.unified-settings-card{background:#fff9ec;}
+#remote-setup .setup-section-card.unified-settings-card{background:#fff9ec;padding:16px;}
 
 #remote-setup .setup-solo-toggle{display:flex;align-items:center;gap:10px;width:fit-content;min-height:44px;margin:0 0 0 auto;flex-shrink:0;cursor:pointer;font-size:14px;font-weight:600;color:var(--pb-text);}
 #remote-setup .setup-solo-toggle input{width:18px;height:18px;min-height:0;margin:0;padding:0;flex:0 0 18px;accent-color:var(--pb-text);cursor:pointer;}

@@ -12,7 +12,7 @@ export function rivalryShareText(match:RivalryShareMatch,opponent:string,origin:
  const name=opponent.replace(/[\x00-\x1f\x7f\u202a-\u202e\u2066-\u2069]/g,' ').replace(/\s+/g,' ').trim().slice(0,80)||'my friend';
  const result=you>other?`I beat ${name} ${you}–${other}`:`${name} beat me ${other}–${you}`;
  const series=s.wins===s.losses?`After this game, our series was tied ${s.wins}–${s.losses}.`:s.wins>s.losses?`After this game, I led our series ${s.wins}–${s.losses}.`:`After this game, ${name} led our series ${s.losses}–${s.wins}.`;
- const url=new URL(includeGame?`/?openplay=1&match=${encodeURIComponent(match.id)}`:'/?openplay=1',base.origin).href;
+ const url=new URL(includeGame?`/play?openplay=1&match=${encodeURIComponent(match.id)}`:'/play?openplay=1',base.origin).href;
  return `${result} in PickleBash. ${series}\n${includeGame?'Rematch? Open our game (players only):':'Play PickleBash:'}\n${url}`;
 }
 export type ShareOutcome='shared'|'copied'|'cancelled';

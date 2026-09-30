@@ -1,3 +1,4 @@
+import type {PremiumService} from './premium';
 import {randomUUID} from 'node:crypto';
 import type {SupabaseClient} from '@supabase/supabase-js';
 import {ApiError,missing} from './errors';
@@ -33,14 +34,13 @@ export async function generateGameAnalysis(facts:ReturnType<typeof analysisFacts
 }
 export class GameAnalysisService {
  private pending=new Map<string,Promise<FullGameAnalysis>>();
- constructor(private client:SupabaseClient,private env:NodeJS.ProcessEnv=process.env,private generate=generateGameAnalysis){}
+ constructor(private client:SupabaseClient,private env:NodeJS.ProcessEnv=process.env,private generate=generateGameAnalysis,private premium?:PremiumService){}
  async access(actor:string){
   const {data,error}=await this.client.auth.admin.getUserById(actor);if(error||!data.user)throw new ApiError(401,'authentication','Sign in to open your analysis.');
-  return {premium:data.user.app_metadata?.full_game_analysis===true,available:!!this.env.OPENAI_API_KEY};
+  return {premium:this.premium?await this.premium.analysisAccess(actor):data.user.app_metadata?.full_game_analysis===true,available:!!this.env.OPENAI_API_KEY};
  }
  async analyze(actor:string,input:any):Promise<FullGameAnalysis>{
   if(!input||!uuid(input.gameId)||!['solo','friends'].includes(input.mode))throw new ApiError(400,'invalid_analysis','Choose a completed game.');
-  const access=await this.access(actor);if(!access.premium)throw new ApiError(403,'premium_required','Full Game Analysis is a Premium feature.');
   let owner=actor,viewerTeam:'home'|'away'='home';
   if(input.mode==='friends'){
    const {data,error}=await this.client.from('async_matches').select('home_user_id,away_user_id,status,ended_by').eq('id',input.gameId).maybeSingle();
@@ -56,6 +56,8 @@ export class GameAnalysisService {
   }
   const key=JSON.stringify([actor,input.mode,input.gameId]);
   const saved=await this.saved(actor,input);if(saved)return saved;
+  const access=await this.access(actor);
+  if(!access.premium)throw new ApiError(403,'premium_required','New reports are not enabled for this account yet.');
   if(this.pending.has(key))return this.pending.get(key)!;
   if(!access.available)throw new ApiError(503,'analysis_unavailable','Your analysis coach is taking a breather. Try again later.');
   if(this.pending.size>=4)throw new ApiError(429,'analysis_busy','The coaching bench is busy. Try again in a moment.');

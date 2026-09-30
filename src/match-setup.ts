@@ -1,3 +1,10 @@
+import {FunThemeControl} from './fun-theme-control';
+import {applyFunTheme,type CourtTheme} from './fun-themes';
+import {ownsPack} from './pack-catalog';
+import {premiumForPlay} from './premium';
+import {premiumAppearance} from './premium-appearance';
+import {openPremium,openPackUpgrade} from './premium-dialog';
+import {isPremiumCourt} from './locations';
 import {computerOpponent} from './computer-opponents';
 import {loadScoringPreference} from './scoring-preference';
 import {focusView} from './view-focus';
@@ -32,14 +39,17 @@ export class MatchSetup {
  private restrictTeam(){for(let i=0;i<2;i++)if(!this.eligible.includes(this.selected[i])&&this.eligible.length)this.selected[i]=this.eligible.find(id=>!this.selected.slice(0,i).includes(id))??this.eligible[0];}
  private community=new CommunitySection(players=>this.setRoster(players));
  private starting=false;
- private async startSelected(){if(this.starting||!this.canStart())return;this.starting=true;const button=this.element.querySelector<HTMLButtonElement>('[data-action=start]')!;button.disabled=true;const selection=this.selected.join('|'),mode=this.mode,court=this.court,target=this.target;try{const players=await refreshCommunityDesigns(this.selected.map(id=>this.players.find(p=>p.id===id)!));if(this.element.hidden||this.selected.join('|')!==selection||this.mode!==mode||this.court!==court||this.target!==target)return;this.start(Object.fromEntries(slots.map((slot,i)=>[slot,mode==='solo'&&i>=2?computerOpponent(players[i]):players[i]])) as Record<PlayerId,DesignedPlayer>,mode,court,target);}catch(e){const status=this.element.querySelector<HTMLElement>('[role=status]')!;status.className='setup-community-error';status.textContent=(e as Error).message;}finally{this.starting=false;button.disabled=!this.canStart();}}
+ private playerTheme:CourtTheme='none';private previousPlayerTheme:CourtTheme='none';
+ private themeControl=new FunThemeControl(()=>{},theme=>{this.previousPlayerTheme=this.playerTheme;this.playerTheme=theme;this.render()},()=>{this.playerTheme=this.previousPlayerTheme;this.previousPlayerTheme='none';if(!this.element.hidden&&!this.loading)this.render()});
+
+ private async startSelected(){if(this.starting||!this.canStart())return;this.starting=true;const button=this.element.querySelector<HTMLButtonElement>('[data-action=start]')!;button.disabled=true;const selection=this.selected.join('|'),mode=this.mode,court=this.court,target=this.target;try{const membership=await premiumForPlay();if(this.themeControl.value!=='none'&&membership.enforced&&!ownsPack(membership.ownedPacks,'fun')){openPremium(button);return;}if(!ownsPack(membership.ownedPacks,'court')&&isPremiumCourt(court)){openPackUpgrade('court',button);return;}const players=await refreshCommunityDesigns(this.selected.map(id=>this.players.find(p=>p.id===id)!));if(this.element.hidden||this.selected.join('|')!==selection||this.mode!==mode||this.court!==court||this.target!==target)return;this.start(Object.fromEntries(slots.map((slot,i)=>[slot,mode==='solo'&&i>=2?computerOpponent(players[i]):{...players[i],appearance:premiumAppearance(i<2&&this.playerTheme!=='none'?applyFunTheme(players[i].appearance,this.playerTheme):players[i].appearance,!membership.enforced?true:membership.ownedPacks)}])) as Record<PlayerId,DesignedPlayer>,mode,court,target,this.themeControl.value);}catch(e){const status=this.element.querySelector<HTMLElement>('[role=status]')!;status.className='setup-community-error';status.textContent=(e as Error).message;}finally{this.starting=false;button.disabled=!this.canStart();}}
  private selected:string[]=[];
- private court:CourtLocation='venice';
+ private court:CourtLocation=randomCourt();
  private mode:PlayMode='solo';
  private scoring:ScoringMode='rally-doubles';
  private target=DEFAULT_RULES.target;
  private gesture:{slot:number;x:number;y:number;id:number}|null=null;
- constructor(private start:(players:Record<PlayerId,DesignedPlayer>,mode:PlayMode,court:CourtLocation,target:number)=>void,back:()=>void,private scoringChanged:(value:ScoringMode)=>void=()=>{}){
+ constructor(private start:(players:Record<PlayerId,DesignedPlayer>,mode:PlayMode,court:CourtLocation,target:number,theme?:CourtTheme)=>void,back:()=>void,private scoringChanged:(value:ScoringMode)=>void=()=>{}){
   this.element.id='match-setup';this.element.hidden=true;this.element.setAttribute('aria-labelledby','setup-title');document.body.append(this.element);
   this.element.addEventListener('change',event=>{const el=event.target as HTMLSelectElement;if(el.id==='setup-scoring'&&(el.value==='rally-doubles'||el.value==='side-out-doubles')){this.scoring=el.value;this.scoringChanged(this.scoring);}});
   this.element.addEventListener('input',event=>{const input=event.target as HTMLInputElement;if(input.id==='setup-target'){this.target=input.valueAsNumber;this.element.querySelector<HTMLButtonElement>('[data-action=start]')!.disabled=!this.canStart();}});
@@ -80,6 +90,8 @@ export class MatchSetup {
   });
  }
  show(saved:DesignedPlayer[],_current:(DesignedPlayer|null)[],_mode:PlayMode='solo',scoring:ScoringMode='rally-doubles'){
+  this.court=randomCourt();
+  void this.themeControl.refresh();
   const generation=++this.generation;
   this.target=loadScoringPreference({scoring,target:DEFAULT_RULES.target}).target;
   this.applyStarters=true;this.loading=true;this.mode='solo';this.scoring=scoring;this.owned=saved;
@@ -121,7 +133,8 @@ export class MatchSetup {
    <label class="setup-scoring" for="setup-scoring">Scoring <select id="setup-scoring"><option value="rally-doubles" ${this.scoring==='rally-doubles'?'selected':''}>Rally scoring</option><option value="side-out-doubles" ${this.scoring==='side-out-doubles'?'selected':''}>Side-out scoring</option></select></label><label class="setup-scoring" for="setup-target">Points limit <input id="setup-target" type="number" inputmode="numeric" min="1" max="99" step="1" required value="${Number.isFinite(this.target)?this.target:''}" aria-describedby="setup-win-by"><span id="setup-win-by">Win by 2</span></label></div><div class="setup-matchup"><section class="setup-team setup-home" aria-label="${this.mode==='solo'?'Your team':'Player A team'}"><h2 class="setup-team-title">Choose Your Players</h2><p class="setup-manager">Managed by you · You choose both athletes’ shots</p><div class="setup-team-players">${card(0)}${card(1)}</div></section><div class="setup-versus" aria-hidden="true"><img src="${graphics}/badges/picklebash-badge-vs.png" alt="" draggable="false"></div><section class="setup-team setup-away" aria-label="${this.mode==='solo'?'Opponent team':'Player B team'}"><div class="setup-opponents-heading"><h2 class="setup-team-title">Choose Your Opponents</h2><button type="button" class="setup-shuffle" data-action="random" aria-label="Shuffle matchup" title="Shuffle matchup"><span aria-hidden="true">⤨</span></button></div><p class="setup-manager">Computer managed · Ready to play</p><div class="setup-team-players">${card(2)}${card(3)}</div></section></div>
    <div class="setup-lower"><section class="setup-locations" aria-labelledby="setup-location-title"><div class="court-heading"><h2 id="setup-location-title">Choose your court</h2>${courtShuffleButton}</div><div class="setup-courts court-selector">${courtSelector(this.court,'data-court')}</div></section><button type="button" class="setup-start" data-action="start" aria-label="Start Game" ${this.canStart()?'':'disabled'}><span>Start Game</span><span aria-hidden="true">↗</span></button></div>
    <p class="setup-sr-only" role="status" aria-live="polite" aria-atomic="true"></p></div>`;
-  chosen.forEach((player,i)=>{
+  this.element.querySelector('.setup-locations')!.append(this.themeControl.element);
+  chosen.forEach((original,i)=>{const player=i<2&&this.playerTheme!=='none'?{...original,appearance:applyFunTheme(original.appearance,this.playerTheme)}:original;
    const article=this.element.querySelector<HTMLElement>(`[data-card-slot="${i}"]`)!;
    const credit=player.id.startsWith('preset-')?'Starting Lineup':player.id.startsWith('community-')?'Community player':this.owned.some(p=>p.id===player.id)?'Your player':'Community player';
    fillSetupPlayerCard(article,this.mode==='solo'&&i>=2?computerOpponent(player):player,credit);

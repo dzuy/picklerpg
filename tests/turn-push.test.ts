@@ -66,9 +66,9 @@ async function worker(windows:any[]=[]){
 }
 test('worker shows required notification, reuses match window, and routes closed app safely',async()=>{
  const w=await worker();await w.fire('push',{data:{json:()=>event}});assert.equal(w.shown[0][0],'PickleBash');assert.equal(w.shown[0][1].body,'Chris played. Your turn.');
- const notification={data:w.shown[0][1].data,close(){}};await w.fire('notificationclick',{notification});assert.equal(w.opened[0],`https://pickle.test/?multiplayer=1&match=${event.matchId}`);
+ const notification={data:w.shown[0][1].data,close(){}};await w.fire('notificationclick',{notification});assert.equal(w.opened[0],`https://pickle.test/play?multiplayer=1&match=${event.matchId}`);
  let focused=false,navigated='';const reused=await worker([{url:'https://pickle.test/?multiplayer=1',focus:async()=>focused=true,navigate:async(url:string)=>{navigated=url;return {}}}]);await reused.fire('notificationclick',{notification});assert.ok(focused);assert.equal(navigated,w.opened[0]);assert.equal(reused.opened.length,0);
- await w.fire('notificationclick',{notification:{data:{url:'https://evil.test/'},close(){}}});assert.equal(w.opened[1],'https://pickle.test/?multiplayer=1');
+ await w.fire('notificationclick',{notification:{data:{url:'https://evil.test/'},close(){}}});assert.equal(w.opened[1],'https://pickle.test/play?multiplayer=1');
  assert.equal(w.handlers.fetch,undefined,'no authoritative state caching');await w.fire('activate',{});await w.fire('install',{});
 });
 
@@ -83,7 +83,7 @@ test('nudges recheck current turn and share active suppression, payload and dead
  const w=await worker();await w.fire('push',{data:{json:()=>({...event,type:'nudge'})}});
  assert.equal(w.shown[0][1].body,'Chris nudged you. Your turn.');
  await w.fire('notificationclick',{notification:{data:w.shown[0][1].data,close(){}}});
- assert.equal(w.opened[0],`https://pickle.test/?multiplayer=1&match=${event.matchId}`);
+ assert.equal(w.opened[0],`https://pickle.test/play?multiplayer=1&match=${event.matchId}`);
 });
 
 test('muting a game suppresses both turn and nudge delivery',async()=>{
@@ -112,5 +112,5 @@ test('web invitation tap opens the invitation and rejects external targets',asyn
  const w=await worker();await w.fire('push',{data:{json:()=>({type:'invitation',invitationId:event.matchId,opponentName:'Chris'})}});
  assert.equal(w.shown[0][1].body,'Chris invited you to play.');
  await w.fire('notificationclick',{notification:{data:w.shown[0][1].data,close(){}}});
- assert.equal(w.opened[0],`https://pickle.test/?openplay=1&invite=${event.matchId}`);
+ assert.equal(w.opened[0],`https://pickle.test/play?openplay=1&invite=${event.matchId}`);
 });

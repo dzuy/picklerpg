@@ -77,6 +77,19 @@
   --pb-pressure-medium: #71baff;
   --pb-pressure-high: #cc8cff;
   --pb-serve-indicator: #32d45b;
+  /* Fixed collectible artwork palette: the neon card reference, independent of app UI. */
+  --pb-collectible-ink: #00152b;
+  --pb-collectible-navy: #003454;
+  --pb-collectible-white: #f4fdff;
+  --pb-collectible-pink: #ff169a;
+  --pb-collectible-cyan: #00eaff;
+  --pb-collectible-lime: #e3ff00;
+  --pb-collectible-royal: #1635ba;
+  --pb-collectible-purple: #c190ff;
+  --pb-collectible-mint: #00ffd0;
+  --pb-collectible-edge: #237aab;
+  --pb-collectible-dim: #123b58;
+  --pb-collectible-muted: #abe5ff;
   --pb-team-home: var(--pb-info-ink);
   --pb-team-away: var(--pb-social-ink);
 }

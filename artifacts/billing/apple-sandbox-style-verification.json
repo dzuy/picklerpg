@@ -1,0 +1,25 @@
+{
+  "checkedAt": "2026-09-29T19:42:17.222Z",
+  "testAccount": "purchase_phone",
+  "ownership": [
+    {
+      "source": "revenuecat",
+      "pack_id": "style",
+      "active": true,
+      "observed_at": "2026-09-29T19:40:44.81+00:00"
+    }
+  ],
+  "transactions": [
+    {
+      "product": "com.picklebash.app.pack.style",
+      "store": "app_store",
+      "sandbox": true,
+      "purchasedAt": "2026-09-29T19:39:59Z",
+      "refundedAt": null
+    }
+  ],
+  "webAccountOwnedPacks": [
+    "style"
+  ],
+  "sandbox": true
+}

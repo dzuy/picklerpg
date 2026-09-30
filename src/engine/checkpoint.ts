@@ -1,3 +1,4 @@
+import {isCourtTheme,type CourtTheme} from '../fun-themes';
 import {type PlayMode} from './controllers';
 import {SKILLS,type GameState,type PlayerId,type PlayerState,type RallyShot,type Team,type Vec3} from './model';
 import {flightCursor,sampleLeg,type RallyRuntime} from './rally-engine';
@@ -27,6 +28,7 @@ export interface FrozenAthlete {
  design:DesignedPlayer|null;skills:PlayerState['skills'];tendencies:PlayerState['tendencies'];handedness:PlayerState['handedness'];
 }
 export interface MatchCheckpoint {
+ courtTheme?:CourtTheme;
  schemaVersion:2;engineVersion:typeof CHECKPOINT_ENGINE|typeof HUMAN_ENGINE;matchId:string;
  mode:PlayMode;revision:number;
  rules:ScoringRules;
@@ -84,6 +86,7 @@ export function parseCheckpoint(value:unknown):MatchCheckpoint {
   inspect(value);const c:any=structuredClone(value);object(c);
   if(c.schemaVersion===1&&c.engineVersion===CHECKPOINT_ENGINE){c.schemaVersion=2;c.mode='solo';c.revision=0;}
   if(c.schemaVersion!==2||!['solo','local-human'].includes(c.mode)||c.engineVersion!==(c.mode==='solo'?CHECKPOINT_ENGINE:HUMAN_ENGINE))fail();integer(c.revision);
+  if(c.courtTheme!==undefined&&!isCourtTheme(c.courtTheme))fail();
   if(typeof c.matchId!=='string'||!c.matchId.length||c.matchId.length>100)fail();
   object(c.rules);if(!['side-out-doubles','rally-doubles'].includes(c.rules.scoring))fail();integer(c.rules.target,1);integer(c.rules.winBy,1);
   // Preserve legacy win-by rules while allowing chosen points limits.

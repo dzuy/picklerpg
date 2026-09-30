@@ -23,7 +23,10 @@ test('production serves game assets and HTTPS-origin AI on one port',async()=>{
   await new Promise<void>(resolve=>server.listen(0,'0.0.0.0',resolve));
   const port=server.address().port,url=`http://127.0.0.1:${port}`;
   assert.equal((await fetch(url)).status,200);
+  for(const path of ['/play','/play/','/play?openplay=1&match=abc']){const page=await fetch(url+path);assert.equal(page.status,200);assert.equal(page.headers.get('x-robots-tag'),'noindex, nofollow');assert.match(await page.text(),/Pickle RPG/);}
+  assert.equal((await fetch(url+'/play/missing')).status,404);
   assert.equal((await fetch(url+'/healthz')).status,200);
+  const admin=await fetch(url+'/admin/analytics');assert.equal(admin.status,200);assert.equal(admin.headers.get('x-robots-tag'),'noindex, nofollow');assert.equal((await fetch(url+'/admin/analytics/')).status,200);assert.equal((await fetch(url+'/admin/unknown')).status,404);assert.equal((await fetch(url+'/api/admin/analytics')).status,503);
   const challenge=await fetch(url+'/challenge/'+'a'.repeat(43));assert.equal(challenge.status,200);assert.equal(challenge.headers.get('referrer-policy'),'no-referrer');assert.equal(challenge.headers.get('x-robots-tag'),'noindex, nofollow');assert.match(await challenge.text(),/Pickle RPG/);
   assert.equal((await fetch(url+'/challenge/malformed')).status,200);
   assert.equal((await fetch(url+'/challenge/'+'a'.repeat(43)+encodeURIComponent(' Dzuy challenged you to PickleBash.'))).status,200);

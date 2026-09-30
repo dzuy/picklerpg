@@ -1,0 +1,13 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Player card preview</title></head><body><button id="open">Open player card</button><button id="wide">Wide costume and long name</button><iframe title="Mobile player card preview" width="390" height="844" hidden></iframe><button id="mobile">Mobile preview</button><script type="module">
+import '../../src/page-theme.css';
+import {newPlayer} from '../../src/player-design';
+import {showPlayerTradingCard} from '../../src/player-trading-card-view';
+const player=newPlayer('preview');player.name='Rally Queen';player.catchphrase='Catch me at the kitchen.';Object.assign(player.appearance,{presentation:'girl',hairStyle:'ponytail',hat:'visor',jersey:'#fa6796',bottom:'skirt',paddle:'#14cfe8'});
+document.querySelector('#open').onclick=()=>showPlayerTradingCard(player);
+document.querySelector('#wide').onclick=()=>{const wide=structuredClone(player);wide.name='WWWWWWWWWWWWWWWWWWWWWWWW';wide.handedness='left';wide.appearance.outfit='butterfly';wide.appearance.hat='sombrero';showPlayerTradingCard(wide);};
+document.querySelector('#mobile').onclick=()=>{const frame=document.querySelector('iframe');frame.hidden=false;frame.src='?mobile';};
+if(location.search==='?reference'){const reference=newPlayer('reference-preview');reference.name='dropShotBoss007';Object.assign(reference.appearance,{hairStyle:'short',hair:'#db681c',hat:'none',glasses:'oval',glassesColor:'#d89324',lensColor:'#d4e5ec',jersey:'#ffffff',bottomColor:'#ff5194',shoes:'#ff5194',paddle:'#ff169a',paddleShape:'squarish-stripes'});Object.assign(reference.skills,{serve:30,drive:30,overhead:30,drop:90,dink:90,movement:50,volley:80,counter:80,hands:80,return:100,reset:100});showPlayerTradingCard(reference);}
+if(location.search==='?mobile')showPlayerTradingCard(player);
+if(location.search==='?wide')document.querySelector('#wide').click();
+if(location.search==='?editor'){const {preloadAthletes}=await import('../../src/athlete');await preloadAthletes();const {PlayerCreator}=await import('../../src/player-creator');new PlayerCreator(()=>{}).createPlayer();}
+</script></body></html>

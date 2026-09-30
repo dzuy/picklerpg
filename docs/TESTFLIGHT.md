@@ -27,3 +27,144 @@
 ## Next release
 
 Read [iOS build instructions](IOS.md), [analytics configuration](ANALYTICS.md), and [native push requirements](NATIVE_PUSH.md). Check the latest build number in App Store Connect before archiving; do not reuse 7. Build from an explicit reviewed revision, configure production client variables before syncing, and verify the archive contents before uploading. Confirm processing, export-compliance state, and the intended existing tester groups in App Store Connect; do not assume upload success means testing is enabled.
+
+## 2026-09-29 — 1.0 (8), purchase sandbox only
+
+- Source `011367f` in `codex/permanent-pack-release`; production main/deployment unchanged. Test backend `https://purchase-sandbox-purchase-sandbox.up.railway.app`, Supabase `drdvwfjkbyvfqnmxkksl`; separate test accounts and no production grants. Analytics/replay disabled; no push/report credentials copied.
+- Native public configuration built with `ios:purchase-sandbox`; archive verified correct bundle/version, test origin/database, Apple public SDK key and absence of every actual server secret value. 22 billing/database tests and client/server build passed. Signed Release archive succeeded.
+- Upload succeeded 18:51 UTC using `testFlightInternalTestingOnly=true`; Apple processing is Complete. Build ID `1b3f5f4d-0b67-45f0-b0b8-323601a07085`. What to Test saved. The user saved the platform-only compliance selection. At 19:30 UTC, assigned build 8 to the existing one-person PickleBash Internal group and verified Apple reports Installed 1.0 (8) for the owner’s iPhone 16 Pro, iOS 26.4.2. External Friends & Players remains unchanged. Apple Style sandbox purchase was verified at 19:42 UTC; restore and account isolation were subsequently confirmed by the physical tester.
+- Temporary archive `/tmp/PickleBash-Purchase-Sandbox-1.0-8.xcarchive`; logs `/tmp/picklebash-purchase-sandbox-archive.log` and `/tmp/picklebash-purchase-sandbox-upload.log`. These are not durable archive storage.
+- Stripe test payment/refund, bundle and account isolation checks passed on the deployed sandbox. Physical Apple Style purchase and authenticated web ownership passed on September 29. Restore/account-switching passed by explicit user confirmation. Cross-provider device use, free-opponent cosmetic/court visibility, and paid-court host restrictions also passed by explicit user confirmation; see [purchase testing](PURCHASE-TESTING.md). Build 7 uses production and must not be used for these checks.
+
+## 2026-09-29 — 1.0 (9), completed packs purchase sandbox
+
+Source `54bc2ba`; existing isolated sandbox only. All four approved Fun themes and the $6.99 Everything bundle without exclusive items are included. Signed archive and internal-only upload succeeded at 22:18 UTC. Archive checks passed for database/origin isolation, included assets, and no server secrets. Temporary archive: `/tmp/PickleBash-Purchase-Sandbox-1.0-9.xcarchive`; logs `/tmp/picklebash-fun-sandbox-archive.log` and `/tmp/picklebash-fun-sandbox-upload.log`. Hosted Fun ownership/free-opponent API checks passed. Physical rendering/audio and Apple Fun/Everything purchases remain pending; see [purchase testing](PURCHASE-TESTING.md#physical-checklist-for-build-9).
+
+Apple processing and the platform-only compliance save are complete for build ID `89380daa-9835-4e49-8502-0dba8c0e5647`. What to Test is saved. At 22:26 UTC, build 9 was assigned to the existing one-person PickleBash Internal group. The prepared compliance dialog initially needed a manual Save; the subsequent page showed the requirement cleared before assignment. The build is ready for the owner to update in TestFlight. No external test group was added. At assignment time, physical results were pending; see the subsequent build 9 acceptance record below.
+
+## Build 9 physical Fun acceptance — user-confirmed, 2026-09-29
+
+The owner updated to TestFlight 1.0 (9), signed in as purchase_phone, and explicitly confirmed the Fun purchase completed and Fun showed Owned. After the content checklist, the owner reported purchasing worked as expected and confirmed a Spooky game with purchase_free also worked as expected. Record the Fun purchase/unlock and physical themed-match/free-opponent experience as passed based on the tester’s report. This is user acceptance evidence, not a new independent provider/receipt verification.
+
+Court-selection thumbnails still show the original base locations in build 9; themes appear in the actual match. This is a known preview limitation, separate from payment or entitlement correctness. Theme-aware thumbnails were recommended but have not been implemented or authorized as a new task here.
+
+Everything’s Apple purchase has not been explicitly confirmed: the most recent guided steps asked the owner to leave it unpurchased while testing Fun. Next, test the Everything Apple product on a designated account that does not already own all three packs, then relaunch/Restore Purchases and verify shared web ownership. Existing Stripe Everything coverage and build 8 restore/account-isolation results remain passed. Apple refund/revocation and saved-choice fallback checks remain outstanding. No production settings changed.
+
+## Redundant Everything purchase correction — 2026-09-29
+
+The owner identified that Everything must be disabled after buying all three individual packs. The previous instruction to buy Everything on purchase_phone was incorrect and is withdrawn. Store copy now shows “All packs owned” with a disabled button; native Apple preflight refreshes ownership and blocks before StoreKit purchase, and Stripe checkout rejects with HTTP 409 before creating/reusing a session. Bundle SKU ownership remains distinct, preserving independent refund/grant accounting. Partial ownership retains the existing fixed-price policy. These changes require a new native build; build 9 still has the old behavior. Test the bundle with an account that has not already acquired all three packs.
+
+Validation: 19 focused billing/ownership checks and the client/server production build passed. Sandbox deployment `e8e9b2e6-e541-4d6f-8c12-71396ea6159d` succeeded from source `e931765`. A refreshed purchase_phone status independently confirmed exactly Style, Court and Fun; attempting Everything checkout returned 409 `already_owned` with no checkout URL. Existing bundle ownership is not synthesized. Evidence: `artifacts/billing/redundant-bundle-check.json`.
+
+Native build 1.0 (10) compiled and signed successfully, and its archive passed test-origin/database, public SDK key, included theme assets, corrected bundle-copy and secret-exclusion checks. Internal-only upload succeeded at 22:44 UTC; Apple processing is complete for build ID `4c320373-e90b-4199-b2f8-b1f1ee398ebb`. Corrected What to Test is saved. The owner saved the unchanged platform-only compliance answer. At 22:50 UTC, build 10 was assigned to the existing one-person PickleBash Internal group. No external group was added. The owner subsequently confirmed on build 10 that Everything is disabled after owning all three individual packs. Record the physical disabled-offer check as passed by explicit user report. The latest message did not separately describe the restore step; earlier restore results remain documented above. Build 9’s What to Test was corrected and saved to withdraw the redundant purchase instruction. No production deployment or billing switch changed.
+
+
+## No-sign-out test route — September 29, 2026
+
+The owner explicitly declined signing out of the phone. The earlier Sandbox Apple Account sign-in instructions are withdrawn. Leave the newly created tester unused; do not change Media & Purchases, iCloud, or RevenueCat restore policy. Keep the existing purchase_phone identity and Apple Account.
+
+The internal purchase-sandbox build now includes a collapsed Purchase test tools section for exact active RevenueCat pack sources only. Test refund controls require iOS, the purchase-sandbox build marker, fresh sandbox server ownership, fresh RevenueCat sandbox entitlement and an exact non-consumable product. Stripe/grant/effective bundle ownership alone does not expose a refund for an individual product. Requests open Apple's refund sheet via RevenueCat; they never directly revoke database ownership. Production/web stores have no test refund controls.
+
+Physical sequence: install the updated internal build; remain purchase_phone; preserve a selected Fun cosmetic/theme; request Test refund · Fun Pack; choose a normal refund reason in Apple's sheet. After Apple confirms and Refresh packs reconciles it, verify Fun is no longer owned, Style/Court remain owned, saved choices remain stored with free fallbacks and new games cannot host Fun themes. Only then purchase Everything for the no-charge $6.99 test, confirm all three packs, relaunch/Restore, and verify server/web ownership. If needed, refund Everything afterward to check that independent Style/Court purchases survive. Do not substitute manual grant/database edits for provider refund evidence.
+
+Validation: 22 focused tests pass, including production/wrong-source/wrong-product rejection and cancellation/error handling. Browser UI simulation confirms only Apple Style/Fun refund buttons, no Stripe Court refund, Everything becomes available after simulated Fun removal, and production/web controls are absent. Sandbox web build, iOS sync and native archive pass. These checks are setup evidence only; the real Apple refund and Everything purchase remain pending. Build 11 is being prepared. No server deployment or production billing change is needed for this native control. Shared checkout's independently changed store copy is preserved; only the new refund behavior is synchronized there.
+
+
+### Build 11 ready: existing-account Apple refund and bundle test
+
+TestFlight 1.0 (11), source `eb460cd`, uploaded at 23:11:47 UTC on September 29, 2026. Apple finished processing build `49e0bcc5-3468-46c4-8567-cbf7b3f54c21`; its status is **Testing**, assigned to the existing one-person PickleBash Internal group, with the no-sign-out instructions saved. No additional manual compliance step is pending. The owner can update TestFlight, remain purchase_phone and use Profile → Store → Purchase test tools → Test refund · Fun Pack. Stop after refund/revocation and fallback checks for provider verification before purchasing Everything. This replaces the earlier separate Apple sandbox-account route; no phone Apple sign-out is needed.
+
+22 focused tests, simulated UI checks, sandbox build, native archive and archive configuration/secret checks pass. The 23:10:59 UTC baseline confirms active Apple sandbox Style/Fun and Stripe Court, with no Everything. Apple refund and Everything device results remain **pending**, not passed. Production and the hosted sandbox server deployment are unchanged. Evidence: `artifacts/billing/apple-refund-release.json`, `apple-refund-before.json`, `apple-refund-archive-verification.json`, and `testflight11-ready.png`.
+
+
+### Build 11 refund sheet connection failure — September 29, 2026
+
+The owner tapped Test refund · Fun Pack. Apple's sheet presented but displayed “Cannot Connect - Retry”; Retry repeated the error. No reason could be selected and no successful request was reported. Independent RevenueCat/database/web reads at 23:21:55 UTC show Fun and Style still active as Apple sandbox purchases, neither marked refunded, with Stripe Court unchanged. Evidence: `artifacts/billing/apple-refund-connect-error.json`. Refund/revocation and the subsequent Apple Everything purchase remain **incomplete**; no ownership reset, guard bypass, production change or phone account sign-out was performed.
+
+Code inspection confirms the Capacitor bridge forwards the exact product ID to RevenueCat, which obtains StoreKit's latest verified transaction and calls Transaction.beginRefundRequest(for:in:). The reported drawer is the Apple-provided sheet. A firsthand developer report describes the same symptom, but Apple's engineer requested diagnostics rather than identifying a definite cause: https://developer.apple.com/forums/thread/797488 . This is evidence of similar failures, not proof of a universal Apple outage or proof that this app's integration cannot be involved.
+
+Next low-impact diagnostic: dismiss the sheet, change from Wi-Fi to cellular if available, reopen PickleBash and retry the Fun test refund once. Preserve all Apple sign-ins. If it repeats, stop this device refund attempt and retain the pending status; further diagnosis needs device logs or another test environment, not a blind entitlement edit or another unverified release. The no-sign-out approach was implemented and passed local checks, but has not completed the provider refund test.
+
+
+### Refund testing deferred by owner — September 29, 2026
+
+The cellular retry produced the same Apple refund-sheet connection error. The owner explicitly asked to leave this pending and move on. Stop requesting further refund retries or phone sign-in changes. Apple refund/revocation and saved-choice fallback remain pending, and Apple Everything purchase coverage remains pending because the chosen sequence depended on that refund. Earlier successful purchase, restore, duplicate-protection, Stripe refund and social-visibility results remain valid. Do not mark either pending test as passed or silently waive it. Continue App Review preparation and launch-readiness work with production payments unchanged.
+
+
+## App Store submission preparation — 1.0 (12)
+
+Production-configured native archive compiled from the completed V1 pack release with the dedicated Apple review-account server setup. This archive uses the production API/database and public Apple SDK key; no internal-only export option is intended. Upload, processing, screenshot evidence and review availability must be verified separately. Build 11 remains the isolated refund test build with its device refund and Everything purchase deferred.
+
+
+### App Review preparation progress — September 29, 2026 (local)
+
+Build 1.0 (12), source `0f68970`, uploaded successfully as an App Store eligible build; no internal-only export option was used. Archive verification confirms production API/database and public Apple SDK configuration, included theme audio, corrected bundle copy, and absence of actual server secrets. Evidence: `artifacts/billing/app-store-12-archive-verification.json`. Apple processing/compliance and attachment to the app draft are not yet verified.
+
+Production deployment `4f85d725-1b56-4362-baaf-35fe71d0bd5c` succeeded. The Fun court-theme migration is applied, the 12 existing complimentary Everything grants remain intact, and global purchases and database access enforcement remain disabled. The dedicated review account has zero owned packs and no admin access; hosted checks show Apple ready, web checkout disabled, and scoped sandbox verification active. RevenueCat's existing production notification connection now accepts both environments; server identity filtering excludes sandbox events for ordinary production accounts. Evidence: `artifacts/billing/app-review-production-check.json`.
+
+App draft description, keywords, support URL, business contact, review notes, and manual-release selection were saved. Reviewer credentials are not yet saved with Apple; specific permission has been requested. Fresh native simulator Home and Store captures are 1284 × 2778 and saved in `artifacts/billing/app-review-home.png` and `app-review-store-v1.png`. Screenshot uploads remain pending. Apple's browser session expired before the remaining upload/build steps; the owner must sign back into App Store Connect. The draft has not been submitted or released. Apple device refund/revocation/fallback and direct Everything purchase remain explicitly pending.
+
+
+### Signed-in Apple draft follow-up — September 29, 2026
+
+Apple processing is Complete for App Store eligible build 12, ID `b730aa21-80a1-4b5e-8138-6044b325beba`. Platform-only encryption compliance was saved; TestFlight reports Ready to Submit. Build 12 is attached and saved on the version 1.0 distribution draft. No TestFlight group was added and no submission/release occurred.
+
+Three genuine 1284 × 2778 native simulator captures (Home, player creator and roster) are uploaded to the iPhone 6.5-inch listing. The current native Store screenshot is uploaded to Review Information for each of Style, Court, Fun and Everything; each upload visibly completed with a SOURCE image and was saved automatically. This screenshot is review-only, not a public listing screenshot, and contains the dedicated review account's sandbox notice. These are current UI evidence, not additional device purchase or refund test results.
+
+App Privacy's published policy URL is now `https://picklebash.app/privacy`. App classification is Games with Sports and Strategy subcategories. Audit found the App Privacy data-collection questionnaire, age-rating questionnaire, and content-rights declaration have not been completed. The review login fields remain blank pending specific permission to transmit the dedicated account credentials to Apple. The draft is therefore not ready to submit. General purchases and database enforcement remain disabled; refund/revocation/fallback and direct Apple Everything purchase remain deferred.
+
+Evidence: `artifacts/billing/app-review-build12-saved.png`, `apple-app-screenshots-saved.png`, `apple-fun-review-screenshot-saved.png`, `apple-privacy-url-saved.png`, and `apple-game-categories-saved.png`.
+
+
+### App Review declarations — September 29, 2026
+
+Owner authorized completing the review login, privacy questionnaire, age rating and content-rights declaration. Dedicated review credentials were entered into Apple's draft and saved. Reload verified sign-in required and both credential fields populated, with Save disabled; the browser redacts their values, so a direct value comparison is not valid evidence. No credentials are included in committed evidence. Build 12 remains attached, and no app submission/release occurred.
+
+Content rights saved as Yes, necessary rights to third-party content. The original Fun art/music, licensed dependencies/fonts and user-created shared content informed the declaration. Age rating saved without override: 13+ for 172 countries/regions, with Vietnam/Korea 12+ and Brazil A12. Earlier-than-26 operating systems show global 12+ with regional exceptions. UGC/chat and frequent competitive contests are declared; infrequent profanity/crude humor and horror/fear reflect filtered messages and the optional Spooky theme. No ads, gambling, loot boxes, violence or age-assurance mechanism is declared. Apple's calculation warns Afghanistan/Morocco unavailable; regional permits and distribution eligibility still require final launch review.
+
+All 11 privacy categories and their purposes/identity/tracking answers are saved. Final Publish is pending owner confirmation because Apple's dialog includes an agreement that responses are accurate, compliant and promptly updated when practices change. This is not yet a published completed privacy label. General live payments and database enforcement were not changed. Deferred Apple device refund/revocation/fallback and direct Everything purchase remain pending.
+
+Evidence: `artifacts/billing/apple-age-rating-saved.png`, `apple-review-login-verification.json`, `apple-review-draft-saved.png`, and `apple-privacy-publish-declaration.png`.
+
+
+### Privacy publication verified — September 29, 2026
+
+Owner completed publication. App Privacy visibly reports Published by Dzuy Linh, with all 11 categories configured. Evidence: artifacts/billing/apple-privacy-published.png. Add for Review validation returned an unexpected error with no specific missing field. Retry was blocked by automatic approval review because metadata completion did not explicitly authorize the submission workflow; specific approval requested. IAP list/detail pages loaded without their details, so current purchase readiness is not reverified. No submission/release or payment/enforcement change occurred.
+
+
+### Gameplay screenshot uploads — September 29, 2026
+
+Owner provided IMG_8920–IMG_8924, each 1206 × 2622. Resized full screenshots to Apple's 6.5-inch 1284 × 2778 slot without cropping or changing depicted UI; originals remain unchanged. Uploaded all five and verified all filename buttons after reload: eight total screenshots including the existing three. Uploads auto-save; draft remains Prepare for Submission. Copies: artifacts/billing/gameplay-screenshots/. Proof: artifacts/billing/apple-gameplay-screenshots-uploaded.png. No review submission or release performed.
+
+
+### Submission readiness audit — September 29, 2026
+
+Current App Store draft remains Prepare for Submission with build 12 and eight screenshots. All four non-consumable purchases are listed as Prepare for Submission; successful attachment/validation in a review submission remains unverified. Account-creation implementation has no identified in-app account-deletion flow in the release source; published policy currently directs deletion requests to email. Apple requires initiation of account deletion within account-creating apps: https://developer.apple.com/support/offering-account-deletion-in-your-app . This is an implementation gap before declaring readiness. Further release audit should verify user-content reporting/blocking/moderation and regional eligibility. Prior metadata completion is not proof of full review compliance. No submission or code/configuration change made by this audit.
+
+
+## Account safety and next review build — September 29, 2026
+
+Owner explicitly holds submission: build 12 is not final. Implemented locally: Profile account/guest deletion requests with acknowledgement and password verification, player reports and symmetric blocking, blocked-player management, broader public-name filtering, private operator queues and owned hosted-card cleanup. See ACCOUNT-SAFETY.md for scope, manual 30-day processing, deployment order, operator responsibilities and device tests. No real account was deleted, no new binary was uploaded, and live payments/enforcement were not enabled. Database migration and application deployment remain pending; the local implementation is not live. UI polish must be included in the next final build.
+
+Validation: 52 focused tests passed across account safety, database cleanup, HTTP authentication/origin protection, Community moderation, invitations/challenges, player design, chat, team directory, card publishing and legal routes. Production build and design-token validation passed. Existing chunk-size/contrast advisory notes remain. Phone-width dialogs were checked and fit without clipping. Evidence: artifacts/billing/account-safety-delete-phone.png and account-safety-report-phone.png. Device-level deletion/report/block testing remains required against the migrated sandbox and then the final native build.
+
+Apple pricing audit found no app starting price; configured and verified United States $0.00 with comparable free prices. Mac and Vision Pro availability were disabled and verified on a fresh pricing page. The shared native project now targets iPhone only; no iPad/Mac/Vision support is claimed for the next archive. Revisit other devices only after testing and appropriate screenshots. No review submission/release occurred.
+
+Territory audit: the app availability page now shows 144 available / 31 not available, with China mainland, Vietnam, Afghanistan and Morocco visibly Not Available in addition to the existing EU exclusions. The attempt to confirm those four changes was rejected by automatic approval review for lacking explicit territory authorization; the subsequent read-only UI nevertheless showed these persisted values. Attribution of the intervening UI change is unverified; no retry or workaround was performed. A specific owner confirmation is pending for applying the same exclusions to all four IAP listings. Court Pack was verified as Prepare for Submission with 148/175 selected and its review screenshot/notes present; pack-region alignment remains pending. China/Vietnam require additional game approval/licensing according to Apple's app-information reference; Afghanistan/Morocco were flagged unavailable by the age rating. Evidence: apple-release-availability-audit.png, apple-app-free-price-saved.png and apple-iphone-distribution-saved.png.
+
+After UI polish: migrate/deploy and test safety, archive a new production-configured iPhone build, update screenshots/reviewer notes to match that build, confirm pricing/territories for all four packs, attach the final binary and all four initial non-consumables to the new-version review submission, and run Apple validation before asking for final submission approval. Final submission validation is deliberately deferred while the owner holds build 12. Apple device refund/revocation/fallback and direct Everything purchase remain pending as previously recorded; do not mark them passed.
+
+Reference: https://developer.apple.com/help/app-store-connect/reference/app-information/app-information
+
+
+## Required future markets: China mainland and Vietnam
+
+Owner decision, September 29, 2026: **China mainland and Vietnam are required future distribution markets for PickleBash.** Their initial exclusions are temporary launch deferrals, not a decision to abandon either market. Revisit this item during post-launch market expansion planning and before changing territorial availability. No target date is set. This note does not authorize a new availability change or waive regional requirements.
+
+- [ ] Recheck current Apple and local game-distribution requirements for both markets. The September 29 reference is a starting point, not proof of future eligibility.
+- [ ] Determine and obtain the necessary China mainland game registration/approval and Vietnam game-publishing license, including any local publishing partner requirements.
+- [ ] Review localization, privacy/data handling, content, age ratings and purchase/payment eligibility for each market.
+- [ ] Configure the required compliance information in App Store Connect and align availability for the app and all four V1 pack purchases.
+- [ ] Test account access, gameplay, purchase verification and restoration in each market before enabling distribution.
+
+Track this as a required market-expansion follow-up. Keep it separate from the present UI-polish/final-build submission work. Reference: https://developer.apple.com/help/app-store-connect/reference/app-information/app-information

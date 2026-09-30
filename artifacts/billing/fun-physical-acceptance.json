@@ -1,0 +1,14 @@
+{
+  "date": "2026-09-29",
+  "build": "1.0 (9)",
+  "evidence": "explicit user report",
+  "account": "purchase_phone",
+  "funPurchaseAndOwnedState": "passed",
+  "theme": "horrified",
+  "freeOpponent": "purchase_free",
+  "themedMatchExperience": "passed",
+  "courtThumbnailBehavior": "base court only; known preview limitation",
+  "everythingApplePurchase": "not explicitly confirmed",
+  "appleRefundRevocation": "pending",
+  "productionChanged": false
+}

@@ -85,6 +85,10 @@ After edits:
 
 ## Change log
 
+- September 29, 2026: Player Creator Appearance/Skills tabs match Play with a primary pink sliding highlight, keyboard tab navigation, and reduced-motion support. Paid appearance groups show a Premium badge beside their pack name.
+
+- September 29, 2026: single-choice dropdowns use a shared 40px height, compact vertical padding, and a text-colored chevron inset 15px from the right edge. Native selection and forced-color controls remain available. Game Settings uses smaller gaps between the court heading, thumbnails, Theme, and scoring fields.
+
 - September 2026: adopted the markdown Daylight palette for UI; superseded the dark cobalt guide; centralized UI tokens, replaced raster control treatments, and added an internal preview and contrast/token check. Character and court restyling explicitly deferred.
 
 - September 21, 2026: primary action buttons changed to pink with white labels; use `--pb-primary` / `--pb-on-primary`. Action pink is slightly deeper than the decorative Bash Pink to meet normal-text contrast. Lime ball illustrations and selection accents stay independent.
@@ -116,3 +120,7 @@ Toucan has been retired; saved Toucan selections normalize to None. Bee wings pr
 The crown has raised multicolor faceted jewels around its band. Cape is a premium accessory attached at the shoulders, with folded cloth and a rear-view thumbnail. It uses the existing free Accessories Color control and is hidden while a full-body outfit is worn.
 
 Tiara is premium headwear with an open-backed band, five jewel arches, colored faceted stones, and pearl tips. Its band uses the existing free Hat Color control.
+
+### Player collection cards
+
+The character editor exports a 1080 × 1350 neon collectible card matching the supplied September 29 reference. This fixed marketing artwork is an explicit exception to the Daylight application palette: `--pb-collectible-*` tokens define deep navy, electric cyan, hot pink, lime, lavender and mint. The dialog itself retains standard UI tokens. Cards use a generated tropical court background, the unchanged PickleBash logo, a large real equipped character cutout, a shaded perforated ball with recessed holes and tapered glowing motion ribbons, a beveled foil frame, a lower nameplate, and ten-segment glowing skill meters. Keep live player names and all numbers out of baked artwork. Fit wide accessories within the illustration; scale long names to fit. The DUPR badge is temporarily omitted from card exports. The footer preserves `picklebash.app`. See [player card behavior](PLAYER-CARDS.md).

@@ -1,0 +1,14 @@
+{
+  "at": "2026-09-29T22:16:23.262Z",
+  "source": "54bc2ba",
+  "bundle": "com.picklebash.app",
+  "version": "1.0",
+  "build": "9",
+  "sandboxOrigin": true,
+  "sandboxDatabase": true,
+  "applePublicKey": true,
+  "noProductionDatabase": true,
+  "noServerSecrets": true,
+  "allFourThemeAudioAssets": true,
+  "noExclusivePromises": true
+}

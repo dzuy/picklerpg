@@ -612,3 +612,12 @@
 #player-creator[data-view=editor] .creator-customization-tier+.creator-customization-tier{padding-top:12px;border-top:1px solid var(--pb-border)}
 #player-creator[data-view=editor] .creator-tier-label{font-size:12px;font-weight:650;color:var(--pb-text)}
 #player-creator[data-view=editor] .creator-tier-label>span{font-weight:400;color:var(--pb-text-secondary)}
+
+/* Match the Play page's pink sliding tab highlight. */
+#player-creator[data-view=editor] .creator-stage .creator-tabs{position:relative;isolation:isolate;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;padding:5px;background:var(--pb-surface);border:1px solid transparent;border-radius:var(--pb-radius-card)}
+#player-creator .creator-tab-highlight{position:absolute;z-index:-1;top:6px;bottom:6px;left:6px;width:calc((100% - 12px)/2);border-radius:var(--pb-radius-card);background:var(--pb-primary);pointer-events:none;transform:translateX(0)}
+#player-creator .creator-tabs[data-active=skills] .creator-tab-highlight{transform:translateX(100%)}
+#player-creator[data-view=editor] .creator-tabs button,#player-creator[data-view=editor] .creator-tabs button[aria-selected=true]{background:transparent;border-color:transparent;box-shadow:none;font-weight:650;white-space:nowrap;transition:color 160ms ease}
+#player-creator[data-view=editor] .creator-tabs button[aria-selected=true]{color:var(--pb-on-primary)}
+#player-creator[data-view=editor] .creator-tier-label .creator-premium-badge{display:inline-block;margin-left:6px;padding:3px 8px;border-radius:var(--pb-radius-pill);background:var(--pb-warning);color:var(--pb-warning-ink);font-size:10px;font-weight:700}
+@media(prefers-reduced-motion:reduce){#player-creator[data-view=editor] .creator-tabs button{transition:none}}

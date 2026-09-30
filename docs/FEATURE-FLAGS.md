@@ -4,7 +4,7 @@ Application code uses `FeatureFlags.isEnabled(name)` or `FeatureFlags.getVariant
 
 | Flag | Safe fallback | Initial PostHog rollout |
 | --- | --- | --- |
-| `rematch_auto_countdown` | OFF; existing manual rematch | ON only for the verified internal account `dzuy`, targeted by stable Distinct ID |
+| `rematch_auto_countdown` | OFF; existing manual rematch | ON for 100% of all users, including guests (September 28 follow-up) |
 | `decision_quiz` | OFF | OFF, reserved for future behavior |
 | `xp_progression` | ON | ON; descriptive foundation, does not revoke or alter existing XP economics |
 | `advanced_stats` | OFF | OFF, reserved |
@@ -26,3 +26,15 @@ After a full rollout has remained stable and supported native versions no longer
 Local test follow-up: the ignored `.env.local` enables `rematch_auto_countdown` through the existing development override. Eligible solo countdowns now show “Rematching in 10…” and start another solo game at expiry. Cancelling, leaving, backgrounding, or disabling the flag prevents that start. This local change does not expand production targeting or bypass server authorization for multiplayer.
 
 Release follow-up: `8af8c6b` reached Active on Railway on September 28, 2026. TestFlight 1.0 (7) uploaded with production analytics configuration; Apple processing completed; export compliance, tester assignment, and physical-device checks remain pending. This release does not change remote flag targeting, event ownership, privacy rules, or dashboard metric definitions. See [release record](TESTFLIGHT.md).
+
+September 28 all-player rollout: at the user’s explicit request, removed the Distinct ID restriction on live flag 914756 and retained a 100% rollout with no property filters, for both client and server. Luna and guest identities are now included. Build 7 already contains the heading countdown; no new binary is needed for this setting. Existing clients refresh flags every 45 seconds; a screen opened before refresh may need to be reopened. Existing invitation and lifecycle cancellation rules still apply.
+
+Homepage routing follow-up (local, not deployed): marketing at `/` does not evaluate product flags. `/play`, legacy game links and native entry retain the existing game flag behavior and fallbacks. Live flag configuration is unchanged.
+
+### Permanent pack rollout controls (local, 2026-09-29)
+
+Billing does not evaluate `plus_features` to grant pack ownership. `PACK_STORE_ENABLED` activates the migrated subsystem only after its schema is installed. The service-owned database row `premium_configuration.enforcement_enabled` stages court/cosmetic restrictions; `BILLING_PURCHASES_ENABLED` plus required provider/webhook/policy configuration stages checkout. Both default off. These are operational rollout controls, independent of per-account pack ownership and PostHog targeting. See [BILLING.md](BILLING.md) for deployment order; no live flag targeting was changed by this implementation.
+
+Purchase-sandbox follow-up (2026-09-29): the separate Railway service and TestFlight 1.0 (8) use only sandbox database facts, with client/server PostHog and replay explicitly disabled and no ingestion keys copied. Standard account audit hooks were restored after schema-only branching; their facts remain local to that database. Event ownership, privacy rules, metric definitions and production remote targeting are unchanged. See [purchase testing](PURCHASE-TESTING.md) for the dated deployment and physical-test status.
+
+Web tax preparation (local, September 29, 2026): `STRIPE_AUTOMATIC_TAX_ENABLED` is a server billing configuration setting, default false, independent of PostHog flags, ownership and purchase enablement. Enable it only after tax settings/categories/registrations are verified. Checkout requires a current billing address and avoids reusing sessions with a different tax policy. No analytics events, identity/privacy rules, metric definitions or remote flag targeting change; see BILLING.md for pending setup facts and deployment state.

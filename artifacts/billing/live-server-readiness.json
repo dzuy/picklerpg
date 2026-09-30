@@ -1,0 +1,24 @@
+{
+  "checkedAt": "2026-09-30T05:25:09.184Z",
+  "withPurchaseSwitchEnabled": {
+    "webReady": true,
+    "availablePacks": [
+      "style",
+      "court",
+      "fun",
+      "everything"
+    ],
+    "ownedPacks": [
+      "everything"
+    ],
+    "enforced": false
+  },
+  "webhook": {
+    "signed": {
+      "status": 200
+    },
+    "invalid": {
+      "status": 400
+    }
+  }
+}

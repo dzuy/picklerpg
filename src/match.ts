@@ -1,3 +1,4 @@
+import type {CourtTheme} from './fun-themes';
 import {computerPower} from './engine/computer-power';
 import {BODY_HIT_REACTION_SECONDS,type ReplayBodyHit} from './body-hit-timing';
 import {shotCommentary} from './shot-commentary';
@@ -114,6 +115,7 @@ export class Match {
  /** Checkpoint persistence is installed by the local session; legacy practice stays isolated. */
  onCheckpoint:((checkpoint:MatchCheckpoint,played?:{shotIndex:number;shot:RallyShot}[])=>void)|null=null;
  matchId:string=playerId();
+ courtTheme:CourtTheme='none';
  private frozenRoster:Record<PlayerId,FrozenAthlete>|null=null;
  private committed:MatchCheckpoint|null=null;
  private pendingAutomaticChoice:{actor:PlayerId;intent:ShotIntent;receiver:string|null}|null=null;
@@ -123,7 +125,7 @@ export class Match {
  get turnPlayback(){return structuredClone(this.lastTurnPlayback)}
  private checkpointMetadata():Omit<MatchCheckpoint,'rally'>{
   const roster=Object.fromEntries(SLOTS.map(id=>{const p=this.engine.state.players.find(p=>p.id===id)!;return [id,{design:this.getPlayerDesign(id),skills:p.skills,tendencies:p.tendencies,handedness:p.handedness}]})) as Record<PlayerId,FrozenAthlete>;
-  return structuredClone({schemaVersion:2 as const,engineVersion:this.isLocalHuman?HUMAN_ENGINE:CHECKPOINT_ENGINE,mode:this.mode,revision:this.revision,matchId:this.matchId,rules:this.scoring.rules,
+  return structuredClone({schemaVersion:2 as const,engineVersion:this.isLocalHuman?HUMAN_ENGINE:CHECKPOINT_ENGINE,mode:this.mode,revision:this.revision,matchId:this.matchId,...(this.courtTheme!=='none'?{courtTheme:this.courtTheme}:{}),rules:this.scoring.rules,
    scoring:{score:this.scoring.score,serving:this.scoring.serving,server:this.scoring.server,serverNumber:this.scoring.serverNumber,right:this.scoring.right,winner:this.scoring.winner},
    pointIndex:this.point,seed:this.seed,openingTeam:this.openingTeam,roster,context:this.currentContext,customIndex:this.customIndex,
    solo:{partnerAutonomy:this.partnerAutonomy,playerAutonomy:this.playerAutonomy,brainMode:this.brainMode,personality:this.personality,intelligence:this.intelligence,memory:this.memory.observations,recentChoices:this.autoChoices,strategy:this.strategy??null,strategyPoint:this.strategyPoint,partnerInstructions:this.partnerInstructions,recommendationType:this.recommendationType}});
@@ -136,7 +138,7 @@ export class Match {
  static fromCheckpoint(value:unknown){const checkpoint=parseCheckpoint(value);const match=new Match(false);match.hydrateCheckpoint(checkpoint);return match}
  restoreCheckpoint(value:unknown){const c=parseCheckpoint(value);this.request?.abort();this.request=null;this.generation++;this.stopReplay();this.replayFrames=[];this.replayShots=[];this.gameReplay=[];this.customBusy=false;this.customPreview=null;this.customDraft='';this.customStatus='';this.thinking=false;this.queuedReceptionIntent=null;this.queuedReceptionShot=null;this.committed=null;this.committedPlayback=[];this.lastTurnPlayback=[];this.practice=null;this.hydrateCheckpoint(c)}
  private hydrateCheckpoint(c:MatchCheckpoint){
-  this.playMode=c.mode;this.revision=c.revision;this.matchId=c.matchId;this.seed=c.seed;this.point=c.pointIndex;this.openingTeam=c.openingTeam;
+  this.courtTheme=c.courtTheme??'none';this.playMode=c.mode;this.revision=c.revision;this.matchId=c.matchId;this.seed=c.seed;this.point=c.pointIndex;this.openingTeam=c.openingTeam;
   if(c.mode==='solo')this.soloTarget=c.rules.target;
   this.scoring=new DoublesScore(structuredClone(c.rules));Object.assign(this.scoring,structuredClone(c.scoring));
   this.frozenRoster=structuredClone(c.roster);this.designedPlayer=c.roster.you.design;this.substitutes={};for(const id of SLOTS)if(id!=='you'&&c.roster[id].design)this.substitutes[id]=structuredClone(c.roster[id].design!);

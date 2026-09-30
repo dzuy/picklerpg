@@ -1,3 +1,4 @@
+import {isCourtTheme,applyFunTheme} from '../../src/fun-themes';
 import {isCourtLocation} from '../../src/locations';
 import {resolvePublicTeam} from './public-players';
 import {friendIds} from '../../src/multiplayer/team-directory';
@@ -15,22 +16,23 @@ import {ApiError} from './errors';
 import {uuid,requestHash} from './validation';
 export class FriendService {
  constructor(private client:SupabaseClient,private matches:MatchService){}
- private check(error:any){if(error)throw new ApiError(error.code==='PT409'?409:503,'challenge',error.code==='PT409'?'This challenge has already been accepted or is no longer available.':'Could not save your challenge. Please try again.');}
+ private check(error:any){if(error?.code==='PT410')throw new ApiError(403,'blocked','Contact is unavailable for this player.');if(error?.code==='PT403')throw new ApiError(403,'premium_required','The selected court or theme requires its pack. Choose another option or open the Store.');if(error)throw new ApiError(error.code==='PT409'?409:503,'challenge',error.code==='PT409'?'This challenge has already been accepted or is no longer available.':'Could not save your challenge. Please try again.');}
  async event(actor:string|null,event:string,invite?:any){try{const {error}=await this.client.from('invite_events').insert({event_key:randomUUID(),event,actor_id:actor,invite_id:invite?.id??null,game_id:invite?.match_id??null});if(error)console.warn('Invite analytics unavailable');}catch{console.warn('Invite analytics unavailable');}}
  async clientEvent(actor:string,input:any){if(!input||!['invite_friend_started','invite_name_entered','invite_share_opened','invite_link_copied','invite_share_completed','guest_registration_started'].includes(input.event))throw new ApiError(400,'event','Invalid event.');let invite;if(input.token){invite=await this.get(input.token);if(invite.inviter_id!==actor)throw new ApiError(403,'event','Not your challenge.');}await this.event(actor,input.event,invite);return {ok:true};}
  async get(token:string){const {data,error}=await this.client.from('friend_challenges').select('*').eq('token',token).maybeSingle();this.check(error);if(!data)throw new ApiError(404,'challenge','This challenge is no longer available.');return data;}
  preview(i:any){return {inviterName:i.inviter_name,invitedName:i.invited_name,status:i.status};}
  async own(actor:string,match:string){const {data,error}=await this.client.from('friend_challenges').select('*').eq('match_id',match).eq('inviter_id',actor).maybeSingle();this.check(error);if(!data)throw new ApiError(404,'challenge','Challenge not found.');return {...this.preview(data),token:data.token,matchId:data.match_id};}
  async create(actor:string,input:any){
-  if(!input||Object.keys(input).some(k=>!['name','requestId','team','court','scoring','target'].includes(k))||!uuid(input.requestId))throw new ApiError(400,'challenge','Enter your friend’s name.');
+  if(!input||Object.keys(input).some(k=>!['name','requestId','team','court','scoring','target','courtTheme','playerTheme'].includes(k))||!uuid(input.requestId))throw new ApiError(400,'challenge','Enter your friend’s name.');
   const name=playerName(input.name);if(name.length>24)throw new ApiError(400,'name','Use a friend’s name of up to 24 characters.');const self=this.matches.config(actor).selfName;
+  if((input.courtTheme!==undefined&&!isCourtTheme(input.courtTheme))||(input.playerTheme!==undefined&&!isCourtTheme(input.playerTheme)))throw new ApiError(400,'theme','Choose a valid theme.');
   const court=input.court??'forest',scoring=input.scoring??'rally-doubles',target=input.target??3;
   if(!isCourtLocation(court)||!['rally-doubles','side-out-doubles'].includes(scoring)||!isValidTargetScore(target))throw new ApiError(400,'settings','Choose valid scoring, points limit, and court.');
-  const team=await resolvePublicTeam(this.client,parseTeam(input.team),actor);
+  const resolved=await resolvePublicTeam(this.client,parseTeam(input.team),actor);const team=input.playerTheme&&input.playerTheme!=='none'?resolved.map(p=>({...p,appearance:applyFunTheme(p.appearance,input.playerTheme)})):resolved;
   const make=(name:string)=>({...newPlayer(randomUUID()),name:name.slice(0,24),appearance:{...LOOKS[randomInt(LOOKS.length)].appearance}});
   const m=this.matches.prepare(actor,{creationId:input.requestId,opponentId:randomUUID(),scoring,roster:{you:team[0],partner:team[1],'opponent-left':make(name),'opponent-right':make('Partner')}},true);
-  m.checkpoint.court=court;m.checkpoint.rules.target=target;
-  const {data,error}=await this.client.rpc('create_friend_challenge',{p_match:m,p_invite:{id:randomUUID(),token:randomBytes(32).toString('base64url'),inviter_id:actor,inviter_name:self,invited_name:name,request_id:input.requestId,request_hash:requestHash({name,team,...(input.court!==undefined?{court}:{}),...(input.scoring!==undefined?{scoring}:{}),...(input.target!==undefined?{target}:{})})}});this.check(error);
+  m.checkpoint.court=court;m.checkpoint.courtTheme=input.courtTheme??'none';m.checkpoint.rules.target=target;
+  const {data,error}=await this.client.rpc('create_friend_challenge',{p_match:m,p_invite:{id:randomUUID(),token:randomBytes(32).toString('base64url'),inviter_id:actor,inviter_name:self,invited_name:name,request_id:input.requestId,request_hash:requestHash({name,team,...(input.courtTheme!==undefined?{courtTheme:input.courtTheme}:{}),...(input.court!==undefined?{court}:{}),...(input.scoring!==undefined?{scoring}:{}),...(input.target!==undefined?{target}:{})})}});this.check(error);
   return {...this.preview(data),token:data.token,matchId:data.match_id};
  }
  async accept(token:string,actor:string,cancel=false,acceptAs?:string,selectedTeam?:unknown){

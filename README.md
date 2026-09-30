@@ -31,9 +31,11 @@ The agreed color direction, usage rules, and foundation for future marketing con
 
 ## Premium access
 
-[docs/PREMIUM.md](docs/PREMIUM.md) defines the growing Premium / PickleBash+ feature collection, current access behavior, and decisions reserved for future billing and in-app purchases.
+[docs/PREMIUM.md](docs/PREMIUM.md) defines permanent cosmetic pack ownership, free content, and the separate analysis access policy.
 
 ## Analytics and feature flags
+
+The simple dashboard is at `/admin/analytics`; see [admin dashboard setup](docs/ADMIN-ANALYTICS.md).
 
 Start with [analytics architecture and future dashboard decisions](docs/ANALYTICS-ARCHITECTURE.md). The [implementation reference](docs/ANALYTICS.md) covers event ownership, identity, privacy, environment settings, live dashboard links, and release checks. The [feature-flag guide](docs/FEATURE-FLAGS.md) covers defaults, targeting, rollout, and removal. Deployment status in these documents is a dated snapshot; verify it before resuming work.
 
@@ -132,3 +134,5 @@ Use **Player Design** in the header to create and name players, customize faces,
 ## Automatic match evaluation
 
 Run `npm run evaluate:games -- --scenario equal-70,90-vs-70,70-vs-50 --seeds 2` for a 48-game baseline. The runner uses actual local auto-play with seeded side/position swaps, saves reports under `evaluation/`, and never writes account match history. See [the evaluation guide](docs/GAME-EVALUATION.md) for the full skill suite, custom profiles, and reproducible shot traces.
+
+Public homepage and `/play` entry: see [routing, compatibility and release checks](docs/HOMEPAGE.md).

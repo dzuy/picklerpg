@@ -1,3 +1,4 @@
+import {dressFunAthlete,dressFunPaddle} from './fun-athlete';
 import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {dressCostume} from './athlete-costumes';
@@ -7,7 +8,8 @@ import type {Appearance} from './player-design';
  * Each rigid part attaches to its existing bone; no second skeleton is animated. */
 export function dressAthlete(model:THREE.Group,appearance:Appearance){
  const costumed=!!appearance.outfit&&appearance.outfit!=='none';
- const a:Appearance=costumed?{...appearance,hat:'none',hairStyle:'none',top:'tank',bottom:'skirt',shoeStyle:'court',accessory:'none'}:appearance;
+ const fun=appearance.funTheme&&appearance.funTheme!=='none';
+ const a:Appearance=fun?{...appearance,hat:appearance.funOverrides?.includes('hat')?appearance.hat:'none',accessory:appearance.accessory,outfit:'none',hairStyle:appearance.funTheme==='disco'&&!appearance.funOverrides?.includes('hair')?'afro':appearance.hairStyle}:costumed?{...appearance,hat:'none',hairStyle:'none',top:'tank',bottom:'skirt',shoeStyle:'court',accessory:'none'}:appearance;
  const bones=new Map<string,THREE.Bone>();model.traverse(o=>{if(o instanceof THREE.Bone)bones.set(o.name,o)});
  const mats=new Map<string,THREE.MeshStandardMaterial>();
  const material=(color:string)=>{let m=mats.get(color);if(!m){m=new THREE.MeshStandardMaterial({color,roughness:.83});mats.set(color,m)}return m};
@@ -108,7 +110,7 @@ export function dressAthlete(model:THREE.Group,appearance:Appearance){
     if(pattern==='circles')for(const [x,y,r] of [[-.045,.055,.038],[.043,-.02,.047],[-.04,-.078,.022]])mesh(decoration,new THREE.RingGeometry(r-.008,r,32),a.paddle,new THREE.Vector3(x,y,0));
     if(pattern==='lines')for(let i=-1;i<=1;i++)line(decoration,[new THREE.Vector3(-.095,i*.043-.018,0),new THREE.Vector3(0,i*.043+.022,0),new THREE.Vector3(.095,i*.043-.018,0)],a.paddle,.003);
    }
-   attach(g,'paddle_socket');
+   dressFunPaddle(g,center,appearance);attach(g,'paddle_socket');
   }
  }
 
@@ -514,7 +516,8 @@ export function dressAthlete(model:THREE.Group,appearance:Appearance){
   const clasp=mesh(g,new THREE.SphereGeometry(.032,12,8),white,new THREE.Vector3(0,.80,.205));clasp.scale.set(1,1,.4);
   attach(g,'chest');
  }
- if(costumed)dressCostume(model,appearance);
+ if(costumed&&!fun)dressCostume(model,appearance);
+ dressFunAthlete(model,appearance);
  // Compress only the neck bone. Cancel its scale on the head so the face,
  // hair and accessories retain their size while the full head sits lower.
  const neck=bones.get('neck'),head=bones.get('head');

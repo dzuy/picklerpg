@@ -1,0 +1,15 @@
+{
+  "checkedAt": "2026-09-29T22:57:03.265Z",
+  "testAccount": "purchase_web",
+  "ownership": [
+    {
+      "source": "stripe",
+      "pack_id": "style",
+      "active": false,
+      "observed_at": "2026-09-29T18:59:55.433+00:00"
+    }
+  ],
+  "transactions": [],
+  "webAccountOwnedPacks": [],
+  "sandbox": true
+}

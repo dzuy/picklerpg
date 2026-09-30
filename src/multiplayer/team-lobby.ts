@@ -1,3 +1,5 @@
+import {storePage} from '../premium-dialog';
+import {openPlayerSafety} from '../account-safety';
 import {focusView,showViewDialog} from '../view-focus';
 import {rivalryProfile,rivalryCardStory} from './rivalry-view';
 import type {MatchRivalry} from './rivalry';
@@ -18,7 +20,7 @@ function node<K extends keyof HTMLElementTagNameMap>(tag:K,cls:string,text=''){c
 export class TeamLobby {
  readonly element=node('section','team-lobby');
  navigation!:HTMLElement;
- private static activeTab:'games'|'friends'|'community'|'roster'|'profile'=initialLobbyPage()==='friends'&&new URLSearchParams(location.search).get('view')==='community'?'community':initialLobbyPage();private get tab(){return TeamLobby.activeTab}private set tab(value:'games'|'friends'|'community'|'roster'|'profile'){TeamLobby.activeTab=value}private static portraits:AvatarThumbnails|undefined;private get portraits(){return TeamLobby.portraits;}
+ private static activeTab:'games'|'friends'|'community'|'roster'|'store'|'profile'=initialLobbyPage()==='friends'&&new URLSearchParams(location.search).get('view')==='community'?'community':initialLobbyPage();private get tab(){return TeamLobby.activeTab}private set tab(value:'games'|'friends'|'community'|'roster'|'store'|'profile'){TeamLobby.activeTab=value}private static portraits:AvatarThumbnails|undefined;private get portraits(){return TeamLobby.portraits;}
  private static records=new Map<string,{expires:number;value:Promise<(ReturnType<typeof profileRecord>&{activity?:ActivityRewards;lifetimeXp?:number|null})>}>();
  private record(person:LobbyTeam){
   const key=`${this.data.self.id}:${person.id}`,cached=TeamLobby.records.get(key);
@@ -28,39 +30,57 @@ export class TeamLobby {
   void value.catch(()=>{if(TeamLobby.records.get(key)===entry)TeamLobby.records.delete(key);});return value;
  }
  private data:TeamDirectory;private message='';
- constructor(data:TeamDirectory,private actions:{signOut:()=>Promise<void>;authenticate:(signup:boolean,guest:boolean)=>void;roster:()=>void;create:()=>void;invite?:()=>void;challenge:(team:LobbyTeam)=>void;changed:(data:TeamDirectory)=>void;enabled:boolean;games:HTMLElement;rivalryFor?:(opponent:string)=>MatchRivalry|undefined}){this.data=data;this.draw();void preloadAthletes().then(()=>{TeamLobby.portraits??=new AvatarThumbnails(256);if(this.element.isConnected)this.draw()}).catch(()=>{});}
+ private previousSocialTab:'games'|'friends'|'community'|null=null;
+ constructor(data:TeamDirectory,private actions:{directoryState?:'loading'|'ready'|'error';retryDirectory?:()=>void;signOut:()=>Promise<void>;authenticate:(signup:boolean,guest:boolean)=>void;roster:()=>void;create:()=>void;invite?:()=>void;challenge:(team:LobbyTeam)=>void;changed:(data:TeamDirectory)=>void;enabled:boolean;games:HTMLElement;rivalryFor?:(opponent:string)=>MatchRivalry|undefined}){this.data=data;this.draw();void preloadAthletes().then(()=>{TeamLobby.portraits??=new AvatarThumbnails(256);if(this.element.isConnected)this.draw()}).catch(()=>{});}
  selectTab(tab:LobbyPage){
   this.tab=tab;history.replaceState(null,'',tab==='games'?'/?openplay=1':`/?openplay=1&tab=${tab}`);this.draw();
   if(tab==='roster')this.actions.roster();
   else{focusView(this.element);window.scrollTo({top:0,behavior:'instant'});}
  }
- private selectFriendsView(view:'friends'|'community'){const keyboard=document.activeElement?.matches(':focus-visible');this.tab=view;history.replaceState(null,'',`/?openplay=1&tab=friends${view==='community'?'&view=community':''}`);this.draw();if(keyboard)this.element.querySelector<HTMLElement>(`#friends-tab-${view}`)?.focus({preventScroll:true});}
+ private selectFriendsView(view:'games'|'friends'|'community'){const keyboard=document.activeElement?.matches(':focus-visible');this.tab=view;history.replaceState(null,'',view==='games'?'/?openplay=1':`/?openplay=1&tab=friends${view==='community'?'&view=community':''}`);this.draw();if(keyboard)this.element.querySelector<HTMLElement>(`#friends-tab-${view}`)?.focus({preventScroll:true});}
  private button(text:string,action:()=>void,cls='team-lobby-quiet'){const b=node('button',cls,text);b.type='button';b.onclick=action;return b;}
  private draw(){
   this.element.replaceChildren();this.element.dataset.tab=this.tab;
   const heading=node('div','team-lobby-heading');
-  if(this.tab==='profile'||this.tab==='friends'||this.tab==='community')heading.append(node('h1','',this.tab==='profile'?'Profile':'Friends'));
-  else {const copy=node('div','team-lobby-heading-copy');copy.append(node('h1','','Open Play'));heading.append(copy);}
-  const nav=appNavigation(this.tab==='community'?'friends':this.tab,(key,href)=>{
+  let tabHighlight:HTMLElement|undefined,previousTabIndex=0,nextTabIndex=0;
+  const socialView=this.tab==='games'||this.tab==='friends'||this.tab==='community';
+  heading.append(node('h1','',socialView?'Play':this.tab==='profile'?'Profile':this.tab==='store'?'Store':'Roster'));
+  const nav=appNavigation(socialView?'games':this.tab==='community'?'games':this.tab,(key,href)=>{
    if(key==='home'){location.assign(href);return;}
    this.selectTab(key);
   });
   const grid=node('div','team-lobby-grid'),directory=node('section','team-directory');
-  directory.id='team-directory-panel';directory.setAttribute('aria-labelledby',`lobby-nav-${this.tab==='community'?'friends':this.tab}`);
-  this.actions.games.hidden=this.tab!=='games';directory.append(this.actions.games);
-  if(this.tab==='friends'||this.tab==='community'){
-   const tabs=node('div','friends-tabs');tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','Friends views');
-   for(const view of ['friends','community'] as const){
-    const tab=this.button(view==='friends'?'My Friends':'Community',()=>this.selectFriendsView(view),'friends-tab');
-    tab.id=`friends-tab-${view}`;tab.setAttribute('role','tab');tab.setAttribute('aria-selected',String(this.tab===view));tab.setAttribute('aria-controls','friends-list-panel');tab.tabIndex=this.tab===view?0:-1;
-    tab.onkeydown=event=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(event.key)){event.preventDefault();this.selectFriendsView(event.key==='Home'?'friends':event.key==='End'?'community':view==='friends'?'community':'friends');}};
+  directory.id='team-directory-panel';directory.setAttribute('aria-labelledby',`lobby-nav-${socialView?'games':this.tab}`);
+  this.actions.games.hidden=this.tab!=='games';
+  this.actions.games.id='games-list-panel';this.actions.games.tabIndex=0;this.actions.games.setAttribute('role','tabpanel');this.actions.games.setAttribute('aria-labelledby','friends-tab-games');
+  if(socialView){
+   const tabs=node('div','friends-tabs');tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','Play views');
+   const views=['games','friends','community'] as const;
+   nextTabIndex=views.indexOf(this.tab as typeof views[number]);previousTabIndex=this.previousSocialTab===null?nextTabIndex:views.indexOf(this.previousSocialTab);
+   this.previousSocialTab=this.tab as typeof views[number];
+   tabs.dataset.active=this.tab;
+   tabHighlight=node('span','friends-tab-highlight');tabHighlight.setAttribute('aria-hidden','true');tabs.append(tabHighlight);
+   for(const view of views){
+    const tab=this.button(view==='games'?'My Games':view==='friends'?'My Friends':'Community',()=>this.selectFriendsView(view),'friends-tab');
+    tab.id=`friends-tab-${view}`;tab.setAttribute('role','tab');tab.setAttribute('aria-selected',String(this.tab===view));tab.setAttribute('aria-controls',view==='games'?'games-list-panel':'friends-list-panel');tab.tabIndex=this.tab===view?0:-1;
+    tab.onkeydown=event=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(event.key)){event.preventDefault();const index=views.indexOf(view),next=event.key==='Home'?0:event.key==='End'?views.length-1:(index+(event.key==='ArrowRight'?1:-1)+views.length)%views.length;this.selectFriendsView(views[next]);}};
     tabs.append(tab);
    }
    directory.append(tabs);
+  }
+  directory.append(this.actions.games);
+  if(this.tab==='friends'||this.tab==='community'){
    const communityView=this.tab==='community';
-   const people=this.data.teams.filter(person=>communityView?canShowCommunityAccount(person.manager,null):this.data.friends.includes(person.id));
+   const directoryState=this.actions.directoryState??'ready';
+   const people=directoryState==='ready'?this.data.teams.filter(person=>communityView?canShowCommunityAccount(person.manager,null):this.data.friends.includes(person.id)):[];
    const list=node('div','team-directory-list');list.id='friends-list-panel';list.setAttribute('role','tabpanel');list.setAttribute('aria-labelledby',`friends-tab-${this.tab}`);list.tabIndex=0;
-   if(!people.length){const empty=node('div','team-directory-empty');empty.append(node('h2','',this.tab==='friends'?'Build your court circle':'The court is open'),node('p','',this.tab==='friends'?'Find players in Community and add them to Friends for your next match.':'Players will appear here after they complete their first game.'));empty.append(this.button(this.tab==='friends'?'Explore Community':'Create a Game',()=>{if(this.tab==='friends'){this.selectFriendsView('community')}else this.actions.create()}));list.append(empty);}
+   list.setAttribute('aria-busy',String(directoryState==='loading'));
+   if(directoryState!=='ready'){
+    const notice=node('div','team-directory-notice');notice.setAttribute('role','status');
+    notice.append(node('h2','',directoryState==='loading'?'Loading players…':communityView?'Community could not be loaded':'Friends could not be loaded'));
+    if(directoryState==='error'){notice.append(node('p','','Please try again.'),this.button('Retry',()=>this.actions.retryDirectory?.(),'team-lobby-primary'));}
+    list.append(notice);
+   }else if(!people.length){const empty=node('div','team-directory-empty');empty.append(node('h2','',this.tab==='friends'?'Build your court circle':'The court is open'),node('p','',this.tab==='friends'?'Find players in Community and add them to Friends for your next match.':'Players will appear here after they complete their first game.'));empty.append(this.button(this.tab==='friends'?'Explore Community':'Create a Game',()=>{if(this.tab==='friends'){this.selectFriendsView('community')}else this.actions.create()}));list.append(empty);}
    let pendingCommunityRecords=communityView?people.length:0;
    const finishCommunityRecord=()=>{if(!communityView||--pendingCommunityRecords||list.querySelector('.lobby-person-row:not([hidden])')||list.querySelector('.team-directory-empty'))return;const empty=node('div','team-directory-empty');empty.append(node('h2','','The court is open'),node('p','','Players will appear here after they complete their first game.'));empty.append(this.button('Create a Game',()=>this.actions.create()));list.append(empty);};
    for(const person of people){
@@ -83,10 +103,11 @@ export class TeamLobby {
     directory.append(inviteBar);
    }
   }
+  if(this.tab==='store')directory.append(storePage());
   if(this.tab==='profile')directory.append(profilePanel(this.portraits,this.actions.authenticate,this.actions.signOut));
   const aside=node('div','team-lobby-header-actions');
   const create=this.button('Create a Game',this.actions.create,'team-lobby-primary team-lobby-create');
-  if(this.tab==='games'){
+  if(socialView){
    create.setAttribute('aria-label','Create a New Game');
    create.replaceChildren();
    const icon=node('span','lobby-create-plus','+');icon.setAttribute('aria-hidden','true');
@@ -96,7 +117,9 @@ export class TeamLobby {
 
   if(this.navigation?.isConnected)this.navigation.replaceWith(nav);
   this.navigation=nav;
-  grid.append(directory);if(this.tab==='games')heading.append(aside);this.element.append(heading,grid);
+  grid.append(directory);if(socialView)heading.append(aside);this.element.append(heading,grid);
+  if(tabHighlight&&previousTabIndex!==nextTabIndex&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches){tabHighlight.animate([{transform:`translateX(${previousTabIndex*100}%)`},{transform:`translateX(${nextTabIndex*100}%)`}],{duration:240,easing:'cubic-bezier(.22,1,.36,1)'});}
+  if(!socialView)this.previousSocialTab=null;
   const status=node('p','team-lobby-status',this.message);status.setAttribute('role','status');this.element.append(status);
  }
  private openFriendProfile(person:LobbyTeam){
@@ -125,7 +148,7 @@ export class TeamLobby {
   const rivalry=node('section','profile-insights');
   const rivalryData=this.actions.rivalryFor?.(person.id);
   if(rivalryData?.current?.games)rivalry.append(rivalryProfile(rivalryData,person.manager));
-  actions.append(friend,play);panel.append(identity,stats,actions,recordStatus,...(rivalry.childElementCount?[rivalry]:[]),status);dialog.append(header,panel);
+  const safety=this.button('Report / Block',()=>openPlayerSafety({targetId:person.id},person.manager,()=>{this.data={...this.data,teams:this.data.teams.filter(p=>p.id!==person.id),friends:this.data.friends.filter(id=>id!==person.id)};this.actions.changed(this.data);dialog.close();this.draw();}),'team-lobby-quiet');actions.append(friend,play,safety);panel.append(identity,stats,actions,recordStatus,...(rivalry.childElementCount?[rivalry]:[]),status);dialog.append(header,panel);
   dialog.addEventListener('close',()=>{dialog.remove();const name=Array.from(this.element.querySelectorAll<HTMLButtonElement>('[data-person-id]')).find(button=>button.dataset.personId===person.id);focusView(this.element);},{once:true});
   document.body.append(dialog);showViewDialog(dialog);focusView(dialog);
  }

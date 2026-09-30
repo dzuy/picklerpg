@@ -1,0 +1,71 @@
+{
+  "at": "2026-09-29T22:16:28.212Z",
+  "source": "54bc2ba",
+  "accounts": [
+    {
+      "purpose": "phone",
+      "ownedPacks": [
+        "style",
+        "court"
+      ],
+      "sandbox": true,
+      "enforced": true,
+      "availablePacks": [
+        "style",
+        "court",
+        "fun",
+        "everything"
+      ],
+      "appleReady": true,
+      "webReady": true
+    },
+    {
+      "purpose": "free",
+      "ownedPacks": [],
+      "sandbox": true,
+      "enforced": true,
+      "availablePacks": [
+        "style",
+        "court",
+        "fun",
+        "everything"
+      ],
+      "appleReady": true,
+      "webReady": true
+    },
+    {
+      "purpose": "web",
+      "ownedPacks": [],
+      "sandbox": true,
+      "enforced": true,
+      "availablePacks": [
+        "style",
+        "court",
+        "fun",
+        "everything"
+      ],
+      "appleReady": true,
+      "webReady": true
+    },
+    {
+      "purpose": "bundle",
+      "ownedPacks": [
+        "everything"
+      ],
+      "sandbox": true,
+      "enforced": true,
+      "availablePacks": [
+        "style",
+        "court",
+        "fun",
+        "everything"
+      ],
+      "appleReady": true,
+      "webReady": true
+    }
+  ],
+  "funSchemaPresent": true,
+  "entryAssets": [
+    "/assets/index-CQ3roZrU.js"
+  ]
+}

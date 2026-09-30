@@ -4,6 +4,10 @@ dist/
 .DS_Store
 
 .env.local
+.env.purchase-sandbox.local
+.purchase-sandbox-accounts.json
+.purchase-sandbox-session.json
+.purchase-sandbox-logins.md
 
 dist-server/
 .multiplayer-test-accounts.json
@@ -12,3 +16,7 @@ dist-server/
 
 # Apple APNs signing keys must never be committed.
 *.p8
+
+.app-review.local.json
+
+.app-review-logins.md

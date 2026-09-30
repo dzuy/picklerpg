@@ -8,7 +8,7 @@ import './full-game-analysis.css';
 type AnalysisGame={id:string;mode:'solo'|'friends';endedEarly?:boolean};
 export function installFullGameAnalysis(host:HTMLElement,getGame:()=>AnalysisGame|null,before?:()=>Promise<void>){
  const button=document.createElement('button');button.type='button';button.className='full-analysis-button';
- button.innerHTML='<span class="full-analysis-icon" aria-hidden="true">✦</span><span><strong>Full Game Analysis</strong><small>Your game. The good stuff. The next move.</small></span><span class="full-analysis-premium">Premium</span>';
+ button.innerHTML='<span class="full-analysis-icon" aria-hidden="true">✦</span><span><strong>Full Game Analysis</strong><small>Your game. The good stuff. The next move.</small></span>';
  button.setAttribute('aria-haspopup','dialog');host.before(button);
  button.onclick=()=>{
   const game=getGame();if(!game)return;
@@ -29,29 +29,21 @@ export function openFullGameAnalysis(game:AnalysisGame,trigger:HTMLElement,befor
   };
   async function request<T>(path:string,token:string,body?:unknown):Promise<T>{
    const response=await fetch(apiUrl(path),{method:body?'POST':'GET',headers:{Authorization:`Bearer ${token}`,...(body?{'Content-Type':'application/json'}:{})},body:body?JSON.stringify(body):undefined,signal:AbortSignal.any([controller!.signal,AbortSignal.timeout(50000)]),cache:'no-store'});
-   const value=await response.json();if(!response.ok)throw new Error(value.error?.message??'Your analysis is unavailable. Try again shortly.');return value;
+   const value=await response.json();if(!response.ok)throw Object.assign(new Error(value.error?.message??'Your analysis is unavailable. Try again shortly.'),{code:value.error?.code});return value;
   }
   async function load(){
    controller?.abort();controller=new AbortController();content.setAttribute('aria-busy','true');
-   progress('Getting your game ready…','Checking your Premium access and gathering the action.');
+   progress('Getting your game ready…','Gathering the action.');
    try{
     if(game!.endedEarly){message('Every story needs a finish.','Finish a game to unlock its post-game breakdown.');return;}
     const credentials=await matchCredentials();
-    const access=await request<{premium:boolean;available:boolean}>('/api/multiplayer/game-analysis/access',credentials.token);
-    if(!dialog.open)return;
-    if(!access.premium){
-     Analytics.track('plus_paywall_viewed',{feature:'full_game_analysis',source:game.mode},game.id);
-     message('There’s a story behind that score.','Meet your post-game coach: sharp reads, big moments, and one more reason to hit Rematch.');
-     const list=document.createElement('ul');for(const [title,copy] of [['The game within the game','What worked, what got answered, and why.'],['Your signature moves','The counters, fireballs, and sneaky placements that shaped the action.'],['A smarter rematch','One specific adjustment to take back to the court.']]){const item=document.createElement('li'),strong=document.createElement('strong'),p=document.createElement('p');strong.textContent=title;p.textContent=copy;item.append(strong,p);list.append(item);}content.append(list);
-     const note=document.createElement('p');note.className='full-analysis-note';note.textContent='Included with Premium. Premium access is not enabled for your account yet.';content.append(note);return;
-    }
     progress('Opening the shot book…','Gathering your recorded rallies, shots, and player matchups.');
     try{await before?.()}catch{throw new Error('Your game is still syncing. Give it a moment, then try again.')}if(!dialog.open)return;
     progress('Opening your game analysis…','Loading your saved report, or preparing and saving your first breakdown. This may take a little time.');
     const result=await request<FullGameAnalysis>('/api/multiplayer/game-analysis',credentials.token,{gameId:game!.id,mode:game!.mode});
     if(!dialog.open)return;
     renderFullGameAnalysis(content,result);
-   }catch(error){if(!dialog.open)return;message('Let’s run that back.',error instanceof Error?error.message:'Your breakdown couldn’t load.');const retry=document.createElement('button');retry.type='button';retry.className='full-analysis-retry';retry.textContent='Try again';retry.onclick=()=>void load();content.append(retry);}
+   }catch(error){if(!dialog.open)return;if((error as {code?:string}).code==='premium_required'){message('Full Game Analysis','New reports are not enabled for this account yet. Saved reports remain available.');return;}message('Let’s run that back.',error instanceof Error?error.message:'Your breakdown couldn’t load.');const retry=document.createElement('button');retry.type='button';retry.className='full-analysis-retry';retry.textContent='Try again';retry.onclick=()=>void load();content.append(retry);}
    finally{content.removeAttribute('aria-busy');content.removeAttribute('role');content.removeAttribute('aria-live');}
   }
   void load();

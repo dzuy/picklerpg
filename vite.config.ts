@@ -1,3 +1,5 @@
+import {configuredPlayerCardHandler} from './server/multiplayer/player-cards';
+import {configuredAdminAnalyticsHandler} from './server/multiplayer/admin-analytics';
 import {designStyles} from './scripts/design-style-plugin';
 import {createOpponentHandler,decide} from './server/opponent.mjs';
 import {defineConfig,loadEnv,type Plugin} from 'vite';
@@ -10,10 +12,14 @@ function localMultiplayer(env:NodeJS.ProcessEnv):Plugin {
   apply:'serve',
   configureServer(server){
    const handler=configuredMatchHandler(env);
+   const playerCards=configuredPlayerCardHandler(env);
+   const analytics=configuredAdminAnalyticsHandler(env);
    const provider=env.OPPONENT_PROVIDER??(env.OPENAI_API_KEY?'api':'codex');
    const opponent=createOpponentHandler({provider,...(provider==='api'?{choose:(snapshot:unknown)=>decide(snapshot,{key:env.OPENAI_API_KEY,model:env.OPENAI_MODEL||'gpt-5.6-luna'})}:{})});
    server.middlewares.use((req,res,next)=>{
     const pathname=new URL(req.url??'/', 'http://localhost').pathname;
+    if(pathname==='/api/player-cards'){void playerCards(req,res);return;}
+    if(pathname==='/api/admin/analytics'){void analytics(req,res);return;}
     if(pathname==='/api/command'||pathname==='/api/opponent'){void opponent(req,res);return;}
     if(/^\/api\/(?:matches|invitations|multiplayer)(?:\/|$)/.test(pathname)){
      void handler(req,res);

@@ -1,3 +1,4 @@
+import {FunAudio} from './fun-audio';
 import {Analytics,FeatureFlags} from './analytics';
 import {RematchCountdown} from './rematch-countdown';
 import {bindRematchLifecycle,rematchSection} from './rematch-presentation';
@@ -248,6 +249,7 @@ function reset(){if(match.isLocalHuman)return;voice.stop();voiceAttempt=null;mat
 function pause(){if(match.receptionDecision)return;if(match.state.phase==='flight'){match.state.paused=!match.state.paused;lastUI='';updateUI()}}
 byId('restart').addEventListener('click',()=>{reset();closeSettings()});
 const settingsDialog=byId('game-settings') as HTMLDialogElement;
+const funAudio=new FunAudio();settingsDialog.append(funAudio.control());
 installSoundSetting(settingsDialog,{checkbox:true});
 const endedGames=new WeakSet<object>();
 const endGameButton=document.createElement('button');endGameButton.type='button';endGameButton.className='settings-restart';endGameButton.textContent='End game';endGameButton.id='end-current-game';settingsDialog.append(endGameButton);
@@ -560,10 +562,10 @@ function syncPointResult(dt:number){
 }
 
 let setupReturnsToCourt=false;
-const startConfiguredMatch:ConstructorParameters<typeof MatchSetup>[0]=(players,mode,court,target)=>{
+const startConfiguredMatch:ConstructorParameters<typeof MatchSetup>[0]=(players,mode,court,target,theme='none')=>{
  const save=match.onCheckpoint;match.onCheckpoint=null;
  try{
-  applyCourtLocation(court);
+  applyCourtLocation(court);match.courtTheme=theme;scene.setTheme(theme);funAudio.setTheme(theme);
   if(mode==='local-human')match.startLocalHumanMatch(players);
   else{
    match.startSoloMatch(target);match.playerAutonomy=loadGamePreference('autoPlay',false);match.partnerAutonomy=match.playerAutonomy||loadGamePreference('partnerAutonomy',false);
@@ -581,6 +583,7 @@ const startConfiguredMatch:ConstructorParameters<typeof MatchSetup>[0]=(players,
 };
 const matchup=new MatchSetup(startConfiguredMatch,()=>closeGameSurface(),setScoringPreference);
 function showMatchSetup(returnToCourt=false){
+ funAudio.setTheme('none');
  setupReturnsToCourt=returnToCourt;
  voice.stop();voiceHandsFree=false;voiceHandsFreeInput.checked=false;match.stopReplay();
  onStartScreen=true;document.body.dataset.screen='setup';app.inert=true;startScreen.hidden=true;targetPicker.sync(false);
@@ -588,6 +591,7 @@ function showMatchSetup(returnToCourt=false){
  matchup.show(creator.savedPlayers,courtSlots.map(slot=>match.getPlayerDesign(slot)),match.mode,scoringPreference);
 }
 function showStartScreen(){
+ funAudio.setTheme('none');
  matchup.hide();
  voice.stop();voiceHandsFree=false;voiceHandsFreeInput.checked=false;match.stopReplay();
  onStartScreen=true;document.body.dataset.screen='start';app.inert=true;startScreen.hidden=false;targetPicker.sync(false);focusView();
@@ -612,7 +616,7 @@ byId('start-quick-solo').addEventListener('click',()=>{
   const setup=quickSolo(catalog.map(row=>row.player),home);
   Object.assign(setup,loadScoringPreference({scoring:setup.scoring,target:setup.target}));
   setScoringPreference(setup.scoring);guestHasAimed=false;
-  startConfiguredMatch(setup.players,'solo',setup.court,setup.target);
+  startConfiguredMatch(setup.players,'solo',setup.court,setup.target,setup.courtTheme);
   notice.textContent='';
  })().catch(error=>{notice.textContent=(error as Error).message;}).finally(()=>{button.disabled=false;button.removeAttribute('aria-busy');});
 });
@@ -643,7 +647,7 @@ function initializeResume(owner:string){
  if(game_mode==='local')Analytics.track('match_completed',{match_id:c.matchId,game_mode,won:c.scoring.winner==='home',home_score:c.scoring.score.home,away_score:c.scoring.score.away,number_of_turns:c.revision},c.matchId);}
  saveStatus.hidden=true;if(!onStartScreen)history.replaceState(null,'',`/?game=${encodeURIComponent(c.matchId)}`)}catch(error){reportSaveError(error);throw error}};
   if(saved){
-   match.restoreCheckpoint(saved.checkpoint);applyCourtLocation(saved.court);
+   match.restoreCheckpoint(saved.checkpoint);applyCourtLocation(saved.court);scene.setTheme(match.courtTheme);funAudio.setTheme(match.courtTheme);
    if(match.mode!=='local-human'){match.playerAutonomy=loadGamePreference('autoPlay',false);match.partnerAutonomy=match.playerAutonomy||loadGamePreference('partnerAutonomy',false);}
    if(saved.ended)endedGames.add(match.scoring);
    for(const id of courtSlots)scene.substitutePlayer(id,match.getPlayerDesign(id));
@@ -664,7 +668,7 @@ void cloudReady.then(()=>{initializeResume(cloudPlayers.accountId??browserStorag
   if(pending)try{playerOnboarding=true;creator.activateOnSave=true;creator.resumeCreatePlayer(JSON.parse(pending));const clean=new URL(location.href);clean.searchParams.delete('createplayer');history.replaceState(null,'',clean);}catch{browserSessionStorage.removeItem(pendingPlayerKey)}
  }
  if(new URLSearchParams(location.search).has('configured')&&window.parent!==window){
-  const receive=(event:MessageEvent)=>{if(event.origin!==location.origin||event.source!==window.parent||event.data?.type!=='picklebash:start-solo')return;try{const setup=parseSoloLaunch(event.data.setup);setScoringPreference(setup.scoring);startConfiguredMatch(setup.players,'solo',setup.court,setup.target);window.removeEventListener('message',receive);}catch(error){reportSaveError(error);}};
+  const receive=(event:MessageEvent)=>{if(event.origin!==location.origin||event.source!==window.parent||event.data?.type!=='picklebash:start-solo')return;try{const setup=parseSoloLaunch(event.data.setup);setScoringPreference(setup.scoring);startConfiguredMatch(setup.players,'solo',setup.court,setup.target,setup.courtTheme);window.removeEventListener('message',receive);}catch(error){reportSaveError(error);}};
   window.addEventListener('message',receive);window.parent.postMessage('picklebash:solo-ready',location.origin);
  }
 });

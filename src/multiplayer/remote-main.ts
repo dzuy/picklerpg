@@ -1,3 +1,11 @@
+import {FunThemeControl} from '../fun-theme-control';
+import {applyFunTheme,type CourtTheme} from '../fun-themes';
+import {FunAudio} from '../fun-audio';
+import {ownsPack} from '../pack-catalog';
+import {premiumForPlay} from '../premium';
+import {premiumAppearance} from '../premium-appearance';
+import {openPremium,openPackUpgrade} from '../premium-dialog';
+import {isPremiumCourt} from '../locations';
 import {Analytics,FeatureFlags} from '../analytics';
 import {RematchCountdown} from '../rematch-countdown';
 import {bindRematchLifecycle,rematchSection} from '../rematch-presentation';
@@ -93,6 +101,7 @@ const autoPlayInput=autoPlayLabel.querySelector('input')!;
 autoPlayInput.checked=autoPlay;
 autoPlayInput.onchange=()=>{autoPlay=autoPlayInput.checked;saveGamePreference('autoPlay',autoPlay);autoPlayDecision='';clearTarget();};
 
+const funAudio=new FunAudio();settings.append(funAudio.control());
 installSoundSetting(settings,{checkbox:true,before:el('remote-guides').closest('label')!});
 const trashTalk=new TrashTalkControl(el('remote-game'),settings,matchCredentials,()=>clearTarget());
 let settingsCloseTimer:ReturnType<typeof setTimeout>|undefined;
@@ -213,7 +222,7 @@ function saveView(){saveGamePreference('names',playerNames);browserStorage.setIt
 function saveCameraView(){if(scene&&session?.state&&!el('remote-game').hidden){const view=JSON.stringify(scene.cameraView());browserStorage.setItem(`pickle-camera:${session.owner}:${session.matchId}`,view);browserStorage.setItem(`pickle-camera-default:${session.owner}:${session.state.viewerTeam}`,view);}}
 window.addEventListener('pagehide',saveCameraView);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)saveCameraView();});
-function leaveCourt(){rematchTimer.cancel();countdownGeneration++;rematchFlow.reset();completionKey='';saveCameraView();trashTalk.reset();endReplay();pointPauseRemaining=0;gameEndReadyAt=null;document.body.classList.remove('remote-playing');settings.close();gameEnd.close();scene?.setRetainedTrajectory(null);}
+function leaveCourt(){funAudio.setTheme('none');rematchTimer.cancel();countdownGeneration++;rematchFlow.reset();completionKey='';saveCameraView();trashTalk.reset();endReplay();pointPauseRemaining=0;gameEndReadyAt=null;document.body.classList.remove('remote-playing');settings.close();gameEnd.close();scene?.setRetainedTrajectory(null);}
 (el('remote-guides') as HTMLInputElement).checked=flightGuides;
 (el('remote-names') as HTMLInputElement).checked=playerNames;
 el('remote-guides').onchange=()=>{flightGuides=(el('remote-guides') as HTMLInputElement).checked;scene?.setGuides(flightGuides);saveFlightGuide(flightGuides);saveView()};
@@ -340,7 +349,7 @@ function render(){
  el('remote-rules').textContent=`${s.rules.scoring==='rally-doubles'?'Rally scoring':'Side-out scoring'} · First to ${s.rules.target}`;
  if(shownVersion!==s.version){
   const initial=shownVersion<0;endReplay();clearTarget();shownVersion=s.version;display=structuredClone(s.display);shot=presentation(display);
-  if(initial&&scene){scene.setViewTeam(s.viewerTeam);scene.setLocation(s.court??'forest');scene.resetCamera();try{const saved=browserStorage.getItem(`pickle-camera-default:${session.owner}:${s.viewerTeam}`)??browserStorage.getItem(`pickle-camera:${session.owner}:${s.id}`);if(saved)scene.restoreCameraView(JSON.parse(saved));}catch{/* Ignore obsolete camera data. */}}
+  if(initial&&scene){scene.setViewTeam(s.viewerTeam);scene.setLocation(s.court??'forest');scene.setTheme(s.courtTheme??'none');funAudio.setTheme(s.courtTheme??'none');scene.resetCamera();try{const saved=browserStorage.getItem(`pickle-camera-default:${session.owner}:${s.viewerTeam}`)??browserStorage.getItem(`pickle-camera:${session.owner}:${s.id}`);if(saved)scene.restoreCameraView(JSON.parse(saved));}catch{/* Ignore obsolete camera data. */}}
   pointPauseRemaining=0;animation=structuredClone(s.animation);animationStart=performance.now();playbackElapsed=0;lastFrame=animationStart;
  }
  if(!replayActive()&&!animation.length&&display&&!pointPauseRemaining)shot=presentation(display);
@@ -359,6 +368,7 @@ async function open(id:string){rematchTimer.cancel();countdownGeneration++;autoP
  session=new RemoteSession(account,id,matchCredentials,remoteRequest,browserStorage,render);render();await session.refresh();if(session.state&&!session.offline)browserStorage.setItem(`pickle-remote:${account}:${id}:opened`,'1');if(session.pending)await session.retry();
 }
 let teamDirectory:TeamDirectory|null=null;
+let teamDirectoryState:'loading'|'ready'|'error'='loading';
 let teamLobby:TeamLobby|null=null;
 let roster:PlayerCreator|null=null;
 let anonymousAccount=true;
@@ -402,7 +412,7 @@ function renderTeamLobby(){
  el('remote-lobby').querySelector('.team-lobby')?.remove();
  root.parentElement?.querySelector(':scope > .lobby-bottom-nav')?.remove();
  const data=teamDirectory??{self:lobbyTeam('', 'You', {}),teams:[],friends:[]};
- const view=new TeamLobby(data,{signOut:signOutAccount,authenticate:(createAccount)=>{if(!createAccount){signInDialog(async()=>{await enter();teamLobby?.selectTab('profile');status('');});return;}if(createAccount){void createYourPlayer(async()=>{location.assign('/?openplay=1&setup=1');}).catch(e=>status(e.message));return;}},roster:openRoster,create:()=>el('remote-start-setup').click(),invite:()=>accountRequired(()=>challengeTeam()),challenge:challengeTeam,changed:value=>{teamDirectory=value},enabled:!!config?.creationEnabled,games:gamesPanel,rivalryFor:(opponent)=>{const records=games.filter(g=>g.accountIds?.[g.viewerTeam==='home'?'away':'home']===opponent).map(g=>rivalryData(g.rivalry)).filter((r):r is NonNullable<typeof r>=>!!r);return records.sort((a,b)=>(b.current?.games??0)-(a.current?.games??0))[0];}});
+ const view=new TeamLobby(data,{directoryState:teamDirectoryState,retryDirectory:()=>void refreshTeamDirectory(),signOut:signOutAccount,authenticate:(createAccount)=>{if(!createAccount){signInDialog(async()=>{await enter();teamLobby?.selectTab('profile');status('');});return;}if(createAccount){void createYourPlayer(async()=>{location.assign('/?openplay=1&setup=1');}).catch(e=>status(e.message));return;}},roster:openRoster,create:()=>el('remote-start-setup').click(),invite:()=>accountRequired(()=>challengeTeam()),challenge:challengeTeam,changed:value=>{teamDirectory=value},enabled:!!config?.creationEnabled,games:gamesPanel,rivalryFor:(opponent)=>{const records=games.filter(g=>g.accountIds?.[g.viewerTeam==='home'?'away':'home']===opponent).map(g=>rivalryData(g.rivalry)).filter((r):r is NonNullable<typeof r>=>!!r);return records.sort((a,b)=>(b.current?.games??0)-(a.current?.games??0))[0];}});
  teamLobby=view;el('remote-lobby').prepend(view.element);root.after(view.navigation);
  if(initialLobbyPage()==='roster'&&!roster?.dialog.open)openRoster();
 }
@@ -415,10 +425,13 @@ const friendField=el('remote-friend-name-field');opponentSection.querySelector('
 ownSection.after(opponentSection);
 ownSection.classList.add('setup-section-card');ownSection.querySelector('h2')!.textContent='My Players';
 opponentSection.classList.add('setup-section-card');
+let playerTheme:CourtTheme='none',previousPlayerTheme:CourtTheme='none';
+const funThemes=new FunThemeControl(()=>{},theme=>{previousPlayerTheme=playerTheme;playerTheme=theme;createTeam?.setFunTheme(theme)},()=>{playerTheme=previousPlayerTheme;previousPlayerTheme='none';createTeam?.setFunTheme(playerTheme)});
 const courtSection=setupSection.querySelector('.court-selector')!.closest('section')!;
 const settingsCard=document.createElement('section');settingsCard.className='setup-section-card unified-settings-card';
 const settingsHeading=document.createElement('h2');settingsHeading.id='unified-settings-title';settingsHeading.textContent='Game Settings';settingsCard.setAttribute('aria-labelledby',settingsHeading.id);
 opponentSection.after(settingsCard);settingsCard.append(settingsHeading,courtSection,setupFields);
+courtSection.append(funThemes.element);
 const courtHeading=document.createElement('h3');courtHeading.textContent='Choose your court';courtSection.querySelector('h2')!.replaceWith(courtHeading);
 function updateSetupAction(){const button=el('remote-create') as HTMLButtonElement;button.textContent=setupMode==='solo'?'Start Game':'Create Invitation';button.disabled=setupMode==='friends'&&!inviteByLink&&!!account&&!config?.creationEnabled;}
 function selectSetupMode(mode:'friends'|'solo'){
@@ -448,10 +461,19 @@ const recentOpponentChips=document.createElement('div');recentOpponentChips.clas
 el('remote-friend-name-field').append(recentOpponentChips);
 function renderRecentOpponents(){
  recentOpponentChips.replaceChildren();
- const recent=recentOpponents(games,teamDirectory?.teams??[],account);recentOpponentChips.hidden=!recent.length;
+ const storageKey=`pickle-dismissed-recent-opponents:${account}`;
+ let dismissed=new Set<string>();
+ try{const saved:unknown=JSON.parse(browserStorage.getItem(storageKey)??'[]');if(Array.isArray(saved))dismissed=new Set(saved.filter((id):id is string=>typeof id==='string'));}catch{/* Ignore obsolete saved preferences. */}
+ const recent=recentOpponents(games,(teamDirectory?.teams??[]).filter(team=>!dismissed.has(team.id)),account);recentOpponentChips.hidden=!recent.length;
  if(!recent.length)return;
  const label=document.createElement('span');label.textContent='Recent opponents';label.className='recent-opponents-label';recentOpponentChips.append(label);
- for(const opponent of recent){const chip=document.createElement('button');chip.type='button';chip.textContent=opponent.manager;chip.setAttribute('aria-label',`Play again with ${opponent.manager}`);chip.onclick=()=>{friendSearch.reset(opponent);};recentOpponentChips.append(chip);}
+ for(const opponent of recent){
+  const chip=document.createElement('span');chip.className='recent-opponent-chip';
+  const select=document.createElement('button');select.type='button';select.textContent=opponent.manager;select.setAttribute('aria-label',`Play again with ${opponent.manager}`);select.onclick=()=>friendSearch.reset(opponent);
+  const remove=document.createElement('button');remove.type='button';remove.className='recent-opponent-remove';remove.textContent='×';remove.setAttribute('aria-label',`Remove ${opponent.manager} from recent opponents`);remove.title=`Remove ${opponent.manager}`;
+  remove.onclick=()=>{const index=recent.indexOf(opponent);dismissed.add(opponent.id);browserStorage.setItem(storageKey,JSON.stringify([...dismissed]));renderRecentOpponents();const remaining=recentOpponentChips.querySelectorAll<HTMLButtonElement>('.recent-opponent-remove');(remaining[Math.min(index,remaining.length-1)]??el('remote-friend-name')).focus({preventScroll:true});};
+  chip.append(select,remove);recentOpponentChips.append(chip);
+ }
 }
 
 function challengeTeam(team?:LobbyTeam){
@@ -463,11 +485,12 @@ function challengeTeam(team?:LobbyTeam){
  target.value=String(preference.target);
  friendSearch.reset(team);renderRecentOpponents();
  el('remote-lobby').hidden=true;el('remote-setup').hidden=false;
+ const courtButton=setupSection.querySelector<HTMLButtonElement>(`[data-remote-court="${randomCourt()}"]`)!;courtButton.click();requestAnimationFrame(()=>scrollToCourt(courtButton));
  const heading=el('remote-setup').querySelector('h1')!;heading.textContent='Set Up a Game';selectSetupMode(setupModeForAccount(anonymousAccount));
  el('remote-opponent-field').hidden=true;
  el('remote-friend-name-field').hidden=false;
  updateSetupAction();
- createTeam=new TeamPicker(el('remote-create-team'),undefined,undefined,true);focusView();
+ createTeam=new TeamPicker(el('remote-create-team'),undefined,undefined,true);playerTheme='none';previousPlayerTheme='none';void funThemes.refresh();focusView();
 }
 function gamesLoadState(state:'loading'|'ready'|'error'){
  el('remote-lobby').dataset.gamesState=state;
@@ -481,14 +504,21 @@ async function lobby(){gamesLoadState('loading');try{el('remote-start-setup').on
  (el('remote-solo') as HTMLAnchorElement).href='/?home=1';
  clearTarget();session?.dispose();session=null;animation=[];display=null;shot=null;el('remote-setup').hidden=true;el('remote-game').hidden=true;el('remote-lobby').hidden=false;
  const url=new URL(location.href);url.searchParams.delete('match');url.searchParams.delete('invite');history.replaceState(null,'',url);
- const c=await matchCredentials();account=c.owner;renderGames();renderTeamLobby();config=await remoteRequest<RemoteConfig>(c.token,'/api/multiplayer/config');
+ const c=await matchCredentials();account=c.owner;teamDirectoryState='loading';renderGames();renderTeamLobby();config=await remoteRequest<RemoteConfig>(c.token,'/api/multiplayer/config');
  el('remote-login').hidden=true;
  const select=el('remote-opponent') as HTMLSelectElement;select.replaceChildren();for(const tester of config.testers){const option=document.createElement('option');option.value=tester.id;option.textContent=tester.name.replace('Tester ','Player ');select.append(option);}
  (el('remote-create') as HTMLButtonElement).disabled=!config.creationEnabled||!config.testers.length;(el('remote-start-setup') as HTMLButtonElement).disabled=false;
  await refreshLobbyCards();
- try{teamDirectory=await remoteRequest<TeamDirectory>(c.token,'/api/multiplayer/teams');renderTeamLobby();renderGames();renderInvitations();}catch(e){renderTeamLobby();status((e as Error).message);return;}
- status('');
+ await refreshTeamDirectory();
  }catch(error){gamesLoadState('error');throw error;}
+}
+async function refreshTeamDirectory(){
+ teamDirectoryState='loading';renderTeamLobby();
+ try{
+  const c=await matchCredentials();
+  teamDirectory=await remoteRequest<TeamDirectory>(c.token,'/api/multiplayer/teams');
+  teamDirectoryState='ready';renderTeamLobby();renderGames();renderInvitations();status('');
+ }catch(e){teamDirectoryState='error';renderTeamLobby();status((e as Error).message);}
 }
 mountTurnPrompt(root);
 async function refreshLobbyCards(){
@@ -577,16 +607,17 @@ function renderGames(){
 for(const button of Array.from(document.querySelectorAll<HTMLButtonElement>('[data-filter]')))button.onclick=()=>{gameFilter=button.dataset.filter!;for(const sibling of Array.from(document.querySelectorAll('[data-filter]')))sibling.setAttribute('aria-pressed',String(sibling===button));renderGames();renderInvitations();};
 async function create(){
  if(!createTeam)throw Error('Choose your team.');
+ const membership=await premiumForPlay();if(funThemes.value!=='none'&&membership.enforced&&!ownsPack(membership.ownedPacks,'fun')){openPremium(el('remote-create'));return;}if(!ownsPack(membership.ownedPacks,'court')&&isPremiumCourt(selectedCourt)){openPackUpgrade('court',el('remote-create'));return;}
  if(setupMode==='solo'){
   if(!soloOpponents)throw Error('Choose your opponents.');
   const [team,opponents]=await Promise.all([createTeam.freshTeam(),soloOpponents.freshTeam()]);
-  const setup=parseSoloLaunch({players:{you:team[0],partner:team[1],'opponent-left':opponents[0],'opponent-right':opponents[1]},court:selectedCourt,target:Number((el('remote-target') as HTMLSelectElement).value),scoring:(el('remote-scoring') as HTMLSelectElement).value});
+  const setup=parseSoloLaunch({players:{you:{...team[0],appearance:premiumAppearance(team[0].appearance,!membership.enforced?true:membership.ownedPacks)},partner:{...team[1],appearance:premiumAppearance(team[1].appearance,!membership.enforced?true:membership.ownedPacks)},'opponent-left':opponents[0],'opponent-right':opponents[1]},court:selectedCourt,courtTheme:funThemes.value,playerTheme,target:Number((el('remote-target') as HTMLSelectElement).value),scoring:(el('remote-scoring') as HTMLSelectElement).value});
   openGameSurface('/?newgame=1&configured=1',setup);status('');return;
  }
  const c=await matchCredentials();if(c.owner!==account)throw Error('Account changed. Reload remote play.');
  if(inviteByLink){
   const name=(el('remote-friend-name') as HTMLInputElement).value.trim();if(!name)throw Error('Enter your friend’s name.');
-  const selection={name,team:await createTeam.freshTeam(),court:selectedCourt,target:Number((el('remote-target') as HTMLSelectElement).value),scoring:(el('remote-scoring') as HTMLSelectElement).value as InviteRequest['scoring']};
+  const selection={name,team:await createTeam.freshTeam(),court:selectedCourt,courtTheme:funThemes.value,playerTheme,target:Number((el('remote-target') as HTMLSelectElement).value),scoring:(el('remote-scoring') as HTMLSelectElement).value as InviteRequest['scoring']};
   const key=`pickle-friend-setup:${account}`,saved=browserStorage.getItem(key);
   let draft={...selection,requestId:playerId()};
   try{const previous=JSON.parse(saved??'null');if(previous){const {requestId,...chosen}=previous;if(JSON.stringify(chosen)===JSON.stringify(selection))draft=previous;}}catch{/* Replace malformed drafts. */}
@@ -596,7 +627,7 @@ async function create(){
   browserStorage.removeItem(key);status('');await lobby();teamLobby?.selectTab('games');shareChallenge(challenge).addEventListener('close',showTurnPromptAfterInvite,{once:true});return;
  }
  const key=`pickle-remote:${account}:invitation:${(el('remote-opponent') as HTMLSelectElement).value}`;
- const freshRequest=async():Promise<InviteRequest>=>({requestId:playerId(),opponentId:(el('remote-opponent') as HTMLSelectElement).value,team:await createTeam!.freshTeam(),court:selectedCourt,target:Number((el('remote-target') as HTMLSelectElement).value),scoring:(el('remote-scoring') as HTMLSelectElement).value as InviteRequest['scoring']});
+ const freshRequest=async():Promise<InviteRequest>=>({requestId:playerId(),opponentId:(el('remote-opponent') as HTMLSelectElement).value,team:await createTeam!.freshTeam(),court:selectedCourt,courtTheme:funThemes.value,playerTheme,target:Number((el('remote-target') as HTMLSelectElement).value),scoring:(el('remote-scoring') as HTMLSelectElement).value as InviteRequest['scoring']});
  let sentInvitation:Invitation|null=null;
  await sendInvitationDraft(browserStorage.getItem(key),freshRequest,value=>{if(value===null)browserStorage.removeItem(key);else browserStorage.setItem(key,value)},async request=>{const invitation=await remoteRequest<Invitation>(c.token,'/api/invitations',request);saveScoringPreference({scoring:invitation.scoring,target:invitation.target??(invitation.scoring==='rally-doubles'?7:5)});sentInvitation=invitation;return invitation;});
  status('');
@@ -677,7 +708,7 @@ function showOpenLobby(owner='',state:'loading'|'ready'='ready'){
  gamesLoadState(state);
  showLogin();account=owner;accountEmail='';config=null;el('remote-login').hidden=true;el('remote-lobby').hidden=false;games=[];invitations=[];renderGames();renderInvitations();
  const privateSetup=()=>accountRequired(()=>teamLobby?.selectTab('friends'));
- el('remote-start-setup').onclick=()=>challengeTeam();existingPlayer.onclick=privateSetup;teamDirectory=null;renderTeamLobby();
+ el('remote-start-setup').onclick=()=>challengeTeam();existingPlayer.onclick=privateSetup;teamDirectory=null;teamDirectoryState='ready';renderTeamLobby();
 }
 async function enter(){const client=authClient();if(!client){showOpenLobby();if(new URLSearchParams(location.search).has('setup'))challengeTeam();return;}
  const recovery=new URLSearchParams(location.hash.slice(1));

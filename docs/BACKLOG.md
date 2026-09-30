@@ -35,6 +35,12 @@ The ordered implementation and acceptance plan for persistent rivalries, authori
 - [x] Start New Game is obvious.
 - [x] No unnecessary traditional-game menu clutter.
 
+## Navigation improvements
+
+- [x] **Remove the Home icon from the main navigation** (added and verified locally September 29, 2026).
+- [x] **Combine Play and Friends into one screen called “Play”** (added and verified locally September 29, 2026). My Games, My Friends, and Community share the existing top tab system with fixed tab positions and an animated pink highlight. The title was simplified from Play With Friends to Play on September 29; reduced-motion preferences skip the animation. My Games retains the games list; Create a New Game remains in the top-right corner. One main navigation entry replaces the separate Play and Friends entries; existing Friends/Community links still open the matching tab.
+- [x] **Add Store to the main navigation and remove it from Profile** (added September 29, 2026). Store sits immediately left of Profile and displays its contents on a full page without a modal close button. The Profile shortcut has been removed; verified locally.
+
 ## Turn experience
 
 - [x] Player instantly knows which team they control.
@@ -150,6 +156,8 @@ Career Mode, Arcade Mode, RPG progression, tournament ladders, skill unlocks, st
 - [ ] **Player-specific backhand strengths and weaknesses** (added September 20, 2026). Extend the current low-backhand penalty so forehand/backhand contact and each defender’s ability meaningfully affect return execution at normal heights too. Respect handedness, positioning, contact height, and shot type; targeting a weak backhand should provide a tactical advantage without guaranteeing failure. Validate strong versus weak backhands in equivalent situations. Keep defender skill ratings out of the shot selector’s Pressure indicator so players learn opponents’ weaknesses through play. Backlogged for later; not a new V1 launch requirement.
 
 ## PickleBash+ and monetization
+
+- [ ] **Add a pirate theme to the Fun Pack** (added September 29, 2026).
 
 - [ ] **Bring back “Your Game” on the profile page** (added September 23, 2026). Keep the section hidden until the PickleBash+ offering and monetization approach are defined. Then revisit its shot-mix insights and decide which features belong in the free experience versus PickleBash+ before restoring it. Deferred; not a V1 launch requirement. Existing shot-mix UI remains in `src/multiplayer/shot-mix-view.ts`; the profile entry point is `src/multiplayer/profile.ts`.
 

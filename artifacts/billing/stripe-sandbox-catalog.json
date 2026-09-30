@@ -1,0 +1,42 @@
+{
+  "catalog": [
+    {
+      "pack": "style",
+      "product": "prod_VLnW3O43n2PbvK",
+      "price": "price_1UL5vRCgYYn1Kru6IIX1rdeR",
+      "cents": 299
+    },
+    {
+      "pack": "court",
+      "product": "prod_VLnWBjfPISmE1u",
+      "price": "price_1UL5vSCgYYn1Kru63QfowjAl",
+      "cents": 299
+    },
+    {
+      "pack": "fun",
+      "product": "prod_VLnW8Brto9lHn5",
+      "price": "price_1UL5vSCgYYn1Kru6rbi7PKVH",
+      "cents": 299
+    },
+    {
+      "pack": "everything",
+      "product": "prod_VLnW6Bj5s8LcK7",
+      "price": "price_1UL5vTCgYYn1Kru6jaqq9mNG",
+      "cents": 699
+    }
+  ],
+  "webhook": {
+    "id": "we_1UL5vTCgYYn1Kru6aImMtTz0",
+    "url": "https://purchase-sandbox-purchase-sandbox.up.railway.app/api/multiplayer/billing/webhooks/stripe",
+    "livemode": false,
+    "events": [
+      "checkout.session.completed",
+      "checkout.session.async_payment_succeeded",
+      "checkout.session.async_payment_failed",
+      "charge.refunded",
+      "charge.dispute.created",
+      "charge.dispute.updated",
+      "charge.dispute.closed"
+    ]
+  }
+}

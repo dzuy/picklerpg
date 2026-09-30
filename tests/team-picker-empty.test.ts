@@ -10,6 +10,7 @@ class Element {
 test('empty roster exposes roster choices and can recover to an acceptable two-player team',async()=>{
  const result=await build({entryPoints:['src/multiplayer/team-picker.ts'],bundle:true,write:false,format:'iife',globalName:'Picker',plugins:[{name:'boundaries',setup(b){b.onResolve({filter:/.*/},args=>args.kind==='entry-point'?undefined:{path:args.path,namespace:'mock'});b.onLoad({filter:/.*/,namespace:'mock'},({path})=>({contents:
  path.includes('auth-session')?'export const authClient=()=>null;':
+ path.includes('fun-themes')?'export const applyFunTheme=(appearance,funTheme)=>({...appearance,funTheme});':
  path.includes('computer-opponents')?'export const computerOpponent=player=>player;':
  path.includes('cloud-players')?'export const playerFromRow=row=>row;':
  path.includes('default-lineup')?'export const defaultLineup=players=>[players[0]?.id,players[1]?.id??players[0]?.id].filter(Boolean);':
@@ -33,6 +34,8 @@ test('empty roster exposes roster choices and can recover to an acceptable two-p
  context.addRosterPlayers=(players:any[])=>picker.setCommunity(players);
  context.addRosterPlayers([{id:'one',appearance:{}},{id:'two',appearance:{}}]);assert.equal(host.children.includes(picker.community.element),false);assert.deepEqual(Array.from(await picker.freshTeam(),(p:any)=>p.id),['one','one']);
  await picker.shuffle();assert.deepEqual(Array.from(await picker.freshTeam(),(p:any)=>p.id),['two','one']);
+ picker.setFunTheme('disco');assert.equal((await picker.freshTeam())[0].appearance.funTheme,'disco');assert.equal(picker.lineup.players[0].appearance.funTheme,undefined);
+ picker.setFunTheme('none');assert.equal((await picker.freshTeam())[0].appearance.funTheme,undefined);
  // Opponents include unadded public players and exclude private owned designs.
  context.publicRows=[{player:{id:'community-bea',appearance:{}},added:false},{player:{id:'community-sam',appearance:{}},added:false},{player:{id:'community-lee',appearance:{}},added:true}];
  const opponents=new context.Picker.TeamPicker(new Element(),[{id:'private',appearance:{}}],undefined,false,true);

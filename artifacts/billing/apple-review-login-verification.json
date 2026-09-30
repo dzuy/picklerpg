@@ -1,0 +1,9 @@
+{
+  "checkedAt": "2026-09-30T00:56:11.157Z",
+  "passwordPresent": true,
+  "saveDisabled": true,
+  "signInRequired": true,
+  "usernamePresent": true,
+  "verification": "Reloaded saved draft; browser redacts credential values. No credential comparison or secret capture.",
+  "noCredentialsIncluded": true
+}

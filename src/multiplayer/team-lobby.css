@@ -324,18 +324,18 @@ body[data-screen=remote]:has(#remote-lobby:not([hidden])){background:var(--pb-su
 .friend-profile-dialog .rivalry-profile{margin:0;padding:0;border:0}
 .friend-profile-dialog .friend-profile-close{display:grid;place-items:center;padding:0;min-height:44px}
 
-#remote-lobby .remote-share-action{display:block;margin:0 0 0 auto;padding:5px 12px;width:fit-content;max-width:65%;min-height:30px;border:0;border-radius:8px;text-align:center;overflow-wrap:anywhere;color:var(--pb-text);background:var(--pb-lime);font-size:13px;font-weight:800;cursor:pointer;}
+#remote-lobby .remote-share-action{display:block;margin:0 0 0 auto;padding:5px 12px;width:fit-content;max-width:65%;min-height:30px;border:0;border-radius:8px;text-align:center;overflow-wrap:anywhere;color:var(--pb-on-primary);background:var(--pb-primary);font-size:13px;font-weight:400;cursor:pointer;}
 #remote-lobby .remote-share-action:focus-visible{outline:2px solid var(--pb-focus);outline-offset:-3px;}
 
 #remote-lobby .pending-invite-controls:has(.pending-invite-share){width:44px;top:50%;transform:translateY(-50%);}
 #remote-lobby .pending-invite-controls .pending-invite-share{width:44px;height:44px;padding:9px;display:grid;place-items:center;}
 #remote-lobby .remote-share-action:disabled{opacity:.6;cursor:default;}
 /* Open Play uses the same court artwork and controls as match setup. */
-#remote-lobby .team-lobby[data-tab=games] .team-lobby-heading{flex-direction:row;align-items:center;justify-content:space-between;gap:20px;padding-bottom:28px}
-#remote-lobby .team-lobby[data-tab=games] .team-lobby-heading h1{margin:0;font-size:clamp(36px,5vw,58px)}
-#remote-lobby .team-lobby[data-tab=games] .team-lobby-header-actions{display:flex;width:auto;max-width:none;margin:0;flex-shrink:0}
-#remote-lobby .team-lobby[data-tab=games] .team-lobby-header-actions .team-lobby-create{display:flex;align-items:center;justify-content:center;gap:10px;width:auto;min-height:50px;margin:0;padding:14px 24px;border:0;border-radius:var(--pb-radius-button);background:var(--pb-primary);color:var(--pb-on-primary);font-size:16px;line-height:1.2;box-shadow:none}
-#remote-lobby .team-lobby[data-tab=games] .team-lobby-header-actions .team-lobby-create:hover{background:var(--pb-primary-hover)}
+#remote-lobby .team-lobby:is([data-tab=games],[data-tab=friends],[data-tab=community]) .team-lobby-heading{display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:20px;padding-bottom:28px}
+#remote-lobby .team-lobby:is([data-tab=games],[data-tab=friends],[data-tab=community]) .team-lobby-heading h1{margin:0;font-size:clamp(36px,5vw,58px)}
+#remote-lobby .team-lobby:is([data-tab=games],[data-tab=friends],[data-tab=community]) .team-lobby-header-actions{display:flex;width:auto;max-width:none;margin:0;flex-shrink:0}
+#remote-lobby .team-lobby:is([data-tab=games],[data-tab=friends],[data-tab=community]) .team-lobby-header-actions .team-lobby-create{display:flex;align-items:center;justify-content:center;gap:10px;width:auto;min-height:50px;margin:0;padding:14px 24px;border:0;border-radius:var(--pb-radius-button);background:var(--pb-primary);color:var(--pb-on-primary);font-size:16px;line-height:1.2;box-shadow:none}
+#remote-lobby .team-lobby:is([data-tab=games],[data-tab=friends],[data-tab=community]) .team-lobby-header-actions .team-lobby-create:hover{background:var(--pb-primary-hover)}
 #remote-lobby .lobby-create-plus{font-size:26px;font-weight:400;line-height:20px}
 #remote-lobby .remote-empty.remote-empty-game{display:grid;grid-template-columns:1fr 1.15fr;grid-template-rows:1fr auto auto 1fr;column-gap:36px;min-height:350px;padding:0 0 0 36px;overflow:hidden;border:1px solid var(--pb-border);border-radius:var(--pb-radius-card);background:var(--pb-surface);text-align:left;box-shadow:var(--pb-shadow-card)}
 #remote-lobby .remote-empty-scene{grid-column:2;grid-row:1/5;width:100%;height:100%;min-height:350px;object-fit:cover;object-position:center}
@@ -343,8 +343,8 @@ body[data-screen=remote]:has(#remote-lobby:not([hidden])){background:var(--pb-su
 #remote-lobby .remote-empty.remote-empty-game h3{grid-column:1;grid-row:2;margin:0;font-family:var(--pb-font-heading);font-size:clamp(28px,3.5vw,44px);line-height:1.08;letter-spacing:-1.3px;text-wrap:balance;color:var(--pb-text)}
 #remote-lobby .remote-empty.remote-empty-game p{grid-column:1;grid-row:3;max-width:280px;margin:16px 0 0;font-size:16px;line-height:1.6;color:var(--pb-text-secondary)}
 @media(max-width:600px){
- #remote-lobby .team-lobby[data-tab=games] .team-lobby-heading{gap:18px;flex-wrap:wrap;padding-bottom:22px}
- #remote-lobby .team-lobby[data-tab=games] .team-lobby-header-actions .team-lobby-create{padding:12px 18px;font-size:14px;min-height:46px}
+ #remote-lobby .team-lobby:is([data-tab=games],[data-tab=friends],[data-tab=community]) .team-lobby-heading{gap:18px;flex-wrap:wrap;padding-bottom:22px}
+ #remote-lobby .team-lobby:is([data-tab=games],[data-tab=friends],[data-tab=community]) .team-lobby-header-actions .team-lobby-create{padding:12px 18px;font-size:14px;min-height:46px}
  #remote-lobby .remote-empty.remote-empty-game{display:flex;flex-direction:column;gap:0;min-height:0;padding:0 0 28px}
  #remote-lobby .remote-empty-scene{height:auto;min-height:0;aspect-ratio:1.85;object-fit:cover;order:-1;margin-bottom:26px}
  #remote-lobby .remote-empty-eyebrow{align-self:auto;margin:0 24px 12px;font-size:9px}
@@ -386,6 +386,27 @@ body[data-screen=remote]:has(#remote-lobby:not([hidden])){background:var(--pb-su
 #remote-setup .recent-opponent-chips{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px}
 #remote-setup .recent-opponent-chips[hidden]{display:none}
 #remote-setup .recent-opponents-label{width:100%;font-size:12px;font-weight:600;color:var(--pb-text-secondary)}
-#remote-setup .recent-opponent-chips button{width:auto;min-height:36px;margin:0;padding:7px 14px;border:1px solid var(--pb-border-accent);border-radius:999px;background:var(--pb-surface);color:var(--pb-text);font:600 13px var(--pb-font-body);cursor:pointer}
-#remote-setup .recent-opponent-chips button:hover{background:var(--pb-surface-inset)}
-#remote-setup .recent-opponent-chips button:focus-visible{outline:3px solid var(--pb-focus);outline-offset:2px}
+#remote-setup .recent-opponent-chip{display:inline-flex;align-items:center;overflow:hidden;border:1px solid var(--pb-border-accent);border-radius:999px;background:var(--pb-surface)}
+#remote-setup .recent-opponent-chip button{width:auto;min-height:36px;margin:0;padding:7px 14px;border:0;border-radius:0;background:transparent;color:var(--pb-text);font:600 13px var(--pb-font-body);cursor:pointer}
+#remote-setup .recent-opponent-chip .recent-opponent-remove{min-width:36px;padding:7px 10px;font-size:20px;line-height:1;border-left:1px solid var(--pb-border-accent)}
+#remote-setup .recent-opponent-chip button:hover{background:var(--pb-surface-inset)}
+#remote-setup .recent-opponent-chip button:focus-visible{outline:3px solid var(--pb-focus);outline-offset:-3px}
+
+.team-directory-notice{padding:24px;text-align:center}.team-directory-notice h2{font-size:20px;margin:0 0 10px}.team-directory-notice p{color:var(--pb-text-secondary);font-size:14px}
+
+#remote-lobby .team-lobby[data-tab=games] .team-directory{background:none;border:0;box-shadow:none;overflow:visible}
+#remote-lobby .team-lobby:is([data-tab=games],[data-tab=friends],[data-tab=community]) .friends-tabs{max-width:540px}
+#remote-lobby .team-lobby[data-tab=games]:has(.remote-empty-game) .team-lobby-header-actions{display:flex}
+@media(max-width:600px){#remote-lobby .team-lobby:is([data-tab=games],[data-tab=friends],[data-tab=community]) .team-lobby-heading{flex-wrap:nowrap;gap:12px}#remote-lobby .team-lobby:is([data-tab=games],[data-tab=friends],[data-tab=community]) .team-lobby-heading h1{font-size:28px}#remote-lobby .team-lobby:is([data-tab=games],[data-tab=friends],[data-tab=community]) .team-lobby-header-actions .team-lobby-create{max-width:none;padding:10px 12px;font-size:13px;white-space:nowrap}}
+
+@media(max-width:600px){#remote-lobby .friends-tab{padding:12px 8px;font-size:14px;white-space:nowrap}}
+
+/* Shared geometry keeps all three Play tabs in the same position. */
+#remote-lobby .team-lobby:is([data-tab=games],[data-tab=friends],[data-tab=community]) .team-lobby-heading{min-height:58px;box-sizing:content-box}
+#remote-lobby .team-lobby:is([data-tab=games],[data-tab=friends],[data-tab=community]) .team-directory{border:0;border-radius:0}
+#remote-lobby .friends-tabs{position:relative;isolation:isolate;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;box-sizing:border-box;width:100%}
+#remote-lobby .friends-tab-highlight{position:absolute;z-index:-1;top:6px;bottom:6px;left:6px;width:calc((100% - 12px)/3);border-radius:var(--pb-radius-card);background:var(--pb-primary);pointer-events:none;transform:translateX(0)}
+#remote-lobby .friends-tabs[data-active=friends] .friends-tab-highlight{transform:translateX(100%)}
+#remote-lobby .friends-tabs[data-active=community] .friends-tab-highlight{transform:translateX(200%)}
+#remote-lobby .friends-tab,#remote-lobby .friends-tab[aria-selected=true]{background:transparent;font-weight:650;white-space:nowrap;transition:color 160ms ease}
+@media(prefers-reduced-motion:reduce){#remote-lobby .friends-tab{transition:none}}

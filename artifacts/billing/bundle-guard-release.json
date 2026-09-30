@@ -1,0 +1,20 @@
+{
+  "at": "2026-09-29T22:50:00Z",
+  "source": "e931765",
+  "build": "1.0 (10)",
+  "appleBuildId": "4c320373-e90b-4199-b2f8-b1f1ee398ebb",
+  "uploadSucceeded": true,
+  "processingComplete": true,
+  "complianceSavedByOwner": true,
+  "group": "PickleBash Internal",
+  "testers": 1,
+  "railwayDeployment": "e8e9b2e6-e541-4d6f-8c12-71396ea6159d",
+  "sandboxCheckoutRejectionVerified": true,
+  "focusedTestsPassed": 19,
+  "productionBuildPassed": true,
+  "nativeArchiveVerified": true,
+  "physicalDisabledButtonCheck": "passed \u2014 explicit user confirmation",
+  "productionChanged": false,
+  "physicalDisabledButtonEvidence": "yes, confirmed, everything disabled",
+  "build10RestoreCheck": "not separately described in the confirmation"
+}

@@ -38,7 +38,7 @@ export function renderGuestProgressCta(host:HTMLElement,createAccount:()=>Promis
  const card=document.createElement('div');card.className=embedded?'xp-guest-save xp-guest-inline':'xp-reward xp-guest-save';
  const label=document.createElement('p');label.className='xp-reward-label';label.textContent='KEEP YOUR PROGRESS';
  const title=document.createElement('h3');title.className='xp-guest-title';title.textContent='Save your progress';
- const copy=document.createElement('p');copy.className='xp-guest-copy';copy.textContent='Create an account to keep your progress and earn Skill Points to upgrade your players.';
+ const copy=document.createElement('p');copy.className='xp-guest-copy';copy.textContent='Create an account to save your progress and customize your own players.';
  const button=document.createElement('button');button.type='button';button.className='xp-guest-create';button.textContent='Create account';button.setAttribute('aria-haspopup','dialog');
  const status=document.createElement('p');status.className='xp-guest-status';status.setAttribute('role','status');
  button.onclick=async()=>{

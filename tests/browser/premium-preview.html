@@ -1,0 +1,8 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Store preview</title><body><p>Design preview · No payments are made.</p><button id="open">Open Store</button><script type="module">
+import '/src/design-system/tokens.css';
+import {openPremium} from '/src/premium-dialog.ts';
+const params=new URLSearchParams(location.search),native=params.has('ios'),active=params.has('active');
+const status={ownedPacks:active?['everything']:[],enforced:true,sources:active?[{source:'complimentary',packId:'everything'}]:[],availablePacks:['style','court','fun'],appleReady:true,webReady:true,admin:params.has('admin'),privacyUrl:'https://example.com/privacy',termsUrl:'https://example.com/terms'};
+const services={appleBilling:()=>native,applePrice:async(id)=>id==='everything'?'$6.99':'$2.99',premiumStatus:async()=>status,premiumAction:async()=>{throw new Error('Preview only. No billing changes were made.');},purchaseApple:async()=>{throw new Error('Preview only. No purchase was made.');},restoreApple:async()=>status};
+const trigger=document.querySelector('#open');trigger.onclick=()=>openPremium(trigger,services,params.get('pack')||undefined);trigger.click();
+</script></body></html>

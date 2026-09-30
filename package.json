@@ -32,9 +32,11 @@
     "@capacitor/ios": "8.5.2",
     "@capacitor/push-notifications": "^8.1.2",
     "@huggingface/transformers": "^4.2.0",
+    "@revenuecat/purchases-capacitor": "^13.6.1",
     "@supabase/supabase-js": "^2.116.0",
     "posthog-js": "^1.434.15",
     "posthog-node": "^5.54.1",
+    "stripe": "^22.6.2",
     "three": "^0.180.0",
     "web-push": "^3.6.7"
   },

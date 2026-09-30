@@ -1,0 +1,40 @@
+{
+  "checkedAt": "2026-09-30T00:05:54.747Z",
+  "account": "picklebash_review",
+  "ownedPacks": [],
+  "appleReady": true,
+  "webReady": false,
+  "sandbox": true,
+  "enforced": false,
+  "admin": false,
+  "availablePacks": [
+    "style",
+    "court",
+    "fun",
+    "everything"
+  ],
+  "checkoutHTTP": 503,
+  "checkoutCode": "billing_unavailable",
+  "hasCheckoutURL": false,
+  "existingComplimentaryEverything": 12,
+  "publicPages": [
+    {
+      "path": "/support",
+      "status": 200,
+      "support": true,
+      "staleBundlePromise": false
+    },
+    {
+      "path": "/privacy",
+      "status": 200,
+      "support": false,
+      "staleBundlePromise": false
+    },
+    {
+      "path": "/tos",
+      "status": 200,
+      "support": false,
+      "staleBundlePromise": false
+    }
+  ]
+}

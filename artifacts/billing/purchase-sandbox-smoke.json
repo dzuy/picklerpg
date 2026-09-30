@@ -1,0 +1,57 @@
+[
+  {
+    "name": "health",
+    "status": 200,
+    "passed": true
+  },
+  {
+    "name": "unauthenticated ownership",
+    "status": 401,
+    "passed": true
+  },
+  {
+    "name": "RevenueCat rejects invalid auth",
+    "status": 401,
+    "passed": true
+  },
+  {
+    "name": "RevenueCat authenticated delivery",
+    "status": 200,
+    "passed": true
+  },
+  {
+    "name": "Stripe accepts signed sandbox event",
+    "status": 200,
+    "passed": true
+  },
+  {
+    "name": "Stripe rejects live event",
+    "status": 400,
+    "passed": true
+  },
+  {
+    "name": "phone ownership",
+    "status": 200,
+    "passed": true
+  },
+  {
+    "name": "free ownership",
+    "status": 200,
+    "passed": true
+  },
+  {
+    "name": "web ownership",
+    "status": 200,
+    "passed": true
+  },
+  {
+    "name": "bundle ownership",
+    "status": 200,
+    "passed": true
+  },
+  {
+    "name": "Style test checkout",
+    "status": 200,
+    "passed": true
+  }
+]

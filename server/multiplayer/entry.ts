@@ -1,3 +1,4 @@
+export {configuredAdminAnalyticsHandler} from './admin-analytics';
 export {serverAnalytics} from './analytics';
 import {createServer} from 'node:http';
 import {configuredMatchHandler} from './routes';
@@ -12,3 +13,5 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).hr
 }
 export {createMatchHandler} from './routes';
 export {MatchService} from './service';
+
+export {configuredPlayerCardHandler} from './player-cards';

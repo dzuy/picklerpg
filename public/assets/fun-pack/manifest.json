@@ -1,0 +1,212 @@
+{
+  "version": 1,
+  "themes": [
+    {
+      "id": "disco",
+      "name": "Disco Inferno",
+      "eyebrow": "A little sparkle. A lot of groove.",
+      "colors": [
+        "#582c83",
+        "#ff77bb",
+        "#ffce65",
+        "#fff1cc"
+      ],
+      "looks": [
+        "Disco Dynamo",
+        "Boogie Royal"
+      ],
+      "props": [
+        "mirrorball",
+        "speaker",
+        "star",
+        "spotlight",
+        "record"
+      ],
+      "bpm": 116,
+      "celebration": "Saturday-night spin",
+      "description": "Sequins, flared silhouettes, gold accents and a mirrorball above your favorite court.",
+      "assets": [
+        "disco/mirrorball.svg",
+        "disco/speaker.svg",
+        "disco/star.svg",
+        "disco/spotlight.svg",
+        "disco/record.svg",
+        "disco/court-overlay.svg",
+        "disco/paddle.svg",
+        "disco/player-1.svg",
+        "disco/player-1-body.svg",
+        "disco/player-2.svg",
+        "disco/player-2-body.svg",
+        "disco/celebration.svg"
+      ],
+      "audio": {
+        "bpm": 116,
+        "bars": 8,
+        "duration": 16.552,
+        "sampleRate": 22050,
+        "file": "disco/music.wav",
+        "kind": "Original synthesized instrumental loop"
+      },
+      "requiredPack": "fun",
+      "status": "design-assets",
+      "playerModelStatus": "SVG design sheets; 3D rig implementation pending"
+    },
+    {
+      "id": "eighties",
+      "name": "80\u2019s Night",
+      "eyebrow": "Sunset colors. After-dark energy.",
+      "colors": [
+        "#272455",
+        "#ff70b2",
+        "#54e5e0",
+        "#ffe09b"
+      ],
+      "looks": [
+        "Neon Runner",
+        "Miami Rally"
+      ],
+      "props": [
+        "boombox",
+        "sunset",
+        "palm",
+        "cassette",
+        "neon"
+      ],
+      "bpm": 104,
+      "celebration": "Neon two-step",
+      "description": "Retrowave sunsets, color-block tracksuits, headbands and synthpop with a pastel Miami twist.",
+      "assets": [
+        "eighties/boombox.svg",
+        "eighties/sunset.svg",
+        "eighties/palm.svg",
+        "eighties/cassette.svg",
+        "eighties/neon.svg",
+        "eighties/court-overlay.svg",
+        "eighties/paddle.svg",
+        "eighties/player-1.svg",
+        "eighties/player-1-body.svg",
+        "eighties/player-2.svg",
+        "eighties/player-2-body.svg",
+        "eighties/celebration.svg"
+      ],
+      "audio": {
+        "bpm": 104,
+        "bars": 8,
+        "duration": 18.462,
+        "sampleRate": 22050,
+        "file": "eighties/music.wav",
+        "kind": "Original synthesized instrumental loop"
+      },
+      "requiredPack": "fun",
+      "status": "design-assets",
+      "playerModelStatus": "SVG design sheets; 3D rig implementation pending"
+    },
+    {
+      "id": "horrified",
+      "name": "Spooky",
+      "eyebrow": "All treats. No jump scares.",
+      "colors": [
+        "#393151",
+        "#b7e878",
+        "#ffae65",
+        "#faf0de"
+      ],
+      "looks": [
+        "Funny Bones",
+        "Zombie Jamboree"
+      ],
+      "props": [
+        "ghost",
+        "pumpkin",
+        "bat",
+        "web",
+        "lantern"
+      ],
+      "bpm": 96,
+      "celebration": "Goofy ghoul shuffle",
+      "description": "Friendly ghosts, smiling skeletons and goofy zombies throw a very un-scary court party.",
+      "assets": [
+        "horrified/ghost.svg",
+        "horrified/pumpkin.svg",
+        "horrified/bat.svg",
+        "horrified/web.svg",
+        "horrified/lantern.svg",
+        "horrified/court-overlay.svg",
+        "horrified/paddle.svg",
+        "horrified/player-1.svg",
+        "horrified/player-1-body.svg",
+        "horrified/player-2.svg",
+        "horrified/player-2-body.svg",
+        "horrified/celebration.svg"
+      ],
+      "audio": {
+        "bpm": 96,
+        "bars": 8,
+        "duration": 20.0,
+        "sampleRate": 22050,
+        "file": "horrified/music.wav",
+        "kind": "Original synthesized instrumental loop"
+      },
+      "requiredPack": "fun",
+      "status": "design-assets",
+      "playerModelStatus": "SVG design sheets; 3D rig implementation pending"
+    },
+    {
+      "id": "fairy",
+      "name": "Fairy Tales",
+      "eyebrow": "Once upon a match.",
+      "colors": [
+        "#366d70",
+        "#c7abf5",
+        "#f4aec9",
+        "#fff1ac"
+      ],
+      "looks": [
+        "Petal Princess",
+        "Woodland Fairy"
+      ],
+      "props": [
+        "butterfly",
+        "mushroom",
+        "flower",
+        "bird",
+        "castle"
+      ],
+      "bpm": 88,
+      "celebration": "Enchanted twirl",
+      "description": "Storybook royalty, magical wings, butterflies, birdsong and a little courtside enchantment.",
+      "assets": [
+        "fairy/butterfly.svg",
+        "fairy/mushroom.svg",
+        "fairy/flower.svg",
+        "fairy/bird.svg",
+        "fairy/castle.svg",
+        "fairy/court-overlay.svg",
+        "fairy/paddle.svg",
+        "fairy/player-1.svg",
+        "fairy/player-1-body.svg",
+        "fairy/player-2.svg",
+        "fairy/player-2-body.svg",
+        "fairy/celebration.svg"
+      ],
+      "audio": {
+        "bpm": 88,
+        "bars": 8,
+        "duration": 21.818,
+        "sampleRate": 22050,
+        "file": "fairy/music.wav",
+        "kind": "Original synthesized instrumental loop"
+      },
+      "requiredPack": "fun",
+      "status": "design-assets",
+      "playerModelStatus": "SVG design sheets; 3D rig implementation pending"
+    }
+  ],
+  "license": "Original PickleBash artwork and synthesized music. No third-party samples.",
+  "courtOverlayViewBox": [
+    0,
+    0,
+    640,
+    320
+  ]
+}

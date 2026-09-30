@@ -19,3 +19,26 @@ button, input, select, textarea { font:inherit; }
 .pb-tag--social { background:var(--pb-tint-pink); color:var(--pb-social-ink); }
 .pb-tag--success { background:var(--pb-tint-mint); color:var(--pb-success-ink); }
 @media(prefers-reduced-motion:reduce) { .pb-button { transition:none; } }
+
+/* Shared dropdown geometry wins over feature-specific input padding.
+   Keep native select behavior; listboxes retain their existing layout. */
+select:not([multiple]):not([size]), select:not([multiple])[size="1"] {
+  appearance:none;
+  -webkit-appearance:none;
+  box-sizing:border-box;
+  height:40px !important;
+  min-height:40px !important;
+  padding:6px 40px 6px 12px !important;
+  line-height:1.25;
+  background-image:linear-gradient(45deg, transparent 42%, currentColor 43%, currentColor 57%, transparent 58%), linear-gradient(135deg, transparent 42%, currentColor 43%, currentColor 57%, transparent 58%) !important;
+  background-position:calc(100% - 21px) 50%, calc(100% - 15px) 50% !important;
+  background-size:6px 6px !important;
+  background-repeat:no-repeat !important;
+}
+@media (forced-colors:active) {
+  select:not([multiple]):not([size]), select:not([multiple])[size="1"] {
+    appearance:auto;
+    -webkit-appearance:auto;
+    background-image:none !important;
+  }
+}

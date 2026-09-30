@@ -1,0 +1,46 @@
+{
+  "checkedAt": "2026-09-29T23:10:59.924Z",
+  "testAccount": "purchase_phone",
+  "ownership": [
+    {
+      "source": "revenuecat",
+      "pack_id": "fun",
+      "active": true,
+      "observed_at": "2026-09-29T22:51:20.455+00:00"
+    },
+    {
+      "source": "revenuecat",
+      "pack_id": "style",
+      "active": true,
+      "observed_at": "2026-09-29T22:51:20.455+00:00"
+    },
+    {
+      "source": "stripe",
+      "pack_id": "court",
+      "active": true,
+      "observed_at": "2026-09-29T22:51:21.027+00:00"
+    }
+  ],
+  "transactions": [
+    {
+      "product": "com.picklebash.app.pack.fun",
+      "store": "app_store",
+      "sandbox": true,
+      "purchasedAt": "2026-09-29T22:29:10Z",
+      "refundedAt": null
+    },
+    {
+      "product": "com.picklebash.app.pack.style",
+      "store": "app_store",
+      "sandbox": true,
+      "purchasedAt": "2026-09-29T19:39:59Z",
+      "refundedAt": null
+    }
+  ],
+  "webAccountOwnedPacks": [
+    "fun",
+    "style",
+    "court"
+  ],
+  "sandbox": true
+}

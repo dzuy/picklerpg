@@ -2,7 +2,7 @@
   "id": "/",
   "name": "PickleBash - A Pickleball Strategy Game",
   "short_name": "PickleBash",
-  "start_url": "/?multiplayer=1",
+  "start_url": "/play?multiplayer=1",
   "scope": "/",
   "display": "standalone",
   "theme_color": "#eff8fb",

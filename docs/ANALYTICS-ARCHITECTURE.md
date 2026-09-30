@@ -118,3 +118,24 @@ Prefer direct saved queries and ordinary dashboard configuration for follow-up w
 September 28 follow-up (released in `8af8c6b`): solo countdowns now restart automatically at expiry; client-owned request/start/completion events preserve their automatic origin. Multiplayer lifecycle remains server-owned; dashboard metric definitions are unchanged.
 
 Release follow-up: `8af8c6b` reached Active on Railway on September 28, 2026. TestFlight 1.0 (7) uploaded with production analytics configuration; Apple processing completed; export compliance, tester assignment, and physical-device checks remain pending. This release does not change remote flag targeting, event ownership, privacy rules, or dashboard metric definitions. See [release record](TESTFLIGHT.md).
+
+September 28 subsequent rollout: `rematch_auto_countdown` enabled for 100% of all users, including guests, at the user’s request. This supersedes the initial dzuy-only targeting recorded above. Event ownership, privacy, and metric definitions are unchanged; see [feature flags](FEATURE-FLAGS.md).
+
+## Custom dashboard implementation follow-up
+
+The recommended PostHog-backed UI now has a local implementation at `/admin/analytics`. This supersedes the earlier “no custom dashboard” snapshot, but does not establish live deployment or data verification. The user opted for a clear setup state until a read/query key is configured. [Admin analytics](ADMIN-ANALYTICS.md) records access controls, provider interface, caching, exact metric differences (period-wide participation, open-independent invitation path, shifted mature D7 cohort), and the required live reconciliation checks. No warehouse or duplicate collection system was introduced.
+
+Dashboard connection follow-up (2026-09-28): the local dashboard now loads live PostHog aggregates. Its server-only query settings and owner allowlist are saved on Railway for the next deployment; the dashboard code has not been deployed. See [dashboard connection and validation record](ADMIN-ANALYTICS.md#connection-follow-up--2026-09-28).
+
+Homepage routing follow-up (local, not deployed): the public `/` entry does not load game authentication or the analytics adapter; `src/game-bootstrap.ts` retains their existing ordering for game entry. Homepage visits do not count as active-player app opens. Event ownership, identity and metric definitions remain unchanged. See [homepage routing](HOMEPAGE.md).
+
+### Billing implementation handoff (2026-09-29; local)
+
+Permanent pack ownership now lives in server-owned billing tables; see [billing operations](BILLING.md). Purchase buttons and checkout redirects do not emit completed/restored payment facts. `plus_entitlement_changed` and `has_full_game_analysis` still describe the historical trusted analysis metadata, not cosmetic pack ownership. Existing metric/event ownership remains unchanged. The new complimentary administration form is excluded from capture; account identifiers and grant reasons must never be added to product events. A reviewed billing-event migration is still needed before using product analytics as a purchase ledger.
+
+Purchase-sandbox follow-up (2026-09-29): the separate Railway service and TestFlight 1.0 (8) use only sandbox database facts, with client/server PostHog and replay explicitly disabled and no ingestion keys copied. Standard account audit hooks were restored after schema-only branching; their facts remain local to that database. Event ownership, privacy rules, metric definitions and production remote targeting are unchanged. See [purchase testing](PURCHASE-TESTING.md) for the dated deployment and physical-test status.
+
+
+## Account-safety preparation — September 29, 2026
+
+Account-safety changes prepared in the shared checkout: no dashboard, metric, flag, identity or event-owner changes. Recordings block account-safety dialogs. External deletion cleanup is manual; see ACCOUNT-SAFETY.md. Not deployed.

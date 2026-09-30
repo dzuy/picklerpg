@@ -11,11 +11,11 @@ export function parseTrashTalk(input:unknown){
 }
 export class TrashTalkService {
  constructor(private client:SupabaseClient){}
- async feed(id:string,actor:string){return this.call('get_match_trash_talk',{p_match_id:id,p_actor:actor});}
- async send(id:string,actor:string,input:unknown){const message=parseTrashTalk(input);return this.call('send_match_trash_talk',{p_match_id:id,p_actor:actor,p_id:message.id,p_text:message.text});}
+ async feed(id:string,actor:string){const {data:m,error}=await this.client.from('async_matches').select('home_user_id,away_user_id').eq('id',id).maybeSingle();if(error)throw new ApiError(503,'chat','Messages are unavailable.');if(!m||![m.home_user_id,m.away_user_id].includes(actor))throw new ApiError(404,'chat','Match unavailable.');const {data:blocked,error:blockError}=await this.client.rpc('players_blocked',{a:m.home_user_id,b:m.away_user_id});if(blockError)throw new ApiError(503,'chat','Messages are unavailable.');if(blocked)return {messages:[],serverTime:new Date().toISOString()};return this.call('get_match_trash_talk',{p_match_id:id,p_actor:actor});}
+ async send(id:string,actor:string,input:unknown){const message=parseTrashTalk(input);const {data:m,error}=await this.client.from('async_matches').select('home_user_id,away_user_id').eq('id',id).maybeSingle();if(error)throw new ApiError(503,'chat','Messages are unavailable.');if(!m||![m.home_user_id,m.away_user_id].includes(actor))throw new ApiError(404,'chat','Match unavailable.');const {data:blocked,error:blockError}=await this.client.rpc('players_blocked',{a:m.home_user_id,b:m.away_user_id});if(blockError)throw new ApiError(503,'chat','Messages are unavailable.');if(blocked)throw new ApiError(403,'blocked','Messages are unavailable for this player.');return this.call('send_match_trash_talk',{p_match_id:id,p_actor:actor,p_id:message.id,p_text:message.text});}
  private async call(name:string,args:Record<string,unknown>):Promise<TrashTalkFeed>{
   const {data,error}=await this.client.rpc(name,args);
-  if(error){if(error.code==='P0002')throw new ApiError(404,'not_found','Match not found.');if(error.code==='PT429')throw new ApiError(429,'chat_cooldown','Give it three seconds before your next message.');if(error.code==='PT409')throw new ApiError(409,'chat_conflict','That message was already sent.');throw new ApiError(503,'chat_unavailable',"Oh !@#$. This isn't working right now...");}
+  if(error){if(error.code==='PT410')throw new ApiError(403,'blocked','Messages are unavailable for this player.');if(error.code==='P0002')throw new ApiError(404,'not_found','Match not found.');if(error.code==='PT429')throw new ApiError(429,'chat_cooldown','Give it three seconds before your next message.');if(error.code==='PT409')throw new ApiError(409,'chat_conflict','That message was already sent.');throw new ApiError(503,'chat_unavailable',"Oh !@#$. This isn't working right now...");}
   return data as TrashTalkFeed;
  }
 }

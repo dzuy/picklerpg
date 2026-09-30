@@ -14,7 +14,7 @@ if(env.DEV){
 let bound=false;
 /** Bind before initialization: INITIAL_SESSION is the authority, never a stale persisted PostHog ID. */
 export function bindAnalyticsIdentity(client:SupabaseClient){
- if(bound)return;bound=true;
+ if(bound||location.pathname.startsWith('/admin/'))return;bound=true;
  let user:User|null=null,ready=false,apply=()=>{if(user)Analytics.identify(user.id,{is_guest:!!user.is_anonymous});else Analytics.reset();};
  client.auth.onAuthStateChange((_event,session)=>{user=session?.user??null;ready=true;apply();});
  const environment=env.VITE_ANALYTICS_ENVIRONMENT??'development';
@@ -29,7 +29,7 @@ export function bindAnalyticsIdentity(client:SupabaseClient){
    disable_session_recording:true,enable_recording_console_log:false,disable_surveys:true,
    person_profiles:'identified_only',persistence:'localStorage',
    advanced_disable_decide:false,feature_flag_request_timeout_ms:2000,
-   session_recording:{sampleRate:0.1,maskAllElementAttributes:true,maskAllInputs:true,maskTextSelector:'*',blockSelector:'input,textarea,[contenteditable],.trash-talk,.friend-share-dialog',captureCanvas:{recordCanvas:false},recordHeaders:false,recordBody:false,maskCapturedNetworkRequestFn:()=>null,attributeFilter:['class','style','role','aria-hidden','disabled']},
+   session_recording:{sampleRate:0.1,maskAllElementAttributes:true,maskAllInputs:true,maskTextSelector:'*',blockSelector:'input,textarea,[contenteditable],.trash-talk,.friend-share-dialog,.account-safety-dialog',captureCanvas:{recordCanvas:false},recordHeaders:false,recordBody:false,maskCapturedNetworkRequestFn:()=>null,attributeFilter:['class','style','role','aria-hidden','disabled']},
    sanitize_properties:sanitizeProperties,
    loaded(){
     // No automatic events are allowed before the Supabase identity has been resolved.

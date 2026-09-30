@@ -33,7 +33,7 @@ export function publicMatch(row:StoredMatch,actor:string,names:ReadonlyMap<strin
  const currentTeam=row.status==='active'&&(!row.friend_state||row.friend_state==='accepted')?match.decisionTeam:null;
  const menu=match.targetingMenu;
  const nextHitter=currentTeam?menu[0]?.intent.actor??null:null;
- return {notificationsMuted:!!(viewerTeam==='home'?row.muted_home:row.muted_away),endedEarly:!!row.ended_by,friendState:row.friend_state,invitedName:row.invited_name,archived:!!(viewerTeam==='home'?row.archived_home:row.archived_away),court:row.checkpoint.court??'forest',nextHitter,id:row.id,createdAt:row.created_at,completedAt:row.completed_at??undefined,version:row.version,status:row.status,accountIds:{home:row.home_user_id,away:row.away_user_id},viewerTeam,currentTeam,decisionId:decisionId(row),rules:{...row.checkpoint.rules},score:{...match.scoring.score},serveCall:match.scoring.call,serverNumber:match.scoring.serverNumber,serving:row.status==='active'&&match.targetingMenu.some(c=>c.intent.type==='serve'),server:match.scoring.server,pointIndex:match.point,
+ return {notificationsMuted:!!(viewerTeam==='home'?row.muted_home:row.muted_away),endedEarly:!!row.ended_by,friendState:row.friend_state,invitedName:row.invited_name,archived:!!(viewerTeam==='home'?row.archived_home:row.archived_away),court:row.checkpoint.court??'forest',courtTheme:row.checkpoint.courtTheme??'none',nextHitter,id:row.id,createdAt:row.created_at,completedAt:row.completed_at??undefined,version:row.version,status:row.status,accountIds:{home:row.home_user_id,away:row.away_user_id},viewerTeam,currentTeam,decisionId:decisionId(row),rules:{...row.checkpoint.rules},score:{...match.scoring.score},serveCall:match.scoring.call,serverNumber:match.scoring.serverNumber,serving:row.status==='active'&&match.targetingMenu.some(c=>c.intent.type==='serve'),server:match.scoring.server,pointIndex:match.point,
   display:{schemaVersion:2,phase:s.phase,stage:s.stage,shotIndex:s.shotIndex,legIndex:0,elapsed:0,simulationTime:0,paused:true,ball:structuredClone(s.ball),players:structuredClone(s.players),shotHistory:[],rallyHistory:[],bounces:s.bounces,score:{...s.score},currentHitter:s.currentHitter,possession:s.possession,result:s.result?{...s.result}:null},
   roster:Object.fromEntries(SLOTS.map(id=>{const f=row.checkpoint.roster[id];return [id,{...f.design!,skills:{...f.skills},handedness:f.handedness}]})) as PublicMatch['roster'],
   incomingShotLabel:currentTeam?incomingShotLabel(s.shotHistory.at(-1),menu.some(c=>c.intent.type==='serve'),!!s.incomingPopUp):null,
@@ -96,7 +96,7 @@ export class MatchService {
   match.scoringPreference=row.checkpoint.rules.scoring;
   match.startLocalHumanMatch(roster,'away');match.matchId=row.id;
   const checkpoint:StoredMatch['checkpoint']=match.exportCheckpoint();checkpoint.rules=structuredClone(row.checkpoint.rules);
-  checkpoint.court=row.checkpoint.court;
+  checkpoint.court=row.checkpoint.court;checkpoint.courtTheme=row.checkpoint.courtTheme;
   return checkpoint;
  }
  prepare(actor:string,input:unknown,friend=false){
@@ -146,7 +146,7 @@ export class MatchService {
   // Network versions count accepted actions, including point advancement in the same transaction.
   match.revision=row.version+1;
   const checkpoint:StoredMatch['checkpoint']=parseCheckpoint(match.exportCheckpoint());
-  if(row.checkpoint.court)checkpoint.court=row.checkpoint.court;
+  if(row.checkpoint.court)checkpoint.court=row.checkpoint.court;checkpoint.courtTheme=row.checkpoint.courtTheme;
   const status=match.scoring.winner?'completed':'active';
   const current=match.decisionTeam;
   if(status==='active'&&!current)throw new ApiError(503,'invalid_state','Resolution did not reach a decision.');

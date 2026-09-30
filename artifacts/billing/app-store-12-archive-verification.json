@@ -1,0 +1,14 @@
+{
+  "checkedAt": "2026-09-30T00:06:44.475Z",
+  "version": "1.0",
+  "build": 12,
+  "bundle": "com.picklebash.app",
+  "productionOrigin": true,
+  "productionDatabase": true,
+  "publicAppleSDK": true,
+  "noServerSecrets": true,
+  "noSandboxOrigin": true,
+  "themeAudioFiles": 6,
+  "internalOnly": false,
+  "archive": "/tmp/PickleBash-AppStore-1.0-12.xcarchive"
+}

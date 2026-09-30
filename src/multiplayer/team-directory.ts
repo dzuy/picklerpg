@@ -1,3 +1,4 @@
+import {cleanTrashTalk} from './trash-talk';
 import {validatePlayer,newPlayer,type Appearance} from '../player-design';
 import {LOOKS} from '../player-looks';
 import {teamDisplayName} from '../team-name';
@@ -18,6 +19,7 @@ export function lobbyTeam(id:string,manager:string,metadata:Record<string,unknow
  if(/^[a-z0-9_]{3,24}$/.test(handle))manager=handle;
  const selected=defaultTeam(metadata.open_play_team);
  const players=selected??LOOKS.slice(0,2).map((look,i)=>({...newPlayer(`preset-${i}`),name:look.name,appearance:{...look.appearance},skills:{...look.skills}})) as TeamSelection;
- return {id,manager,avatar:profileAvatar(id,metadata.profile_avatar),name:teamDisplayName(manager,typeof metadata.team_name==='string'?metadata.team_name.slice(0,48):undefined),players,starter:!selected};
+ manager=cleanTrashTalk(manager);
+ return {id,manager,avatar:profileAvatar(id,metadata.profile_avatar),name:teamDisplayName(manager,typeof metadata.team_name==='string'?cleanTrashTalk(metadata.team_name.slice(0,48)):undefined),players,starter:!selected};
 }
 export function friendIds(value:unknown):string[]{return Array.isArray(value)?[...new Set(value.filter((v):v is string=>typeof v==='string'&&/^[a-f0-9-]{36}$/i.test(v)))].slice(0,200):[]}

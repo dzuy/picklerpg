@@ -1,0 +1,5 @@
+<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Account safety preview</title></head><body style="font-family:system-ui;background:var(--pb-bg);color:var(--pb-text)"><h1>Account safety preview</h1><p>Local layout preview. Do not submit requests from this page.</p><button id="deletion">Delete account preview</button><button id="guest">Delete guest account preview</button><button id="report">Report or block preview</button><script type="module">
+import '/src/design-system/tokens.css';
+import {openAccountDeletion,openPlayerSafety} from '/src/account-safety.ts';
+document.querySelector('#deletion').onclick=()=>openAccountDeletion();document.querySelector('#guest').onclick=()=>openAccountDeletion(true);document.querySelector('#report').onclick=()=>openPlayerSafety({matchId:'00000000-0000-4000-8000-000000000000'},'Rally friend');
+</script></body></html>

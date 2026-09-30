@@ -39,7 +39,7 @@ test('facts use actual recorded shots, mark missing rallies and respect viewer s
 test('premium and game ownership are checked before generation; saved repeats do not cost another generation',async()=>{
  let calls=0;const generate=async()=>{calls++;return report};
  const locked=client(false),service=new GameAnalysisService(locked as any,{OPENAI_API_KEY:'test'},generate);
- await assert.rejects(service.analyze(A,{gameId:locked.r.gameId,mode:'solo'}),e=>(e as any).code==='premium_required');assert.equal(locked.reads,0);assert.equal(calls,0);
+ await assert.rejects(service.analyze(A,{gameId:locked.r.gameId,mode:'solo'}),e=>(e as any).code==='premium_required');assert.equal(locked.reads,2);assert.equal(calls,0);
  const stranger=client(true,false);await assert.rejects(new GameAnalysisService(stranger as any,{OPENAI_API_KEY:'test'},generate).analyze(A,{gameId:stranger.r.gameId,mode:'friends'}),e=>(e as any).status===404);assert.equal(calls,0);
  const allowed=client(),ready=new GameAnalysisService(allowed as any,{OPENAI_API_KEY:'test'},generate),input={gameId:allowed.r.gameId,mode:'solo'};
  const [a,b]=await Promise.all([ready.analyze(A,input),ready.analyze(A,input)]);assert.deepEqual(a,b);assert.equal(calls,1);
@@ -120,4 +120,15 @@ test('new coaching reports save their exact chart counts alongside the prose',as
  assert.deepEqual(result.report,coachingReport);assert.deepEqual(result.shotStats,[{type:'drive',you:1,opponents:0}]);
  const reopened=await new GameAnalysisService(db as any,{},async()=>{throw new Error('Must not regenerate')}).analyze(A,input);
  assert.deepEqual(reopened,result);
+});
+
+
+test('expired membership can read its saved report but cannot create a new one',async()=>{
+ const db=client(),input={gameId:db.r.gameId,mode:'solo'};
+ // Build the saved row explicitly: production storage remains server-only.
+ db.reports.set(JSON.stringify([A,input.mode,input.gameId]),{analysis:{report,coverage:{complete:true,rallies:1,shots:1,fireballs:1}}});
+ db.auth.admin.getUserById=async()=>({data:{user:{app_metadata:{full_game_analysis:false}}}});
+ const service=new GameAnalysisService(db as any,{},async()=>{throw new Error('Must not generate')});
+ assert.deepEqual((await service.analyze(A,input)).report,report);
+ await assert.rejects(service.analyze(A,{...input,gameId:C}),e=>(e as any).code==='premium_required');
 });

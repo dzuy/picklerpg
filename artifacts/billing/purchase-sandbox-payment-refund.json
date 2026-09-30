@@ -1,0 +1,23 @@
+{
+  "checkout": {
+    "id": "cs_test_a1cB22xW8aQnEjlJv0QugAfycras9tJKbLB0jv09uLRaOXGio9OHYk4M0x",
+    "status": "complete",
+    "paymentStatus": "paid",
+    "livemode": false,
+    "amount": 299
+  },
+  "ownership": {
+    "phone": [],
+    "free": [],
+    "web": [
+      "style"
+    ],
+    "bundle": []
+  },
+  "duplicateStatus": 409,
+  "refund": {
+    "id": "re_3UL6DeCgYYn1Kru60s3xHtvg",
+    "status": "succeeded"
+  },
+  "bundleCheckoutCreated": true
+}

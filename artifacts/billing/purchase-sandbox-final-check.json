@@ -1,0 +1,37 @@
+{
+  "accounts": [
+    {
+      "purpose": "phone",
+      "usernameLogin": true,
+      "xpLoaded": true,
+      "ownedPacks": []
+    },
+    {
+      "purpose": "free",
+      "usernameLogin": true,
+      "xpLoaded": true,
+      "ownedPacks": []
+    },
+    {
+      "purpose": "web",
+      "usernameLogin": true,
+      "xpLoaded": true,
+      "ownedPacks": []
+    },
+    {
+      "purpose": "bundle",
+      "usernameLogin": true,
+      "xpLoaded": true,
+      "ownedPacks": [
+        "everything"
+      ]
+    }
+  ],
+  "bundle": {
+    "id": "cs_test_a1jy626BIzufLN0BpijKnC1KdkpGmQpCP2yBUhXtk0As9PtIP7RIoxnHZ2",
+    "amount": 699,
+    "livemode": false,
+    "paymentStatus": "paid",
+    "blocksAllFourDuplicates": true
+  }
+}

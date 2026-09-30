@@ -25,6 +25,8 @@ npm run build
 
 Personas now mix plain handles, numbers, nicknames, and occasional underscores. Avatars independently vary skin, hair, face, headwear, glasses, clothing, colors, and handedness. Seeded win–loss baselines live in server-owned `app_metadata.bot_seed_record`; real completed matches are added to that baseline without inserting fake match history.
 
+Community character cards credit the creator's current account username, matching the Community account directory (for example, Bea is credited to `rafworks`). The catalog resolves usernames for both discovery and existing roster copies, falling back to the saved creator name when no username exists. Migration `202609300001_community_creator_usernames.sql` was applied to the configured main project on September 29, 2026; the restored card UI is local until deployed.
+
 To refresh an existing bot batch's usernames and appearances when explicitly requested, append `--refresh true`. This preserves account IDs, friendships, games, and existing seed statistics. Normal runs do not rerandomize existing bots. The initial 10 were refreshed using this option.
 
 New bot seed records start with 70–99 games played and varied win rates. Actual completed games add to these totals.
