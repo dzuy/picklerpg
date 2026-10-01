@@ -1,6 +1,6 @@
 # Account deletion and player safety
 
-Prepared September 29, 2026 in the shared working checkout. The database migration was applied September 29 to the `vwdtfnljcjbyokdvjiea` project used by local development (dashboard branch: main / production). The local Community directory was verified with 13 visible accounts afterward. Hosted server/client deployment and native release verification remain pending. Build 12 lacks these controls and must not be submitted. The owner is preparing UI polish; combine it with these changes before archiving the next review build.
+Prepared September 29, 2026 in the shared working checkout. The database migration was applied September 29 to the `vwdtfnljcjbyokdvjiea` project used by local development (dashboard branch: main / production). The local Community directory was verified with 13 visible accounts afterward. Hosted server/client deployment was verified October 1 for main revision `38918814d2e7b96e13b144affba2627d612e08b0` (successful Railway commit status, healthy production origin, updated served assets). Build 15 includes these controls; physical-device release verification remains pending. Build 12 lacks these controls and must not be submitted. The owner is preparing UI polish; combine it with these changes before archiving the next review build.
 
 ## Player controls
 
