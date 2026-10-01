@@ -27,5 +27,13 @@
   "distributionDebugEntitlement": false,
   "ipa": "/tmp/PickleBash-TestFlight16-Distribution/App.ipa",
   "ipaBytes": 57948248,
-  "productionDeploymentCommitStatus": "success"
+  "productionDeploymentCommitStatus": "success",
+  "uploadSucceeded": true,
+  "uploadAcceptedAt": "2026-10-01T22:40:20Z",
+  "uploadLog": "/tmp/picklebash-ios16-upload-retry.log",
+  "appleProcessingStarted": true,
+  "appleProcessingCompleteVerified": false,
+  "internalTesterAssignmentVerified": false,
+  "uploadAttemptNotes": "Initial upload stalled awaiting package analysis. The same signed archive was retried successfully.",
+  "testerVerificationBlocker": "App Store Connect browser session expired; sign-in is needed to verify processing completion and internal tester assignment."
 }
