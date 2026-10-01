@@ -5,6 +5,25 @@ import {A,B,creation,testers} from './helpers/remote';
 import {newPlayer,validatePlayer,savePlayer} from '../src/player-design';
 import {MatchService} from '../server/multiplayer/service';
 import {resolvePublicTeam} from '../server/multiplayer/public-players';
+import {communityRatedSkills} from '../src/community-categories';
+
+test('curated public skills survive snapshots while ordinary creators retain their budget',async()=>{
+ const db=await database();try{
+  await db.pool.query('insert into auth.users(id) values($1),($2)',[A,B]);
+  const player=newPlayer('curated'),strong=communityRatedSkills('bangers',4.8);
+  const {rows:[row]}=await db.pool.query('insert into players(owner_id,id,name,appearance,skills,handedness,is_public,published_skills) values($1,$2,$3,$4,$5,$6,true,$7) returning public_id',[A,player.id,player.name,player.appearance,player.skills,player.handedness,strong]);
+  const c=await db.pool.connect();try{
+   await c.query('set role authenticated');await c.query("select set_config('request.jwt.claim.sub',$1,false)",[A]);
+   await c.query("update players set name='Curated name' where public_id=$1",[row.public_id]);
+   await assert.rejects(c.query('update players set published_skills=$1 where public_id=$2',[communityRatedSkills('fast-hands',4.8),row.public_id]),/35 points/);
+   await assert.rejects(c.query('update players set skills=$1 where public_id=$2',[strong,row.public_id]),/account skill budget/);
+   await c.query("select set_config('request.jwt.claim.sub',$1,false)",[B]);
+   await c.query('insert into community_player_selections(owner_id,public_id) values($1,$2)',[B,row.public_id]);
+   const saved=(await c.query('select * from community_player_catalog()')).rows[0];assert.deepEqual(saved.player.skills,strong);
+   await assert.rejects(c.query('select save_community_skills($1,$2)',[row.public_id,strong]),/account skill budget/);
+  }finally{await c.query('reset role');c.release();}
+ }finally{await db.close();}
+});
 
 test('community copies preserve their starting build across source edits, unpublishing and deletion',async()=>{
  const db=await database();try{

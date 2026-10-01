@@ -9,7 +9,7 @@ import {normalizeSkillBudget} from '../src/skill-budget';
 import {parseSoloLaunch} from '../src/solo-launch';
 
 const source=(name:string)=>({...newPlayer('source'),name,skills:communityCategorySkills('bangers')});
-test('computer builds cover beginner through advanced while preserving specialties and public sources',()=>{
+test('computer builds cover 3.5–4.8 while preserving specialties and public sources',()=>{
  const names=['Mila','Jun','Rafa','Bea','Jade','Finn','Nico','Ivy','Luna','Kai','Theo','Zoe','Poppy','Max','Amir','Elle','Sage','Remy','Ollie','Skye'];
  const ratings=names.map(name=>{
   const player=source(name),before=structuredClone(player),opponent=computerOpponent(player);
@@ -19,8 +19,8 @@ test('computer builds cover beginner through advanced while preserving specialti
   assert.ok(opponent.skills.drive>opponent.skills.reset,'power specialty survives');
   return summarizeSkills(opponent.skills).estimatedDupr;
  });
- assert.ok(Math.min(...ratings)>=2.45&&Math.min(...ratings)<=2.55);
- assert.ok(Math.max(...ratings)>=5.3&&Math.max(...ratings)<=5.5);
+ assert.equal(Math.min(...ratings).toFixed(2),'3.50');
+ assert.equal(Math.max(...ratings).toFixed(2),'4.80');
  assert.ok(new Set(ratings.map(r=>Math.round(r*10))).size>=7);
 });
 test('only trusted bot accounts get computer builds; client supplied skills are ignored',async()=>{
@@ -49,5 +49,5 @@ test('solo launch preserves computer skills without changing the human roster',(
  const launch=parseSoloLaunch({players:{you:human,partner:source('Jade'),'opponent-left':opponent,'opponent-right':computerOpponent(source('Zoe'))},court:'forest',scoring:'rally-doubles',target:11});
  assert.deepEqual(launch.players.you.skills,human.skills);
  assert.deepEqual(launch.players['opponent-left'].skills,opponent.skills);
- assert.ok(summarizeSkills(launch.players['opponent-left'].skills).estimatedDupr>5);
+ assert.ok(summarizeSkills(launch.players['opponent-left'].skills).estimatedDupr>4);
 });

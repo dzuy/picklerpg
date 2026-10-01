@@ -1,5 +1,5 @@
 import type {PlayerSkills} from './engine/model';
-import {SUMMARY_SKILLS,setSummarySkillLevel,type SummarySkillName} from './player-skill-summary';
+import {SUMMARY_SKILLS,setSummarySkillLevel,summarizeSkills,type SummarySkillName} from './player-skill-summary';
 const mean=(skills:PlayerSkills,area:SummarySkillName)=>SUMMARY_SKILLS[area].reduce((sum,key)=>sum+skills[key],0)/SUMMARY_SKILLS[area].length;
 /** Add future collections here; each defines its own membership rule and row copy. */
 export const COMMUNITY_CATEGORIES=[
@@ -16,5 +16,30 @@ export function communityCategorySkills(id:CommunityCategoryId,variant=0):Player
  if(variant%2){points.Control--;points.Speed++;}
  let skills={} as PlayerSkills;
  for(const area of Object.keys(SUMMARY_SKILLS) as SummarySkillName[])skills=setSummarySkillLevel(skills,area,points[area]*10);
+ return skills;
+}
+
+/** Curated public opponents span intermediate through strong, retaining their specialty. */
+export const COMMUNITY_RATINGS=[3.5,3.7,3.9,4.1,4.3,4.5,4.65,4.8] as const;
+export const CURATED_COMMUNITY_BUDGET=50;
+export function communityRatedSkills(id:CommunityCategoryId,rating:number,variant=0):PlayerSkills{
+ return skillsAtCommunityRating(communityCategorySkills(id,variant),rating);
+}
+export function skillsAtCommunityRating(base:PlayerSkills,rating:number):PlayerSkills{
+ if(!Number.isFinite(rating)||rating<3.5||rating>4.8)throw Error('Community rating must be between 3.5 and 4.8');
+ const id=communityCategory(base).id;
+ const build=(offset:number)=>Object.fromEntries(Object.entries(base).map(([key,value])=>[key,Math.max(0,Math.min(100,Math.round(value+offset)))])) as PlayerSkills;
+ let low=-100,high=100;
+ for(let i=0;i<24;i++){const mid=(low+high)/2;if(summarizeSkills(build(mid)).estimatedDupr<rating)low=mid;else high=mid;}
+ const a=build(low),b=build(high);
+ let skills=Math.abs(summarizeSkills(a).estimatedDupr-rating)<=Math.abs(summarizeSkills(b).estimatedDupr-rating)?a:b;
+ // Fine tune individual skills so integer engine values still display the target rating.
+ for(let i=0;i<50;i++){
+  const actual=summarizeSkills(skills).estimatedDupr,direction=actual<rating?1:-1;
+  const candidates=Object.keys(skills).map(key=>({...skills,[key]:skills[key as keyof PlayerSkills]+direction})).filter(s=>Object.values(s).every(v=>v>=0&&v<=100)&&communityCategory(s).id===id);
+  const best=candidates.sort((x,y)=>Math.abs(summarizeSkills(x).estimatedDupr-rating)-Math.abs(summarizeSkills(y).estimatedDupr-rating))[0];
+  if(!best||Math.abs(summarizeSkills(best).estimatedDupr-rating)>=Math.abs(actual-rating))break;
+  skills=best;
+ }
  return skills;
 }

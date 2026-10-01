@@ -31,6 +31,10 @@ To refresh an existing bot batch's usernames and appearances when explicitly req
 
 New bot seed records start with 70–99 games played and varied win rates. Actual completed games add to these totals.
 
+Curated public skills: migration `202610010001_curated_community_skills.sql` was applied through the Codex browser to the configured main project on September 30, 2026. The 12 visible public characters were backed up, updated, and verified across 3.50, 3.93, 4.37, and 4.80 within each existing specialty. Moderated entries, creator-owned skills, and existing saved copies were preserved. Adding a player again takes the current public build. Service-owned curated publishing allows up to 50 points; ordinary creators still publish 35-point builds and retain their account budget for owned skills.
+
+For a future skill-only refresh, generate a private plan with `scripts/admin/categorize-community-skills.ts /private/path/plan.json`, then apply that exact backup with `--apply`. It preserves each visible player's category, distributes ratings within each category, and stops if the source skills changed since planning. New bot batches and explicit refreshes publish varied 3.5–4.8 builds. Match-only opponent scaling also targets 3.5–4.8; that client/server code remains local until deployed.
+
 Activity rewards: new bots receive a simulated event timeline consistent with their seeded win–loss record. To backfill rewards and varied earned titles for existing bots without replacing avatars or games:
 
 ```sh

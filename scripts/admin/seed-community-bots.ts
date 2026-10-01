@@ -1,4 +1,4 @@
-import {COMMUNITY_CATEGORIES,communityCategorySkills} from '../../src/community-categories';
+import {COMMUNITY_CATEGORIES,COMMUNITY_RATINGS,communityCategorySkills,skillsAtCommunityRating} from '../../src/community-categories';
 import {createClient} from '@supabase/supabase-js';
 import {createHash,randomBytes} from 'node:crypto';
 import {BOT_PERSONAS,botPlayer,botRecord,botActivity} from '../../server/multiplayer/bot-persona';
@@ -14,6 +14,7 @@ const dzuy=users.find(u=>u.user_metadata.username==='dzuy');
 for(let index=0;index<count;index++){
  const [base,name,partnerName]=personas[index%personas.length];
  let user=users.find(u=>u.app_metadata.community_bot===true&&u.app_metadata.bot_seed_batch===batch&&u.app_metadata.bot_seed_index===index);
+ const fresh=!user;
  if(!user||option('--refresh')==='true'){
   let username=base;
   if(users.some(u=>u.id!==user?.id&&u.user_metadata.username===username))username=`${base}${parseInt(createHash('sha256').update(`${batch}:${index}`).digest('hex').slice(0,5),16)}`;
@@ -28,7 +29,7 @@ for(let index=0;index<count;index++){
   const old=users.findIndex(u=>u.id===data.user!.id);user=data.user;if(old>=0)users[old]=user;else users.push(user);
  }
  const team=defaultTeam(user.user_metadata.open_play_team);if(!team)throw Error(`Bot ${user.id} has no valid team`);
- const saved=await client.from('players').upsert(team.map((p,i)=>({...p,owner_id:user!.id,is_active:i===0,is_public:true})),{onConflict:'owner_id,id'});if(saved.error)throw saved.error;
+ const saved=await client.from('players').upsert(team.map((p,i)=>({...p,owner_id:user!.id,is_active:i===0,is_public:true,...(fresh||option('--refresh')==='true'?{published_skills:skillsAtCommunityRating(p.skills,COMMUNITY_RATINGS[(index*2+i)%COMMUNITY_RATINGS.length])}:{})})),{onConflict:'owner_id,id'});if(saved.error)throw saved.error;
  console.log(`Ready @${user.user_metadata.username} (${team.map(p=>p.name).join(' & ')})`);
 }
 console.log(`Batch ${batch}: ${count} bot accounts ready.`);
