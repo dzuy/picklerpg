@@ -73,8 +73,8 @@ export function startCommunityBots(client:SupabaseClient,matches:MatchService,in
      }catch(error){report(error);}
     }
    }
-   const pending=await client.from('async_invitations').select('id,recipient_id,created_at').eq('rematch_manual',true).eq('status','pending').in('recipient_id',ids);if(pending.error)throw pending.error;
-   for(const invite of pending.data){if(Date.now()-Date.parse(invite.created_at)<botDelay(invite.id,true))continue;try{await invitations.accept(invite.id,invite.recipient_id,{team:bots.get(invite.recipient_id)!});}catch(error){report(error);}}
+   const pending=await client.from('async_invitations').select('id,recipient_id,created_at,rematch_of,rematch_manual').eq('status','pending').in('recipient_id',ids);if(pending.error)throw pending.error;
+   for(const invite of pending.data){if(invite.rematch_of&&invite.rematch_manual===false)continue;if(Date.now()-Date.parse(invite.created_at)<botDelay(invite.id,true))continue;try{await invitations.accept(invite.id,invite.recipient_id,{team:bots.get(invite.recipient_id)!});}catch(error){report(error);}}
    const turns=await client.from('async_matches').select('id,current_action_user_id,version,updated_at').eq('status','active').in('current_action_user_id',ids);if(turns.error)throw turns.error;
    for(const row of turns.data){if(Date.now()-Date.parse(row.updated_at)<botDelay(`${row.id}:${row.version}`))continue;try{const game=await matches.get(row.id,row.current_action_user_id);if(game.version!==row.version)continue;if(botReaction(game,null)){
      try{

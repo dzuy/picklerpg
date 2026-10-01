@@ -37,3 +37,53 @@ test('a player transferred after sign-in is added without replacing the existing
  const row=accountPlayerRow('existing-account',player);
  assert.equal(row.owner_id,'existing-account');assert.equal(row.id,player.id);assert.equal(row.name,'Dink Ninja');assert.equal(row.is_active,false);
 });
+
+test('an imported guest character can be selected as the account player without changing its design',()=>{
+ const player=newPlayer('guest-custom');player.appearance.hair='#123456';player.handedness='left';
+ const row=accountPlayerRow('signed-in-account',player,true);
+ assert.equal(row.is_active,true);assert.equal(row.owner_id,'signed-in-account');
+ assert.deepEqual(row.appearance,player.appearance);assert.deepEqual(row.skills,player.skills);assert.equal(row.handedness,'left');
+});
+
+test('guest transfer saves alongside the active signup starter before switching selection',async()=>{
+ const {saveTransferredAccountPlayer}=await import('../src/cloud-players');
+ const existing=accountPlayerRow('account',newPlayer('starter'),true);
+ const unrelated=accountPlayerRow('other-account',newPlayer('other-player'),true);
+ const rows=[existing,unrelated];
+ const db:any={from:(table:string)=>{
+  assert.equal(table,'players');
+  return {
+   async upsert(row:typeof existing){
+    if(row.is_active&&rows.some(p=>p.owner_id===row.owner_id&&p.is_active&&p.id!==row.id))return {error:{code:'23505'}};
+    const index=rows.findIndex(p=>p.owner_id===row.owner_id&&p.id===row.id);
+    if(index<0)rows.push(row);else rows[index]=row;
+    return {error:null};
+   },
+   update(values:{is_active:boolean}){
+    const filters:Record<string,string>={};
+    const query={eq(key:string,value:string){filters[key]=value;return query;},then(resolve:(result:{error:unknown})=>void){
+     const affected=rows.filter(row=>Object.entries(filters).every(([key,value])=>(row as any)[key]===value));
+     if(values.is_active&&affected.some(row=>rows.some(other=>other.owner_id===row.owner_id&&other.id!==row.id&&other.is_active))){resolve({error:{code:'23505'}});return;}
+     for(const row of affected)row.is_active=values.is_active;
+     resolve({error:null});
+    }};return query;
+   }
+  };
+ }};
+ const edited=newPlayer('custom-guest');edited.appearance.hair='#123456';
+ await saveTransferredAccountPlayer(db,'account',edited);
+ assert.equal(existing.is_active,false);
+ assert.equal(unrelated.is_active,true);
+ const imported=rows.find(p=>p.id===edited.id)!;
+ assert.equal(imported.is_active,true);assert.deepEqual(imported.appearance,edited.appearance);
+ assert.equal(rows.filter(p=>p.owner_id==='account'&&p.is_active).length,1);
+ // A retry updates the same character instead of adding another one.
+ await saveTransferredAccountPlayer(db,'account',edited);
+ assert.equal(rows.filter(p=>p.owner_id==='account').length,2);
+});
+
+test('a failed character save leaves the original active player selected',async()=>{
+ const {saveTransferredAccountPlayer}=await import('../src/cloud-players');
+ const db:any={from:()=>({upsert:async()=>({error:{code:'offline'}}),update:()=>assert.fail('Must not deselect the starter before saving the character')})};
+ await assert.rejects(saveTransferredAccountPlayer(db,'account',newPlayer('custom-guest')),/could not be added/);
+});

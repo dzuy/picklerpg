@@ -7,6 +7,7 @@ import './rivalry.css';
 import type {ActivityRewards} from '../activity-rewards';
 import {appNavigation,initialLobbyPage,type LobbyPage} from '../app-navigation';
 import {profilePanel} from './profile';
+import {profileAccess} from '../profile-access';
 import {AvatarThumbnails} from '../avatar-preview';
 import {preloadAthletes} from '../athlete';
 import {authClient,matchCredentials} from '../auth-session';
@@ -33,6 +34,10 @@ export class TeamLobby {
  private previousSocialTab:'games'|'friends'|'community'|null=null;
  constructor(data:TeamDirectory,private actions:{directoryState?:'loading'|'ready'|'error';retryDirectory?:()=>void;signOut:()=>Promise<void>;authenticate:(signup:boolean,guest:boolean)=>void;roster:()=>void;create:()=>void;invite?:()=>void;challenge:(team:LobbyTeam)=>void;changed:(data:TeamDirectory)=>void;enabled:boolean;games:HTMLElement;rivalryFor?:(opponent:string)=>MatchRivalry|undefined}){this.data=data;this.draw();void preloadAthletes().then(()=>{TeamLobby.portraits??=new AvatarThumbnails(256);if(this.element.isConnected)this.draw()}).catch(()=>{});}
  selectTab(tab:LobbyPage){
+  if(tab==='profile'){void profileAccess().then(allowed=>{if(allowed)this.showTab(tab);});return;}
+  this.showTab(tab);
+ }
+ private showTab(tab:LobbyPage){
   this.tab=tab;history.replaceState(null,'',tab==='games'?'/?openplay=1':`/?openplay=1&tab=${tab}`);this.draw();
   if(tab==='roster')this.actions.roster();
   else{focusView(this.element);window.scrollTo({top:0,behavior:'instant'});}
@@ -72,7 +77,8 @@ export class TeamLobby {
   if(this.tab==='friends'||this.tab==='community'){
    const communityView=this.tab==='community';
    const directoryState=this.actions.directoryState??'ready';
-   const people=directoryState==='ready'?this.data.teams.filter(person=>communityView?canShowCommunityAccount(person.manager,null):this.data.friends.includes(person.id)):[];
+   const communityIds=new Set(this.data.communityIds??this.data.teams.slice(0,100).map(person=>person.id));
+   const people=directoryState==='ready'?this.data.teams.filter(person=>communityView?communityIds.has(person.id)&&canShowCommunityAccount(person.manager,null):this.data.friends.includes(person.id)):[];
    const list=node('div','team-directory-list');list.id='friends-list-panel';list.setAttribute('role','tabpanel');list.setAttribute('aria-labelledby',`friends-tab-${this.tab}`);list.tabIndex=0;
    list.setAttribute('aria-busy',String(directoryState==='loading'));
    if(directoryState!=='ready'){
@@ -92,7 +98,7 @@ export class TeamLobby {
     const story=rivalryCardStory(this.actions.rivalryFor?.(person.id));
     if(story)identity.append(node('p','lobby-person-rivalry',story));
     void this.record(person).then(record=>{if(!card.isConnected)return;if(communityView&&!canShowCommunityAccount(person.manager,record.games)){card.remove();finishCommunityRecord();return;}card.hidden=false;const xp=record.lifetimeXp;recordLabel.textContent=` (${record.wins.toLocaleString()}-${record.losses.toLocaleString()}) · ${xp==null?'—':xp.toLocaleString()} XP`;recordLabel.setAttribute('aria-label',`${record.wins} wins, ${record.losses} losses, ${xp==null?'XP unavailable':`${xp} XP`}`);finishCommunityRecord();}).catch(()=>{if(!card.isConnected)return;card.hidden=false;recordLabel.textContent=' (—)';recordLabel.setAttribute('aria-label','Record unavailable');finishCommunityRecord();});
-    const controls=node('div','lobby-person-actions'),challenge=this.button('Challenge',()=>this.actions.challenge(person),'team-lobby-primary');challenge.disabled=!this.actions.enabled;
+    const controls=node('div','lobby-person-actions'),challenge=this.button('Challenge',()=>this.actions.challenge(person),'team-lobby-primary');
     if(!this.data.friends.includes(person.id)){controls.classList.add('has-add-friend');controls.append(this.button('Add Friend',()=>void this.friend(person.id),'team-lobby-add-friend'));}controls.append(challenge);
     card.append(identity,controls);list.append(card);
    }
@@ -104,7 +110,7 @@ export class TeamLobby {
    }
   }
   if(this.tab==='store')directory.append(storePage());
-  if(this.tab==='profile')directory.append(profilePanel(this.portraits,this.actions.authenticate,this.actions.signOut));
+  if(this.tab==='profile')directory.append(profilePanel(this.portraits,()=>{if(!this.element.isConnected)return;this.showTab('games');void profileAccess();},this.actions.signOut));
   const aside=node('div','team-lobby-header-actions');
   const create=this.button('Create a Game',this.actions.create,'team-lobby-primary team-lobby-create');
   if(socialView){
@@ -137,7 +143,7 @@ export class TeamLobby {
    const record=await this.record(person);
    [record.games,record.wins,record.losses].forEach((value,i)=>values[i].textContent=String(value));recordStatus.remove();
   })().catch(()=>{stats.remove();recordStatus.remove();}).finally(()=>stats.setAttribute('aria-busy','false'));
-  const play=this.button('Challenge',()=>{dialog.close();this.actions.challenge(person)},'team-lobby-primary');play.disabled=!this.actions.enabled;
+  const play=this.button('Challenge',()=>{dialog.close();this.actions.challenge(person)},'team-lobby-primary');
   const friend=this.button('',()=>{},'team-lobby-quiet');
   const sync=()=>{const connected=this.data.friends.includes(person.id);relationship.textContent=connected?'Your friend':'Community player';friend.textContent=connected?'Remove Friend':'Add Friend';};sync();
   friend.onclick=()=>{friend.disabled=true;status.textContent='';void this.friend(person.id).then(saved=>{if(saved)sync();else status.textContent=this.message;}).finally(()=>{friend.disabled=false;});};
@@ -148,7 +154,7 @@ export class TeamLobby {
   const rivalry=node('section','profile-insights');
   const rivalryData=this.actions.rivalryFor?.(person.id);
   if(rivalryData?.current?.games)rivalry.append(rivalryProfile(rivalryData,person.manager));
-  const safety=this.button('Report / Block',()=>openPlayerSafety({targetId:person.id},person.manager,()=>{this.data={...this.data,teams:this.data.teams.filter(p=>p.id!==person.id),friends:this.data.friends.filter(id=>id!==person.id)};this.actions.changed(this.data);dialog.close();this.draw();}),'team-lobby-quiet');actions.append(friend,play,safety);panel.append(identity,stats,actions,recordStatus,...(rivalry.childElementCount?[rivalry]:[]),status);dialog.append(header,panel);
+  const safety=this.button('Report / Block',()=>openPlayerSafety({targetId:person.id},person.manager,()=>{this.data={...this.data,teams:this.data.teams.filter(p=>p.id!==person.id),friends:this.data.friends.filter(id=>id!==person.id)};this.actions.changed(this.data);dialog.close();this.draw();}),'friend-profile-safety');actions.append(friend,play);panel.append(identity,stats,actions,recordStatus,...(rivalry.childElementCount?[rivalry]:[]),status,safety);dialog.append(header,panel);
   dialog.addEventListener('close',()=>{dialog.remove();const name=Array.from(this.element.querySelectorAll<HTMLButtonElement>('[data-person-id]')).find(button=>button.dataset.personId===person.id);focusView(this.element);},{once:true});
   document.body.append(dialog);showViewDialog(dialog);focusView(dialog);
  }
@@ -161,7 +167,7 @@ export class TeamLobby {
     const session=(await authClient()?.auth.getSession())?.data.session;
     if(!session||session.user.is_anonymous){
      const refresh=async()=>{location.reload()};
-     await createYourPlayer(async()=>{location.assign('/?openplay=1&setup=1');},{onSignIn:refresh});
+     await createYourPlayer(async()=>{},{onSignIn:refresh});
      return false;
     }
    }

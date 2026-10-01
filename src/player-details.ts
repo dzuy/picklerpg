@@ -1,4 +1,3 @@
-import {openPlayerSafety} from './account-safety';
 import {focusView} from './view-focus';
 import {AvatarPreview} from './avatar-preview';
 import {fillPlayerCard,playerSkillDetails} from './player-card';
@@ -18,7 +17,7 @@ export function attachPlayerDetails(card:HTMLElement,player:DesignedPlayer,role:
  card.addEventListener('keydown',event=>{if(event.target===card&&(event.key==='Enter'||event.key===' ')){event.preventDefault();open()}});
 }
 
-export function openPlayerDetails(player:DesignedPlayer,role:string,portrait='',returnFocus?:HTMLElement,edit?:()=>void,membership?:{label:string;primary?:boolean;change:()=>Promise<void|boolean>},requestDelete?:()=>void){
+export function openPlayerDetails(player:DesignedPlayer,role:string,portrait='',returnFocus?:HTMLElement,edit?:()=>void,membership?:{label:string;primary?:boolean;change:()=>Promise<void|boolean>},requestDelete?:()=>void,reportOrBlock?:()=>void){
 
   clearTimeout(closeTimer);closeTimer=undefined;disposeCurrent?.();disposeCurrent=undefined;
   drawer??=document.createElement('dialog');drawer.className='roster-details-drawer';drawer.id='roster-details';drawer.setAttribute('aria-labelledby','roster-details-title');drawer.replaceChildren();if(!drawer.isConnected)document.body.append(drawer);
@@ -42,7 +41,6 @@ export function openPlayerDetails(player:DesignedPlayer,role:string,portrait='',
     };drawer!.append(button,status);
    });
   }
-  if(player.id.startsWith('community-')){const safety=document.createElement('button');safety.type='button';safety.textContent='Report / Block creator';safety.onclick=()=>openPlayerSafety({publicId:player.id.slice('community-'.length)},player.name,()=>{document.dispatchEvent(new Event('community-moderated'));dismiss();});drawer.append(safety);}
   if(edit){const button=document.createElement('button');button.type='button';button.className='roster-details-edit';button.textContent=player.id.startsWith('community-')?'Customize skills':'Edit player';button.onclick=()=>dismiss(edit);drawer.append(button);}
   if(requestDelete){const button=document.createElement('button');button.type='button';button.className='roster-details-delete';button.textContent='Delete player';button.onclick=()=>dismiss(requestDelete);drawer.append(button);}
   if(membership){
@@ -51,6 +49,7 @@ export function openPlayerDetails(player:DesignedPlayer,role:string,portrait='',
    button.onclick=()=>{button.disabled=true;status.textContent='';void membership.change().then(changed=>{if(changed!==false)dismiss();}).catch(error=>{status.textContent=(error as Error).message;}).finally(()=>{button.disabled=false;});};
    drawer.append(button,status);
   }
+  if(reportOrBlock){const button=document.createElement('button');button.type='button';button.className='roster-details-safety';button.textContent='Report / Block opponent';button.onclick=()=>dismiss(reportOrBlock);drawer.append(button);}
   disposeCurrent=()=>{preview?.dispose();preview=undefined};
   drawer.onclose=()=>{clearTimeout(closeTimer);closeTimer=undefined;disposeCurrent?.();disposeCurrent=undefined;drawer!.classList.remove('is-closing');focusView(returnFocus?.isConnected?returnFocus:undefined)};if(!drawer.open)drawer.showModal();focusView(drawer);
   const banner=profile.querySelector<HTMLElement>('.roster-banner')!,host=document.createElement('div');host.className='roster-live-preview';

@@ -4,6 +4,7 @@ import {attachPlayerDetails} from './player-details';
 import {canAddToRoster} from './roster-account';
 import {rosterStarters,loadRosterStarters,setStarterAdded} from './roster-membership';
 import {communityPlayers,setCommunityAdded,type CommunityPlayer} from './community-players';
+import {ensureCommunityStartingRoster} from './community-starting-roster';
 import {fillPlayerCard,playerRecord} from './player-card';
 import type {HistoryMatch} from './player-history';
 import './player-creator.css';
@@ -23,7 +24,7 @@ export class CommunitySection {
  }
  async load(){const generation=++this.generation;const status=this.element.querySelector<HTMLElement>('[data-community-status]')!;status.textContent='Loading Community Players…';
   await loadRosterStarters();
-  try{this.rows=await communityPlayers();status.textContent=this.rows.length?'':'No public players yet.';}catch(e){status.textContent=(e as Error).message;}
+  try{this.rows=await ensureCommunityStartingRoster(await communityPlayers());await loadRosterStarters();status.textContent=this.rows.length?'':'No public players yet.';}catch(e){status.textContent=(e as Error).message;}
   await preloadAthletes();if(generation!==this.generation)return;this.draw();this.changed(this.addedPlayers);
  }
  private card(player:DesignedPlayer,inRoster:boolean){

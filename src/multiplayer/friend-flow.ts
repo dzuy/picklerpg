@@ -1,3 +1,4 @@
+import {stageGuestAccountPlayer,prepareAccountPlayerTransfer,transferPendingAccountPlayer} from '../pending-account-player';
 import {Analytics} from '../analytics';
 import {loadScoringPreference,saveScoringPreference,type ScoringPreference} from '../scoring-preference';
 import './account-dialog.css';
@@ -15,6 +16,7 @@ import {playerId} from '../player-design';
 import {remoteRequest} from './api';
 import {publicOrigin} from '../native-origin';
 import {signInDialog} from './sign-in-dialog';
+import {FIRST_GAME_WELCOME_URL} from '../first-game-welcome';
 function track(event:string,token?:string){void matchCredentials().then(c=>remoteRequest(c.token,'/api/multiplayer/invite-event',{event,token})).catch(()=>{});}
 export interface FriendChallenge {token:string;matchId:string;inviterName:string;invitedName:string;status:string}
 function panel(title:string,closeButton=true){const dialog=document.createElement('dialog');dialog.className='friend-dialog remote-new-game';const h=document.createElement('h1');h.textContent=title;if(closeButton){const close=document.createElement('button');close.className='remote-quiet';close.textContent='Close';close.onclick=()=>dialog.close();dialog.append(close);}dialog.append(h);document.body.append(dialog);dialog.addEventListener('close',()=>dialog.remove());showViewDialog(dialog);return dialog;}
@@ -44,24 +46,29 @@ export function shareChallenge(i:FriendChallenge,openShare=false){
  let checking=false;const refresh=setInterval(()=>{if(document.hidden||checking)return;checking=true;void matchCredentials().then(c=>remoteRequest<FriendChallenge>(c.token,`/api/multiplayer/challenge-for-match/${i.matchId}`)).then(next=>{if(next.status!=='pending')d.close();}).catch(()=>{}).finally(()=>{checking=false;});},5000);d.addEventListener('close',()=>clearInterval(refresh));return d;
 }
 export async function shareMatch(id:string,pending=false,context?:MatchShareContext){if(!pending){showGameShare(matchShare(id,context));return;}const c=await matchCredentials();shareChallenge(await remoteRequest<FriendChallenge>(c.token,`/api/multiplayer/challenge-for-match/${id}`));}
-export interface CreatePlayerAccountOptions {playerName?:string;onSignIn?:()=>Promise<void>;onSignInSelected?:()=>void}
+export interface CreatePlayerAccountOptions {playerName?:string;onSignIn?:()=>Promise<void>;onSignInSelected?:()=>void;saveProgress?:boolean;canOpen?:()=>boolean;onShown?:()=>void}
 export async function createYourPlayer(onComplete:()=>Promise<void>=async()=>{},options:CreatePlayerAccountOptions={}):Promise<boolean>{
- const client=authClient();if(!client)throw Error('Account creation is unavailable. Please try again later.');const {data:{session}}=await client.auth.getSession();if(session&&!session.user.is_anonymous)return true;
+ await stageGuestAccountPlayer();
+ const client=authClient();if(!client)throw Error('Account creation is unavailable. Please try again later.');const {data:{session},error}=await client.auth.getSession();if(error)throw error;if(session&&!session.user.is_anonymous)return true;
+ if(options.saveProgress&&!session)throw Error('Reconnect to your guest session before saving progress. Your game is still on this device.');
+ if(options.canOpen&&!options.canOpen())return false;
  track('guest_registration_started');Analytics.track('onboarding_started',{source:'account_dialog'});
- const d=panel('Create An Account',false),copy=document.createElement('p');dismissOnBackdrop(d);copy.textContent=`Save ${options.playerName?.trim()||'your player'}, start games on any device, and challenge friends.`;const form=document.createElement('form');
+ const d=panel(options.saveProgress?'Save your progress':'Create An Account',false),copy=document.createElement('p');dismissOnBackdrop(d);copy.textContent='Save your progress and your games with your friends';const form=document.createElement('form');
  d.classList.add('friend-account-dialog');
- const close=button('×');close.className='friend-account-close';close.setAttribute('aria-label','Close account creation');close.onclick=()=>d.close();d.prepend(close);
- const usernameLabel=document.createElement('label'),usernameInput=document.createElement('input');usernameLabel.textContent='Username *';usernameInput.required=true;usernameInput.autocomplete='username';usernameInput.minLength=3;usernameInput.maxLength=24;usernameInput.pattern='[A-Za-z0-9_]{3,24}';usernameInput.placeholder='e.g. luna17';usernameLabel.append(usernameInput);form.append(usernameLabel);
- const fields=['Email','Password'].map(name=>{const label=document.createElement('label'),input=document.createElement('input');label.textContent=`${name} *`;input.type=name.toLowerCase();input.autocomplete=name==='Email'?'email':'new-password';input.required=true;if(name==='Password'){input.minLength=6;input.maxLength=128;}label.append(input);form.append(label);return input;});
- const save=button('Create Account',true);save.type='submit';const signIn=button('Already have an account? Sign in');const message=document.createElement('p');message.setAttribute('role','status');form.append(save,message);d.append(copy,form,signIn);
+ const close=button('');close.className='friend-account-close';close.innerHTML=hudButtonIcon('close');close.setAttribute('aria-label','Close account creation');close.onclick=()=>d.close();d.prepend(close);
+ const usernameLabel=document.createElement('label'),usernameInput=document.createElement('input');usernameInput.setAttribute('aria-label','Username');usernameInput.required=true;usernameInput.autocomplete='username';usernameInput.minLength=3;usernameInput.maxLength=24;usernameInput.pattern='[A-Za-z0-9_]{3,24}';usernameInput.placeholder='Username';usernameLabel.append(usernameInput);form.append(usernameLabel);
+ const fields=['Email','Password'].map(name=>{const label=document.createElement('label'),input=document.createElement('input');input.setAttribute('aria-label',name);input.placeholder=name;input.type=name.toLowerCase();input.autocomplete=name==='Email'?'email':'new-password';input.required=true;if(name==='Password'){input.minLength=6;input.maxLength=128;}label.append(input);form.append(label);return input;});
+ const save=button(options.saveProgress?'Create account & save progress':'Create Account',true);save.type='submit';const signIn=button('Already have an account? Sign in');const message=document.createElement('p');message.setAttribute('role','status');form.append(save,message);d.append(copy,form,signIn);
+ if(options.saveProgress){const later=button('Not now');later.onclick=()=>d.close();d.append(later);}
+ options.onShown?.();
  let completed=false;const outcome=new Promise<boolean>(resolve=>d.addEventListener('close',()=>resolve(completed),{once:true}));
- signIn.onclick=()=>{options.onSignInSelected?.();d.close();signInDialog(options.onSignIn??onComplete)};
+ signIn.onclick=()=>{options.onSignInSelected?.();d.close();signInDialog(options.onSignIn??onComplete,()=>{void createYourPlayer(onComplete,options);})};
  const accountPlayerName=()=>options.playerName?.trim()||usernameInput.value.trim();
- const register=session?guestRegistration(session.user.id,credentials=>remoteRequest(session.access_token,'/api/multiplayer/claim-player',{...credentials,username:usernameInput.value.trim(),playerName:typeof session.user.user_metadata.player_name==='string'&&session.user.user_metadata.player_name.trim()?session.user.user_metadata.player_name.trim():accountPlayerName()}),{signIn:playerPasswordSession,install:async fresh=>{const {error}=await client.auth.setSession(fresh);if(error)throw error;}}):async(credentials:{email:string;password:string})=>{
+ const register=session?guestRegistration(session.user.id,credentials=>remoteRequest(session.access_token,'/api/multiplayer/claim-player',{...credentials,username:usernameInput.value.trim(),playerName:typeof session.user.user_metadata.player_name==='string'&&session.user.user_metadata.player_name.trim()?session.user.user_metadata.player_name.trim():accountPlayerName()}),{signIn:playerPasswordSession,install:async fresh=>{prepareAccountPlayerTransfer();const {error}=await client.auth.setSession(fresh);if(error)throw error;}}):async(credentials:{email:string;password:string})=>{
   await remoteRequest('', '/api/multiplayer/register',{...credentials,username:usernameInput.value.trim(),playerName:accountPlayerName()});
   const fresh=await playerPasswordSession(credentials);
-  const {error}=await client.auth.setSession(fresh);if(error)throw error;
+  prepareAccountPlayerTransfer();const {error}=await client.auth.setSession(fresh);if(error)throw error;
  };
- form.onsubmit=e=>{e.preventDefault();if(save.disabled)return;save.disabled=true;signIn.disabled=true;message.textContent='Creating your account…';void(async()=>{await register({email:fields[0].value.trim(),password:fields[1].value});fields[1].value='';await onComplete();Analytics.track('onboarding_completed',{source:'account_dialog'});completed=true;d.close();})().catch(e=>{message.textContent=e.message;save.disabled=false;signIn.disabled=false;});};
+ form.onsubmit=e=>{e.preventDefault();if(save.disabled)return;save.disabled=true;signIn.disabled=true;message.textContent='Creating your account…';void(async()=>{await register({email:fields[0].value.trim(),password:fields[1].value});fields[1].value='';await transferPendingAccountPlayer();await onComplete();Analytics.track('onboarding_completed',{source:'account_dialog'});completed=true;history.replaceState(null,'',FIRST_GAME_WELCOME_URL);d.close();setTimeout(()=>location.assign(FIRST_GAME_WELCOME_URL),0);})().catch(e=>{message.textContent=e.message;save.disabled=false;signIn.disabled=false;});};
  return outcome;
 }

@@ -23,13 +23,23 @@ The main navigation opens Store as a full page at `/?openplay=1&tab=store`, with
 
 Store previews show examples of included Style hairstyles, hats, glasses, and the bear outfit, four of the included Court thumbnails, and actual player models for all four Fun themes. Everything previews one example from each pack. Winter remains included without a preview. Buy buttons have extra spacing, and the explanatory footer and manual Refresh packs button are removed. These local presentation changes also appear in upgrade dialogs; previewing content requires no ownership and does not equip it or change purchase availability.
 
+The local Court Pack upgrade dialog uses a compact overlapping collage of four court examples without court-name captions, omits the host-location description, and shows a shorter Everything alternative. The standalone Store also uses compact Court, Style, and Party cards. The Style Pack unlock dialog reuses the compact Style card and shorter Everything alternative. This presentation change does not change pack contents, ownership, or billing availability.
+
+The local Fun upgrade dialog displays “Party Pack” and uses a matching compact collage of four theme looks, short copy, and the compact Everything alternative. “Party Pack” is a display name in this dialog only; the `fun` pack, Apple product, entitlement, prices, remain unchanged. The standalone Store also displays Party Pack.
+
+Game theme music is disabled locally in both solo and friends games, and the Theme music setting is removed. Theme music assets remain available for development previews; selecting a theme in a game does not load or play them. Gameplay sound effects keep their separate sound setting.
+
 All six outfit costumes (frog, dinosaur, lion, bear, butterfly, and bee) require Style Pack. No outfit is free; choosing None keeps the underlying clothing. The creator shows all costume choices under Style Pack / Premium, with no Free outfit group. Migration `202609300002_style_pack_outfits.sql` keeps server classification consistent with the client; apply it before deploying this update. This classification change has not been deployed to production.
 
 ## Preview and upgrade flow (local)
 
+Account-created starter avatars randomize only free parts. Player editor shuffles choose from free parts and parts in the wearer's verified owned packs, including Everything bundle access. Disabled database enforcement does not grant shuffle access. While ownership is loading or unavailable, shuffles use free parts. Skills retain their separate account budget.
+
 The player editor shows Free and Premium pack groups. Players can select and preview all items; saving new unowned paid choices opens a purchase dialog for the required Style or Fun Pack, with Everything as an alternative. The unsaved draft stays intact. Previously saved choices remain editable after revocation; an unrelated name, skill, or free-color edit does not require buying the old items again. The editor no longer offers theme preset, look-variant, or paddle-theme controls; existing themed designs and game setup themes remain supported.
 
-Premium courts remain selectable. Starting a solo game or creating an invitation on an unowned Premium court opens the Court Pack purchase dialog and preserves setup. These client save/start checks use verified pack ownership even while database enforcement is disabled. Billing readiness still controls whether the dialog can offer a purchase. No billing switches, server enforcement configuration, or production ownership changed in this local update.
+Initial court randomization, court shuffles, and Quick Solo Match select only free courts or courts in the host’s verified owned Court Pack (including Everything). Unknown or unavailable ownership uses free courts. Premium courts remain manually selectable. Starting a solo game or creating an invitation on an unowned Premium court opens the Court Pack purchase dialog and preserves setup. These client save/start checks use verified pack ownership even while database enforcement is disabled. Billing readiness still controls whether the dialog can offer a purchase. No billing switches, server enforcement configuration, or production ownership changed in this local update.
+
+Setup theme options are labeled “Premium.” Selecting an unowned theme opens the Fun Pack upgrade dialog and keeps the previous theme; starting a game also checks Fun ownership independently of database enforcement. Guests can browse the options but cannot apply or start new games with paid themes. Existing game snapshots and opponents viewing a host's theme remain supported.
 
 ## Shared ownership
 

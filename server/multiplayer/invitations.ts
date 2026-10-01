@@ -30,7 +30,7 @@ export class SupabaseInviteRepository implements InviteRepository {
  async accept(id:string,actor:string,hash:string,match:StoredMatch){const {data,error}=await this.client.rpc('accept_async_invitation',{p_id:id,p_actor:actor,p_hash:hash,p_match:match});this.check(error);return data as StoredMatch}
 }
 export class InvitationService {
- constructor(private repo:InviteRepository,private matches:MatchService,private names:ReadonlyMap<string,string>,private resolveTeam:(team:TeamSelection,owner:string)=>Promise<TeamSelection>=async team=>team,private onCreated?:(invite:Invitation)=>Promise<void>,private onInvitation?:(invite:Invitation)=>Promise<void>){}
+ constructor(private repo:InviteRepository,private matches:MatchService,private names:ReadonlyMap<string,string>,private resolveTeam:(team:TeamSelection,owner:string)=>Promise<TeamSelection>=async team=>team,private onCreated?:(invite:Invitation)=>Promise<void>,private onInvitation?:(invite:Invitation)=>Promise<void>,private validateOpponent?:(owner:string)=>Promise<void>){}
  private view(r:InviteRow):Invitation{return {id:r.id,creatorId:r.creator_id,recipientId:r.recipient_id,creatorName:this.names.get(r.creator_id)??'Player',recipientName:this.names.get(r.recipient_id)??'Player',team:r.team,court:r.court,courtTheme:r.court_theme??'none',scoring:r.scoring,target:r.points_limit??3,status:r.status,createdAt:r.created_at,matchId:r.match_id,...(r.rematch_manual===false?{automaticRematch:true}:{})}}
  async list(actor:string){return (await this.repo.list(actor)).filter(r=>r.status==='pending').map(r=>this.view(r))}
  async get(id:string,actor:string){const r=await this.repo.get(id,actor);if(!r)throw missing();return this.view(r)}
@@ -40,6 +40,7 @@ export class InvitationService {
   if((input.courtTheme!==undefined&&!isCourtTheme(input.courtTheme))||(input.playerTheme!==undefined&&!isCourtTheme(input.playerTheme)))throw new ApiError(400,'theme','Choose a valid theme.');
   if(input.target!==undefined&&!isValidTargetScore(input.target))throw new ApiError(400,'invitation','Choose a points limit from 1 to 99.');
   if(!this.matches.config(actor).creationEnabled||!this.names.has(input.opponentId))throw new ApiError(403,'invitation','This player cannot be invited.');
+  await this.validateOpponent?.(input.opponentId);
   const parsed=parseTeam(input.team),normalized={...input,team:parsed},resolved=await this.resolveTeam(parsed,actor),team=(input.playerTheme&&input.playerTheme!=='none'?resolved.map(p=>({...p,appearance:applyFunTheme(p.appearance,input.playerTheme)})):resolved) as TeamSelection;const row=await this.repo.create({id:randomUUID(),creator_id:actor,recipient_id:input.opponentId,team,court:input.court,court_theme:input.courtTheme??'none',scoring:input.scoring,points_limit:input.target??3,status:'pending',created_at:new Date().toISOString(),match_id:null,request_id:input.requestId,request_hash:requestHash(normalized)});
   return this.created(row,actor);
  }

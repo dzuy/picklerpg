@@ -38,25 +38,17 @@ test('denied, dismissed and unsupported permissions never subscribe or nag autom
  for(const result of ['denied','default']){const c=await client({result});c.button()!.onclick!();await flush();assert.equal(c.counts().subscribeCalls,0);c.context.Pwa.showTurnPromptAfterInvite();assert.equal(c.counts().permissionCalls,1);}
  const unsupported=await client({supported:false});assert.equal(unsupported.host.children[0].hidden,true);assert.equal(unsupported.counts().permissionCalls,0);
 });
-test('closing invitation sharing shows Home Screen steps directly on phone and desktop browsers',async()=>{
+test('closing invitation sharing never shows installation instructions in web browsers',async()=>{
  for(const options of [{ios:true},{ios:false},{supported:false},{permission:'denied'}]){
   const c=await client({installed:false,...options});
-  const instructions=c.context.document.body.children[0];
-  assert.equal(instructions.open,true);
-  assert.match(instructions.innerHTML,/Share.*Add to Home Screen.*enable notifications/);
-  assert.match(instructions.innerHTML,/Close notification instructions/);
-  assert.equal(c.counts().permissionCalls,0);
-  instructions.close();
+  assert.equal(c.context.document.body.children.length,0);
+  assert.equal(c.host.open,false);assert.equal(c.counts().permissionCalls,0);
+  c.context.storage.setItem('pickle-install-dismissed','1');
+  c.context.Pwa.showTurnPromptAfterInvite();
+  assert.equal(c.context.document.body.children.length,0);
   c.authCallback('TOKEN_REFRESHED',{user:{id:'account-a'},access_token:'token'});await flush();
-  assert.equal(instructions.open,false);
+  assert.equal(c.host.open,false);
  }
-});
-test('past install dismissal does not suppress instructions after a new invitation',async()=>{
- const c=await client({installed:false,inviteCreated:false});
- assert.equal(c.context.document.body.children.length,0);
- c.context.storage.setItem('pickle-install-dismissed','1');
- c.context.Pwa.showTurnPromptAfterInvite();
- assert.equal(c.context.document.body.children[0].open,true);
 });
 
 test('existing successful opt-in stays hidden after reload without prompting again',async()=>{

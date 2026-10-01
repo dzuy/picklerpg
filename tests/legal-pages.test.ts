@@ -19,7 +19,7 @@ test('legal URLs serve standalone HTML without starting a game or tracking scrip
     assert.doesNotMatch(html,/<script\b/i);
     assert.doesNotMatch(html,/\{\{/);
     assert.ok(html.includes('Automatica Labs, LLC'));
-    assert.ok(html.includes('mailto:dzuy@automaticalabs.com'));
+    assert.ok(html.includes('mailto:poppy@picklebash.app'));
     assert.ok(html.includes(`https://picklebash.app/${path}`));
     const head=await fetch(`${origin}/${path}${suffix}`,{method:'HEAD'});
     assert.equal(head.status,200);assert.equal(await head.text(),'');

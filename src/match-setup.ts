@@ -1,9 +1,9 @@
 import {FunThemeControl} from './fun-theme-control';
 import {applyFunTheme,type CourtTheme} from './fun-themes';
-import {ownsPack} from './pack-catalog';
+import {ownsPack,type PackId} from './pack-catalog';
 import {premiumForPlay} from './premium';
 import {premiumAppearance} from './premium-appearance';
-import {openPremium,openPackUpgrade} from './premium-dialog';
+import {openPackUpgrade} from './premium-dialog';
 import {isPremiumCourt} from './locations';
 import {computerOpponent} from './computer-opponents';
 import {loadScoringPreference} from './scoring-preference';
@@ -42,9 +42,10 @@ export class MatchSetup {
  private playerTheme:CourtTheme='none';private previousPlayerTheme:CourtTheme='none';
  private themeControl=new FunThemeControl(()=>{},theme=>{this.previousPlayerTheme=this.playerTheme;this.playerTheme=theme;this.render()},()=>{this.playerTheme=this.previousPlayerTheme;this.previousPlayerTheme='none';if(!this.element.hidden&&!this.loading)this.render()});
 
- private async startSelected(){if(this.starting||!this.canStart())return;this.starting=true;const button=this.element.querySelector<HTMLButtonElement>('[data-action=start]')!;button.disabled=true;const selection=this.selected.join('|'),mode=this.mode,court=this.court,target=this.target;try{const membership=await premiumForPlay();if(this.themeControl.value!=='none'&&membership.enforced&&!ownsPack(membership.ownedPacks,'fun')){openPremium(button);return;}if(!ownsPack(membership.ownedPacks,'court')&&isPremiumCourt(court)){openPackUpgrade('court',button);return;}const players=await refreshCommunityDesigns(this.selected.map(id=>this.players.find(p=>p.id===id)!));if(this.element.hidden||this.selected.join('|')!==selection||this.mode!==mode||this.court!==court||this.target!==target)return;this.start(Object.fromEntries(slots.map((slot,i)=>[slot,mode==='solo'&&i>=2?computerOpponent(players[i]):{...players[i],appearance:premiumAppearance(i<2&&this.playerTheme!=='none'?applyFunTheme(players[i].appearance,this.playerTheme):players[i].appearance,!membership.enforced?true:membership.ownedPacks)}])) as Record<PlayerId,DesignedPlayer>,mode,court,target,this.themeControl.value);}catch(e){const status=this.element.querySelector<HTMLElement>('[role=status]')!;status.className='setup-community-error';status.textContent=(e as Error).message;}finally{this.starting=false;button.disabled=!this.canStart();}}
+ private async startSelected(){if(this.starting||!this.canStart())return;this.starting=true;const button=this.element.querySelector<HTMLButtonElement>('[data-action=start]')!;button.disabled=true;const selection=this.selected.join('|'),mode=this.mode,court=this.court,target=this.target;try{const membership=await premiumForPlay();if(this.themeControl.value!=='none'&&!ownsPack(membership.ownedPacks,'fun')){openPackUpgrade('fun',button);return;}if(!ownsPack(membership.ownedPacks,'court')&&isPremiumCourt(court)){openPackUpgrade('court',button);return;}const players=await refreshCommunityDesigns(this.selected.map(id=>this.players.find(p=>p.id===id)!));if(this.element.hidden||this.selected.join('|')!==selection||this.mode!==mode||this.court!==court||this.target!==target)return;this.start(Object.fromEntries(slots.map((slot,i)=>[slot,mode==='solo'&&i>=2?computerOpponent(players[i]):{...players[i],appearance:premiumAppearance(i<2&&this.playerTheme!=='none'?applyFunTheme(players[i].appearance,this.playerTheme):players[i].appearance,!membership.enforced?true:membership.ownedPacks)}])) as Record<PlayerId,DesignedPlayer>,mode,court,target,this.themeControl.value);}catch(e){const status=this.element.querySelector<HTMLElement>('[role=status]')!;status.className='setup-community-error';status.textContent=(e as Error).message;}finally{this.starting=false;button.disabled=!this.canStart();}}
  private selected:string[]=[];
  private court:CourtLocation=randomCourt();
+ private courtPacks:readonly PackId[]=[];
  private mode:PlayMode='solo';
  private scoring:ScoringMode='rally-doubles';
  private target=DEFAULT_RULES.target;
@@ -62,7 +63,7 @@ export class MatchSetup {
     this.restrictTeam();this.refresh('[data-action=random]','New matchup selected.');
    }
    if(button.dataset.action==='shuffle-court'){
-    this.court=randomCourt(this.court);this.refresh('[data-action=shuffle-court]',`${courts.find(c=>c.id===this.court)!.name} selected.`);
+    this.court=randomCourt(this.court,this.courtPacks);this.refresh('[data-action=shuffle-court]',`${courts.find(c=>c.id===this.court)!.name} selected.`);
     scrollToCourt(this.element.querySelector<HTMLElement>(`[data-court="${this.court}"]`)!);
    }
    if(button.dataset.step)this.cycle(Number(button.dataset.slot),Number(button.dataset.step));
@@ -90,7 +91,7 @@ export class MatchSetup {
   });
  }
  show(saved:DesignedPlayer[],_current:(DesignedPlayer|null)[],_mode:PlayMode='solo',scoring:ScoringMode='rally-doubles'){
-  this.court=randomCourt();
+  this.courtPacks=[];this.court=randomCourt();
   void this.themeControl.refresh();
   const generation=++this.generation;
   this.target=loadScoringPreference({scoring,target:DEFAULT_RULES.target}).target;
@@ -100,8 +101,9 @@ export class MatchSetup {
   this.players=lineup.players;this.selected=lineup.selected;this.restrictTeam();
   this.element.innerHTML='<div class="setup-shell"><button type="button" data-action="back">← Back to Play Menu</button><h1 id="setup-title">Play Solo</h1><p role="status">Loading your default players…</p></div>';
   this.element.hidden=false;this.element.setAttribute('aria-busy','true');window.scrollTo(0,0);focusView(this.element);
-  void this.community.load().then(()=>{
+  void Promise.all([this.community.load(),premiumForPlay()]).then(([,membership])=>{
    if(generation!==this.generation)return;
+   this.courtPacks=membership.ownedPacks;this.court=randomCourt(undefined,this.courtPacks);
    this.loading=false;this.element.removeAttribute('aria-busy');this.render();focusView(this.element);
   }).catch(error=>{
    if(generation!==this.generation)return;

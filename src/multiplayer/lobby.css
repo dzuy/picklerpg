@@ -142,8 +142,9 @@ body[data-screen="remote"]:has(#remote-lobby:not([hidden]), #remote-setup:not([h
 #remote-setup .remote-setup-footer:has(#remote-create-status:not(:empty)) #remote-create { grid-column: 1 / -1; }
 
 /* Invitations continue the multiplayer lobby's visual language. */
-#remote-invite { background: var(--pb-surface); color: var(--pb-text); border: 1px solid var(--pb-border); border-radius: var(--pb-radius-card); padding: 32px; margin: 28px auto; }
-#remote-invite #remote-invite-back { position: absolute; top: 16px; right: 20px; color: var(--pb-text-secondary); border: 0; background: transparent; padding: 8px 0; min-height: 44px; font-size: 13px; }
+#remote-invite { position: relative; background: var(--pb-surface); color: var(--pb-text); border: 1px solid var(--pb-border); border-radius: var(--pb-radius-card); padding: 32px; margin: 28px auto; }
+#remote-invite #remote-invite-back { position: absolute; top: 16px; right: 20px; display: grid; place-items: center; width: 44px; height: 44px; min-height: 44px; color: var(--pb-text); border: 0; background: transparent; padding: 0; margin: 0; cursor: pointer; }
+#remote-invite-back .hud-button-art { display: block; width: 100%; height: 100%; }
 #remote-invite .remote-invite-heading { padding: 16px 0 24px; border-bottom: 1px solid var(--pb-border); }
 #remote-invite .remote-eyebrow { color: var(--pb-info-ink); font-size: 10px; letter-spacing: 2px; font-weight: 800; margin: 0 0 10px; }
 #remote-invite h1 { color: var(--pb-text); font-size: clamp(30px, 4vw, 42px); line-height: 1.15; letter-spacing: -1.3px; margin: 0 0 14px; overflow-wrap: anywhere; }
@@ -162,10 +163,15 @@ body[data-screen="remote"]:has(#remote-lobby:not([hidden]), #remote-setup:not([h
 #remote-invite #remote-accept:hover { background: var(--pb-primary-hover); border-color: var(--pb-border); }
 #remote-invite .remote-invite-actions .remote-quiet { color: var(--pb-text-secondary); border-color: var(--pb-border); border-radius: var(--pb-radius-button); min-height: 44px; padding: 12px 16px; }
 #remote-invite .remote-invite-actions .remote-quiet:hover { background: var(--pb-surface-hover); border-color: var(--pb-border); }
+#remote-invite:has(#remote-cancel-invite:not([hidden])) .invitation-preview { border-bottom: 0; padding-bottom: 0; }
+#remote-invite:has(#remote-cancel-invite:not([hidden])) .remote-invite-actions { border-top: 0; padding-top: 0; }
+#remote-invite #remote-cancel-invite { background: var(--pb-primary); color: var(--pb-on-primary); border: 1px solid var(--pb-border-accent); font-weight: 800; }
+#remote-invite #remote-cancel-invite:hover { background: var(--pb-primary-hover); }
 #remote-invite #remote-invite-status { flex-basis: 100%; color: var(--pb-text-secondary); margin: 0; line-height: 1.6; }
 #remote-invite .remote-team-empty { color: var(--pb-text); }
 #remote-invite button:focus-visible { outline: 3px solid var(--pb-focus); outline-offset: 3px; }
 @media (max-width: 600px) {
+ #app.remote-app:has(#remote-invite:not([hidden])) { padding-top: calc(34px + env(safe-area-inset-top)); }
  #remote-invite { padding: 20px 16px; border-radius: var(--pb-radius-card); margin: 20px auto; }
  #remote-invite .remote-invite-heading { padding: 35px 0 24px; }
  #remote-invite h2 { font-size: 19px; }
@@ -331,6 +337,9 @@ body[data-screen=remote]:has(.friend-page){background:var(--pb-bg,var(--pb-surfa
 .profile-sign-in .profile-sign-in-close { position: absolute; top: 14px; right: 14px; width: 44px; height: 44px; min-height: 44px; margin: 0; padding: 0; border: 0; background: none; }
 .profile-sign-in-close .hud-button-art { display: block; width: 100%; height: 100%; }
 .profile-sign-in [role=status]:empty { display: none; }
+.profile-sign-in .profile-sign-in-signup-copy{margin:20px 0 0;text-align:center;font-size:14px}
+.profile-sign-in .profile-sign-in-signup{display:inline;min-height:44px;margin:0;padding:8px 0;border:0;background:none;color:var(--pb-primary);font:inherit;font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.profile-sign-in .profile-sign-in-signup:hover{color:var(--pb-primary-hover)}
 
 /* Actionable online games get a full-card cue, distinct from solo/waiting games. */
 #remote-lobby .remote-game-entry:has(.is-your-turn){border:1px solid var(--pb-border-accent);box-shadow:inset 0 0 0 1px var(--pb-border)}

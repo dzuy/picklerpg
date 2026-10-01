@@ -25,8 +25,9 @@ export class TeamPicker {
  private community=new CommunitySection(players=>this.setCommunity(players));
  private setCommunity(players:DesignedPlayer[]){const all=[...ownedRosterPlayers(this.ownedPlayers??parseLibrary(browserStorage.getItem(PLAYER_STORAGE_KEY)).players),...players];for(const p of (this.useDefaults?[]:this.initial??[]))if(!all.some(v=>v.id===p.id))all.push(p);const selected=this.lineup.selected.filter(id=>all.some(p=>p.id===id));for(const p of all)if(selected.length<2&&!selected.includes(p.id))selected.push(p.id);while(selected.length<2&&all.length)selected.push(all[0].id);this.lineup={players:all,selected:this.useDefaults&&!this.defaultsApplied?defaultLineup(all,this.defaultActiveId,this.defaultUsername,undefined,starterIds()):selected.slice(0,2)};this.defaultsApplied=true;this.draw();}
  private defaultActiveId:string|null=null;private defaultUsername='';private defaultsApplied=false;
+ private guestCommunity=false;
  private ready:Promise<void>=Promise.resolve();
- async freshTeam(){await this.ready;if(this.lineup.selected.length<2)throw Error(this.publicOpponents?'No public opponents are available. Please try again later.':'Add a player to Your Roster.');const refreshed=await refreshCommunityDesigns(this.team);const team=this.funTheme==='none'?refreshed:refreshed.map(p=>({...p,appearance:applyFunTheme(p.appearance,this.funTheme)}));return (this.publicOpponents?team.map(computerOpponent):team) as TeamSelection}
+ async freshTeam(){await this.ready;if(this.lineup.selected.length<2)throw Error(this.publicOpponents||this.guestCommunity?'No community players are available. Please try again later.':'Add a player to Your Roster.');const refreshed=await refreshCommunityDesigns(this.team);const team=this.funTheme==='none'?refreshed:refreshed.map(p=>({...p,appearance:applyFunTheme(p.appearance,this.funTheme)}));return (this.publicOpponents?team.map(computerOpponent):team) as TeamSelection}
  private static portraits:AvatarThumbnails|undefined;
  async hasTeam(){await this.ready;return this.lineup.selected.length>=2;}
  constructor(private host:HTMLElement,private ownedPlayers?:DesignedPlayer[],private initial?:TeamSelection,private useDefaults=false,private publicOpponents=false){this.useDefaults=!publicOpponents;if(ownedPlayers)this.lineup.players=[...ownedRosterPlayers(ownedPlayers),...rosterStarters()];this.lineup.selected=this.lineup.players.length?[this.lineup.players[0].id,(this.lineup.players[1]??this.lineup.players[0]).id]:[];if(initial){for(const p of initial)if(!this.lineup.players.some(v=>v.id===p.id))this.lineup.players.push(p);this.lineup.selected=initial.map(p=>p.id);}
@@ -42,6 +43,14 @@ export class TeamPicker {
   this.host.inert=true;this.host.setAttribute('aria-busy','true');
   try{
    const client=authClient();const session=client?(await client.auth.getSession()).data.session:null;
+   if(!session||session.user.is_anonymous){
+    this.guestCommunity=true;this.lineup={players:[],selected:[]};this.draw();
+    const players=(await communityPlayers()).map(row=>row.player);
+    const selected=(this.initial??[]).map(p=>p.id).filter(id=>players.some(p=>p.id===id));
+    for(const p of players)if(selected.length<2&&!selected.includes(p.id))selected.push(p.id);
+    while(selected.length<2&&players.length)selected.push(players[0].id);
+    this.lineup={players,selected:selected.slice(0,2)};this.draw();return;
+   }
    if(client&&session){
     const {data,error}=await client.from('players').select('id,name,catchphrase,appearance,skills,handedness,is_active,is_public').eq('owner_id',session.user.id);
     if(error)throw Error('Could not load your roster. Reopen setup to try again.');
@@ -55,7 +64,7 @@ export class TeamPicker {
  async shuffle(){await this.ready;const ids=shufflePlayers(this.lineup.players.map(p=>p.id));if(ids.length)this.lineup.selected=[ids[0],ids[1]??ids[0]];this.draw();}
  private draw(){
   this.host.replaceChildren();this.host.className='remote-team-picker roster-grid';
-  const gameSetup=this.host.id==='remote-create-team'||this.host.id==='remote-solo-opponents';
+  const gameSetup=this.host.id==='remote-create-team'||this.host.id==='remote-solo-opponents'||this.host.id==='remote-accept-team';
   this.team.forEach((p,i)=>{
    const role=i?'Athlete 2':'Athlete 1',card=document.createElement('article');card.className='roster-card remote-team-card';
    let portrait='';if(!gameSetup)try{TeamPicker.portraits??=new AvatarThumbnails(384);portrait=TeamPicker.portraits.get(p.appearance,'roster')}catch{}
@@ -65,7 +74,7 @@ export class TeamPicker {
    card.append(controls);this.host.append(card);
   });
   if(this.lineup.selected.length<2){
-   const empty=document.createElement('p');empty.className='remote-team-empty';empty.setAttribute('role','status');empty.textContent=this.publicOpponents?'No public opponents are available.':'Add a player below to complete your team. You can use the same character in both slots.';this.host.append(empty);if(!this.publicOpponents)this.host.append(this.community.element);
+   const empty=document.createElement('p');empty.className='remote-team-empty';empty.setAttribute('role','status');empty.textContent=this.publicOpponents||this.guestCommunity?'No community players are available. Please try again later.':'Add a player below to complete your team. You can use the same character in both slots.';this.host.append(empty);if(!this.publicOpponents&&!this.guestCommunity)this.host.append(this.community.element);
   }
   const note=document.createElement('p');note.className='remote-team-stat-note';note.textContent=this.publicOpponents?'Computer opponents have varied skill levels. Their displayed skills are used in the match.':'Your players use their actual skills in this match.';this.host.append(note);
  }

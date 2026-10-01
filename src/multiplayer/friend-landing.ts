@@ -1,4 +1,5 @@
 import {defaultTeam} from './team-directory';
+import {FIRST_GAME_WELCOME_URL} from '../first-game-welcome';
 import '../style.css';
 import './remote.css';
 import './lobby.css';
@@ -75,7 +76,7 @@ registerForm.onsubmit=event=>{event.preventDefault();const submit=registerForm.q
  const credentials={email:registerEmail.value.trim(),password:registerPassword.value};
  await remoteRequest('', '/api/multiplayer/register',{...credentials,username:username.value.trim(),playerName:playerName.value.trim()});
  const {data,error}=await client.auth.signInWithPassword(credentials);if(error||!data.session)throw Error('Your account was created, but sign-in did not finish. Choose Sign in and try again.');
- registerPassword.value='';registerForm.hidden=true;button.hidden=false;showIdentity(data.session.user);const game=await prepareJoin(data.session);if(game)await openGame(game);
+ registerPassword.value='';await prepareJoin(data.session);location.assign(FIRST_GAME_WELCOME_URL);
  })().catch(e=>{message.textContent=e.message;}).finally(()=>{submit.disabled=false;});};
 async function enter(){
  if(!token)throw new RemoteError(404,'challenge','This challenge link is incomplete. Copy Link from the original challenge and try again.');

@@ -168,3 +168,33 @@ Owner decision, September 29, 2026: **China mainland and Vietnam are required fu
 - [ ] Test account access, gameplay, purchase verification and restoration in each market before enabling distribution.
 
 Track this as a required market-expansion follow-up. Keep it separate from the present UI-polish/final-build submission work. Reference: https://developer.apple.com/help/app-store-connect/reference/app-information/app-information
+
+## TestFlight update — September 30, 2026
+
+At the owner's request, production-configured iPhone build **1.0 (13)** was archived and uploaded successfully. Source: main revision `e33595dba6c09c9f1a8dc58c5200b0cd12250e9d`, plus the local native metadata addition `ITSAppUsesNonExemptEncryption=false`, matching the platform-only declaration previously saved for build 12. Includes the current Store, community, player cards, customization previews, account deletion/report/block controls, and settings improvements. Native startup continues directly into the game.
+
+Production web compilation/typechecks and Capacitor sync passed; the same source's release suite passed 844 tests. Signed Release archive and macOS signature verification passed. Archive inspection confirms production API/database, the public Apple purchase SDK key, production analytics with version `1.0(13)`, four theme music files, iPhone-only support, and absence of configured server secrets. Development flag overrides/debug logging were excluded. No live billing, entitlement, or remote flag configuration was changed.
+
+Xcode reported `Upload succeeded` and `EXPORT SUCCEEDED` at approximately 21:19 Costa Rica time. Apple reported that the uploaded package was processing. Export used automatic signing and `app-store-connect` distribution, without an internal-only restriction. Apple processing completion, existing tester-group assignment, and install availability are **not verified**: this execution environment has Xcode upload authentication but no App Store Connect browser or API access. Once processed, confirm build 13 is assigned to the existing internal tester group; do not expand external testers or submit App Review as part of this update.
+
+Evidence: [archive verification](../artifacts/billing/testflight-13-archive-verification.json). Local temporary archive: `/tmp/PickleBash-TestFlight-1.0-13.xcarchive`; build/sync/upload logs: `/tmp/picklebash-ios13-archive.log`, `/tmp/picklebash-ios13-sync.log`, `/tmp/picklebash-ios13-upload.log`. These temporary paths are not durable backups. Native metadata and this release record remain local and uncommitted.
+
+Physical-device checks remain pending for this build, especially account deletion/report/block flows, native push delivery, and gameplay. Previously deferred Apple refund/revocation/fallback and direct Everything purchase tests remain pending. No App Review submission or public App Store release occurred.
+
+
+## Prepared update — October 1, 2026 — 1.0 (14), upload held
+
+Production-configured iPhone build **1.0 (14)** was compiled, signed and exported locally. Source: main `6e4f9cae10a32c55f25ad58186b71c65fc3e976d` plus the local iOS guest save-progress prompt, its shared account-dialog changes/tests, and the existing platform-only encryption declaration. An isolated source snapshot preserves the original dirty checkout and excludes the unfinished private-preview branch. No commit, push, Railway deployment or App Store review submission was performed for this build.
+
+The exact snapshot passed all 852 tests, production client/server compilation/typechecks, Capacitor sync and design-token validation. Existing bundle-size and contrast advisories remain. The archive signature, version, bundle ID, iPhone-only configuration, production backend/public purchase SDK configuration, secret exclusion and all four theme music files were verified. App Store distribution export and signature verification passed; the exported IPA has the production push entitlement. The initial archive has development push signing, which distribution export correctly replaced.
+
+**No upload was attempted.** The owner explicitly requested a preview before TestFlight. Build 14 is the next number after the last locally verified upload (13); current App Store Connect build numbering has not been independently read in this execution environment. Verify it remains unused before eventual upload. Apple processing, tester-group assignment and device acceptance are therefore not claimed.
+
+Evidence: [build 14 verification](../artifacts/billing/testflight-14-archive-verification.json). Local archive `/tmp/PickleBash-TestFlight-1.0-14.xcarchive`; distribution IPA `/tmp/PickleBash-TestFlight14-Distribution/App.ipa`; snapshot `/tmp/picklebash-testflight14-source`; test/build/signing logs `/tmp/picklebash-ios14-snapshot-tests.log`, `/tmp/picklebash-ios14-sync.log`, `/tmp/picklebash-ios14-archive.log` and `/tmp/picklebash-ios14-distribution.log`. Temporary paths are not durable backups. Local/native preview and renewed upload authorization remain pending.
+
+
+## TestFlight update — October 1, 2026 — 1.0 (15)
+
+Owner authorized pushing all current changes to main and uploading build **1.0 (15)**. This supersedes the preview hold for build 14; build 14 remains unuploaded. Includes the UI polish, guest character preservation/default lineup fixes, free-only randomization without Premium access, community opponent eligibility, and compact invitation/profile/pack designs. Profile's web fallback and native project build number are updated to 15.
+
+Release preparation: production client/server compilation and design-token validation passed. App Store Connect was read directly: newest listed build was 13, assigned to PickleBash Internal; build 15 was unused. Upload, processing and tester availability will be recorded after verification. No App Review submission, public release, external tester expansion, or live billing configuration change is part of this update.

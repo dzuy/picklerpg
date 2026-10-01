@@ -9,7 +9,7 @@ class Element {
 }
 test('empty roster exposes roster choices and can recover to an acceptable two-player team',async()=>{
  const result=await build({entryPoints:['src/multiplayer/team-picker.ts'],bundle:true,write:false,format:'iife',globalName:'Picker',plugins:[{name:'boundaries',setup(b){b.onResolve({filter:/.*/},args=>args.kind==='entry-point'?undefined:{path:args.path,namespace:'mock'});b.onLoad({filter:/.*/,namespace:'mock'},({path})=>({contents:
- path.includes('auth-session')?'export const authClient=()=>null;':
+ path.includes('auth-session')?'export const authClient=()=>({auth:{getSession:async()=>({data:{session:globalThis.guest?{user:{id:"guest",is_anonymous:true}}:{user:{id:"owner",user_metadata:{}}}}})},from:()=>({select:()=>({eq:async()=>({data:[]})})})});':
  path.includes('fun-themes')?'export const applyFunTheme=(appearance,funTheme)=>({...appearance,funTheme});':
  path.includes('computer-opponents')?'export const computerOpponent=player=>player;':
  path.includes('cloud-players')?'export const playerFromRow=row=>row;':
@@ -43,4 +43,11 @@ test('empty roster exposes roster choices and can recover to an acceptable two-p
  assert.deepEqual(Array.from(await opponents.freshTeam(),(p:any)=>p.id),['community-lee','community-sam']);
  assert.deepEqual(Array.from(opponents.lineup.players,(p:any)=>p.id),['community-bea','community-sam','community-lee']);
  assert.deepEqual(Array.from(picker.lineup.players,(p:any)=>p.id),['one','two']);
+ // Guests can pick all public players without recruiting or keeping starter/private choices.
+ context.guest=true;
+ const guest=new context.Picker.TeamPicker(new Element(),[{id:'preset-0',name:'Emma',appearance:{}},{id:'preset-1',name:'Leo',appearance:{}}], [{id:'preset-0',appearance:{}},{id:'preset-1',appearance:{}}]);
+ assert.deepEqual(Array.from(await guest.freshTeam(),(p:any)=>p.id),['community-bea','community-sam']);
+ assert.deepEqual(Array.from(guest.lineup.players,(p:any)=>p.id),['community-bea','community-sam','community-lee']);
+ await guest.shuffle();
+ assert.deepEqual(Array.from(await guest.freshTeam(),(p:any)=>p.id),['community-lee','community-sam']);
 });

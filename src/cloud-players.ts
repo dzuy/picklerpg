@@ -1,3 +1,5 @@
+import {premiumForPlay} from './premium';
+import {missingAppearancePacks} from './premium-appearance';
 import type {GameplayRecord} from './persistence/gameplay-record';
 import {normalizeSkillBudget} from './skill-budget';
 import {accountSkillBudget} from './account-skill-budget';
@@ -7,7 +9,7 @@ import {authClient} from './auth-session';
 import type {MatchParticipant} from './player-history';
 import {type SupabaseClient,type User} from '@supabase/supabase-js';
 import {parseLibrary,validatePlayer,type DesignedPlayer,type PlayerLibrary} from './player-design';
-import {browserStorage} from './browser-storage';
+import {browserStorage,browserSessionStorage} from './browser-storage';
 
 export type LibraryChange={kind:'save';playerId:string}|{kind:'delete';playerId:string};
 export type CloudSaveState='local'|'connecting'|'saving'|'saved'|'offline';
@@ -21,14 +23,32 @@ export function playerFromRow(row:PlayerRow):DesignedPlayer{
 }
 function rowFromPlayer(ownerId:string,player:DesignedPlayer,activeId:string|null){return {owner_id:ownerId,id:player.id,name:player.name,is_public:player.isPublic===true,published_skills:player.publishedSkills??null,catchphrase:player.catchphrase??null,appearance:player.appearance,skills:player.skills,handedness:player.handedness,is_active:player.id===activeId}}
 
-export function accountPlayerRow(ownerId:string,player:DesignedPlayer){return rowFromPlayer(ownerId,validatePlayer(player),null)}
+export function accountPlayerRow(ownerId:string,player:DesignedPlayer,active=false){return rowFromPlayer(ownerId,validatePlayer(player),active?player.id:null)}
 export async function addPlayerToSignedInAccount(player:DesignedPlayer){
  const client=authClient();if(!client)throw new Error('Your account is unavailable. Please try again.');
  const {data:{session},error:sessionError}=await client.auth.getSession();if(sessionError)throw sessionError;
  if(!session||session.user.is_anonymous)throw new Error('Sign in to add this player to your roster.');
  const budget=await accountSkillBudget(),normalized={...validatePlayer(player),skills:normalizeSkillBudget(player.skills,budget)};
- const {error}=await client.from('players').upsert(accountPlayerRow(session.user.id,normalized),{onConflict:'owner_id,id'});
+ const previous=await client.from('players').select('appearance').eq('owner_id',session.user.id).eq('id',normalized.id).maybeSingle();
+ if(previous.error)throw new Error('Could not check your saved player. Please try again.');
+ const membership=await premiumForPlay();
+ const missing=missingAppearancePacks(previous.data?.appearance,normalized.appearance,membership.ownedPacks);
+ if(missing.length)throw new Error(`Unlock the ${missing[0]==='style'?'Style':'Party'} Pack to save these choices. Your character is still saved in the editor; close this window to change the Premium parts.`);
+ await saveTransferredAccountPlayer(client,session.user.id,normalized);
+ const defaults=Array.isArray(session.user.user_metadata.default_starter_ids)?session.user.user_metadata.default_starter_ids as string[]:[];
+ const partner=defaults.find(id=>id!==normalized.id);
+ const {error:selectionError}=await client.auth.updateUser({data:{default_starter_ids:[normalized.id,...(partner?[partner]:[])],default_starters_custom:false,starter_player:normalized}});
+ if(selectionError)throw new Error('Your character was saved, but your default lineup could not be updated. Please try again.');
+}
+
+/** Save before switching selection: the database permits just one active player per owner. */
+export async function saveTransferredAccountPlayer(client:SupabaseClient,owner:string,player:DesignedPlayer){
+ const {error}=await client.from('players').upsert(accountPlayerRow(owner,player),{onConflict:'owner_id,id'});
  if(error)throw new Error('You’re signed in, but this player could not be added to your roster. Please try again.');
+ const cleared=await client.from('players').update({is_active:false}).eq('owner_id',owner);
+ if(cleared.error)throw new Error('Your player was saved, but could not be selected. Please try again.');
+ const selected=await client.from('players').update({is_active:true}).eq('owner_id',owner).eq('id',player.id);
+ if(selected.error)throw new Error('Your player was saved, but could not be selected. Please try again.');
 }
 
 /** Existing local edits win on first connection; cloud-only players are retained. */
@@ -104,7 +124,7 @@ export class CloudPlayerSync{
    this.client.auth.onAuthStateChange((_event,nextSession)=>{
     const nextOwner=nextSession?.user.id??null;
     this.accountStatus(accountStateForUser(nextSession?.user??null));
-    if(this.ownerId&&nextOwner!==this.ownerId&&!this.signingOut){this.ownerId=null;this.status('connecting');setTimeout(()=>location.reload(),0)}
+    if(this.ownerId&&nextOwner!==this.ownerId&&!this.signingOut&&!browserSessionStorage.getItem(PENDING_ACCOUNT_PLAYER_KEY)){this.ownerId=null;this.status('connecting');setTimeout(()=>location.reload(),0)}
    });
    let {data:{session},error}=await this.client.auth.getSession();if(error)throw error;
    if(!session){const signedIn=await this.client.auth.signInAnonymously();if(signedIn.error)throw signedIn.error;session=signedIn.data.session}

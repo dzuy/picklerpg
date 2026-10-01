@@ -8,7 +8,7 @@ export const FUN_THEMES=[
 export type FunThemeId=typeof FUN_THEMES[number]['id'];
 export type CourtTheme='none'|FunThemeId;
 export const isCourtTheme=(value:unknown):value is CourtTheme=>value==='none'||FUN_THEMES.some(t=>t.id===value);
-export function themeOptions(value:CourtTheme='none'){return [{id:'none',name:'None'},...FUN_THEMES].map(t=>`<option value="${t.id}" ${t.id===value?'selected':''}>${t.name}</option>`).join('')}
+export function themeOptions(value:CourtTheme='none'){return [{id:'none',name:'None'},...FUN_THEMES].map(t=>`<option value="${t.id}" ${t.id===value?'selected':''}>${t.name}${t.id==='none'?'':' - Premium'}</option>`).join('')}
 /** Presets add independent modules; underlying character choices and identity survive. */
 export function applyFunTheme(a:Appearance,theme:CourtTheme,variant:0|1=0):Appearance{return {...a,funTheme:theme,funVariant:variant,funPaddle:theme,funOverrides:[]}}
 

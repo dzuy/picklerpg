@@ -26,15 +26,8 @@ const notificationDismissed=()=>!!owner&&browserSessionStorage.getItem(`pickle-n
 const dismissed=()=>browserStorage.getItem('pickle-install-dismissed')==='1';
 export function showTurnPromptAfterInvite(){
  if(Capacitor.isNativePlatform()){showNativeTurnPrompt();return;}
- if(!standalone()){showHomeScreenInstructions();return;}
+ if(!standalone())return;
  eligible=true;render();
-}
-function showHomeScreenInstructions(){
- const dialog=document.createElement('dialog');dialog.className='turn-install turn-invite-instructions';
- dialog.setAttribute('aria-labelledby','turn-install-title');
- dialog.innerHTML='<button type="button" class="turn-install-close" aria-label="Close notification instructions">×</button><h2 id="turn-install-title">Know when it’s your turn</h2><p>Add PickleBash to your Home Screen to get turn notifications.</p><ol><li>Tap <strong>Share</strong> in your phone’s browser.</li><li>Choose <strong>Add to Home Screen</strong>, then tap <strong>Add</strong>.</li><li>Open PickleBash from your Home Screen and enable notifications.</li></ol><p class="turn-install-tip">On Android, look in your browser’s menu for Add to Home Screen or Install app.</p><form method="dialog"><button class="turn-install-done">Got it</button></form>';
- dialog.querySelector<HTMLButtonElement>('.turn-install-close')!.onclick=()=>dialog.close();
- document.body.append(dialog);dialog.addEventListener('close',()=>dialog.remove(),{once:true});showViewDialog(dialog);
 }
 export function mountTurnPrompt(host:HTMLElement){
  if(Capacitor.isNativePlatform())return;

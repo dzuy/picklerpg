@@ -34,3 +34,25 @@
 #picklebash-store[data-required-pack] [data-store-packs]{grid-template-columns:minmax(0,1fr)}
 #picklebash-store[data-required-pack] .store-pack:not([data-featured=true]) .store-pack-previews{grid-template-columns:repeat(4,minmax(0,1fr))}
 @media(max-width:540px){#picklebash-store[data-required-pack] .store-pack:not([data-featured=true]) .store-pack-previews{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* A compact court sampler keeps the upgrade focused on the pack. */
+#picklebash-store .full-analysis-header button{display:grid;place-items:center;box-sizing:border-box;flex:0 0 40px;min-width:40px;min-height:40px;max-height:40px;padding:0;aspect-ratio:1;border-radius:50%;line-height:1}
+#picklebash-store[data-compact-upgrade] .store-pack{padding:14px 16px}
+#picklebash-store[data-compact-upgrade] .store-pack>p{margin:6px 0 14px}
+#picklebash-store[data-compact-upgrade] .store-pack>.full-analysis-retry{margin-top:12px}
+#picklebash-store[data-compact-upgrade] .store-pack-previews:is([data-pack=court],[data-pack=fun],[data-pack=style]){display:flex;align-items:center;justify-content:center;gap:0;height:110px;margin:6px 0 10px;padding:0 10px}
+#picklebash-store[data-compact-upgrade] :is([data-pack=court],[data-pack=fun],[data-pack=style]) .store-preview-tile{flex:0 0 29%;max-width:145px;border:3px solid var(--pb-white);box-shadow:0 4px 8px var(--pb-scrim);border-radius:10px;transform:rotate(-9deg)}
+#picklebash-store[data-compact-upgrade] :is([data-pack=court],[data-pack=fun],[data-pack=style]) .store-preview-tile+.store-preview-tile{margin-left:-8%}
+#picklebash-store[data-compact-upgrade] :is([data-pack=court],[data-pack=fun],[data-pack=style]) .store-preview-tile:nth-child(2){transform:translateY(-6px) rotate(5deg)}
+#picklebash-store[data-compact-upgrade] :is([data-pack=court],[data-pack=fun],[data-pack=style]) .store-preview-tile:nth-child(3){transform:translateY(4px) rotate(-5deg)}
+#picklebash-store[data-compact-upgrade] :is([data-pack=court],[data-pack=fun],[data-pack=style]) .store-preview-tile:nth-child(4){transform:rotate(10deg)}
+#picklebash-store[data-compact-upgrade] :is([data-pack=court],[data-pack=fun],[data-pack=style]) .store-preview-court img{height:76px}
+#picklebash-store[data-compact-upgrade] .store-pack[data-featured=true] .store-pack-previews[data-pack=everything]{max-width:260px;margin:4px 0 8px}
+#picklebash-store[data-compact-upgrade] [data-store-status]:empty{display:none}
+#picklebash-store[data-compact-upgrade] [data-store-packs]{margin-top:16px}
+#picklebash-store[data-compact-upgrade] [data-pack=everything] .store-preview-tile img{height:52px}
+#picklebash-store[data-compact-upgrade] [data-pack=everything] .store-preview-tile figcaption{padding:4px;font-size:10px}
+
+#picklebash-store[data-compact-upgrade] [data-pack=fun] .store-preview-tile img{height:82px;object-fit:contain}
+
+#picklebash-store[data-compact-upgrade] [data-pack=style] .store-preview-tile img{height:82px;object-fit:contain}

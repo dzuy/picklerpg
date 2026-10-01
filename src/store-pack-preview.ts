@@ -18,10 +18,10 @@ let portraits:AvatarThumbnails|undefined;
 let ready:Promise<void>|undefined;
 
 /** Store samples show actual included models, independently of ownership. */
-export function storePackPreview(id:PackId){
+export function storePackPreview(id:PackId,compact=false,partyLabel=false){
  const grid=document.createElement('div');grid.className='store-pack-previews';grid.dataset.pack=id;
- grid.setAttribute('aria-label',`${id==='everything'?'All three packs':id==='style'?'Style':id==='court'?'Court':'Fun'} preview`);
- const samples=id==='style'?style:id==='court'?courts:id==='fun'?fun:[{...style[2],label:'Style'}, {...courts[0],label:'Courts'}, {...fun[0],label:'Fun'}];
+ grid.setAttribute('aria-label',`${id==='everything'?'All three packs':id==='style'?'Style':id==='court'?'Court':compact?'Party':'Fun'} preview`);
+ const samples=id==='style'?style:id==='court'?courts:id==='fun'?fun:[{...style[2],label:'Style'}, {...courts[0],label:'Courts'}, {...fun[0],label:partyLabel?'Party':'Fun'}];
  for(const sample of samples){
   const tile=document.createElement('figure'),image=document.createElement('img'),caption=document.createElement('figcaption');
   tile.className='store-preview-tile';caption.textContent=sample.label;image.alt='';image.width=256;image.height=256;image.decoding='async';
@@ -31,7 +31,7 @@ export function storePackPreview(id:PackId){
    ready??=preloadAthletes();
    void ready.then(()=>{if(!image.isConnected)return;portraits??=new AvatarThumbnails(256);image.src=portraits.get(sample.appearance!,sample.category!);}).catch(()=>{image.hidden=true;});
   }
-  tile.append(image,caption);grid.append(tile);
+  tile.append(image);if(!(compact&&id!=='everything'))tile.append(caption);grid.append(tile);
  }
  return grid;
 }

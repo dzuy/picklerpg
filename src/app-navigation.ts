@@ -1,6 +1,7 @@
 import {renderPlayTurnBadge} from './play-turn-badge';
 import './app-navigation.css';
 import {authClient} from './auth-session';
+import {profileAccess} from './profile-access';
 import type {User} from '@supabase/supabase-js';
 let watchingNavigationAuth=false;
 function updateProfileLabel(item:HTMLElement,user:User|null){
@@ -35,7 +36,7 @@ export function appNavigation(active:NavigationPage,navigate?:(page:NavigationPa
   const label=document.createElement('span');label.textContent=key==='games'?'Play':key[0].toUpperCase()+key.slice(1);item.append(label);
   if(key==='games')renderPlayTurnBadge(item);
   if(active===key||(active==='friends'&&key==='games'))item.setAttribute('aria-current','page');
-  if(navigate)item.addEventListener('click',event=>{if(event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;event.preventDefault();navigate(key,routes[key]);});
+  if(navigate||key==='profile')item.addEventListener('click',event=>{if(event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;event.preventDefault();const go=()=>{if(navigate)navigate(key,routes[key]);else location.assign(routes[key]);};if(key==='profile'){void profileAccess().then(allowed=>{if(allowed)go();});}else go();});
   nav.append(item);
  }
  const client=authClient();

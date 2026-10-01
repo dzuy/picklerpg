@@ -13,6 +13,7 @@ const bundled=build({entryPoints:['src/multiplayer/team-lobby.ts'],bundle:true,w
   path.includes('avatar-preview')?'export class AvatarThumbnails {}':
   path.includes('athlete')?'export const preloadAthletes=async()=>{};':
   path.includes('community-directory')?'export const canShowCommunityAccount=()=>true;':
+  path.includes('profile-access')?'export const profileAccess=async()=>false;':
   path.includes('profile')?'export const profilePanel=()=>{};':
   path.includes('api')?'export const remoteRequest=async()=>{};':''}));
 }}]});

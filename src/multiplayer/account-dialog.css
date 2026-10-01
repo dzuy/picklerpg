@@ -1,5 +1,22 @@
 /* Shared by account creation from Solo and Friends screens. */
-.friend-account-dialog>h1{padding-right:44px}
-.friend-account-dialog .friend-account-close{position:absolute;top:10px;right:10px;display:grid;place-items:center;width:44px;height:44px;min-height:44px;margin:0;padding:0;border:0;border-radius:50%;background:var(--pb-surface);color:var(--pb-text);font-size:28px;line-height:1;cursor:pointer}
-.friend-account-dialog .friend-account-close:hover{background:var(--pb-surface-hover)}
+.friend-account-dialog>h1{padding-right:44px;margin:8px 0 12px}
+.friend-account-dialog>p{margin:0 0 18px}
+.friend-account-dialog form{gap:10px}
+.friend-account-dialog form label{display:block;width:100%;margin:0;font-weight:400}
+.friend-account-dialog form input{min-height:48px;padding:12px 14px;font-weight:400}
+.friend-account-dialog form input::placeholder{font-weight:400;color:var(--pb-text-secondary);opacity:1}
+.friend-account-dialog form .remote-primary{margin-top:4px}
+.friend-account-dialog form [role=status]:empty{display:none}
+.friend-account-dialog form [role=status]{margin:0}
+.friend-account-dialog>button:not(.friend-account-close){width:100%;margin-top:10px}
+.friend-dialog.profile-sign-in>h1{margin:8px 56px 18px 0}
+.profile-sign-in form{gap:10px}
+.profile-sign-in form label{display:block;width:100%;margin:0;font-weight:400}
+.profile-sign-in form input{min-height:48px;padding:12px 14px;font-weight:400}
+.profile-sign-in form input::placeholder{font-weight:400;color:var(--pb-text-secondary);opacity:1}
+.profile-sign-in form .remote-primary{margin-top:4px}
+.profile-sign-in form [role=status]{margin:0}
+.friend-dialog.profile-sign-in .profile-sign-in-signup-copy{margin:12px 0 0}
+.friend-account-dialog .friend-account-close{position:absolute;top:14px;right:14px;display:grid;place-items:center;width:44px;height:44px;min-height:44px;margin:0;padding:0;border:0;background:none;cursor:pointer}
+.friend-account-close .hud-button-art{display:block;width:100%;height:100%}
 .friend-account-dialog .friend-account-close:focus-visible{outline:3px solid var(--pb-focus);outline-offset:2px}

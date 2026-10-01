@@ -8,6 +8,10 @@ Check an item only after it has been implemented and verified at the level impli
 
 **Social-first asynchronous pickleball with friends.** The core loop is invite → play a short strategic match → return when it is your turn → finish → play again. Prioritize making that loop easy, enjoyable, and worth returning to.
 
+Owner direction, October 1, 2026: iOS is the primary product with pack sales; web is a lower-priority demo without pack sales. This is planning context. The platform/sales split has not been implemented or deployed by the guest signup prompt work.
+
+Local iOS signup follow-up: after three completed points in solo or friends play, offer guests the existing username/email/password account modal with save-progress copy and **Not now**. Wait for point playback/celebrations, defer to other dialogs, and offer once per guest identity. Reuse the identity-preserving guest upgrade. Native/device validation and inclusion in the next TestFlight batch remain pending; build 13 does not contain this follow-up. Other reported UI polish and theme-music removal remain separate backlog work.
+
 The ordered implementation and acceptance plan for persistent rivalries, authoritative shot-selection analytics, evidence-qualified strategy stories, sharing, and co-presence is [Rivalry and strategy stories](RIVALRY-STRATEGY-PLAN.md). Follow its reviewed implementation sequence (the phase numbers identify work packages); this launch checklist remains the source of truth for overall V1 readiness.
 
 ## Core social loop

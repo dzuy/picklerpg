@@ -735,6 +735,11 @@ body[data-screen=start], .roster-route-loading { background: var(--pb-bg); backg
 #game-end.rematch-end .game-end-actions button{background:none;border:0;box-shadow:none;color:var(--pb-text-secondary);font-size:13px;min-height:44px;padding:10px 14px}
 @media(max-width:480px){#game-end.rematch-end .game-end-card{padding:20px}}
 
+#game-end.rematch-end.solo-game-end #game-end-title,#game-end.rematch-end.solo-game-end .rematch-opponent,#game-end.rematch-end.solo-game-end .full-analysis-button,#game-end.rematch-end.solo-game-end #game-end-new{display:none}
+#game-end.rematch-end.solo-game-end .game-end-score{gap:18px;padding:10px 0 4px}
+#game-end.rematch-end.solo-game-end .game-end-score strong,#game-end.rematch-end.solo-game-end .game-end-score .game-end-dash{font-size:48px;line-height:1.1;font-weight:800}
+#game-end.rematch-end.solo-game-end .game-end-score>div>span{display:none}
+#game-end.rematch-end.solo-game-end .run-it-back h2{margin:0 0 18px}
 #game-end.rematch-end.rivalry-game-end #game-end-title{display:none}
 #game-end.rematch-end.rivalry-game-end .game-end-score{align-items:flex-start;gap:18px;padding:0 0 4px}
 #game-end.rematch-end.rivalry-game-end .game-end-score>div{display:flex;flex-direction:column;gap:4px;min-width:48px;max-width:40%}

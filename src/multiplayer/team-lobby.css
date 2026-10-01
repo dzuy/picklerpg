@@ -127,7 +127,7 @@ body[data-screen=remote]:has(#remote-lobby:not([hidden])){background:var(--pb-su
 #remote-lobby .team-lobby:is([data-tab=friends],[data-tab=community]) .team-directory{background:none;border:0;border-radius:0;box-shadow:none;overflow:visible}
 #remote-lobby .team-lobby:is([data-tab=friends],[data-tab=community]) .team-directory-list{padding:0;max-height:none;overflow:visible}
 
-#remote-lobby .friends-tabs{display:flex;gap:6px;padding:5px;margin:0 0 22px;border:1px solid transparent;border-radius:var(--pb-radius-card);background:var(--pb-surface);max-width:420px}
+#remote-lobby .friends-tabs{display:flex;gap:6px;padding:5px;margin:0 0 22px;border:1px solid var(--pb-border);border-radius:var(--pb-radius-card);background:var(--pb-surface);max-width:420px}
 #remote-lobby .friends-tab{flex:1;min-height:46px;padding:12px 16px;border:0;border-radius:var(--pb-radius-card);background:transparent;color:var(--pb-text);font-size:15px;font-weight:600}
 #remote-lobby .friends-tab[aria-selected=true]{background:var(--pb-primary);color:var(--pb-on-primary);font-weight:750;box-shadow:none}
 #remote-lobby .friends-tab:focus-visible{outline:2px solid var(--pb-focus);outline-offset:2px}
@@ -323,6 +323,8 @@ body[data-screen=remote]:has(#remote-lobby:not([hidden])){background:var(--pb-su
 .friend-profile-dialog .friend-profile-actions .team-lobby-primary:hover{background:var(--pb-primary-hover)}
 .friend-profile-dialog .rivalry-profile{margin:0;padding:0;border:0}
 .friend-profile-dialog .friend-profile-close{display:grid;place-items:center;padding:0;min-height:44px}
+.friend-profile-dialog .friend-profile-safety{display:block;justify-self:center;align-self:center;min-height:44px;width:auto;margin:4px auto 0;padding:8px 0;border:0;border-radius:0;background:none;box-shadow:none;color:var(--pb-text-secondary);font:400 12px/1.4 var(--pb-font-body);text-align:center;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.friend-profile-dialog .friend-profile-safety:hover{color:var(--pb-text)}
 
 #remote-lobby .remote-share-action{display:block;margin:0 0 0 auto;padding:5px 12px;width:fit-content;max-width:65%;min-height:30px;border:0;border-radius:8px;text-align:center;overflow-wrap:anywhere;color:var(--pb-on-primary);background:var(--pb-primary);font-size:13px;font-weight:400;cursor:pointer;}
 #remote-lobby .remote-share-action:focus-visible{outline:2px solid var(--pb-focus);outline-offset:-3px;}
@@ -373,9 +375,10 @@ body[data-screen=remote]:has(#remote-lobby:not([hidden])){background:var(--pb-su
 #remote-lobby .own-profile .profile-skill-progress:has(.xp-profile){padding:0;background:none;box-shadow:none;border:0}
 
 /* Own-profile sign-out stays visible as a quiet link below the profile content. */
-#remote-lobby .own-profile .lobby-profile-account{align-items:center;padding:8px 0 0}
-#remote-lobby .own-profile .profile-sign-out{min-height:44px;min-width:0;padding:8px 12px;border:0;background:none;color:var(--pb-text-secondary);font:inherit;font-size:13px;text-decoration:underline;text-underline-offset:4px;cursor:pointer}
+#remote-lobby .own-profile .lobby-profile-account{align-items:stretch;gap:0;padding:6px 0 0}
+#remote-lobby .own-profile .profile-sign-out{display:flex;align-items:center;justify-content:flex-start;text-align:left;box-sizing:border-box;min-height:44px;min-width:0;padding:6px 0;border:0;background:none;color:var(--pb-text-secondary);font:inherit;font-size:13px;text-decoration:underline;text-underline-offset:4px;cursor:pointer}
 #remote-lobby .own-profile .profile-sign-out:hover{color:var(--pb-text)}
+#remote-lobby .own-profile .profile-app-version{margin-top:8px;color:var(--pb-text-secondary);font-size:11px;line-height:1.4}
 
 #remote-lobby .remote-game-footer{box-sizing:border-box;margin:0;padding:4px 20px 14px;align-items:center}
 #remote-lobby .remote-game-footer>span{min-width:0;text-align:left}
@@ -410,3 +413,19 @@ body[data-screen=remote]:has(#remote-lobby:not([hidden])){background:var(--pb-su
 #remote-lobby .friends-tabs[data-active=community] .friends-tab-highlight{transform:translateX(200%)}
 #remote-lobby .friends-tab,#remote-lobby .friends-tab[aria-selected=true]{background:transparent;font-weight:650;white-space:nowrap;transition:color 160ms ease}
 @media(prefers-reduced-motion:reduce){#remote-lobby .friends-tab{transition:none}}
+
+#remote-lobby .remote-empty .first-game-welcome{grid-column:1;grid-row:4;display:flex;flex-direction:column;align-items:center;gap:20px;margin:24px 36px 28px 0}
+#remote-lobby .remote-empty.remote-empty-game .first-game-welcome .remote-empty-create{margin:0;align-self:stretch;outline:4px solid var(--pb-focus);outline-offset:5px;box-shadow:var(--pb-shadow-card)}
+#remote-lobby .first-game-welcome-tip{position:relative;box-sizing:border-box;width:min(100%,360px);padding:24px 48px 24px 24px;border:2px solid var(--pb-primary);border-radius:var(--pb-radius-card);background:var(--pb-surface);color:var(--pb-text);box-shadow:var(--pb-shadow-card);text-align:center}
+#remote-lobby .first-game-welcome-tip::before{content:'';position:absolute;top:-10px;left:calc(50% - 8px);width:16px;height:16px;background:var(--pb-surface);border-top:2px solid var(--pb-primary);border-left:2px solid var(--pb-primary);transform:rotate(45deg)}
+#remote-lobby .remote-empty.remote-empty-game .first-game-welcome-tip p{max-width:none;margin:0;font-size:20px;line-height:1.4;font-weight:650}
+#remote-lobby .first-game-welcome-close{position:absolute;top:0;right:0;width:44px;height:44px;min-height:44px;margin:0;padding:0;border:0;background:transparent;color:var(--pb-text-secondary);font:inherit;font-size:26px;cursor:pointer}
+@media(max-width:600px){#remote-lobby .remote-empty .first-game-welcome{margin:24px 24px 0}}
+
+#remote-lobby .own-profile .profile-identity{padding:16px 24px;gap:24px}
+#remote-lobby .own-profile .profile-player-model{flex:0 0 170px;width:170px;height:220px;min-width:0}
+#remote-lobby .own-profile .profile-player-model canvas,#remote-lobby .own-profile .profile-player-fallback{display:block;width:100%;height:100%;object-fit:contain}
+#remote-lobby .own-profile .profile-identity .profile-edit{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;min-height:48px;margin-top:16px;padding:12px 20px;border:0;border-radius:var(--pb-radius-button);background:var(--pb-primary);color:var(--pb-on-primary);font-size:15px;font-weight:700;text-decoration:none}
+#remote-lobby .own-profile .profile-identity .profile-edit:hover{background:var(--pb-primary-hover)}
+#remote-lobby .own-profile .profile-account-settings>summary{box-sizing:border-box;min-height:44px;padding:10px 0;font-size:14px;line-height:24px;font-weight:650}
+@media(max-width:480px){#remote-lobby .own-profile .profile-identity{padding:12px 16px;gap:14px}#remote-lobby .own-profile .profile-player-model{flex-basis:130px;width:130px;height:190px}#remote-lobby .own-profile .profile-identity h2{font-size:25px}#remote-lobby .own-profile .profile-identity .profile-edit{padding:12px 16px;font-size:14px}}

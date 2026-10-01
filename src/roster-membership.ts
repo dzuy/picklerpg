@@ -3,14 +3,14 @@ import {authClient} from './auth-session';
 import {LOOKS} from './player-looks';
 import {newPlayer,type DesignedPlayer} from './player-design';
 import {browserStorage} from './browser-storage';
-export const startingPlayers:DesignedPlayer[]=LOOKS.map((look,i)=>({...newPlayer(`preset-${i}`),name:look.name,appearance:{...look.appearance},skills:normalizeSkillBudget(look.skills,35)}));
-const defaults=['preset-0','preset-1'];
+export const startingPlayers:DesignedPlayer[]=LOOKS.map((look,i)=>({...newPlayer(`preset-${i}`),name:look.name,appearance:{...look.appearance},skills:normalizeSkillBudget(look.skills,35)})).filter(player=>player.id!=='preset-0'&&player.id!=='preset-1');
+const defaults:string[]=[];
 let owner='local',ids=[...defaults],removedOwned:string[]=[],preferredStarters:string[]=[];
 const startersKey=()=>`pickle-default-lineup-v1:${owner}`;
 export const starterIds=()=>[...preferredStarters];
-export async function saveStarterIds(next:string[]){
+export async function saveStarterIds(next:string[],automatic=false){
  const client=authClient();
- if(owner!=='local'&&client){const {error}=await client.auth.updateUser({data:{default_starter_ids:next}});if(error)throw Error('Could not save your starters. Please try again.');}
+ if(owner!=='local'&&client){const {error}=await client.auth.updateUser({data:{default_starter_ids:next,default_starters_custom:!automatic}});if(error)throw Error('Could not save your starters. Please try again.');}
  preferredStarters=[...next];browserStorage.setItem(startersKey(),JSON.stringify(next));
 }
 const ownedKey=()=>`pickle-roster-owned-excluded-v1:${owner}`;

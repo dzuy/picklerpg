@@ -1,4 +1,3 @@
-import {openPlayerSafety} from '../account-safety';
 import {focusView} from '../view-focus';
 import {hudButtonIcon} from '../hud-button';
 import type {CourtScene} from '../scene';
@@ -31,10 +30,9 @@ export class TrashTalkControl {
   this.host.addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Escape'){e.preventDefault();this.open(false)}});
   const label=document.createElement('label');label.className='settings-toggle settings-reactions-toggle';label.innerHTML='<span>Mute reactions<small>Hide message bubbles, including in replay.</small></span><input type="checkbox" role="switch">';
   const mute=label.querySelector('input')!;mute.checked=this.muted;mute.onchange=()=>{this.muted=mute.checked;browserStorage.setItem('pickle-trash-talk-muted',String(this.muted))};const names=settings.querySelector('#remote-names')?.closest('label');if(names)names.after(label);else settings.append(label);
-  const safety=document.createElement('button');safety.type='button';safety.textContent='Report / Block opponent';safety.onclick=()=>{this.open(false);if(this.match)void this.reportOpponent();};this.panel.append(safety);
   this.host.hidden=true;
  }
- private async reportOpponent(){if(!this.match)return;openPlayerSafety({matchId:this.match.id},'opponent',()=>{this.muted=true;this.live.clear();for(const b of this.bubbles.values())b.hidden=true;});}
+ hideBlockedReactions(){this.muted=true;this.live.clear();for(const b of this.bubbles.values())b.hidden=true;}
  private open(value:boolean){this.host.classList.toggle('is-open',value);this.panel.inert=!value;this.toggle.setAttribute('aria-expanded',String(value));if(value){this.clearTarget();this.input.focus()}else focusView();}
  private recentKey(){return `pickle-trash-talk-recents:${this.owner}`}
  private loadRecent(){

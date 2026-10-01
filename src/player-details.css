@@ -17,3 +17,5 @@
 .roster-details-drawer .roster-details-primary:hover{background:var(--pb-primary-hover);border-color:var(--pb-primary-hover)}
 
 @media(prefers-reduced-motion:no-preference){.roster-details-drawer[open]::backdrop{animation:roster-backdrop-in .26s ease-out}@keyframes roster-backdrop-in{from{background:transparent}to{background:var(--pb-scrim)}}}
+
+.roster-details-drawer .roster-details-safety{margin-top:16px;width:100%;color:var(--pb-text-secondary)}
