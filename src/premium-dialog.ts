@@ -55,10 +55,6 @@ function renderStore(dialog:HTMLElement,isActive:()=>boolean,services:typeof def
     });actions.append(tools);
    }
   }
-  if(membership.admin){
-   const form=document.createElement('form');form.className='ph-no-capture';form.setAttribute('data-private','true');form.innerHTML='<h3>Give a complimentary pack</h3><label>Account username, email, or ID<input name="owner" required maxlength="254" autocomplete="off"></label><label>Pack<select name="pack"><option value="everything">Everything Pack</option><option value="style">Style Pack</option><option value="court">Court Pack</option><option value="fun">Fun Pack</option></select></label><label>Reason<input name="reason" required maxlength="200"></label><label><input name="active" type="checkbox" checked> Permanent access enabled</label><button type="submit" class="full-analysis-retry">Save complimentary pack</button>';
-   form.onsubmit=event=>{event.preventDefault();if(busy)return;const values=new FormData(form);busy=true;const submit=form.querySelector('button')!;submit.disabled=true;void premiumAction('grant',{ownerId:values.get('owner'),packId:values.get('pack') as PackId,reason:values.get('reason'),active:values.get('active')==='on'}).then(()=>{status.textContent='Complimentary pack saved.';}).catch(e=>{status.textContent=e.message;}).finally(()=>{busy=false;submit.disabled=false;});};actions.append(form);
-  }
  }
  const returned=new URLSearchParams(location.search).get('premium')==='return';if(returned){const url=new URL(location.href);url.searchParams.delete('premium');history.replaceState(null,'',url);}
  void load(returned).catch(error=>{status.textContent=error.message;button(actions,'Try again',()=>load());});

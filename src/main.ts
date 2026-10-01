@@ -65,7 +65,7 @@ const directGame=rosterRoute.has('game')||rosterRoute.get('newgame')==='1';
 let onStartScreen=true;
 document.body.dataset.screen='start';
 const startScreen=document.createElement('main');startScreen.id='start-screen';startScreen.setAttribute('aria-labelledby','start-title');
-startScreen.innerHTML=`<h1 id="start-title" class="start-accessible-title">PickleBash</h1><div class="start-stage"><img class="start-background" src="/images/start/daylight-court.png" alt="" fetchpriority="high"><img class="start-logo" src="/images/start/picklebash-logo.png" alt="" fetchpriority="high"><nav class="start-actions" aria-label="Main menu"><button id="start-multiplayer" aria-label="Let's Play"><span>Let's Play</span><span aria-hidden="true">↗</span></button><button id="start-quick-solo" type="button"><span>Quick Solo Match</span><span aria-hidden="true">↗</span></button><button id="start-create-player" type="button"><span>Create an Account</span><span aria-hidden="true">↗</span></button></nav><p class="start-loading" role="status">Getting the court ready…</p></div>`;
+startScreen.innerHTML=`<h1 id="start-title" class="start-accessible-title">PickleBash</h1><div class="start-stage"><img class="start-background" src="/images/start/daylight-court.png" alt="" fetchpriority="high"><img class="start-logo" src="/images/start/picklebash-logo.png" alt="" fetchpriority="high"><nav class="start-actions" aria-label="Main menu"><button id="start-multiplayer" aria-label="Let's Play"><span>Let's Play</span><span aria-hidden="true">↗</span></button><button id="start-quick-solo" type="button"><span>Quick Solo Match</span><span aria-hidden="true">↗</span></button><button id="start-create-player" type="button" hidden><span>Create an Account</span><span aria-hidden="true">↗</span></button></nav><p class="start-loading" role="status">Getting the court ready…</p></div>`;
 startScreen.hidden=directRoster||directGame;
 document.body.append(startScreen);
 const rosterLoading=document.createElement('div');
@@ -312,6 +312,7 @@ function renderSettingsPlayers(){
  }
 }
 function renderAccount(){
+ byId('start-create-player').hidden=cloudAccountState.kind==='authenticated'||cloudAccountState.kind==='connecting';
  const signOut=document.getElementById('account-sign-out'),resend=document.getElementById('account-resend');
  if(signOut)signOut.hidden=cloudAccountState.kind!=='authenticated';if(resend)resend.hidden=cloudAccountState.kind!=='pending';
  const badge=byId('account-badge'),copy=byId('account-copy'),form=byId('account-form') as HTMLFormElement,status=byId('account-status');

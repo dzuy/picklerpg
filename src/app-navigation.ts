@@ -5,10 +5,12 @@ import {profileAccess} from './profile-access';
 import type {User} from '@supabase/supabase-js';
 let watchingNavigationAuth=false;
 function updateProfileLabel(item:HTMLElement,user:User|null){
- const username=!user?.is_anonymous&&typeof user?.user_metadata.username==='string'?user.user_metadata.username.trim():'';
- item.querySelector('span')!.textContent=username||'Profile';
- item.title=username?`${username} — Profile`:'Profile';
- item.setAttribute('aria-label',username?`${username} — Profile`:'Profile');
+ const signedIn=!!user&&!user.is_anonymous;
+ const username=signedIn&&typeof user.user_metadata.username==='string'?user.user_metadata.username.trim():'';
+ const label=signedIn?'Profile':'Sign In';
+ item.querySelector('span')!.textContent=username||label;
+ item.title=username?`${username} — Profile`:label;
+ item.setAttribute('aria-label',username?`${username} — Profile`:label);
 }
 export type NavigationPage='home'|'games'|'friends'|'roster'|'store'|'profile';
 export type LobbyPage='games'|'friends'|'roster'|'store'|'profile';
@@ -34,6 +36,7 @@ export function appNavigation(active:NavigationPage,navigate?:(page:NavigationPa
   const item=document.createElement('a');item.className='lobby-nav-item';item.id=`lobby-nav-${key}`;item.href=routes[key];
   item.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g class="nav-icon-outline">${icons[key]}</g><g class="nav-icon-filled" fill="currentColor" stroke="none">${filledIcons[key]}</g></svg>`;
   const label=document.createElement('span');label.textContent=key==='games'?'Play':key[0].toUpperCase()+key.slice(1);item.append(label);
+  if(key==='profile')updateProfileLabel(item,null);
   if(key==='games')renderPlayTurnBadge(item);
   if(active===key||(active==='friends'&&key==='games'))item.setAttribute('aria-current','page');
   if(navigate||key==='profile')item.addEventListener('click',event=>{if(event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;event.preventDefault();const go=()=>{if(navigate)navigate(key,routes[key]);else location.assign(routes[key]);};if(key==='profile'){void profileAccess().then(allowed=>{if(allowed)go();});}else go();});

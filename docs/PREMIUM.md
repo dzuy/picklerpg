@@ -47,7 +47,7 @@ RevenueCat verifies Apple StoreKit non-consumables. Stripe-hosted **one-time** C
 
 `pack_ownership` has no expiry. An Apple/Stripe refund or revocation can remove that provider's entitlement; it cannot remove another payment or a complimentary grant. Verified provider snapshots are atomic and reject stale updates. Restore Purchases is available on iOS. Keep purchases with their original PickleBash account in RevenueCat settings; sign into that account to restore. Do not transfer permanent purchases merely because there is no active subscription.
 
-Admins listed in server-only `PREMIUM_ADMIN_IDS` can give/revoke individual packs or Everything in Store, by exact username/email/UUID and recorded reason. Grants have no expiry and are independently audited; they never imply payment.
+The complimentary-pack form is removed from the local Store and upgrade dialogs for now, including for administrators. Existing grants and server grant support remain unchanged. Admins listed in server-only `PREMIUM_ADMIN_IDS` retain server authorization to give/revoke individual packs or Everything by exact username/email/UUID and recorded reason. Grants have no expiry and are independently audited; they never imply payment.
 
 The previously agreed fixed human tester cohort (trusted playtest marker, created before **2026-09-29 05:13:25 UTC**, excluding bots) receives permanent complimentary Everything, including all three V1 packs. Active prior complimentary grants migrate likewise. Future signups do not automatically receive packs. Production migration on 2026-09-29 verified 12 cohort members, 12 permanent Everything grants and 12 audit records.
 

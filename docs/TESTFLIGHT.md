@@ -206,3 +206,10 @@ An isolated `git archive` of that revision, with only public production build va
 Xcode reported **Upload succeeded / EXPORT SUCCEEDED** at 15:27 Costa Rica time. The exact distribution IPA passed signature verification and has `aps-environment=production` with `get-task-allow=false`. Apple processing and internal assignment are being verified. Evidence: [build 15 verification](../artifacts/billing/testflight-15-archive-verification.json). Archive `/tmp/PickleBash-TestFlight-1.0-15.xcarchive`; preserved IPA `/tmp/PickleBash-TestFlight15-Distribution/App.ipa`; build/sync/upload logs `/tmp/picklebash-ios15-archive.log`, `/tmp/picklebash-ios15-sync.log`, `/tmp/picklebash-ios15-upload.log`. Temporary files are not durable backups.
 
 App Store Connect now lists build 15 (`6bdca917-c607-44d9-950b-db072e8fbcff`) as **Ready to Submit** and confirms the saved **PickleBash Internal** group assignment (one existing internal tester). Testing notes were saved. This makes build 15 available to that internal group; actual physical-device installation and acceptance testing remain pending. No external group, App Review submission, or public release was added. Proof: [internal availability](../artifacts/billing/testflight-15-internal-ready.png).
+
+
+## TestFlight update — October 1, 2026 — 1.0 (16)
+
+Owner authorized pushing all pending changes to main and uploading a new TestFlight build. Build 16 includes bundled iOS paddle-sound loading, player/team name focus-zoom fixes, immediate invitation cancellation removal and reachable exits, Store complimentary-form removal, simplified Profile actions, signed-out Sign In navigation, the Play AI Bots setup label, startup loading-link removal, and authenticated home-screen account-button cleanup. User-created player names remain unchanged.
+
+Release tests, production archive verification, upload and Apple processing are being checked. This update does not submit App Review or change billing configuration.

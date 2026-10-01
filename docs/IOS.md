@@ -12,6 +12,12 @@ The iOS app is a Capacitor 8 shell around the existing Vite/Three.js build. Its 
 
 The normal browser commands, `npm run dev`, `npm test`, and `npm run build`, remain unchanged. Run `npm run ios:sync` after changing web code before each new iPhone build. The copied web assets are generated and ignored by Git.
 
+## Gameplay sound effects
+
+Paddle hits decode the two recorded MP3s bundled under `public/audio/`. Capacitor's iOS media handler returns a non-HTTP `URLResponse` for these files, so a successful fetch has status `0` and `ok === false`. The loader accepts that response only from `capacitor://localhost/`; web requests still require a successful HTTP response. Rejecting all responses with `ok === false` silently removes paddle hits while synthesized menu and bounce cues continue working.
+
+The loader regression test covers native status-zero media and failed requests. After syncing a new build, verify actual paddle-hit playback on a physical iPhone in solo and online games, with Sound effects enabled, and after returning from the background. Automated loading tests do not establish audible device playback.
+
 ## Install on a physical iPhone from Xcode
 
 1. Open Xcode and complete its first-launch setup and license acceptance if prompted. In **Xcode → Settings → Components**, install the iOS platform if Xcode says it is missing.

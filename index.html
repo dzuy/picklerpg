@@ -2,8 +2,7 @@
 html{background:var(--pb-bg)}
 #match-loading{position:fixed;inset:0;z-index:2147483647;display:grid;place-content:center;gap:16px;margin:0;background:var(--pb-bg);color:var(--pb-text);font:500 15px system-ui,sans-serif;text-align:center}
 #match-loading[hidden]{display:none}
-#match-loading a{color:var(--pb-info-ink);font-size:13px}
-</style></head><body data-screen="start"><div id="match-loading" role="status" hidden><span>Loading your game…</span><a href="/play?openplay=1">Back to Play</a></div><script>if(new URLSearchParams(location.search).has('match')&&(new URLSearchParams(location.search).get('openplay')==='1'||new URLSearchParams(location.search).get('multiplayer')==='1'))document.getElementById('match-loading').hidden=false;</script><div id="marketing" class="marketing">
+</style></head><body data-screen="start"><div id="match-loading" role="status" hidden><span>Loading your game…</span></div><script>if(new URLSearchParams(location.search).has('match')&&(new URLSearchParams(location.search).get('openplay')==='1'||new URLSearchParams(location.search).get('multiplayer')==='1'))document.getElementById('match-loading').hidden=false;</script><div id="marketing" class="marketing">
 <a class="marketing-skip" href="#main-content">Skip to content</a>
 <header class="marketing-nav marketing-wrap">
  <a href="/" aria-label="PickleBash home"><img class="marketing-logo" src="/images/start/picklebash-logo.png" width="172" height="84" alt="PickleBash"></a>

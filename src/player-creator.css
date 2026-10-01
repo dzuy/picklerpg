@@ -242,14 +242,15 @@
  #player-creator .color-choice>span{width:28px;height:28px}
 }
 
-#player-creator #creator-name{font-size:14px}
+/* Keep editable identity text at 16px so iOS does not zoom the game on focus. */
+#player-creator #creator-name,#player-creator #roster-team-name{font-size:16px}
 #player-creator .creator-catchphrase-label{margin-top:10px}
-#player-creator #creator-catchphrase{font-size:14px;letter-spacing:0;padding:8px;min-height:40px}
+#player-creator #creator-catchphrase{font-size:16px;letter-spacing:0;padding:8px;min-height:40px}
 #player-creator .roster-motto{overflow-wrap:anywhere;font-size:clamp(24px,8cqw,36px);line-height:1.08;top:20px;max-height:calc(100% - 24px);overflow:hidden}
 @media(max-width:760px){
  #player-creator .creator-heading h2{font-size:18px;line-height:1.05}
  #player-creator .creator-identity{top:52px}
- #player-creator #creator-name{font-size:14px;min-height:36px;padding:6px 8px;margin-top:4px}
+ #player-creator #creator-name{font-size:16px;min-height:36px;padding:6px 8px;margin-top:4px}
  #player-creator .creator-catchphrase-label{margin-top:6px}
  #player-creator #creator-catchphrase{font-size:16px;min-height:36px;margin-top:4px;padding:6px 8px}
  #player-creator .creator-stage-bottom{left:auto;right:0;bottom:0}

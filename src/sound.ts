@@ -17,7 +17,11 @@ export class SoundEffects {
   if(this.paddleLoading)return;
   this.paddleLoading=Promise.all(paddleFiles.map(async url=>{
    try{
-    const response=await fetch(url);if(!response.ok)return null;
+    const response=await fetch(url);
+    // Capacitor's iOS media handler uses URLResponse rather than HTTPURLResponse.
+    // Successful bundled MP3 reads therefore have status 0 and ok=false.
+    const bundledMedia=response.status===0&&response.url.startsWith('capacitor://localhost/');
+    if(!response.ok&&!bundledMedia)return null;
     const buffer=await ctx.decodeAudioData(await response.arrayBuffer());
     const channels=Array.from({length:buffer.numberOfChannels},(_,i)=>buffer.getChannelData(i));
     let peak=0;
