@@ -1,0 +1,37 @@
+{
+  "checkedAt": "2026-10-01T23:50:47.815Z",
+  "username": "purchase_phone",
+  "environment": "isolated purchase sandbox",
+  "http": 200,
+  "ownedPacks": [
+    "everything",
+    "fun",
+    "style",
+    "court"
+  ],
+  "sources": [
+    {
+      "source": "revenuecat",
+      "packId": "everything"
+    },
+    {
+      "source": "revenuecat",
+      "packId": "fun"
+    },
+    {
+      "source": "revenuecat",
+      "packId": "style"
+    },
+    {
+      "source": "stripe",
+      "packId": "court"
+    }
+  ],
+  "appleEverything": {
+    "product": "com.picklebash.app.pack.everything",
+    "purchasedAt": "2026-10-01T23:24:02Z",
+    "isSandbox": true,
+    "refunded": false
+  },
+  "reviewAccountStillUnowned": true
+}

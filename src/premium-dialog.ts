@@ -4,6 +4,7 @@ import {showViewDialog} from './view-focus';
 import {storePackPreview} from './store-pack-preview';
 import './full-game-analysis.css';
 import './premium.css';
+import {packPurchaseError,packPurchaseConfirmation} from './apple-pack-purchase';
 const defaultServices={appleBilling,applePrice,premiumAction,premiumStatus,purchaseApple,restoreApple,appleRefundTesting,refundAppleTest};
 export function openPremium(trigger?:HTMLElement,services=defaultServices,requiredPack?:PackId){
  const existing=document.querySelector<HTMLDialogElement>('#picklebash-store');if(existing){existing.focus();return;}
@@ -25,7 +26,7 @@ function renderStore(dialog:HTMLElement,isActive:()=>boolean,services:typeof def
  const compact=dialog.hasAttribute('data-compact-upgrade'),partyLabel=dialog.classList.contains('store-page')||requiredPack==='fun';
  const {appleBilling,applePrice,premiumAction,premiumStatus,purchaseApple,restoreApple,appleRefundTesting,refundAppleTest}=services;
  const status=dialog.querySelector<HTMLElement>('[data-store-status]')!,actions=dialog.querySelector<HTMLElement>('[data-store-actions]')!,packs=dialog.querySelector<HTMLElement>('[data-store-packs]')!;let busy=false;
- function button(parent:HTMLElement,label:string,action:()=>Promise<void>,disabled=false){const b=document.createElement('button');b.type='button';b.className='full-analysis-retry';b.textContent=label;b.disabled=disabled;b.dataset.unavailable=String(disabled);b.onclick=()=>{if(busy)return;busy=true;dialog.querySelectorAll('button').forEach(b=>b.disabled=true);void action().catch(error=>{status.textContent=(error as {userCancelled?:boolean}).userCancelled?'Purchase cancelled.':error instanceof Error?error.message:'Your purchase could not be completed. Please try again.';}).finally(()=>{busy=false;dialog.querySelectorAll('button').forEach(b=>b.disabled=b.dataset.unavailable==='true');});};parent.append(b);}
+ function button(parent:HTMLElement,label:string,action:()=>Promise<void>,disabled=false){const b=document.createElement('button');b.type='button';b.className='full-analysis-retry';b.textContent=label;b.disabled=disabled;b.dataset.unavailable=String(disabled);b.onclick=()=>{if(busy)return;busy=true;dialog.querySelectorAll('button').forEach(b=>b.disabled=true);void action().catch(error=>{status.textContent=packPurchaseError(error);status.scrollIntoView({block:'nearest'});}).finally(()=>{busy=false;dialog.querySelectorAll('button').forEach(b=>b.disabled=b.dataset.unavailable==='true');});};parent.append(b);}
  async function load(refresh=false){
   const membership=await premiumStatus(refresh);if(!isActive())return;actions.replaceChildren();packs.replaceChildren();
   const legal=dialog.querySelector<HTMLElement>('[data-store-legal]')!;legal.replaceChildren();for(const [label,url] of [['Privacy',membership.privacyUrl],['Terms of Use',membership.termsUrl]])if(url){const link=document.createElement('a');link.textContent=label!;link.href=url;link.target='_blank';link.rel='noopener';legal.append(link,document.createTextNode(' '));}
@@ -40,7 +41,7 @@ function renderStore(dialog:HTMLElement,isActive:()=>boolean,services:typeof def
    if(appleBilling()&&ready&&!contentOwned)try{price=await applePrice(id);}catch{ready=false;}
    if(!isActive())return;
    button(card,owned?'Owned':!pack.contentReady?`${price} · Coming soon`:ready?`Buy once · ${price}`:`${price} · Available soon`,async()=>{
-    if(appleBilling()){await purchaseApple(id);await load();status.textContent='Purchase received. Reopen Store if confirmation is still pending.';}
+    if(appleBilling()){const result=await purchaseApple(id);await load();status.textContent=packPurchaseConfirmation(result,id);status.scrollIntoView({block:'nearest'});}
     else {const result=await premiumAction('checkout',{packId:id});if(result.url)location.assign(result.url);}
    },contentOwned||!ready);
   }

@@ -1,9 +1,10 @@
-import {PACKS,ownsPackContent,isApplePackProduct,type PackId} from './pack-catalog';
+import {PACKS,isApplePackProduct,type PackId} from './pack-catalog';
 import {Capacitor} from '@capacitor/core';
 import {authClient,matchCredentials} from './auth-session';
 import {remoteRequest} from './multiplayer/api';
 import {requestSandboxRefund} from './apple-sandbox-refund';
 import type {PremiumStatus} from './premium-model';
+import {purchaseApplePack} from './apple-pack-purchase';
 export const appleBilling=()=>Capacitor.getPlatform()==='ios';
 export async function premiumStatus(refresh=false):Promise<PremiumStatus>{
  const credentials=await matchCredentials();
@@ -31,13 +32,7 @@ async function withApple<T>(work:(sdk:typeof import('@revenuecat/purchases-capac
 }
 export async function applePrice(pack:PackId){return withApple(async sdk=>{const product=(await sdk.getProducts({productIdentifiers:[PACKS[pack].productId]})).products.find(p=>isApplePackProduct(pack,p));if(!product)throw new Error('This pack is not available yet.');return product.priceString;});}
 export async function purchaseApple(pack:PackId){
- await withApple(async sdk=>{
-  const status=await premiumStatus(true);if(!status.appleReady||!status.availablePacks.includes(pack))throw new Error('This pack is not available yet.');
-  if(ownsPackContent(status.ownedPacks,pack))throw new Error('You already own all the content in this pack.');
-  const product=(await sdk.getProducts({productIdentifiers:[PACKS[pack].productId]})).products.find(p=>isApplePackProduct(pack,p));
-  if(!product)throw new Error('This pack is not available yet.');
-  await sdk.purchaseStoreProduct({product});
- });return premiumStatus(true);
+ return withApple(sdk=>purchaseApplePack(pack,sdk,()=>premiumStatus(true)));
 }
 export const appleRefundTesting=()=>appleBilling()&&import.meta.env.VITE_APP_VERSION==='purchase-sandbox';
 export async function refundAppleTest(pack:PackId){
