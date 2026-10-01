@@ -77,7 +77,7 @@ export function profilePanel(portraits:AvatarThumbnails|undefined,authenticate:(
   if(user.new_email&&user.new_email!==currentEmail)accountStatus.textContent=`Email change to ${user.new_email} awaits confirmation. Check your email inboxes.`;
   const version=node('small','','profile-app-version');
   const formatVersion=(value:string,build?:string)=>`v${value.replace(/(?:\.0)+$/,'')}${build?`.b${build}`:''}`;
-  const configuredVersion=String(import.meta.env.VITE_APP_VERSION||'1.0(16)');
+  const configuredVersion=String(import.meta.env.VITE_APP_VERSION||'1.0(17)');
   const versionParts=/^(\d+(?:\.\d+)*)(?:\((\d+)\))?$/.exec(configuredVersion);
   version.textContent=versionParts?formatVersion(versionParts[1],versionParts[2]):configuredVersion;
   if(Capacitor.isNativePlatform())void App.getInfo().then(info=>{version.textContent=formatVersion(info.version,info.build);}).catch(()=>{});

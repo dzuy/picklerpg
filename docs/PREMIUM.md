@@ -27,7 +27,7 @@ The local Court Pack upgrade dialog uses a compact overlapping collage of four c
 
 The local Fun upgrade dialog displays “Party Pack” and uses a matching compact collage of four theme looks, short copy, and the compact Everything alternative. “Party Pack” is a display name in this dialog only; the `fun` pack, Apple product, entitlement, prices, remain unchanged. The standalone Store also displays Party Pack.
 
-Game theme music is disabled locally in both solo and friends games, and the Theme music setting is removed. Theme music assets remain available for development previews; selecting a theme in a game does not load or play them. Gameplay sound effects keep their separate sound setting.
+Game theme music is disabled in both solo and friends games, and the Theme music setting is removed. Theme music assets remain available for development previews; selecting a theme in a game does not load or play them. Gameplay sound effects keep their separate sound setting. Pack descriptions omit theme music from the purchase promise.
 
 All six outfit costumes (frog, dinosaur, lion, bear, butterfly, and bee) require Style Pack. No outfit is free; choosing None keeps the underlying clothing. The creator shows all costume choices under Style Pack / Premium, with no Free outfit group. Migration `202609300002_style_pack_outfits.sql` keeps server classification consistent with the client; apply it before deploying this update. This classification change has not been deployed to production.
 
