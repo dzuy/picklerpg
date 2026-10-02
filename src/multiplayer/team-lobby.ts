@@ -49,7 +49,9 @@ export class TeamLobby {
   const heading=node('div','team-lobby-heading');
   let tabHighlight:HTMLElement|undefined,previousTabIndex=0,nextTabIndex=0;
   const socialView=this.tab==='games'||this.tab==='friends'||this.tab==='community';
-  heading.append(node('h1','',socialView?'Play':this.tab==='profile'?'Profile':this.tab==='store'?'Store':'Roster'));
+  const title=node('h1','',socialView?'':this.tab==='profile'?'Profile':this.tab==='store'?'Store':'Roster');
+  if(socialView){const logo=node('img','lobby-brand-logo');logo.setAttribute('src','/images/start/picklebash-logo.png');logo.setAttribute('alt','PickleBash');logo.width=220;logo.height=108;title.className='lobby-brand-title';title.append(logo);}
+  heading.append(title);
   const nav=appNavigation(socialView?'games':this.tab==='community'?'games':this.tab,(key,href)=>{
    if(key==='home'){location.assign(href);return;}
    this.selectTab(key);
@@ -67,6 +69,9 @@ export class TeamLobby {
    tabHighlight=node('span','friends-tab-highlight');tabHighlight.setAttribute('aria-hidden','true');tabs.append(tabHighlight);
    for(const view of views){
     const tab=this.button(view==='games'?'My Games':view==='friends'?'My Friends':'Community',()=>this.selectFriendsView(view),'friends-tab');
+    const paths={games:'<rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 7h8M8 12h3m-3 4h3m4-4h1m-1 4h1"/>',friends:'<circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3m1-16a3 3 0 0 1 0 6m3 10v-3a6 6 0 0 0-2-4"/>',community:'<circle cx="12" cy="7" r="3"/><path d="M6 21v-3a6 6 0 0 1 12 0v3M5 5a3 3 0 0 0 0 6m-3 9v-3a5 5 0 0 1 3-4m14-8a3 3 0 0 1 0 6m3 9v-3a5 5 0 0 0-3-4"/>'};
+    const icon=node('span','friends-tab-icon');icon.setAttribute('aria-hidden','true');icon.innerHTML=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${paths[view]}</svg>`;
+    const label=node('span','friends-tab-label',tab.textContent!);tab.replaceChildren(icon,label);
     tab.id=`friends-tab-${view}`;tab.setAttribute('role','tab');tab.setAttribute('aria-selected',String(this.tab===view));tab.setAttribute('aria-controls',view==='games'?'games-list-panel':'friends-list-panel');tab.tabIndex=this.tab===view?0:-1;
     tab.onkeydown=event=>{if(['ArrowLeft','ArrowRight','Home','End'].includes(event.key)){event.preventDefault();const index=views.indexOf(view),next=event.key==='Home'?0:event.key==='End'?views.length-1:(index+(event.key==='ArrowRight'?1:-1)+views.length)%views.length;this.selectFriendsView(views[next]);}};
     tabs.append(tab);
@@ -99,15 +104,15 @@ export class TeamLobby {
     if(story)identity.append(node('p','lobby-person-rivalry',story));
     void this.record(person).then(record=>{if(!card.isConnected)return;if(communityView&&!canShowCommunityAccount(person.manager,record.games)){card.remove();finishCommunityRecord();return;}card.hidden=false;const xp=record.lifetimeXp;recordLabel.textContent=` (${record.wins.toLocaleString()}-${record.losses.toLocaleString()}) · ${xp==null?'—':xp.toLocaleString()} XP`;recordLabel.setAttribute('aria-label',`${record.wins} wins, ${record.losses} losses, ${xp==null?'XP unavailable':`${xp} XP`}`);finishCommunityRecord();}).catch(()=>{if(!card.isConnected)return;card.hidden=false;recordLabel.textContent=' (—)';recordLabel.setAttribute('aria-label','Record unavailable');finishCommunityRecord();});
     const controls=node('div','lobby-person-actions'),challenge=this.button('Challenge',()=>this.actions.challenge(person),'team-lobby-primary');
-    if(!this.data.friends.includes(person.id)){controls.classList.add('has-add-friend');controls.append(this.button('Add Friend',()=>void this.friend(person.id),'team-lobby-add-friend'));}controls.append(challenge);
+    if(!communityView&&!this.data.friends.includes(person.id)){controls.classList.add('has-add-friend');controls.append(this.button('Add Friend',()=>void this.friend(person.id),'team-lobby-add-friend'));}controls.append(challenge);
     card.append(identity,controls);list.append(card);
    }
-   directory.append(list);
    if(this.tab==='friends'){
     const inviteBar=node('div','friends-invite-bar');
     inviteBar.append(this.button('Invite a Friend',this.actions.invite??this.actions.create,'friends-invite-button'));
     directory.append(inviteBar);
    }
+   directory.append(list);
   }
   if(this.tab==='store')directory.append(storePage());
   if(this.tab==='profile')directory.append(profilePanel(this.portraits,()=>{if(!this.element.isConnected)return;this.showTab('games');void profileAccess();},this.actions.signOut));

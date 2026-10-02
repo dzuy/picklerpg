@@ -1,3 +1,4 @@
+import {activeAuthenticatedUser} from './account-archive';
 import {AccountSafetyService} from './account-safety';
 import {PremiumService} from './premium';
 import {PremiumStripe} from './premium-stripe';
@@ -173,7 +174,7 @@ export function configuredMatchHandler(env:NodeJS.ProcessEnv=process.env){
  const testers=new Map<string,string>();
  let refreshed=0,refreshing:Promise<void>|null=null;
  async function refreshTesters(){if(Date.now()-refreshed<5000)return;if(!refreshing)refreshing=(async()=>{const enrolled=await loadPlaytesters(client,communityBotsEnabled);testers.clear();for(const [id,email] of enrolled)testers.set(id,email);refreshed=Date.now();})().finally(()=>{refreshing=null;});await refreshing;}
- const authenticate:Authenticate=async token=>{const {data,error}=await client.auth.getUser(token);if(error||!data.user)throw new ApiError(401,'authentication','Your session expired. Sign in again, then retry.');await refreshTesters();if(testers.has(data.user.id)||data.user.is_anonymous||data.user.app_metadata?.multiplayer_playtest===true){try{testers.set(data.user.id,playerName(data.user.user_metadata?.username??data.user.user_metadata?.player_name));}catch{}}return data.user.id;};
+ const authenticate:Authenticate=async token=>{const user=await activeAuthenticatedUser(client,token);if(!user)throw new ApiError(401,'authentication','Your session expired. Sign in again, then retry.');await refreshTesters();if(testers.has(user.id)||user.is_anonymous||user.app_metadata?.multiplayer_playtest===true){try{testers.set(user.id,playerName(user.user_metadata?.username??user.user_metadata?.player_name));}catch{}}return user.id;};
  const register=env.MULTIPLAYER_CREATE_ENABLED==='true'?async(input:unknown)=>{const result=await registerPlaytester(client,input);refreshed=0;return result;}:undefined;
  const premium=env.PACK_STORE_ENABLED==='true'?new PremiumService(client,env):undefined;
  const push=configuredPush(client,env);

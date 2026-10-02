@@ -7,7 +7,9 @@ if(entryRoute(url,Capacitor.isNativePlatform())==='game'){
  document.querySelector('#marketing')?.remove();
  document.title='Play PickleBash — A Pickleball Strategy Game';
  const loading=document.querySelector<HTMLElement>('#match-loading');
- const showEntryLoading=loading?.hidden===true;
+ // Saved and configured games keep the cover until their first court frame renders.
+ const remoteMatch=url.searchParams.has('match')&&(url.searchParams.get('openplay')==='1'||url.searchParams.get('multiplayer')==='1');
+ const showEntryLoading=!remoteMatch&&!url.searchParams.has('game')&&!url.searchParams.has('configured');
  if(loading)loading.hidden=false;
  try{
   await import('./game-bootstrap');

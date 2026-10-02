@@ -1,7 +1,11 @@
 #picklebash-store {max-width:640px}
 #picklebash-store [data-store-packs] {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
 #picklebash-store .store-pack {padding:16px;border:1px solid #bfd0c6;border-radius:16px;background:#fffaf0;color:#214d43}
-#picklebash-store .store-pack[data-featured=true] {grid-column:1/-1;border:2px solid #27765b;background:#e8f2dc}
+#picklebash-store .store-pack[data-featured=true] {grid-column:1/-1;border:2px solid var(--pb-primary);background:var(--pb-tint-pink);color:var(--pb-social-ink)}
+#picklebash-store .store-pack[data-featured=true] :is(h3,.store-value){color:var(--pb-social-ink)}
+#picklebash-store .store-pack[data-featured=true]>p{color:var(--pb-social-ink)}
+#picklebash-store .store-pack[data-featured=true]>.full-analysis-retry{background:var(--pb-primary);border-color:var(--pb-primary);color:var(--pb-on-primary)}
+#picklebash-store .store-pack[data-featured=true]>.full-analysis-retry:enabled:hover{background:var(--pb-primary-hover);border-color:var(--pb-primary-hover)}
 #picklebash-store .store-pack h3 {margin:0 0 8px;font-size:1.1rem}
 #picklebash-store .store-pack p {font-size:.9rem;line-height:1.45}
 #picklebash-store .store-value {font-size:.85rem}
@@ -56,3 +60,8 @@
 #picklebash-store[data-compact-upgrade] [data-pack=fun] .store-preview-tile img{height:82px;object-fit:contain}
 
 #picklebash-store[data-compact-upgrade] [data-pack=style] .store-preview-tile img{height:82px;object-fit:contain}
+
+#remote-lobby .team-lobby[data-tab=store] .team-lobby-heading h1,
+#picklebash-store.store-page .full-analysis-content>p,
+#picklebash-store.store-page [data-store-legal]{color:var(--pb-inverse-text)}
+#picklebash-store.store-page [data-store-actions]>button{background:var(--pb-surface);color:var(--pb-text);border-color:var(--pb-border)}

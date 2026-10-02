@@ -14,7 +14,7 @@ if(env.DEV){
 let bound=false;
 /** Bind before initialization: INITIAL_SESSION is the authority, never a stale persisted PostHog ID. */
 export function bindAnalyticsIdentity(client:SupabaseClient){
- if(bound||location.pathname.startsWith('/admin/'))return;bound=true;
+ if(bound||(location.pathname==='/admin'||location.pathname.startsWith('/admin/')))return;bound=true;
  let user:User|null=null,ready=false,apply=()=>{if(user)Analytics.identify(user.id,{is_guest:!!user.is_anonymous});else Analytics.reset();};
  client.auth.onAuthStateChange((_event,session)=>{user=session?.user??null;ready=true;apply();});
  const environment=env.VITE_ANALYTICS_ENVIRONMENT??'development';

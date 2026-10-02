@@ -48,9 +48,8 @@ export class CommunitySection {
    if(!rows.length)continue;
    const section=document.createElement('section');section.className='community-category';
    const heading=document.createElement('h3');heading.textContent=category.title;
-   const description=document.createElement('p');description.textContent=category.description;
    const rail=document.createElement('div');rail.className='community-grid roster-grid community-category-row';rail.tabIndex=0;rail.setAttribute('role','region');rail.setAttribute('aria-label',`${category.title} players`);
-   rail.append(...rows.map(row=>this.card(row.player,false)));section.append(heading,description,rail);community.append(section);
+   rail.append(...rows.map(row=>this.card(row.player,false)));section.append(heading,rail);community.append(section);
   }
  }
 }

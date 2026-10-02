@@ -1,11 +1,12 @@
 import {authClient} from './auth-session';
+import {adminNavigation,setAdminIdentity} from './admin-navigation';
 import {signInDialog} from './multiplayer/sign-in-dialog';
 import {percentage,type AnalyticsDashboard,type AnalyticsPeriod} from './analytics/dashboard-contract';
 import './admin-analytics.css';
 
 document.title='Analytics · PickleBash';
 const root=document.querySelector<HTMLDivElement>('#app')!;
-root.innerHTML=`<main class="analytics-page"><header class="analytics-header"><div><a class="analytics-brand" href="/?openplay=1">PICKLEBASH <span> / ADMIN</span></a><h1>How’s the game doing?</h1><p>A few numbers. A clearer picture.</p></div><div class="analytics-controls"><label for="analytics-range" class="sr-label">Date range</label><select id="analytics-range"><option value="7">Last 7 days</option><option value="30">Last 30 days</option></select><button id="analytics-refresh" type="button">Refresh</button></div></header><div id="analytics-status" role="status" aria-live="polite"></div><section id="analytics-content" aria-label="Analytics overview"></section><footer>Production activity · UTC · Human players, including games against computer opponents.<br>Multiplayer outcomes are confirmed by the server. Some activity may be missing when tracking is blocked.</footer></main>`;
+root.innerHTML=`<div class="admin-layout">${adminNavigation('analytics')}<main class="analytics-page"><header class="analytics-header"><div><h1>How’s the game doing?</h1><p>A few numbers. A clearer picture.</p></div><div class="analytics-controls"><label for="analytics-range" class="sr-label">Date range</label><select id="analytics-range"><option value="7">Last 7 days</option><option value="30">Last 30 days</option></select><button id="analytics-refresh" type="button">Refresh</button></div></header><div id="analytics-status" role="status" aria-live="polite"></div><section id="analytics-content" aria-label="Analytics overview"></section><footer>Production activity · UTC · Human players, including games against computer opponents.<br>Multiplayer outcomes are confirmed by the server. Some activity may be missing when tracking is blocked.</footer></main></div>`;
 const content=root.querySelector<HTMLElement>('#analytics-content')!,status=root.querySelector<HTMLElement>('#analytics-status')!,range=root.querySelector<HTMLSelectElement>('select')!,refresh=root.querySelector<HTMLButtonElement>('#analytics-refresh')!;
 const number=(n:number|null)=>n===null?'—':new Intl.NumberFormat('en',{maximumFractionDigits:1}).format(n);
 const ratio=(p:AnalyticsPeriod)=>p.active?p.participations/p.active:null;
@@ -42,6 +43,7 @@ async function load(){const current=++sequence;refresh.disabled=true;status.text
  try{
   const client=authClient();const session=client?(await client.auth.getSession()).data.session:null;
   if(current!==sequence)return;
+  setAdminIdentity(root,session?.user??null);
   if(!session||session.user.is_anonymous){status.textContent='Private dashboard';state('Sign in to continue','Use your PickleBash admin account to view analytics.',true);return;}
   const response=await fetch(`/api/admin/analytics?days=${range.value}`,{headers:{Authorization:`Bearer ${session.access_token}`},cache:'no-store'});
   const data=await response.json();if(current!==sequence)return;
@@ -54,8 +56,12 @@ async function load(){const current=++sequence;refresh.disabled=true;status.text
  finally{if(current===sequence)refresh.disabled=false;}
 }
 refresh.onclick=()=>void load();range.onchange=()=>void load();
+root.querySelector<HTMLButtonElement>('#admin-signout')!.onclick=()=>{
+ sequence++;content.replaceChildren();setAdminIdentity(root,null);status.textContent='Private dashboard';state('Sign in to continue','Use your PickleBash admin account to view analytics.',true);
+ void authClient()?.auth.signOut().then(result=>{if(result.error)status.textContent='Sign-out failed. Try again before leaving this shared device.';}).catch(()=>{status.textContent='Sign-out failed. Try again before leaving this shared device.';});
+};
 // Immediately remove sensitive aggregates on sign-out/account switch, then reauthorize.
 if(!document.documentElement.hasAttribute('data-analytics-preview')){
- authClient()?.auth.onAuthStateChange(()=>{sequence++;content.replaceChildren();setTimeout(()=>void load(),0);});
+ authClient()?.auth.onAuthStateChange((_event,session)=>{setAdminIdentity(root,session?.user??null);sequence++;content.replaceChildren();setTimeout(()=>void load(),0);});
  void load();
 }

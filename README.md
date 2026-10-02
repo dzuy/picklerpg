@@ -35,7 +35,7 @@ The agreed color direction, usage rules, and foundation for future marketing con
 
 ## Analytics and feature flags
 
-The simple dashboard is at `/admin/analytics`; see [admin dashboard setup](docs/ADMIN-ANALYTICS.md).
+Owner account management is at `/admin`; see [admin access and setup](docs/ADMIN.md). The analytics dashboard is at `/admin/analytics`; see [admin dashboard setup](docs/ADMIN-ANALYTICS.md).
 
 Start with [analytics architecture and future dashboard decisions](docs/ANALYTICS-ARCHITECTURE.md). The [implementation reference](docs/ANALYTICS.md) covers event ownership, identity, privacy, environment settings, live dashboard links, and release checks. The [feature-flag guide](docs/FEATURE-FLAGS.md) covers defaults, targeting, rollout, and removal. Deployment status in these documents is a dated snapshot; verify it before resuming work.
 

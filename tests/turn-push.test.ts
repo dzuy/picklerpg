@@ -13,13 +13,22 @@ test('subscription validates provider, transport and key lengths before server n
 });
 function fakeStore(rows:any[],muted=false){
  const operations:any[]=[];let claimed=false;
- const client:any={rpc:async()=>({data:!claimed&&(claimed=true),error:null}),from:(table:string)=>{
+ const client:any={rpc:async(name:string)=>({data:name==='is_account_archived'?false:!claimed&&(claimed=true),error:null}),from:(table:string)=>{
   const op:any={table,filters:[]};operations.push(op);
   const q:any={select:()=>{op.kind='select';return q},upsert:(v:any)=>{op.kind='upsert';op.value=v;return q},update:(v:any)=>{op.kind='update';op.value=v;return q},delete:()=>{op.kind='delete';return q},eq:(key:string,value:any)=>{op.filters.push([key,value]);return q},maybeSingle:async()=>({data:rows.length?{id:event.matchId,home_user_id:event.userId,away_user_id:A,muted_home:muted,muted_away:false}:null,error:null}),then:(resolve:any)=>Promise.resolve({data:rows,error:null}).then(resolve)};return q;
  }};
  return {client,operations};
 }
 const event={userId:B,matchId:'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',version:1,opponentName:'Chris'};
+test('archived accounts receive no web, native, or SMS notifications; status failure blocks delivery',async()=>{
+ for(const status of [{data:true,error:null},{data:null,error:{message:'offline'}}]){
+  const db=fakeStore([{id:'web',endpoint:'ok',active_until:null}]);let sent=0;
+  db.client.rpc=async(name:string)=>name==='is_account_archived'?status:{data:true,error:null};
+  const push=new PushService(db.client,'p','s','mailto:test@example.com',async()=>{sent++;return {} as any;},{deliver:async()=>{sent++;return true}} as any,async()=>{sent++});
+  if(status.error)await assert.rejects(push.notify(event),/push account status/);else await push.notify(event);
+  assert.equal(sent,0);assert.equal(db.operations.length,0);
+ }
+});
 test('all devices receive push once; dead endpoints deleted; network failure isolated',async()=>{
  const rows=['ok','gone','invalid','failed'].map(id=>({id,endpoint:id,p256dh:'key',auth:'secret',active_until:null}));const db=fakeStore(rows);const sent:string[]=[];
  const push=new PushService(db.client,'public','private','mailto:test@example.com',async(s,payload)=>{

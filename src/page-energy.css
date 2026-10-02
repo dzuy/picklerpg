@@ -1,0 +1,22 @@
+/* Full-screen roster and setup surfaces cover the lobby's decorative layer. */
+:is(#player-creator[data-view=roster],#remote-setup:not([hidden])){isolation:isolate}
+:is(#player-creator[data-view=roster],#remote-setup:not([hidden]))::before,
+:is(#player-creator[data-view=roster],#remote-setup:not([hidden]))::after{
+  content:'';
+  position:fixed;
+  width:280px;
+  height:245px;
+  pointer-events:none;
+  z-index:-1;
+  background:url('/assets/brand/lobby-energy.svg') center / contain no-repeat;
+  -webkit-mask-image:linear-gradient(to bottom,transparent,black 40px);
+  mask-image:linear-gradient(to bottom,transparent,black 40px);
+}
+:is(#player-creator[data-view=roster],#remote-setup:not([hidden]))::before{top:0;right:0;opacity:.42}
+:is(#player-creator[data-view=roster],#remote-setup:not([hidden]))::after{bottom:0;left:0;transform:rotate(180deg);opacity:.25}
+@media(max-width:600px){
+  :is(#player-creator[data-view=roster],#remote-setup:not([hidden]))::before,
+  :is(#player-creator[data-view=roster],#remote-setup:not([hidden]))::after{width:175px;height:153px}
+  :is(#player-creator[data-view=roster],#remote-setup:not([hidden]))::before{opacity:.32}
+  :is(#player-creator[data-view=roster],#remote-setup:not([hidden]))::after{opacity:.18}
+}

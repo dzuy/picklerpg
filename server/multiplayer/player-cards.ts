@@ -1,3 +1,4 @@
+import {activeAuthenticatedUser} from './account-archive';
 import {createHash} from 'node:crypto';
 import {inflateSync,deflateSync} from 'node:zlib';
 import type {IncomingMessage,ServerResponse} from 'node:http';
@@ -59,5 +60,5 @@ export function configuredPlayerCardHandler(env:NodeJS.ProcessEnv=process.env){
  const url=env.SUPABASE_URL??env.VITE_SUPABASE_URL,key=env.SUPABASE_SERVICE_ROLE_KEY;
  if(!url||!key)return createPlayerCardHandler(async()=>{throw new ApiError(503,'card_storage','Card publishing is not configured. You can still download your card.');});
  const client=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
- return createPlayerCardHandler((image,owner)=>publishCard(client,image,owner),env.RATE_LIMIT_STORE==='database'?databaseRateLimits(client):memoryRateLimits(),Number(env.TRUSTED_PROXY_HOPS??0),async token=>{const {data,error}=await client.auth.getUser(token);return error?null:data.user?.id??null;});
+ return createPlayerCardHandler((image,owner)=>publishCard(client,image,owner),env.RATE_LIMIT_STORE==='database'?databaseRateLimits(client):memoryRateLimits(),Number(env.TRUSTED_PROXY_HOPS??0),async token=>{return (await activeAuthenticatedUser(client,token))?.id??null;});
 }

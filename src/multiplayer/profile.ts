@@ -58,7 +58,8 @@ export function profilePanel(portraits:AvatarThumbnails|undefined,authenticate:(
   if(name&&name!==username)identity.append(node('p',name,'profile-display-name'));
   if(player?.catchphrase?.trim())identity.append(node('p',player.catchphrase.trim(),'profile-bio'));
   if(player){const edit=node('a','Edit Player','profile-edit');edit.href=`/?openplay=1&tab=roster&editPlayer=${encodeURIComponent(player.id)}`;identity.append(edit);}
-  header.append(identity);panel.append(header);
+  const summary=node('div','','profile-summary-card');
+  header.append(identity);summary.append(header);panel.append(summary);
   const loadHistory=async()=>{
    const history=async()=>{const matches:HistoryMatch[]=[];for(let offset=0;;offset+=500){const result=await client!.from('match_history').select('id,home_names,away_names,home_score,away_score,ended_early,completed_at').eq('owner_id',user.id).order('completed_at',{ascending:false}).order('id').range(offset,offset+499);if(result.error)throw result.error;matches.push(...result.data);if(result.data.length<500)return matches;}};
    const [saved,remote]=await Promise.all([history(),remoteRequest<PublicMatch[]>(session!.data.session!.access_token,'/api/matches')]);
@@ -66,7 +67,7 @@ export function profilePanel(portraits:AvatarThumbnails|undefined,authenticate:(
   };
   const stats=node('dl','','lobby-profile-stats');
   const values=['Games','Wins','Losses'].map(label=>{const stat=node('div'),value=node('dd','—');stat.append(node('dt',label),value);stats.append(stat);return value;});
-  const note=node('p','Loading your game record…','lobby-profile-note');note.setAttribute('role','status');panel.append(stats,note);
+  const note=node('p','Loading your game record…','lobby-profile-note');note.setAttribute('role','status');summary.append(stats,note);
   const progression=node('section','','profile-skill-progress');
   panel.append(progression);void loadAccountProgress(progression,true);
   const settings=node('details','','profile-account-settings');settings.append(node('summary','Help and Account Settings'));

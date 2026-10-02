@@ -429,3 +429,44 @@ body[data-screen=remote]:has(.friend-page){background:var(--pb-bg,var(--pb-surfa
 
 #remote-setup .setup-solo-toggle{display:flex;align-items:center;gap:10px;width:fit-content;min-height:44px;margin:0 0 0 auto;flex-shrink:0;cursor:pointer;font-size:14px;font-weight:600;color:var(--pb-text);}
 #remote-setup .setup-solo-toggle input{width:18px;height:18px;min-height:0;margin:0;padding:0;flex:0 0 18px;accent-color:var(--pb-text);cursor:pointer;}
+
+/* Share the roster's court-blue canvas while retaining the lobby's energy artwork. */
+/* Match Safari’s solid top chrome before fading into the cyan canvas. */
+html:has(body[data-screen=remote]:not(.remote-playing) #remote-setup:not([hidden])),
+html:has(body[data-screen=remote]:not(.remote-playing) #remote-lobby:not([hidden]) .team-lobby:is([data-tab=store],[data-tab=games],[data-tab=friends],[data-tab=community],[data-tab=profile])){
+  background-color:var(--pb-inverse-surface);
+  background-image:
+    linear-gradient(to bottom,var(--pb-inverse-surface) 8px,transparent 112px),
+    radial-gradient(ellipse at 100% 0%,var(--pb-inverse-glow),transparent 75%);
+  background-size:100% 112px,100% 100svh;
+  background-repeat:no-repeat;
+}
+body[data-screen=remote]:not(.remote-playing):has(#remote-setup:not([hidden])),
+body[data-screen=remote]:not(.remote-playing):has(#remote-lobby:not([hidden]) .team-lobby:is([data-tab=store],[data-tab=games],[data-tab=friends],[data-tab=community],[data-tab=profile])){
+  background:transparent;
+}
+/* Keep the full-length artwork and fade it into the viewport edges. */
+body[data-screen=remote]:has(#remote-lobby:not([hidden]) .team-lobby:is([data-tab=store],[data-tab=games],[data-tab=friends],[data-tab=community],[data-tab=profile]))::before{
+  top:0;
+  right:0;
+}
+/* The lower artwork rotates 180deg, so this mask fades its bottom edge. */
+body[data-screen=remote]:has(#remote-lobby:not([hidden]) .team-lobby:is([data-tab=store],[data-tab=games],[data-tab=friends],[data-tab=community],[data-tab=profile]))::before,
+body[data-screen=remote]:has(#remote-lobby:not([hidden]) .team-lobby:is([data-tab=store],[data-tab=games],[data-tab=friends],[data-tab=community],[data-tab=profile]))::after{
+  -webkit-mask-image:linear-gradient(to bottom,transparent,black 40px);
+  mask-image:linear-gradient(to bottom,transparent,black 40px);
+}
+
+/* Setup cards sit on the shared blue canvas. */
+#app section#remote-setup:not([hidden]){
+  background-color:var(--pb-inverse-surface);
+  background-image:linear-gradient(to bottom,var(--pb-inverse-surface) 8px,transparent 112px),radial-gradient(ellipse at 100% 0%,var(--pb-inverse-glow),transparent 75%);
+  background-size:100% 112px,100% 100svh;
+  background-repeat:no-repeat;
+  border-color:transparent;box-shadow:none;
+}
+#remote-setup .remote-setup-header{background:transparent}
+#remote-setup .remote-setup-header h1,
+#remote-setup .remote-setup-header #remote-cancel-setup,
+#remote-setup #remote-create-status{color:var(--pb-inverse-text)}
+#remote-setup .remote-setup-footer{border-color:var(--pb-inverse-border)}

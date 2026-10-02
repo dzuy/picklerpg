@@ -669,8 +669,8 @@ function initializeResume(owner:string){
    if(requestedGame&&!directRoster)enterCourt(false);
   }
   if(launchParams.get('newgame')==='1'&&!launchParams.has('configured'))showMatchSetup();
- }catch(error){showStartScreen();reportSaveError(error);match.onCheckpoint=()=>{throw new Error('Your saved games could not be read. Reload before starting another game.')}}
- finally{if(!directRoster)rosterLoading.hidden=true;resumeReady=true;startScreen.querySelectorAll<HTMLButtonElement>('button').forEach(button=>button.disabled=false);}
+ }catch(error){document.getElementById('match-loading')?.remove();showStartScreen();reportSaveError(error);match.onCheckpoint=()=>{throw new Error('Your saved games could not be read. Reload before starting another game.')}}
+ finally{if(!directRoster)rosterLoading.hidden=true;resumeReady=true;if(onStartScreen&&!launchParams.has('configured'))document.getElementById('match-loading')?.remove();startScreen.querySelectorAll<HTMLButtonElement>('button').forEach(button=>button.disabled=false);}
 }
 void cloudReady.then(()=>{initializeResume(cloudPlayers.accountId??browserStorage.getItem('pickle-rpg-cloud-owner-v1')??'local');
  if(launchParams.get('createplayer')==='1'&&cloudAccountState.kind==='authenticated'){
@@ -678,7 +678,7 @@ void cloudReady.then(()=>{initializeResume(cloudPlayers.accountId??browserStorag
   if(pending)try{playerOnboarding=true;creator.activateOnSave=true;creator.resumeCreatePlayer(JSON.parse(pending));const clean=new URL(location.href);clean.searchParams.delete('createplayer');history.replaceState(null,'',clean);}catch{browserSessionStorage.removeItem(pendingPlayerKey)}
  }
  if(new URLSearchParams(location.search).has('configured')&&window.parent!==window){
-  const receive=(event:MessageEvent)=>{if(event.origin!==location.origin||event.source!==window.parent||event.data?.type!=='picklebash:start-solo')return;try{const setup=parseSoloLaunch(event.data.setup);setScoringPreference(setup.scoring);startConfiguredMatch(setup.players,'solo',setup.court,setup.target,setup.courtTheme);window.removeEventListener('message',receive);}catch(error){reportSaveError(error);}};
+  const receive=(event:MessageEvent)=>{if(event.origin!==location.origin||event.source!==window.parent||event.data?.type!=='picklebash:start-solo')return;try{const setup=parseSoloLaunch(event.data.setup);setScoringPreference(setup.scoring);startConfiguredMatch(setup.players,'solo',setup.court,setup.target,setup.courtTheme);window.removeEventListener('message',receive);}catch(error){document.getElementById('match-loading')?.remove();reportSaveError(error);}};
   window.addEventListener('message',receive);window.parent.postMessage('picklebash:solo-ready',location.origin);
  }
 });
@@ -706,6 +706,9 @@ updateUI();let previous:number|undefined;function frame(now:number){
  scene.setReplayBodyHit(replay?replay.bodyHit:undefined);
  scene.render(replay?.state??match.state,now/1000,replay?.shot??match.shot,!match.practice&&!replay?match.scoring.call:null,!replay&&!settingsDialog.open&&!gameEnd.open&&match.state.phase==='decision'&&match.state.possession==='away'?match.state.currentHitter:null);
  const courtVisible=!onStartScreen&&!settingsDialog.open&&!creator.dialog.open&&!playerDetailsOpen()&&!gameEnd.open;
+ // Keep the branded cover through the first painted court, including cloud resume.
+ const loading=document.getElementById('match-loading');
+ if(loading)requestAnimationFrame(()=>loading.remove());
  courtReplay.hidden=!courtVisible||!!replay;courtReplay.disabled=!match.canReplay;courtReplay.title=match.canReplay?'Replay rally':'Replay available after a shot';
  reactions.update({id:match.matchId,version:match.point},reactionOwner());
  reactions.frame(scene,replay?.state??match.state,replay?replay.state.simulationTime:null,courtVisible,replay?localReactions.replay(match.matchId,replay.reactionContext.point,replay.reactionContext.time):undefined);

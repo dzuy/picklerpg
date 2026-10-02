@@ -14,10 +14,13 @@ export function openGameSurface(path='/?newgame=1',solo?:SoloLaunch){
  frame.title='Game setup and court';frame.src=url.href;frame.allow='microphone; fullscreen';
  dialog.append(frame);document.body.append(dialog);surface=dialog;
  const overflow=document.body.style.overflow;document.body.style.overflow='hidden';
+ const theme=document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+ const previousTheme=theme?.content;
+ if(theme)theme.content=getComputedStyle(document.documentElement).getPropertyValue('--pb-text').trim();
  const close=()=>dialog.close();
  const message=(event:MessageEvent)=>{if(event.origin!==location.origin||event.source!==frame.contentWindow)return;if(event.data===CLOSE)close();if(event.data==='picklebash:solo-ready'&&solo)frame.contentWindow?.postMessage({type:'picklebash:start-solo',setup:solo},location.origin);};
  window.addEventListener('message',message);
- dialog.addEventListener('close',()=>{window.removeEventListener('message',message);frame.src='about:blank';dialog.remove();surface=null;document.body.style.overflow=overflow;focusView();window.dispatchEvent(new Event('game-surface-closed'));},{once:true});
+ dialog.addEventListener('close',()=>{window.removeEventListener('message',message);frame.src='about:blank';dialog.remove();surface=null;document.body.style.overflow=overflow;if(theme&&previousTheme!==undefined)theme.content=previousTheme;focusView();window.dispatchEvent(new Event('game-surface-closed'));},{once:true});
  showViewDialog(dialog);frame.focus();
 }
 /** Closing a game reveals its launcher; direct links return to Games. */

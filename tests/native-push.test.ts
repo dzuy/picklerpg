@@ -6,7 +6,7 @@ const A='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',B='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbb
 const event={userId:A,matchId:B,version:1,opponentName:'Pat'};
 function store(tokens=['ok','gone']){
  const operations:any[]=[];
- const client:any={rpc:async(name:string)=>({data:name==='turn_badge_count'?3:true}),from:(table:string)=>{
+ const client:any={rpc:async(name:string)=>({data:name==='is_account_archived'?false:name==='turn_badge_count'?3:true}),from:(table:string)=>{
   const op:any={table,filters:[]};operations.push(op);
   const q:any={select:()=>q,update:(data:any)=>{op.update=data;return q},eq:(...args:any[])=>{op.filters.push(args);return q},maybeSingle:async()=>({data:{home_user_id:A,away_user_id:B}}),then:(resolve:any)=>Promise.resolve({data:table==='push_devices'?tokens.map(id=>({id,device_token:id,environment:'production',updated_at:'v1'})):[]}).then(resolve)};return q;
  }};return {client,operations};

@@ -51,13 +51,16 @@ export class NotificationService {
   await this.deliverToUser({userId:invite.recipientId,matchId:invite.id,version:0,opponentName:invite.creatorName},'invitation');
  }
  private async deliverToUser(event:TurnReady,type:'turn'|'nudge'|'invitation'){
+  const archive=await this.client.rpc('is_account_archived',{p_account:event.userId});
+  if(archive.error||typeof archive.data!=='boolean')throw Error('push account status');
+  if(archive.data)return;
   if(type!=='invitation'){
   const {data:match,error:matchError}=await this.client.from('async_matches').select('*').eq('id',event.matchId).maybeSingle();
   if(matchError)throw Error('push preference check');
   if(!match||!(event.userId===match.home_user_id||event.userId===match.away_user_id)||(event.userId===match.home_user_id?match.muted_home:match.muted_away))return;
 
   }
-  const {data:rows,error:readError}=await this.client.from('push_subscriptions').select('id,endpoint,p256dh,auth,active_until').eq('user_id',event.userId);
+  const {data:rows,error:readError}=await this.client.from('push_subscriptions').select('id,endpoint,p256dh,auth,active_until').eq('user_id',event.userId).eq('enabled',true);
   if(readError)throw Error('push subscriptions');
   // Check foreground activity before choosing a channel, including native alerts.
   if(rows?.some(row=>Date.parse(row.active_until)>Date.now()))return;

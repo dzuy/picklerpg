@@ -1,3 +1,4 @@
+import {activeAuthenticatedUser} from './account-archive';
 import type {IncomingMessage,ServerResponse} from 'node:http';
 import {memoryRateLimits} from './rate-limit';
 import {createClient} from '@supabase/supabase-js';
@@ -75,5 +76,5 @@ export function createAdminAnalyticsHandler(deps:Dependencies){
 export function configuredAdminAnalyticsHandler(env:NodeJS.ProcessEnv=process.env){
  const url=env.SUPABASE_URL??env.VITE_SUPABASE_URL,key=env.SUPABASE_SERVICE_ROLE_KEY;
  const client=url&&key?createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}}):null;
- return createAdminAnalyticsHandler({authenticate:async token=>{if(!client)return null;const {data,error}=await client.auth.getUser(token);return error?null:data.user;},adminIds:new Set((env.ANALYTICS_ADMIN_IDS??'').split(',').map(x=>x.trim()).filter(Boolean)),key:env.POSTHOG_PERSONAL_API_KEY,project:env.POSTHOG_PROJECT_ID,host:env.POSTHOG_QUERY_HOST,coverageSince:env.ANALYTICS_COVERAGE_SINCE});
+ return createAdminAnalyticsHandler({authenticate:async token=>{if(!client)return null;return activeAuthenticatedUser(client,token);},adminIds:new Set((env.ANALYTICS_ADMIN_IDS??'').split(',').map(x=>x.trim()).filter(Boolean)),key:env.POSTHOG_PERSONAL_API_KEY,project:env.POSTHOG_PROJECT_ID,host:env.POSTHOG_QUERY_HOST,coverageSince:env.ANALYTICS_COVERAGE_SINCE});
 }

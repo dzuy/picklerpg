@@ -1,3 +1,4 @@
+export {configuredAdminUsersHandler} from './admin-users';
 export {configuredAdminAnalyticsHandler} from './admin-analytics';
 export {serverAnalytics} from './analytics';
 import {createServer} from 'node:http';

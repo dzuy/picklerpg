@@ -10,6 +10,8 @@ import {TeamDirectoryService} from '../server/multiplayer/team-directory';
 const human={email:'player@example.com',is_anonymous:false,app_metadata:{multiplayer_playtest:true},user_metadata:{}};
 const bot={...human,email:'player@community-bots.invalid',app_metadata:{multiplayer_playtest:true,community_bot:true},user_metadata:{open_play_team:[newPlayer('one'),newPlayer('two')]}};
 test('suggested opponents are real registered accounts or ready generated accounts',()=>{
+ assert.equal(canChallengeAccount({...human,app_metadata:{...human.app_metadata,account_archived_at:'2026-10-01'}}),false);
+ assert.equal(canChallengeAccount({...bot,app_metadata:{...bot.app_metadata,account_archived_at:'2026-10-01'}}),false);
  assert.equal(canChallengeAccount(human),true);assert.equal(canChallengeAccount(human,false),true);
  assert.equal(canChallengeAccount(bot),true);assert.equal(canChallengeAccount(bot,false),false);
  assert.equal(canChallengeAccount({...bot,user_metadata:{}}),false);

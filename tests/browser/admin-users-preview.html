@@ -1,0 +1,9 @@
+<!doctype html><html lang="en" data-admin-preview><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><body><p style="text-align:center;background:#fff0df;padding:12px;margin:0">LOCAL LAYOUT FIXTURE · SAMPLE ACCOUNTS · No real user data</p><div id="app"></div><script type="module">
+import {render,showAccount} from '/src/admin-users.ts';
+import {setAdminIdentity} from '/src/admin-navigation.ts';
+setAdminIdentity(document.querySelector('#app'),{is_anonymous:false,user_metadata:{username:'sample_owner'}});
+const base={createdAt:'2026-09-28T10:00:00Z',updatedAt:'2026-10-01T10:00:00Z',lastSignInAt:'2026-10-01T10:00:00Z',guest:false,emailConfirmed:true,bot:false,bannedUntil:null,deletionRequestedAt:null,archivedAt:null,owner:false};
+const users=[{...base,id:'11111111-1111-4111-8111-111111111111',username:'sample_owner',playerName:'Sample Owner',email:'owner@example.invalid',owner:true},{...base,id:'22222222-2222-4222-8222-222222222222',username:'sample_player',playerName:'Sample Player',email:'player@example.invalid',deletionRequestedAt:'2026-10-01T10:00:00Z'},{...base,id:'33333333-3333-4333-8333-333333333333',username:'',playerName:'Guest',email:'',guest:true,emailConfirmed:false,lastSignInAt:null}];
+render({users,page:1,total:3,nextPage:null});
+if(new URLSearchParams(location.search).has('detail'))showAccount({user:users[1],players:2,activeGames:1,completedGames:6});
+</script></body></html>

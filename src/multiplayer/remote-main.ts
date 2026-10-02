@@ -8,7 +8,7 @@ import {ownsPack} from '../pack-catalog';
 import {premiumForPlay} from '../premium';
 import {premiumAppearance} from '../premium-appearance';
 import {openPackUpgrade} from '../premium-dialog';
-import {isPremiumCourt} from '../locations';
+import {COURT_LOCATIONS,isPremiumCourt} from '../locations';
 import {Analytics,FeatureFlags} from '../analytics';
 import {RematchCountdown} from '../rematch-countdown';
 import {bindRematchLifecycle,rematchSection} from '../rematch-presentation';
@@ -58,6 +58,8 @@ import {invitationCard} from './invitation-card';
 import {TrashTalkControl} from './trash-talk-control';
 import {sounds,installSoundSetting} from '../sound';
 import {PlaybackSounds} from '../game-sounds';
+// Decorative preview includes every court and stays stable during lobby redraws.
+const emptyGamesCourt=COURT_LOCATIONS[Math.floor(Math.random()*COURT_LOCATIONS.length)];
 const playbackSounds=new PlaybackSounds();
 import {sendInvitationDraft} from './send-invitation';
 import {mountTurnPrompt,showTurnPromptAfterInvite,disableDevicePush} from '../pwa';
@@ -507,17 +509,18 @@ function gamesLoadState(state:'loading'|'ready'|'error'){
  el('remote-games-retry').hidden=state!=='error';
 }
 el('remote-games-retry').onclick=()=>void lobby().catch(e=>status(e.message));
-async function lobby(){gamesLoadState('loading');try{el('remote-start-setup').onclick=()=>challengeTeam();existingPlayer.onclick=()=>{if(anonymousAccount){accountRequired(()=>teamLobby?.selectTab('friends'));return;}teamLobby?.selectTab('friends');};selectedInvite=null;el('remote-invite').hidden=true;leaveCourt();
+async function lobby(){gamesLoadState('loading');let directoryStarted=false;try{el('remote-start-setup').onclick=()=>challengeTeam();existingPlayer.onclick=()=>{if(anonymousAccount){accountRequired(()=>teamLobby?.selectTab('friends'));return;}teamLobby?.selectTab('friends');};selectedInvite=null;el('remote-invite').hidden=true;leaveCourt();
  (el('remote-solo') as HTMLAnchorElement).href='/?home=1';
  clearTarget();session?.dispose();session=null;animation=[];display=null;shot=null;el('remote-setup').hidden=true;el('remote-game').hidden=true;el('remote-lobby').hidden=false;
  const url=new URL(location.href);url.searchParams.delete('match');url.searchParams.delete('invite');history.replaceState(null,'',url);
- const c=await matchCredentials();account=c.owner;teamDirectoryState='loading';renderGames();renderTeamLobby();config=await remoteRequest<RemoteConfig>(c.token,'/api/multiplayer/config');
+ const c=await matchCredentials();account=c.owner;teamDirectoryState='loading';renderGames();renderTeamLobby();
+ const directoryRefresh=refreshTeamDirectory();directoryStarted=true;
+ config=await remoteRequest<RemoteConfig>(c.token,'/api/multiplayer/config');
  el('remote-login').hidden=true;
  const select=el('remote-opponent') as HTMLSelectElement;select.replaceChildren();for(const tester of config.testers){const option=document.createElement('option');option.value=tester.id;option.textContent=tester.name.replace('Tester ','Player ');select.append(option);}
  (el('remote-create') as HTMLButtonElement).disabled=!config.creationEnabled||!config.testers.length;(el('remote-start-setup') as HTMLButtonElement).disabled=false;
- await refreshLobbyCards();
- await refreshTeamDirectory();
- }catch(error){gamesLoadState('error');throw error;}
+ await Promise.all([refreshLobbyCards(),directoryRefresh]);
+ }catch(error){gamesLoadState('error');if(!directoryStarted){teamDirectoryState='error';renderTeamLobby();}throw error;}
 }
 async function refreshTeamDirectory(){
  teamDirectoryState='loading';renderTeamLobby();
@@ -607,7 +610,7 @@ function renderGames(){
  const localCount=renderOpenPlayGames(container,account||'local',gameFilter,renderGames,status);
  const visible=games.filter(g=>g.friendState!=='cancelled').filter(g=>gameFilter==='archived'?g.archived:!g.archived&&(gameFilter==='completed'?g.status==='completed':g.status==='active'&&(gameFilter!=='turn'||g.currentTeam===g.viewerTeam))).sort((a,b)=>Number(b.currentTeam===b.viewerTeam)-Number(a.currentTeam===a.viewerTeam));
  const hasVisibleInvitation=gameFilter==='active'?invitations.length>0:gameFilter==='turn'&&invitations.some(i=>i.recipientId===account&&i.status==='pending');
- if(el('remote-lobby').dataset.gamesState==='ready'&&!visible.length&&!localCount&&!hasVisibleInvitation){const empty=document.createElement('div');empty.className='remote-empty';const active=gameFilter==='active';empty.classList.toggle('remote-empty-game',active);if(active){const art=document.createElement('img');art.className='remote-empty-scene';art.src='/images/park-court.svg';art.alt='Pickleball court in a neighborhood park';empty.append(art);const eyebrow=document.createElement('span');eyebrow.className='remote-empty-eyebrow';eyebrow.textContent='YOUR GAMES';empty.append(eyebrow);}const title=document.createElement('h3');title.textContent=gameFilter==='archived'?'No archived games.':gameFilter==='turn'?'You’re all caught up.':gameFilter==='completed'?'The first finish is ahead.':'No active games yet';const copy=document.createElement('p');copy.textContent=gameFilter==='archived'?'Games you archive will appear here. You can restore them anytime.':gameFilter==='turn'?'Your opponents are up. Check back for your next shot.':gameFilter==='completed'?'Completed games will be waiting here.':'Create a game to get started. Your active games will appear here.';empty.append(title,copy);if(active){const create=document.createElement('button');create.type='button';create.className='remote-primary remote-empty-create';create.textContent='Create a New Game';create.onclick=()=>challengeTeam();if(new URLSearchParams(location.search).get('welcome')==='1'){const welcome=document.createElement('div');welcome.append(create);firstGameWelcome(create,welcome);empty.append(welcome);}else empty.append(create);}container.append(empty);}
+ if(el('remote-lobby').dataset.gamesState==='ready'&&!visible.length&&!localCount&&!hasVisibleInvitation){const empty=document.createElement('div');empty.className='remote-empty';const active=gameFilter==='active';empty.classList.toggle('remote-empty-game',active);if(active){const art=document.createElement('img');art.className='remote-empty-scene';art.src=emptyGamesCourt.image;art.alt=`${courtName(emptyGamesCourt.id)} pickleball court`;empty.append(art);}const title=document.createElement('h3');title.textContent=gameFilter==='archived'?'No archived games.':gameFilter==='turn'?'You’re all caught up.':gameFilter==='completed'?'The first finish is ahead.':'No active games yet';const copy=document.createElement('p');copy.textContent=gameFilter==='archived'?'Games you archive will appear here. You can restore them anytime.':gameFilter==='turn'?'Your opponents are up. Check back for your next shot.':gameFilter==='completed'?'Completed games will be waiting here.':'Create a game to get started. Your active games will appear here.';empty.append(title,copy);if(active){const create=document.createElement('button');create.type='button';create.className='remote-primary remote-empty-create';create.textContent='Create a New Game';create.onclick=()=>challengeTeam();if(new URLSearchParams(location.search).get('welcome')==='1'){const welcome=document.createElement('div');welcome.append(create);firstGameWelcome(create,welcome);empty.append(welcome);}else empty.append(create);}container.append(empty);}
  for(const game of visible){
   const card=document.createElement('button');card.className='remote-game-card has-player-faces';const yours=game.currentTeam===game.viewerTeam,done=game.status==='completed';card.dataset.state=done?'finished':yours?'ready':'waiting';card.classList.toggle('is-your-turn',!done&&yours&&!game.archived&&game.friendState!=='pending'&&game.friendState!=='cancelled');
   const badge=document.createElement('span');badge.className='remote-badge '+(done?'finished':yours?'ready':'waiting');badge.textContent=game.friendState==='pending'?`Waiting for ${game.invitedName}`:game.friendState==='cancelled'?'Challenge cancelled':done?(game.endedEarly?'Ended':'Finished'):yours?'Your turn':opponentName(game)?`${opponentName(game)}'s Turn`:'Their turn';
@@ -627,7 +630,7 @@ function renderGames(){
    title:'Leave this game?',message:'This ends the game for both players and moves it to your archive.',action:'Leave game',
    confirm:async()=>{const c=await matchCredentials();await remoteRequest(c.token,`/api/matches/${game.id}/leave`,{});await refreshLobbyCards();}
   });
-  const share=document.createElement('button');share.type='button';share.className='remote-quiet remote-share-action';share.textContent=game.status==='active'&&game.currentTeam!==game.viewerTeam?`Nudge ${opponentLabel(game)} →`:'Send link →';share.title=game.friendState==='pending'?`Send ${opponentLabel(game)} their invitation`:game.status==='active'&&game.currentTeam!==game.viewerTeam?`Remind ${opponentLabel(game)} it’s their turn`:`Send ${opponentLabel(game)} the game link`;share.setAttribute('aria-label',share.title);share.onclick=()=>{share.disabled=true;void shareMatch(game.id,game.friendState==='pending',{opponentName:opponentLabel(game),opponentTurn:game.status==='active'&&game.currentTeam!==game.viewerTeam}).catch(e=>status(e.message)).finally(()=>{share.disabled=false;});};
+  const share=document.createElement('button');share.type='button';share.className='remote-quiet remote-share-action';const nudge=game.status==='active'&&game.currentTeam!==game.viewerTeam;share.classList.toggle('remote-nudge-action',nudge);share.textContent=nudge?'Nudge →':'Send link →';share.title=game.friendState==='pending'?`Send ${opponentLabel(game)} their invitation`:game.status==='active'&&game.currentTeam!==game.viewerTeam?`Remind ${opponentLabel(game)} it’s their turn`:`Send ${opponentLabel(game)} the game link`;share.setAttribute('aria-label',share.title);share.onclick=()=>{share.disabled=true;void shareMatch(game.id,game.friendState==='pending',{opponentName:opponentLabel(game),opponentTurn:game.status==='active'&&game.currentTeam!==game.viewerTeam}).catch(e=>status(e.message)).finally(()=>{share.disabled=false;});};
   if(!done&&yours){share.textContent='Get Link';share.classList.add('remote-get-link');}
   footer.append(share);
   const archive=document.createElement('button');archive.className='remote-quiet remote-archive-action';archive.textContent=game.archived?'Restore game':'Archive game';archive.setAttribute('aria-label',`${game.archived?'Restore':'Archive'} game vs ${opponentLabel(game)}`);archive.title='Only changes your game list';archive.onclick=()=>{archive.disabled=true;void archiveGame(game.id,!game.archived).catch(e=>{status(e.message);archive.disabled=false})};entry.append(game.friendState==='pending'?pendingInviteCard(card,async()=>{const c=await matchCredentials();const challenge=await remoteRequest<{token:string}>(c.token,`/api/multiplayer/challenge-for-match/${game.id}`);return new URL(`/challenge/${challenge.token}`,publicOrigin()).href;},game.invitedName??'your friend',undefined,()=>shareMatch(game.id,true)):card,...(game.friendState==='pending'?[]:[footer]),archive);(game.friendState==='pending'?waiting:container).append(entry);

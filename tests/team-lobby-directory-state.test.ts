@@ -24,7 +24,7 @@ test('failed and loading directories do not claim there are no players; retry re
  lobby.draw();assert.match(lobby.element.text,/Community could not be loaded/);assert.doesNotMatch(lobby.element.text,/first game|The court is open/);lobby.element.find('Retry').onclick();assert.equal(retries,1);
  lobby.actions.directoryState='loading';lobby.draw();assert.match(lobby.element.text,/Loading players/);assert.doesNotMatch(lobby.element.text,/first game|The court is open|Retry/);
  lobby.actions.directoryState='ready';lobby.draw();assert.match(lobby.element.text,/The court is open/);assert.match(lobby.element.text,/first game/);assert.doesNotMatch(lobby.element.text,/could not be loaded/);
- assert.match(lobby.element.text,/Play/);assert.ok(lobby.element.find('My Games'));assert.ok(lobby.element.find('My Friends'));assert.ok(lobby.element.find('Community'));
+ assert.equal(lobby.element.children[0].children[0].children[0].attributes.get('alt'),'PickleBash');assert.ok(lobby.element.find('My Games'));assert.ok(lobby.element.find('My Friends'));assert.ok(lobby.element.find('Community'));
  assert.equal(lobby.actions.games.hidden,true);lobby.element.find('My Games').onclick();assert.equal(lobby.actions.games.hidden,false);assert.equal(lobby.element.find('My Games').attributes.get('aria-selected'),'true');assert.ok(lobby.element.find('Create a New Game'));
  lobby.element.find('My Friends').onclick();assert.equal(lobby.actions.games.hidden,true);assert.equal(lobby.element.find('My Friends').attributes.get('aria-selected'),'true');assert.ok(lobby.element.find('Build your court circle'));
  lobby.element.find('Community').onclick();assert.equal(lobby.actions.games.hidden,true);assert.equal(lobby.element.find('Community').attributes.get('aria-selected'),'true');

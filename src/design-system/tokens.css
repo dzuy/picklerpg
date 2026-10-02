@@ -53,6 +53,7 @@
   --pb-shadow-color: #123f5614;
   --pb-shadow-card: 0 8px 24px var(--pb-shadow-color);
   --pb-shadow-elevated: 0 12px 32px #123f561f;
+  --pb-shadow-floating: 0 0 20px color-mix(in srgb, var(--pb-text) 18%, transparent), 0 10px 30px color-mix(in srgb, var(--pb-text) 22%, transparent);
   --pb-radius-card: 20px;
   --pb-radius-button: var(--pb-radius-pill);
   --pb-radius-input: 14px;
@@ -92,4 +93,10 @@
   --pb-collectible-muted: #abe5ff;
   --pb-team-home: var(--pb-info-ink);
   --pb-team-away: var(--pb-social-ink);
+  /* Inverse feature panels retain light cards on a dark branded canvas. */
+  --pb-inverse-surface: #0875b6;
+  --pb-inverse-glow: #0099e0;
+  --pb-inverse-text: var(--pb-white);
+  --pb-inverse-muted: var(--pb-white);
+  --pb-inverse-border: color-mix(in srgb, var(--pb-white) 18%, transparent);
 }

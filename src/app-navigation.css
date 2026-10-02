@@ -1,12 +1,12 @@
-:is(body[data-screen=remote],#player-creator)>.lobby-bottom-nav{position:fixed;z-index:80;bottom:0;left:0;right:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:8px max(10px,env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left));border-top:1px solid var(--pb-border-accent);background:color-mix(in srgb, var(--pb-surface) 96%, transparent);backdrop-filter:blur(18px);box-shadow:var(--pb-shadow-card)}
+:is(body[data-screen=remote],#player-creator)>.lobby-bottom-nav{position:fixed;z-index:80;bottom:calc(14px + env(safe-area-inset-bottom));left:50%;translate:-50% 0;width:min(460px,calc(100% - 48px - env(safe-area-inset-left) - env(safe-area-inset-right)));display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px;padding:5px;border:1px solid var(--pb-border-accent);border-radius:999px;background:color-mix(in srgb,var(--pb-surface) 94%,transparent);backdrop-filter:blur(20px);box-shadow:var(--pb-shadow-floating)}
 body[data-screen=remote]:not(:has(#remote-lobby:not([hidden])))>.lobby-bottom-nav{display:none}
-:is(body[data-screen=remote],#player-creator)>.lobby-bottom-nav .lobby-nav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:62px;min-width:0;border:0;border-radius:var(--pb-radius-card);background:transparent;color:var(--pb-text-secondary);font-size:12px;font-weight:650;padding:6px 2px;text-decoration:none}
-:is(body[data-screen=remote],#player-creator)>.lobby-bottom-nav .lobby-nav-item svg{width:25px;height:25px}
-:is(body[data-screen=remote],#player-creator)>.lobby-bottom-nav .lobby-nav-item[aria-current=page]{color:var(--pb-info-ink);background:transparent;text-shadow:none;box-shadow:none}
+:is(body[data-screen=remote],#player-creator)>.lobby-bottom-nav .lobby-nav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:50px;min-width:0;border:0;border-radius:999px;background:transparent;color:var(--pb-text-secondary);font-size:11px;font-weight:650;padding:4px 2px;text-decoration:none}
+:is(body[data-screen=remote],#player-creator)>.lobby-bottom-nav .lobby-nav-item svg{width:20px;height:20px}
+:is(body[data-screen=remote],#player-creator)>.lobby-bottom-nav .lobby-nav-item[aria-current=page]{color:var(--pb-text-secondary);background:transparent;text-shadow:none;box-shadow:none}
 :is(body[data-screen=remote],#player-creator)>.lobby-bottom-nav .lobby-nav-item[aria-current=page] svg{filter:none;color:var(--pb-primary)}
 :is(body[data-screen=remote],#player-creator)>.lobby-bottom-nav .lobby-nav-item:focus-visible{outline:2px solid var(--pb-focus);outline-offset:-2px}
-@media(min-width:801px){:is(body[data-screen=remote],#player-creator)>.lobby-bottom-nav{padding-left:max(20px,calc((100vw - 800px)/2));padding-right:max(20px,calc((100vw - 800px)/2))}}
-@media(max-width:480px){:is(body[data-screen=remote],#player-creator)>.lobby-bottom-nav .lobby-nav-item{font-size:11px}}
+
+@media(max-width:480px){:is(body[data-screen=remote],#player-creator)>.lobby-bottom-nav .lobby-nav-item{font-size:10px}}
 
 .lobby-nav-item .nav-icon-filled{display:none}
 .lobby-nav-item>span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -17,3 +17,8 @@ body[data-screen=remote]:not(:has(#remote-lobby:not([hidden])))>.lobby-bottom-na
 .lobby-bottom-nav .lobby-nav-item .play-turn-badge{position:absolute;top:2px;left:calc(50% + 7px);display:flex;align-items:center;justify-content:center;min-width:18px;height:18px;box-sizing:border-box;padding:0 4px;border-radius:999px;background:#d92d3e;color:#fff;font-size:11px;line-height:1;font-weight:800;pointer-events:none;font-variant-numeric:tabular-nums;box-shadow:0 0 0 2px var(--pb-surface)}
 
 .lobby-nav-item#lobby-nav-games>span{white-space:normal;text-align:center;line-height:1.2;max-width:110px}
+
+.lobby-nav-item .nav-profile-avatar{width:24px;height:24px;border-radius:50%;object-fit:cover;background:var(--pb-tint-blue);box-shadow:0 0 0 1px var(--pb-border)}
+.lobby-nav-item:has(.nav-profile-avatar)>svg{display:none}
+.lobby-nav-item[aria-current=page] .nav-profile-avatar{box-shadow:0 0 0 2px var(--pb-primary)}
+@media(hover:hover) and (pointer:fine){:is(body[data-screen=remote],#player-creator)>.lobby-bottom-nav .lobby-nav-item:hover{background:transparent;color:var(--pb-text)}}

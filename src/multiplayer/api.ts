@@ -6,7 +6,9 @@ export async function remoteRequest<T>(token:string,path:string,body?:unknown):P
  const now=Date.now();for(const [k,until] of cooldowns)if(until<=now)cooldowns.delete(k);
  const remaining=(cooldowns.get(key)??0)-now;
  if(remaining>0)throw new RemoteError(429,'rate_limited','Too many requests. Please wait a moment.',Math.ceil(remaining/1000));
- const response=await fetch(apiUrl(path),{method:body===undefined?'GET':'POST',headers:{Authorization:`Bearer ${token}`,...(body===undefined?{}:{'Content-Type':'application/json'})},...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(15000),cache:'no-store'});
+ let response:Response;
+ try{response=await fetch(apiUrl(path),{method:body===undefined?'GET':'POST',headers:{Authorization:`Bearer ${token}`,...(body===undefined?{}:{'Content-Type':'application/json'})},...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(15000),cache:'no-store'});
+ }catch(error){if(error instanceof Error&&error.name==='TimeoutError')throw new RemoteError(504,'timeout','The connection is taking too long. Please try again.');throw error;}
  let retryAfter=0;
  if(response.status===429){const header=response.headers.get('Retry-After');const seconds=header&&/^\d+$/.test(header)?Number(header):header?Math.ceil((Date.parse(header)-Date.now())/1000):5;retryAfter=Number.isFinite(seconds)?Math.max(1,Math.min(300,seconds)):5;cooldowns.set(key,Date.now()+retryAfter*1000);}
  let value;try{value=await response.json()}catch{throw new RemoteError(503,'unavailable','Online games are temporarily unavailable. Please reload the page and try again.');}

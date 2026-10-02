@@ -8,7 +8,6 @@ import {Analytics} from './analytics';
 import {rosterTrashIcon,rosterEditIcon} from './roster-action-icons';
 import {focusView,showViewDialog} from './view-focus';
 import {accountSkillBudget} from './account-skill-budget';
-import {canAddToRoster} from './roster-account';
 import {allocateArea,allocateDetail,areaPoints,usedSkillPoints,normalizeSkillBudget,fitsSkillBudget,randomBudgetSkills,skillCap} from './skill-budget';
 import {saveCommunitySkills} from './community-players';
 import {randomPlayerName,randomPlayerCatchphrase} from './player-identity-randomizer';
@@ -16,7 +15,7 @@ import {openGameSurface} from './game-surface';
 import {appNavigation,type NavigationPage} from './app-navigation';
 import {teamDisplayName} from './team-name';
 import {defaultLineup} from './multiplayer/default-lineup';
-import {ownedRosterPlayers,setOwnedPlayerAdded,starterIds,saveStarterIds} from './roster-membership';
+import {ownedRosterPlayers,starterIds,saveStarterIds} from './roster-membership';
 import {ARCHETYPES} from './engine/player-profiles';
 import {attachPlayerDetails} from './player-details';
 import {CommunitySection} from './community-section';
@@ -72,7 +71,7 @@ export class PlayerCreator {
   const active=this.library.players.find(p=>p.id===this.library.activeId);
   if(active)this.draft=structuredClone(active);this.baseline=JSON.stringify(this.draft);
   this.dialog.id='player-creator';this.dialog.setAttribute('aria-labelledby','creator-title');
-  this.dialog.innerHTML=`<section class="player-roster-page" aria-labelledby="roster-title"><div class="roster-top"><div class="roster-title-row"><h1 id="roster-title">Team Roster</h1><button type="button" class="roster-team-edit" data-edit-team aria-label="Edit team name" title="Edit team name"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 3 5 5M4 15 16 3a2.1 2.1 0 0 1 5 5L9 20l-6 1 1-6Z"/></svg></button></div></div><form class="roster-team-form" data-team-form hidden><label for="roster-team-name">Team name</label><p>Leave blank to use your account player name.</p><input id="roster-team-name" type="text" maxlength="48" autocomplete="off"><div><button type="submit">Save team name</button><button type="button" data-cancel-team>Cancel</button></div><p data-team-status role="status"></p></form><div class="roster-actions"><button type="button" data-create-player>+ Create new player</button></div><p data-roster-status role="status"></p><section data-saved-section id="roster-player-results"><div data-saved-roster class="roster-grid"></div></section><div data-community-section></div><nav class="roster-pagination" data-roster-pagination aria-label="Available players pages" hidden><button type="button" data-roster-prev aria-label="Previous page">‹</button><span data-roster-page-label role="status"></span><button type="button" data-roster-next aria-label="Next page">›</button></nav></section><div class="creator-topline"><button type="button" data-back-roster>← Roster</button></div>
+  this.dialog.innerHTML=`<section class="player-roster-page" aria-labelledby="roster-title"><div class="roster-top"><div class="roster-title-row"><h1 id="roster-title">Team Roster</h1><button type="button" class="roster-team-edit" data-edit-team aria-label="Edit team name" title="Edit team name"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 3 5 5M4 15 16 3a2.1 2.1 0 0 1 5 5L9 20l-6 1 1-6Z"/></svg></button></div></div><form class="roster-team-form" data-team-form hidden><label for="roster-team-name">Team name</label><p>Leave blank to use your account player name.</p><input id="roster-team-name" type="text" maxlength="48" autocomplete="off"><div><button type="submit">Save team name</button><button type="button" data-cancel-team>Cancel</button></div><p data-team-status role="status"></p></form><div class="roster-actions"><button type="button" data-create-player>+ Create new player</button></div><p data-roster-status role="status"></p><section data-saved-section id="roster-player-results" aria-labelledby="your-team-title"><h2 id="your-team-title">Your Team</h2><div data-saved-roster class="roster-grid"></div></section><div data-community-section></div><nav class="roster-pagination" data-roster-pagination aria-label="Available players pages" hidden><button type="button" data-roster-prev aria-label="Previous page">‹</button><span data-roster-page-label role="status"></span><button type="button" data-roster-next aria-label="Next page">›</button></nav></section><div class="creator-topline"><button type="button" data-back-roster>← Roster</button></div>
   <div class="creator-layout"><section class="creator-stage" aria-label="Avatar preview"><div class="creator-heading"><h2 id="creator-title">Create Your Player</h2></div>
 
   <div class="creator-identity"><div class="creator-identity-field"><label for="creator-name">PLAYER NAME</label><div class="creator-identity-input"><input id="creator-name" type="text" inputmode="text" enterkeyhint="done" autocapitalize="words" maxlength="24" autocomplete="off" placeholder="Name your player"><button type="button" data-randomize-name aria-label="Shuffle player name" title="Shuffle player name">⤨</button></div></div>
@@ -315,21 +314,17 @@ export class PlayerCreator {
    let portrait='';try{this.rosterThumbnails??=new AvatarThumbnails(384);portrait=this.rosterThumbnails.get(premiumAppearance(player.appearance,this.canWearPremium),'roster',player.handedness)}catch{}
    fillPlayerCard(article,player,role,portrait);
    article.querySelector('.roster-card-identity')!.append(playerRecord(player.id,history));
-   const added=ownedRosterPlayers([player]).length>0;
-   const change=async()=>{if(!added&&!await canAddToRoster())return false;await setOwnedPlayerAdded(player.id,!added);this.showRoster();};
    const requestDelete=()=>{
     const confirm=()=>{if(this.draft.id!==player.id)this.loadDraft(player);this.showEditor();this.el('[data-delete]').click();};
     if(this.draft.id===player.id)confirm();else this.switchDraft(confirm);
    };
-   attachPlayerDetails(article,player,role,portrait,edit,{label:added?'Remove from roster':'Add to Roster',primary:!added,change},this.loadError?undefined:requestDelete);
+   attachPlayerDetails(article,player,role,portrait,edit,undefined,this.loadError?undefined:requestDelete);
    const actions=document.createElement('div');actions.className='roster-card-actions owned-player-actions';
-   if(added){
-    const removeButton=document.createElement('button');removeButton.type='button';removeButton.className='roster-remove';removeButton.innerHTML=rosterTrashIcon;removeButton.title='Remove from roster';removeButton.setAttribute('aria-label',`Remove ${player.name} from roster`);
-    removeButton.onclick=()=>{if(removeButton.disabled)return;removeButton.disabled=true;void change().catch(error=>{this.el('[data-roster-status]').textContent=(error as Error).message;}).finally(()=>{removeButton.disabled=false;});};
-    actions.append(removeButton);
+   if(!this.loadError){
+    const deleteButton=document.createElement('button');deleteButton.type='button';deleteButton.className='roster-remove';deleteButton.innerHTML=rosterTrashIcon;deleteButton.title='Delete player';deleteButton.setAttribute('aria-label',`Delete player: ${player.name}`);
+    deleteButton.onclick=requestDelete;actions.append(deleteButton);
    }
    const editButton=document.createElement('button');editButton.type='button';editButton.className='roster-play roster-edit';editButton.innerHTML=rosterEditIcon;editButton.title='Edit player';editButton.setAttribute('aria-label',`Edit Player: ${player.name}`);editButton.onclick=edit;actions.append(editButton);article.append(actions);
-   if(!added){const button=document.createElement('button');button.type='button';button.className='roster-play';button.textContent='Add to roster';button.onclick=()=>{button.disabled=true;void change().catch(error=>{this.el('[data-roster-status]').textContent=(error as Error).message;}).finally(()=>{button.disabled=false;});};actions.append(button);article.append(actions);}
    return article;
   };
   for(const player of ownedRosterPlayers(this.library.players))saved.append(card(player,`By ${this.creatorName}`));
@@ -358,10 +353,9 @@ export class PlayerCreator {
    };
    card.querySelector('.roster-card-actions')?.append(star);
   });
-  this.dialog.querySelector('[data-owned-outside-roster]')?.remove();
-  const outside=this.library.players.filter(player=>!ownedRosterPlayers([player]).length);
-  if(outside.length){const section=document.createElement('section');section.dataset.ownedOutsideRoster='';section.className='community-section';const heading=document.createElement('h2');heading.textContent='Your saved players';const copy=document.createElement('p');copy.textContent='These characters are saved, but not in your roster. Add them back anytime.';const grid=document.createElement('div');grid.className='roster-grid';grid.append(...outside.map(player=>card(player,`By ${this.creatorName}`)));section.append(heading,copy,grid);this.el('[data-community-section]').before(section);}
-
+  // Reorder the existing cards after attaching controls so each star stays with its player.
+  const rosterCards=Array.from(saved.children);
+  saved.replaceChildren(...rosterCards.filter((_,index)=>starters.includes(roster[index].id)),...rosterCards.filter((_,index)=>!starters.includes(roster[index].id)));
   this.paginateRoster();
   focusView(this.dialog);
  }

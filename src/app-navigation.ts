@@ -3,9 +3,41 @@ import './app-navigation.css';
 import {authClient} from './auth-session';
 import {profileAccess} from './profile-access';
 import type {User} from '@supabase/supabase-js';
+import {profileAvatar} from './multiplayer/team-directory';
+import type {Appearance} from './player-design';
+import type {AvatarThumbnails} from './avatar-preview';
+let navigationPortraits:Promise<AvatarThumbnails>|undefined;
+const pendingAvatars=new Map<string,Promise<Appearance>>();
+function userAvatar(user:User):Promise<Appearance>{
+ const existing=pendingAvatars.get(user.id);if(existing)return existing;
+ const fallback=profileAvatar(user.id,user.user_metadata.profile_avatar);
+ const client=authClient();
+ if(!client)return Promise.resolve(fallback);
+ const pending=(async()=>{
+  const {data,error}=await client.from('players').select('appearance').eq('owner_id',user.id).order('is_active',{ascending:false}).order('created_at').limit(1);
+  return error?fallback:profileAvatar(user.id,data?.[0]?.appearance??user.user_metadata.profile_avatar);
+ })().catch(()=>fallback);
+ pendingAvatars.set(user.id,pending);
+ void pending.finally(()=>{if(pendingAvatars.get(user.id)===pending)pendingAvatars.delete(user.id);});
+ return pending;
+}
+async function updateProfileAvatar(item:HTMLElement,user:User,revision:string){
+ try{
+  navigationPortraits??=Promise.all([import('./avatar-preview'),import('./athlete')]).then(async([module,athlete])=>{await athlete.preloadAthletes();return new module.AvatarThumbnails(96);}).catch(error=>{navigationPortraits=undefined;throw error;});
+  const [portraits,appearance]=await Promise.all([navigationPortraits,userAvatar(user)]);
+  if(item.dataset.profileUser!==user.id||item.dataset.profileRevision!==revision)return;
+  const image=document.createElement('img');image.className='nav-profile-avatar';image.alt='';image.width=30;image.height=30;image.src=portraits.get(appearance,'face');
+  item.querySelector('.nav-profile-avatar')?.remove();item.prepend(image);
+ }catch{/* Keep the profile icon if the portrait cannot be loaded. */}
+}
 let watchingNavigationAuth=false;
 function updateProfileLabel(item:HTMLElement,user:User|null){
  const signedIn=!!user&&!user.is_anonymous;
+ item.dataset.profileUser=signedIn?user.id:'';
+ const revision=String(Number(item.dataset.profileRevision??0)+1);item.dataset.profileRevision=revision;
+ item.querySelector('.nav-profile-avatar')?.remove();
+ // Defer database reads until the auth callback releases its session lock.
+ if(signedIn)setTimeout(()=>{if(item.dataset.profileUser===user.id)void updateProfileAvatar(item,user,revision);},0);
  const username=signedIn&&typeof user.user_metadata.username==='string'?user.user_metadata.username.trim():'';
  const label=signedIn?'Profile':'Sign In';
  item.querySelector('span')!.textContent=username||label;

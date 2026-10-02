@@ -1,176 +1,74 @@
-# PickleBash V1 launch checklist
+# PickleBash backlog
 
-This is the canonical checklist for building, validating, and finalizing the PickleBash V1 launch. When deciding what to build next, use this list as the source of truth.
+Canonical priorities, acceptance work and deferred ideas. Groomed October 2, 2026 against source `381eddc` and the [release record](TESTFLIGHT.md). An item is complete only at its stated verification level; implementation and device acceptance are separate statuses. This document authorizes no deployment or release action.
 
-Check an item only after it has been implemented and verified at the level implied by the item. Features that already exist still remain unchecked until their V1 behavior has been explicitly confirmed.
+## Product and release context
 
-## Product direction
+**A casual multiplayer pickleball strategy game with friends.** The core loop is invite → play → return for your turn → finish → rematch. Keep first play easy, social and fun.
 
-**Social-first asynchronous pickleball with friends.** The core loop is invite → play a short strategic match → return when it is your turn → finish → play again. Prioritize making that loop easy, enjoyable, and worth returning to.
+Core gameplay is free. V1 uses one-time **Style, Court and Fun Packs at US$2.99 each**, or **Everything at US$6.99** for those three packs. Fun is displayed as Party in Apple's listing; the product identity is unchanged. Localized Apple pricing applies. There is no V1 subscription or paid competitive advantage; see [Premium policy](PREMIUM.md).
 
-Owner direction, October 1, 2026: iOS is the primary product with pack sales; web is a lower-priority demo without pack sales. This is planning context. The platform/sales split has not been implemented or deployed by the guest signup prompt work.
+**iOS remains the primary product; web is lower priority.** The owner's October 2 request to make Stripe payments work on web supersedes the earlier demo-without-sales direction as a future backlog goal. Existing browser checkout and shared pack entitlement code need verification and any necessary fixes; this request does not enable payments now. A historical disabled-checkout snapshot is not proof of current production configuration.
 
-Local iOS signup follow-up: after three completed points in solo or friends play, offer guests the existing username/email/password account modal with save-progress copy and **Not now**. Wait for point playback/celebrations, defer to other dialogs, and offer once per guest identity. Reuse the identity-preserving guest upgrade. Native/device validation and inclusion in the next TestFlight batch remain pending; build 13 does not contain this follow-up. Other reported UI polish and theme-music removal remain separate backlog work.
+**PickleBash 1.0 is Waiting for Review**, confirmed by the owner and Apple's October 2 email. Local evidence shows build 18, source `9dc2130`, selected in the validated draft with four purchases. The exact final submitted build remains unconfirmed. Preserve the submission; these open items are next-build work and acceptance gaps, not a declaration that V1 remains unsubmitted.
 
-The ordered implementation and acceptance plan for persistent rivalries, authoritative shot-selection analytics, evidence-qualified strategy stories, sharing, and co-presence is [Rivalry and strategy stories](RIVALRY-STRATEGY-PLAN.md). Follow its reviewed implementation sequence (the phase numbers identify work packages); this launch checklist remains the source of truth for overall V1 readiness.
+At the October 2 reconciliation, the checkout was clean at `381eddc`, which adds release records after build 18's source. Future implementation should use a separate branch/worktree from that reviewed base, after checking for intervening changes. Remote build/phone-preview infrastructure is **deferred by the owner**; do not restart the paused preview branch or provision resources as backlog work.
 
-## Core social loop
+## Prioritized next-build fixes
 
-- [ ] Invite a friend in a few taps.
-- [ ] Recipient gets into the match quickly.
-- [ ] First turn is obvious.
-- [ ] Waiting state is obvious.
-- [ ] Turn notification arrives reliably.
-- [ ] Notification opens the exact game.
-- [ ] Match resumes correctly after leaving.
-- [ ] Match ends cleanly.
-- [ ] Rematch is one obvious tap.
-- [ ] Rivalry record updates immediately.
+| Order | Outcome | Acceptance criteria |
+| --- | --- | --- |
+| 1 | **Theme undo restores the original player customizations.** Setup preserves saved designs, but current Undo restores the previous theme, which can leave players themed after multiple changes. | In solo and friends setup, apply two different themes and Undo: restore the starting player appearance, including custom clothing, hair, accessories and paddle. Saved roster designs and the other account's players remain unchanged. Check existing themed players and manual overrides. Keep court atmosphere selection independent from player-look undo. |
+| 2 | **Player cards work on short phone screens.** Current full-width art, scrolling Close and five-row caption need a mobile pass. | On a small portrait iPhone with safe areas, the card and actions fit an intentional layout; Close is readily reachable without hunting through the image. Caption does not dominate the screen. Share/Download/Copy Link remain accessible with a long name/caption. Failed generation and failed publishing clearly differ; publishing retry reuses the generated card, reports progress and enables sharing only after success. Check focus, scrolling and dismissal. |
 
-## Games lobby
+Do not rebuild already implemented features merely because acceptance is open. Address confirmed failures from the following checks with narrowly scoped follow-ups.
 
-- [x] **Your Turn** games are visually prioritized.
-- [x] **Waiting** games are clearly different.
-- [x] Opponent name/avatar is prominent.
-- [x] Current score is visible.
-- [x] One tap opens a game.
-- [x] Multiple simultaneous games are easy to scan.
-- ~~Recently completed games are accessible.~~ **Removed from V1 scope.**
-- [x] Start New Game is obvious.
-- [x] No unnecessary traditional-game menu clutter.
+## Implemented features requiring acceptance
 
-## Navigation improvements
+These are integration, device or product-quality checks. The detailed specialist documents own their full procedures; record results there and update this list rather than copying checklists between documents.
 
-- [x] **Remove the Home icon from the main navigation** (added and verified locally September 29, 2026).
-- [x] **Combine Play and Friends into one screen called “Play”** (added and verified locally September 29, 2026). My Games, My Friends, and Community share the existing top tab system with fixed tab positions and an animated pink highlight. The title was simplified from Play With Friends to Play on September 29; reduced-motion preferences skip the animation. My Games retains the games list; Create a New Game remains in the top-right corner. One main navigation entry replaces the separate Play and Friends entries; existing Friends/Community links still open the matching tab.
-- [x] **Add Store to the main navigation and remove it from Profile** (added September 29, 2026). Store sits immediately left of Profile and displays its contents on a full page without a modal close button. The Profile shortcut has been removed; verified locally.
+| Area and implementation baseline | Remaining acceptance / outcome |
+| --- | --- |
+| **Solo completion polish — build 15.** Compact final score and rematch presentation; duplicate names, analysis and New Game hidden in solo completion. | Finish a native solo game; final rally/celebration completes before the result; score and next action are clear. Rematch works, countdown cancellation/backgrounding behaves, and exit returns to the right screen. |
+| **Gameplay theme music removed — build 15; purchase promise corrected in 17.** Solo/friends no longer instantiate theme music or expose its setting. Development-lab playback/assets remain. | On iPhone, each theme stays music-free during play, rematch and resume, including with the old music preference enabled. Paddle/ball effects retain their independent sound control. Do not treat development assets as an outstanding gameplay feature. |
+| **Early guest signup — build 15.** iOS-only offer after three completed solo/friends points, once per guest identity, at a safe pause; Not now preserves play. | Check fresh solo and friends guests, modal/celebration deferral, dismissal and relaunch. No repeated nagging or mid-shot prompt. Successful registration retains the guest identity, players, progress and current game; existing-account sign-in remains clear. See `tests/guest-progress-prompt.test.ts`. |
+| **Invite, turn, resume and rematch loop.** Existing lobby, invitation acceptance, checkpoints, turn controls and rematch coordination. | Two physical devices complete a match and rematch. Check first serve/shot clarity, waiting state, hours-apart return, close/reopen, interrupted network, retries/stale clients and authentication recovery. No duplicate turns/rematches or reopened completed game. Do not rebuild the lobby or turn system without a demonstrated failure. |
+| **Native notifications and badges.** APNs integration, contextual opt-in, invitation/turn routing, authoritative badges and browser fallback exist; earlier development-device delivery was user-confirmed. | Validate the current TestFlight build while foregrounded, backgrounded and terminated: correct recipient/game, no duplicate alerts, appropriate activity/mute suppression, badge clearing, permission denial/retry and account/device switching. Follow [native push checks](NATIVE_PUSH.md); prior development success is not current TestFlight acceptance. |
+| **Rivalry history and strategic summaries.** Normalized records, viewer-relative results/streaks, rematch UI, authoritative shot summaries and evidence-qualified story code exist. | Verify current hosted migration/backfill/deployment state before labelling anything absent. Two devices see reversed but consistent records, early exits do not count, history survives rematches and older results stay anchored. Story acceptance needs genuine qualifying history and privacy/failure-isolation checks. See [rivalry data](RIVALRY-DATA.md), [story evidence](RIVALRY-STORIES.md) and [ordered plan](RIVALRY-STRATEGY-PLAN.md). |
+| **Analytics and flags.** Typed client/server events, committed fact export, privacy controls and PostHog dashboards/flags are implemented. | Validate the invite → match → rematch funnel against genuine domain facts, including guest registration, retries, account switches and offline/provider failure. Use existing `turn_completed` semantics rather than adding the old checklist's `turn_taken` alias. Verify ownership, actor grain, deduplication and friend-pair return milestones; distinguish match starts from completed rivalry counts. Follow [analytics](ANALYTICS.md), [architecture](ANALYTICS-ARCHITECTURE.md) and [flag workflow](FEATURE-FLAGS.md); no instrumentation or definition change is authorized here. |
+| **Pack purchases, ownership and account safety.** Store/Restore, receipt-conflict preflight (18), deletion requests, reporting and blocking are implemented. Build 18 passed 879 tests and distribution checks. | Physical receipt-conflict checks and clean-receipt purchase/restore remain open; prior Apple refund/revocation/saved-choice fallback tests remain deferred, not waived. Validate native deletion/report/block controls without deleting real accounts as a test shortcut. Follow [release gaps](TESTFLIGHT.md), [purchase testing](PURCHASE-TESTING.md) and [account safety](ACCOUNT-SAFETY.md). Metadata validation alone is not full public-billing acceptance. |
+| **Guest-first identity and gameplay quality.** Display names, customizable avatars, cloud roster/guest upgrade, XP/skill budgets and the existing simulation are implemented. | New players get into play before account/customization friction; identity survives return and registration. Player tests confirm understandable serve/shot choices, varied meaningful decisions, believable outcomes and no obvious dominant strategy. Preserve current balance and progression while evaluating; see [XP progression](XP_PROGRESSION.md). |
 
-## Turn experience
+## Later product ideas and decisions
 
-- [x] Player instantly knows which team they control.
-- [x] Player instantly knows whose turn it is.
-- [x] Available shot choices are obvious.
-- [x] Target selection is obvious.
-- [x] Submitted shot has clear feedback.
-- [x] Opponent's previous shot is understandable when returning later.
-- [x] Transition from opponent action → your decision feels natural.
-- [x] No accidental double-submit.
-- [x] Refreshing never changes the result.
+These preserve requested intent without adding scope to the next build.
 
-## Async pacing
+| Item | Decision or evaluation before implementation |
+| --- | --- |
+| **Google authentication / sign-in.** Requested October 2. | Design Google sign-in and account linking so guest players, progress and active games survive registration, and existing accounts do not duplicate or merge silently. Verify applicable iOS sign-in requirements during design; do not assume Sign in with Apple already exists. Define sign-in, linking, cancellation and recovery acceptance before implementation or OAuth setup. |
+| **Drills section.** Requested October 2; scope to define. | Decide where Drills appears, what players do and how a drill finishes or gives feedback before scheduling implementation. Prior solo strategy minigame / Decision Quiz ideas—game situations, choices and consequence feedback, potentially generated situations—are context to evaluate, not locked requirements. |
+| **Android build.** Requested October 2; future platform work. | Define supported devices, native integration requirements, testing and distribution before scheduling the build. Verify game, sign-in, notifications and pack-access behavior on Android; decide its purchase/distribution approach rather than assuming it matches iOS. No Android build or store submission is authorized by this backlog entry. |
+| **Make Stripe payments work for web.** Requested October 2; supersedes the earlier no-web-sales goal. | Inspect existing checkout, provider readiness, webhook handling and shared entitlements before deciding what needs fixing. Verify sandbox checkout success/cancellation/failure, verified ownership across web and iOS, duplicate-purchase protection, refund/revocation and account isolation without disturbing Apple purchases. Confirm pricing, tax, legal and rollout configuration before seeking separate authorization to enable live payments; no credentials or payment switches change as part of backlog grooming. |
+| **Shorter-match pacing.** Compare first-to-11, first-to-7 and first-to-5. | Measure turn, rally and match length; test satisfying one-shot turns, same-session play and hours-apart replies. Select a default only after player evidence. Changing target/scoring must preserve match/rematch consistency. |
+| **Pirate theme for the Fun Pack.** Requested September 29. | Define the theme's appearance/court additions and acceptance before scheduling it. Preserve the existing one-time pack model; no new price or bundle promise is implied. |
+| **Player-specific backhand strengths/weaknesses.** Requested September 20. | Extend beyond the low-contact penalty while respecting handedness, position, height and shot type. Equivalent strong/weak-backhand trials show a tactical advantage without guaranteed failure. Keep defender ratings out of the shot selector's Pressure indicator. |
+| **Profile “Your Game” / shot-mix insights.** Existing aggregate/UI code; profile entry currently hidden. | Decide player value, placement, visibility/access policy and understandable sample/denominator copy before restoring the entry. No subscription or new stats monetization is assumed. Preserve private scopes and incomplete-history disclosure; see [shot mix](SHOT-MIX.md). |
+| **More strategy stories, sharing and co-presence.** Initial history/summary/story foundations already exist. | Follow the later packages in [the rivalry plan](RIVALRY-STRATEGY-PLAN.md); qualify evidence, privacy and player value before expanding story families, sequences or sharing. Current first-story acceptance stays in the section above. |
+| **China mainland and Vietnam expansion.** Required future markets; no target date. | Obtain the applicable approvals/publishing support, localization/data review, aligned app/IAP availability and regional tests before distribution. Temporary launch exclusions do not abandon either market; see [market follow-up](TESTFLIGHT.md#required-future-markets-china-mainland-and-vietnam). |
 
-Test explicitly:
+## Completed and archived items
 
-- [ ] How long does one turn feel?
-- [ ] How many turns does an average rally take?
-- [ ] How many turns does an average match take?
-- [ ] How long does a real async match take to finish?
-- [ ] Does first-to-11 feel too long?
-- [ ] Test first-to-7.
-- [ ] Test first-to-5.
-- [ ] Does one-shot-per-turn remain satisfying?
-- [ ] Does a match still feel good when players reply hours apart?
-- [ ] Does it feel fast when both players happen to be online?
+- **Lobby/navigation and turn presentation:** Your Turn/Waiting priority, opponent avatars/scores, direct game access, Start New Game, combined Play/Friends/Community navigation, Store outside Profile, target/shot feedback and return playback were previously checked locally. Keep device reliability acceptance above; no duplicate UI implementation tasks remain.
+- **Released implementation:** early signup, solo completion polish, gameplay music removal and native audio/form/invitation fixes are included in builds 15–18. Their open acceptance is listed above, not as missing code. Apple submission is completed and awaiting review; approval/public availability is not claimed.
+- **Recently completed lobby browsing** remains excluded from V1. Existing history/rivalry results do not reopen this removed scope.
+- **Career/Arcade modes, tournament ladders, stamina/fatigue, scouting and additional progression systems** remain archived ideas. Existing XP, skill budgets and player growth are real features, not absent RPG work. Voice expansion, real-time multiplayer and deeper simulation are deferred unless reprioritized.
+- **Subscription-era assumptions** are archived; the current pack policy governs. Historical drafts are preserved for context, not current product promises.
+- **Web demo without sales** was the October 1 direction. The October 2 Stripe request supersedes it as a future goal; it is no longer a next-build requirement to remove browser checkout. This does not claim web payments are currently enabled or verified.
 
-## Match completion
+## Evidence and maintenance
 
-Implementation available in the [local rivalry playtest](RIVALRY-PLAYTEST.md). These acceptance checks remain open until player testing and hosted rollout.
+- [Release records](TESTFLIGHT.md) identify source/build, validation, dated deployment evidence and device gaps. Confirm the final submitted binary before attaching next-build comparisons to it.
+- [Backlog history](BACKLOG-HISTORY.md#october-1-v1-checklist-snapshot--superseded-october-2-2026) preserves the superseded V1 checklist and older roadmap; unchecked historical boxes do not establish present blockers.
+- [Multiplayer architecture](../TURN_BASED_MULTIPLAYER_PLAN.md), [remote rollout notes](PHASE-3-REMOTE.md) and [browser push notes](PWA-TURN-NOTIFICATIONS.md) provide historical implementation context; current evidence takes precedence over dated pending-release statements.
 
-- [ ] Winner/result is unmistakable.
-- [ ] Final score is prominent.
-- [ ] Head-to-head series is shown.
-- [ ] Current streak is shown.
-- [ ] Total matches together is shown.
-- [ ] **REMATCH** is the primary CTA.
-- [ ] Rematch preserves the relationship/history.
-- [ ] Starting Match #2 requires almost no setup.
-
-## Identity
-
-- [ ] Player has a display name.
-- [ ] Player has recognizable avatar/character.
-- [ ] Opponent always feels like a real person.
-- [ ] Identity carries across games.
-- [ ] Customization does not block getting into the first match.
-
-## Notifications
-
-- [ ] Only notify when action is required.
-- [ ] Never notify repeatedly for the same turn.
-- [ ] Suppress push when player is already active.
-- [ ] Notification names the opponent.
-- [ ] Notification deep-links correctly.
-- [ ] Push works after app/browser is closed.
-- [ ] Denied/disabled notification state has understandable UX.
-
-## Onboarding
-
-- [ ] New user understands how to serve.
-- [ ] New user understands shot selection.
-- [ ] New user understands that turns are asynchronous.
-- [ ] New user understands they can leave and come back.
-- [ ] Account/profile friction comes after first useful interaction.
-- [ ] No lengthy tutorial before playing a friend.
-
-## Strategic/gameplay quality
-
-- [ ] Outcomes feel like believable pickleball.
-- [ ] Shot choices create meaningful decisions.
-- [ ] No obvious dominant choice.
-- [ ] Different rallies feel meaningfully different.
-- [ ] Randomness adds uncertainty without feeling arbitrary.
-- [ ] Equal multiplayer attributes keep matches fair.
-- [ ] UI never makes the game feel like training/homework.
-
-## Reliability
-
-- [ ] Two devices can play through a complete match.
-- [ ] Closing/reopening never loses state.
-- [ ] Network failure does not duplicate a turn.
-- [ ] Stale clients recover cleanly.
-- [ ] Completed games cannot accidentally reopen.
-- [ ] Rematches do not create duplicate matches.
-- [ ] Authentication recovery does not lose active games.
-
-## Analytics — minimum
-
-Instrument:
-
-- [ ] `invite_sent`
-- [ ] `invite_accepted`
-- [ ] `match_started`
-- [ ] `turn_taken`
-- [ ] `match_completed`
-- [ ] `rematch_started`
-
-Track friend pairs reaching:
-
-- [ ] Match #2 started.
-- [ ] Match #3 completed.
-- [ ] 10 completed.
-- [ ] 25 completed.
-- [ ] 100 completed.
-
-## Scope guardrails
-
-Career Mode, Arcade Mode, RPG progression, tournament ladders, skill unlocks, stamina/fatigue, scouting, and long-term character development are archived ideas, not V1 launch requirements. Voice improvements, real-time multiplayer, and deeper physical simulation are also outside the V1 launch scope unless explicitly reprioritized.
-
-## Future gameplay improvements
-
-- [ ] **Player-specific backhand strengths and weaknesses** (added September 20, 2026). Extend the current low-backhand penalty so forehand/backhand contact and each defender’s ability meaningfully affect return execution at normal heights too. Respect handedness, positioning, contact height, and shot type; targeting a weak backhand should provide a tactical advantage without guaranteeing failure. Validate strong versus weak backhands in equivalent situations. Keep defender skill ratings out of the shot selector’s Pressure indicator so players learn opponents’ weaknesses through play. Backlogged for later; not a new V1 launch requirement.
-
-## PickleBash+ and monetization
-
-- [ ] **Add a pirate theme to the Fun Pack** (added September 29, 2026).
-
-- [ ] **Bring back “Your Game” on the profile page** (added September 23, 2026). Keep the section hidden until the PickleBash+ offering and monetization approach are defined. Then revisit its shot-mix insights and decide which features belong in the free experience versus PickleBash+ before restoring it. Deferred; not a V1 launch requirement. Existing shot-mix UI remains in `src/multiplayer/shot-mix-view.ts`; the profile entry point is `src/multiplayer/profile.ts`.
-
-## History and references
-
-- [Historical roadmap and implementation log](BACKLOG-HISTORY.md) — original numbering and older decisions; not an active task list.
-- [Original supplied roadmap](roadmap-source.txt).
-- [Multiplayer architecture and acceptance plan](../TURN_BASED_MULTIPLAYER_PLAN.md).
-- [Remote implementation and rollout notes](PHASE-3-REMOTE.md).
-- [Push notification implementation and acceptance notes](PWA-TURN-NOTIFICATIONS.md).
-
-Current user-confirmed status and this checklist supersede older pending-deployment, pending-playtest, and roadmap-priority notes in the historical documents.
+Groom priorities after device results or a new owner decision. Keep outcomes and acceptance here; keep detailed procedures and dated evidence in their linked documents. No changes to app code, billing, analytics, flags, production, Apple review or the deferred preview setup are part of this grooming.

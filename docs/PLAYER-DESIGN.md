@@ -46,7 +46,7 @@ The game now uses cloned Riley GLBs for all four court players and for Player De
 
 ## Usage
 
-Open **Player Design** in the game header. Choose a saved player or **+ New player**, edit Appearance and Skills, then choose **Save player** to keep it in the roster. **Save & play** saves, selects the player and starts a fresh full game. The saved player takes precedence over the user archetype in Game setup; partner and opponent archetypes still work normally. Skill changes saved without playing apply when that profile is next selected or the app reloads.
+Open **Player Design** in the game header. Choose a saved player or **+ New player**, edit Appearance and Skills, then choose **Save player** to keep it in the roster. **Save & play** saves, selects the player and starts a fresh full game. Every saved player you create stays on Your Team until you delete that player. Older roster exclusions are ignored, so previously removed creations return to the team. Recruited community players can still be removed from the roster. The saved player takes precedence over the user archetype in Game setup; partner and opponent archetypes still work normally. Skill changes saved without playing apply when that profile is next selected or the app reloads.
 
 Drafts survive closing the editor during the current visit, but only saved profiles survive a browser reload. There is no profile deletion or cloud sync in this increment.
 

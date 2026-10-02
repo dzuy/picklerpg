@@ -37,7 +37,7 @@ export async function acceptBotChallenge(client:SupabaseClient,matches:MatchServ
  if(invite.status!=='pending'||invite.automaticRematch)return;
  const {data,error}=await client.auth.admin.getUserById(invite.recipientId);if(error)throw error;
  const user=data.user;
- if(user?.app_metadata.community_bot!==true||user.app_metadata.multiplayer_playtest!==true)return;
+ if(user?.app_metadata.account_archived_at||user?.app_metadata.community_bot!==true||user.app_metadata.multiplayer_playtest!==true)return;
  const team=defaultTeam(user.user_metadata.open_play_team);if(!team)throw Error('Bot has no saved team.');
  const game=await invitations.accept(invite.id,user.id,{team});
  const action=botAction(game);if(action)await matches.act(game.id,user.id,action);
@@ -53,7 +53,7 @@ export function startCommunityBots(client:SupabaseClient,matches:MatchService,in
     const next=new Map<string,TeamSelection>(),nextRecipients=new Map<string,string>();
     for(let page=1;;page++){
      const {data,error}=await client.auth.admin.listUsers({page,perPage:1000});if(error)throw error;
-     for(const user of data.users){if(!user.is_anonymous&&user.app_metadata.community_bot!==true&&user.app_metadata.multiplayer_playtest===true&&typeof user.app_metadata.bot_invites_since==='string'&&Number.isFinite(Date.parse(user.app_metadata.bot_invites_since)))nextRecipients.set(user.id,user.app_metadata.bot_invites_since);const team=defaultTeam(user.user_metadata.open_play_team);if(user.app_metadata.community_bot===true&&user.app_metadata.multiplayer_playtest===true&&team)next.set(user.id,team);}
+     for(const user of data.users){if(user.app_metadata.account_archived_at)continue;if(!user.is_anonymous&&user.app_metadata.community_bot!==true&&user.app_metadata.multiplayer_playtest===true&&typeof user.app_metadata.bot_invites_since==='string'&&Number.isFinite(Date.parse(user.app_metadata.bot_invites_since)))nextRecipients.set(user.id,user.app_metadata.bot_invites_since);const team=defaultTeam(user.user_metadata.open_play_team);if(user.app_metadata.community_bot===true&&user.app_metadata.multiplayer_playtest===true&&team)next.set(user.id,team);}
      if(data.users.length<1000)break;
     }
     recipients.clear();for(const [id,since] of nextRecipients)recipients.set(id,since);

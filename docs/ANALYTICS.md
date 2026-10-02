@@ -129,3 +129,5 @@ Purchase-sandbox follow-up (2026-09-29): the separate Railway service and TestFl
 ## Account-safety preparation — September 29, 2026
 
 Safety dialogs are blocked from menu session recording. Passwords, report details, message evidence and blocked-player lists produce no new analytics events/properties. Account deletion requests require exact-UUID PostHog provider cleanup before the operator marks external cleanup complete; this is a manual procedure, not deployed automation.
+
+Owner admin follow-up (local, October 1, 2026): `/admin` provides account management for the verified dzuy UUID, independently of analytics access. Both `/admin` and `/admin/*` skip product identity binding, capture and replay. Per-account game counts are retained database records, not changed analytics metrics. Event ownership, privacy, identity and remote flag targeting are unchanged. Account removal now archives records and blocks access; existing analytics histories and metric definitions are retained. Owner-requested erasure remains a separate process. See [owner administration](ADMIN.md) for access, audit and release status.

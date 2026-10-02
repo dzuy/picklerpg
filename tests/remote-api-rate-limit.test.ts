@@ -11,3 +11,10 @@ test('Retry-After suppresses repeat reads without blocking turn submissions or a
   await remoteRequest('reader','/api/matches/a/actions',{});await remoteRequest('other','/api/matches/a');assert.equal(calls,3);
  }finally{globalThis.fetch=original;}
 });
+
+test('request timeouts expose a readable retryable error',async()=>{
+ const original=globalThis.fetch;
+ globalThis.fetch=async()=>{throw new DOMException('signal timed out','TimeoutError');};
+ try{await assert.rejects(remoteRequest('timeout-reader','/api/multiplayer/teams'),error=>error instanceof RemoteError&&error.status===504&&error.code==='timeout'&&error.message==='The connection is taking too long. Please try again.');}
+ finally{globalThis.fetch=original;}
+});
