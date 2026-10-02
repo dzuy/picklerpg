@@ -49,3 +49,15 @@ The gameplay video is framed by the generic, scalable `public/images/homepage/ph
 ## Scroll and interaction polish
 
 `src/homepage-motion.ts` runs only when bootstrap selected the homepage. IntersectionObserver triggers short, one-time reveals for section introductions, the phone, and visual galleries; card reveals are gently staggered. Content is visible by default, so missing scripting, observer, or animation support cannot leave it hidden. Animations use opacity and individual translate, preserving the customization cards’ existing rotations. Reduced-motion preferences disable reveals and CSS motion, including when changed during a visit. Video remains manual-play. Hover details apply only to precise-pointer devices; mobile galleries keep native scrolling.
+
+## App Store badge update
+
+The hero now uses the user-supplied official black “Download on the App Store” SVG badge, preserved unchanged in `public/images/homepage/app-store-badge.svg`. It remains in a disabled button with an accessible coming-soon label until the user supplies the destination URL. The hero browser button uses white text. This supersedes the generic phone-icon control described above.
+
+## Landing page polish
+
+The header now contains a larger logo with no browser button. The hero’s “A multiplayer pickleball strategy game” eyebrow has been removed. The hero action reads “Demo in browser” in white, and the unchanged App Store badge has a visible “Coming soon” caption while its destination is pending. The footer keeps the logo and legal links; the competition tagline and play link are removed. Scroll reveals now include staggered screenshot cards and a gentle settling motion. Browser buttons shimmer, the hero illustration gently floats, and hover details animate step numbers and screenshot cards. Reduced-motion preferences disable all these effects, including when changed during a visit.
+
+## Gameplay video playback
+
+The gameplay video now autoplays muted and loops, with inline playback and native controls retained. Its source has no audio track. This supersedes the manual-play behavior documented above; reduced-motion settings still disable decorative page animations. Browser autoplay policies may require a visitor to use the retained play control.
