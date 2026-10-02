@@ -90,3 +90,7 @@ Local evidence remains in `artifacts/beta-access/`: browser results, screenshots
 ### Shared phone frames and account icons — October 2, 2026
 
 Both additional homepage clips reuse the existing `.marketing-phone` wrapper and decorative `phone-frame.svg`. Shared video sizing and `object-fit:contain` preserve each source’s full aspect ratio within the phone screen; the character-creator clip is letterboxed rather than cropped. Playback controls, muted manual playback, `preload="none"`, and the stacked mobile layout remain in place. Shared account/HUD icon colors now load through `hud-button.css` before signup/sign-in appears, as well as during gameplay. Build/typechecks and design checks passed; fresh desktop/mobile in-app-browser visual verification was blocked by unavailable browser tools in the follow-up execution context.
+
+### Looping autoplay — October 2, 2026
+
+At the user’s request, all three phone-framed clips now use `autoplay loop muted playsinline controls` and `preload="metadata"`. This supersedes earlier tap-to-play and one-clip-at-a-time behavior. The custom mutual-pause/offscreen-pause handlers are removed so they cannot stop another autoplaying clip or leave one paused when revisited. Native controls allow pause/play; posters and those controls remain available when a browser or device blocks autoplay. No forced-play retries override browser policy or the viewer’s pause choice. Optimized source files, frame proportions, and responsive layout are unchanged.
