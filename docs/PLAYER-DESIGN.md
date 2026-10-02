@@ -96,8 +96,8 @@ hand immediately without resetting the score, court position, or current rally.
 Slot assignments last for the current session and survive point/game resets.
 
 
-## October 2 roster recovery — local, not yet deployed
+## October 2 roster recovery — web deployed
 
 Normal player saves/deletions now enqueue durable, account-scoped operations before cloud work. A failed operation remains pending, and a later successful edit cannot acknowledge it. Offline deletions retain tombstones so a reconnect applies the deletion before reading the cloud roster. Each operation's receipt prevents duplicate replay. `apply_roster_change` serializes the account's mutation and active-player selection in one transaction using the existing player permissions and validation triggers.
 
-Install `202610020001_roster_changes.sql` before the updated client. Pending changes prevent sign-out until synced. Work retries on a later save or reconnect. Initial legacy import and explicit player transfer still use their older multi-request paths; they are not covered by the new transaction. Browser quota failures now surface instead of silently moving saves into volatile memory. See the [audit remediation record](CODEBASE-AUDIT-2026-10-01.md#october-2-remediation-status) for release gates and remaining limitations.
+`202610020001_roster_changes.sql` is installed and the updated browser client is live in `26f49c5`. The iPhone update remains pending App Store Connect sign-in; see the [release record](AUDIT-RELEASE-2026-10-02.md). Pending changes prevent sign-out until synced. Work retries on a later save or reconnect. Initial legacy import and explicit player transfer still use their older multi-request paths; they are not covered by the new transaction. Browser quota failures now surface instead of silently moving saves into volatile memory. See the [audit remediation record](CODEBASE-AUDIT-2026-10-01.md#october-2-remediation-status) for release gates and remaining limitations.

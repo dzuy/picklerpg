@@ -1,6 +1,6 @@
 # Codebase audit — October 1, 2026
 
-Status: **audit completed October 1; remediation implemented October 2, 2026. Database release installed; application rollout in progress.**
+Status: **audit completed October 1; remediation implemented October 2, 2026. Database and web/server release live; iPhone update pending App Store Connect sign-in.**
 
 See [October 2 release evidence](AUDIT-RELEASE-2026-10-02.md) for the latest verified state. Earlier sections retain dated findings and prior blockers.
 
@@ -209,28 +209,28 @@ The initial audit changed only this report. The subsequent authorized implementa
 
 ## October 2 remediation status
 
-Changes are in the local working tree. No production database, deployment, account, or external provider was changed or called to verify these fixes.
+The database and web/server release are live in `26f49c5`. The native client update is pending App Store Connect sign-in. See the [verified release record](AUDIT-RELEASE-2026-10-02.md) for ledger reconciliation, 911 passing isolated-release tests, production smoke results, and remaining verification limits.
 
-| Finding | Local implementation | Remaining scope |
+| Finding | Implemented behavior | Remaining scope |
 | --- | --- | --- |
-| A01 | Production opponent/command handlers require a verified current account, including guests. Shared database limits cap authentication attempts, per-account use, and global provider use. Output is capped at 1,024 tokens. Clients send the current bearer token. Missing configuration fails closed. | Deploy the server and compatible clients together. Local development explicitly bypasses authentication. Existing installed clients without the bearer header need an update. Verify the actual proxy chain and production quota behavior. |
+| A01 | Production opponent/command handlers require a verified current account, including guests. Shared database limits cap authentication attempts, per-account use, and global provider use. Output is capped at 1,024 tokens. Clients send the current bearer token. Missing configuration fails closed. | Server and compatible browser client are deployed; live guest/authentication checks passed. Local development explicitly bypasses authentication. Existing installed native clients without the bearer header still need an update. Verify the actual proxy chain and production quota behavior. |
 | A02 | Once browser storage is acquired, subsequent failures propagate instead of switching to an empty memory store. Full storage at startup remains readable. Quota tests preserve existing records and confirm retry recovery. | Storage unavailable from the outset retains the existing volatile mode. This does not promise durable saves in private/blocked environments. |
-| A03 / A04 | Account-scoped, durable, per-operation roster outboxes retain edits and deletion tombstones. Only successful RPC operations are acknowledged. Receipts make retries idempotent; a transaction serializes each account's player mutation and active-player selection. Connection races retain pending work. | Install `202610020001_roster_changes.sql` before releasing the client. Initial legacy roster import and explicit account-transfer code still use their older multi-request path. Offline work retries on a later save or reconnect; no background retry scheduler was added. |
+| A03 / A04 | Account-scoped, durable, per-operation roster outboxes retain edits and deletion tombstones. Only successful RPC operations are acknowledged. Receipts make retries idempotent; a transaction serializes each account's player mutation and active-player selection. Connection races retain pending work. | Roster migration and browser client are deployed; live transactional replay checks passed. Initial legacy roster import and explicit account-transfer code still use their older multi-request path. Offline work retries on a later save or reconnect; no background retry scheduler was added. |
 | A05 | Athlete disposal releases each instance skeleton once, along with owned geometry/materials, while retaining shared base geometry. | GPU/heap soak testing on real devices remains unperformed. |
-| A06 | New lobby endpoint returns at most 50 summaries plus a cursor, without engine reconstruction or private checkpoint data. SQL returns at most 51 matching rows per page, with participant/creation indexes. Clients coalesce matching in-flight refreshes, page older games explicitly, and avoid polling completed/archived or expanded lists. | Install `202610020002_match_summaries.sql` before server/client rollout. Legacy full-state list and profile-stat paths remain for compatibility; this is not a complete history-query overhaul. |
+| A06 | New lobby endpoint returns at most 50 summaries plus a cursor, without engine reconstruction or private checkpoint data. SQL returns at most 51 matching rows per page, with participant/creation indexes. Clients coalesce matching in-flight refreshes, page older games explicitly, and avoid polling completed/archived or expanded lists. | Summary migration and web/server release are deployed; a live empty-guest summary request passed. Legacy full-state list and profile-stat paths remain for compatibility; this is not a complete history-query overhaul. |
 | A07 | Gameplay authentication validates the current account without waiting for a global directory scan. Directory/config discovery refreshes at most once per minute; invitations check their specific opponent directly. | Discovery and bot work still use account-directory scans. An indexed directory is a separate scaling improvement. |
 | A08 | Local game payloads are stored separately. Active checkpoint saves and scheduled uploads touch the current game rather than parsing and rewriting historical telemetry. Legacy archives migrate only after all payload writes succeed; acknowledgements use per-point keys. | Current-game/index writes remain synchronous; history views and recovery sync still scan all games. Retention, asynchronous storage, cross-tab coordination, and browser capacity are not fully addressed. |
-| A09 | Added `npm run check:migrations` to identify duplicate version prefixes and stop a release check with a nonzero exit. New migrations use unique versions. | **Release blocker remains:** reconcile the deployed migration ledger before changing historical filenames. The two collisions below are intentionally preserved. |
+| A09 | Reconciled both duplicate pairs against the actual production snapshot, installed the two new migrations atomically, and recorded verified history. Ordinary builds now enforce unique versions; upgrade and no-op replay checks passed. | Legacy history still uses a remote snapshot; do not blanket-replay historical local migrations. Use the release-specific guarded procedure documented in the release record. |
 | A10 | Thumbnail caches evict least-recently-used entries at 96 entries or an estimated 2 MiB per instance. Oversized entries are not retained. Explicit thumbnail renderer disposal is available. | Real-device soak testing remains outstanding. Memory limits are estimates of retained strings, not total GPU/process memory. |
 
-### Release order and migration blocker
+### Original release order and migration blocker (resolved for web/server)
 
 1. Read the actual deployed `supabase_migrations.schema_migrations` ledger and inspect the schema corresponding to both colliding pairs: `202609280001_gameplay_records.sql` / `202609280001_rematch_intent.sql`, and `202610010001_admin_user_actions.sql` / `202610010001_curated_community_skills.sql`. Repository notes indicate some changes were previously applied, so blindly renaming or replaying these migrations is unsafe. No database connection was configured in this checkout for that verification.
 2. Reconcile filenames and history based on that evidence, then require `npm run check:migrations` to pass. The check currently fails intentionally on those two pairs. It is a separate release gate, not part of the ordinary application build. Validate the version-tracked deployment path and its second no-op run on a disposable database; the current integration harness runs every SQL file without that ledger.
 3. Apply the new roster and summary migrations, preserving existing RLS, player constraints, entitlement triggers, and service-only summary access. Confirm the existing shared rate-limit migration is present.
 4. Release the server and clients together. Older native clients cannot call the newly protected paid routes without the bearer-header update. Smoke-test guest commands, offline edit/delete recovery, lobby pagination, and storage-full feedback before expanding rollout.
 
-### Implementation validation
+### Original implementation validation (before isolated release)
 
 - Added regression coverage for fail-closed paid routes, guest access, shared sequential/global budgets, pre-authentication quotas and limiter/authentication outages; failed roster edit followed by another save; offline deletion persistence; concurrent outbox acknowledgements; connection-time edits; gameplay availability during directory failure; skeleton texture disposal; and bounded thumbnail caching.
 - Disposable PostgreSQL tests cover atomic roster rollback, idempotent replay, account isolation, unrelated cloud players, bounded/stable summary pagination, historical engine compatibility, archive filtering, and RPC grants.
@@ -239,7 +239,7 @@ Changes are in the local working tree. No production database, deployment, accou
 - **`npm run check:migrations` failed as intended** on the two pre-existing duplicate versions; deployment is not ready until they are reconciled.
 - No live-provider, production-load, browser-interaction, or device soak verification was performed for this implementation. Unrelated work already present or arriving in the shared working tree was preserved.
 
-### October 2 release attempt — awaiting deployment access
+### Initial October 2 release attempt — access blocked (superseded)
 
 The subsequent release request authorized reconciliation and deployment. Limited **read-only** production checks used the existing service connection to project `vwdtfnljcjbyokdvjiea`. Zero-row REST requests confirmed that `gameplay_rallies`, `admin_user_actions`, and `async_invitations.rematch_manual` are exposed. These checks establish presence only, not complete definitions or migration-history correctness. `roster_change_receipts` was absent from the REST schema cache (`PGRST205`); the new roster migration is not verified as installed.
 
@@ -247,4 +247,8 @@ The API rejected the migration-history schema (`PGRST106: Invalid schema: supaba
 
 Prepared [read-only release inspection SQL](../scripts/admin/inspect-audit-release.sql) for the intended project's SQL editor or direct database connection. It returns ledger names/fingerprints, relevant schema definitions, and RPC permissions without reading account records. Its disposable PostgreSQL integration test passed. This query neither repairs history nor applies migrations. The previously verified 912-test suite and production build remain the application validation baseline; the additional inspection test passed separately.
 
-**Still pending:** obtain dashboard or configured database/deployment access; inspect and reconcile the actual ledger; validate the version-tracked upgrade and no-op repeat; install the two new migrations; release compatible clients/server; and complete live smoke checks. No historical migration files were renamed, no production data/schema/history was changed, and no release was pushed or deployed during this attempt.
+**At the end of this initial attempt:** obtain dashboard or configured database/deployment access; inspect and reconcile the actual ledger; validate the version-tracked upgrade and no-op repeat; install the two new migrations; release compatible clients/server; and complete live smoke checks. No historical migration files were renamed, no production data/schema/history was changed, and no release was pushed or deployed during this attempt.
+
+### Completed web/database rollout
+
+The subsequent Codex-browser release reconciled the ledger, installed both new migrations, deployed `26f49c5`, and passed live health, authentication, guest command, and summary checks. The isolated release passed 911 tests and the production build. The iPhone update remains pending App Store Connect sign-in. Full evidence and verification limits are in [the October 2 release record](AUDIT-RELEASE-2026-10-02.md).

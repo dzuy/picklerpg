@@ -29,7 +29,7 @@ The upgrade test starts from the pre-October-2 local schema plus the observed le
 
 ## Application release
 
-Database upgrade complete. Web/server deployment, final isolated-source validation, production smoke checks, and native distribution results are recorded below when verified. The shared working directory contains unrelated concurrent Rally Studio/UI work; the release checkout excludes it.
+Database upgrade and web/server deployment complete. Native distribution remains pending App Store Connect sign-in. The shared working directory contains unrelated concurrent Rally Studio/UI work; the release checkout excludes it.
 
 No billing settings, remote feature flags, analytics metric definitions, or account records were changed by the migration release.
 
@@ -39,3 +39,20 @@ No billing settings, remote feature flags, analytics metric definitions, or acco
 - A production transaction created a temporary guest fixture, saved a player, saved a newer edit, replayed the first operation, deleted the player, and replayed the first operation again. Assertions confirmed the newer edit survived replay, deletion did not resurrect, and exactly three receipts existed. The whole fixture transaction rolled back.
 - Production access checks: roster RPC denies anonymous execution and permits authenticated execution with invoker RLS; match-summary RPC denies anon/authenticated execution and permits only the server service role (plus administrative owners).
 - App Store Connect requires sign-in in the Codex browser before verifying and distributing the native update. Older native clients omit the new paid-route bearer header and require a compatible update; local fallback opponents remain available.
+
+## Production application verification
+
+Released commit `26f49c56208d49acf0e572d18fb828361d728c10` to `main`. Railway deployment `d6bec854-5165-4c7f-b1ba-87de01eed30a` reached **Active / Deployment successful** in the Codex browser on October 2. The compatible browser client is served at https://picklebash.app/play.
+
+Live checks at 16:15 UTC passed:
+
+- `/healthz`: 200, status `ok`.
+- `/api/opponent` and `/api/command`: 401 with no bearer token and with an invalid token (four checks).
+- A temporary anonymous guest authenticated successfully; `/api/multiplayer/match-summaries?filter=active` returned 200 with an empty match list and no next cursor.
+- One authenticated guest command returned 200 with a valid seven-field soft-dink command. This was one real provider request.
+- The deployed browser client loaded and launched a Quick Solo Match to the serve screen with the 3D court and score visible ([browser evidence](../artifacts/audit-release/solo-launch.jpg)). No match was played through.
+- The temporary guest was deleted after the check. No existing player account was edited or removed. Rate-limit counters and routine service logs from smoke traffic may remain.
+
+Evidence: [live check results](../artifacts/audit-release/production-smoke.json), [Railway active release](../artifacts/audit-release/web-deployment.jpg), [installed migrations](../artifacts/audit-release/database-migrations.jpg), [RPC permissions](../artifacts/audit-release/database-permissions.jpg), and [transactional roster replay check](../artifacts/audit-release/roster-recovery.jpg).
+
+**Remaining release step:** sign in to App Store Connect in the open Codex browser tab, inspect the latest build number, and distribute a compatible iPhone build. No new native build was uploaded by this release. Older native clients omit the paid-route bearer header and now receive 401 for those calls; local fallback opponents remain available. Real-device offline/reconnect and memory/GPU soak checks, browser storage-full interaction, populated production pagination, and production capacity tests remain unperformed. Corresponding automated correctness checks passed; these do not substitute for those device/load checks.
