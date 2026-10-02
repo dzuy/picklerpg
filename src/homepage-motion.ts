@@ -37,3 +37,12 @@ if (marketing && document.body.dataset.screen === 'homepage' && 'IntersectionObs
  update();
 }
 export {};
+
+// Playback is opt-in; keep only one clip playing and pause clips out of view.
+const clips=Array.from(document.querySelectorAll<HTMLVideoElement>('#marketing video'));
+for(const clip of clips)clip.addEventListener('play',()=>{for(const other of clips)if(other!==clip)other.pause();});
+if('IntersectionObserver' in window){
+ const playback=new IntersectionObserver(entries=>{for(const entry of entries)if(!entry.isIntersecting)(entry.target as HTMLVideoElement).pause();});
+ for(const clip of clips)playback.observe(clip);
+}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)for(const clip of clips)clip.pause();});
