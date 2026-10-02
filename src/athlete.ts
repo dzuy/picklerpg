@@ -77,7 +77,15 @@ export function poseAthleteForEditor(root:THREE.Group){
  rotate(rig,'upper_arm.L',-.08,0,-.6);rotate(rig,'forearm.L',-.12);
  root.rotation.z=0;
 }
-export function disposeAthlete(root:THREE.Group){root.traverse(object=>{if(object instanceof THREE.Mesh){if(object.userData.ownedGeometry)object.geometry.dispose();for(const material of Array.isArray(object.material)?object.material:[object.material])material.dispose()}})}
+export function disposeAthlete(root:THREE.Group){
+ const skeletons=new Set<THREE.Skeleton>(),materials=new Set<THREE.Material>(),geometries=new Set<THREE.BufferGeometry>();
+ root.traverse(object=>{if(object instanceof THREE.Mesh){
+  if(object instanceof THREE.SkinnedMesh)skeletons.add(object.skeleton);
+  if(object.userData.ownedGeometry)geometries.add(object.geometry);
+  for(const material of Array.isArray(object.material)?object.material:[object.material])materials.add(material);
+ }});
+ skeletons.forEach(s=>s.dispose());materials.forEach(m=>m.dispose());geometries.forEach(g=>g.dispose());
+}
 export function setAthleteHandedness(root:THREE.Group,hand:'left'|'right'){root.scale.x=hand==='left'?-1:1}
 
 /** Compact two-handed ready stance, with a gentle breathing cycle. */

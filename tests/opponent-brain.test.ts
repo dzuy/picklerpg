@@ -16,14 +16,15 @@ function playPoint(m:Match){
  assert.equal(m.state.phase,'complete');
 }
 test('a pending LLM strategy never pauses play and costs at most one call per point',async()=>{
- const original=globalThis.fetch;let resolve!:(r:Response)=>void,calls=0,payload:any;
- globalThis.fetch=((_url,init)=>{calls++;payload=JSON.parse(init!.body as string);return new Promise<Response>(r=>resolve=r);}) as typeof fetch;
+ const original=globalThis.fetch;let resolve!:(r:Response)=>void,calls=0,payload:any,started!:()=>void;
+ const requestStarted=()=>new Promise<void>(r=>{started=r});let waiting=requestStarted();
+ globalThis.fetch=((_url,init)=>{calls++;payload=JSON.parse(init!.body as string);return new Promise<Response>(r=>{resolve=r;started()});}) as typeof fetch;
  try{
-  const m=new Match();m.brainMode='llm';playPoint(m);
+  const m=new Match();m.brainMode='llm';playPoint(m);await waiting;
   assert.equal(calls,1);assert.equal(payload.kind,'strategy');assert.equal(payload.options.length,STRATEGIES.length);assert.equal(payload.ball,undefined);
   resolve(new Response(JSON.stringify({choice:0})));await new Promise(r=>setTimeout(r,0));
   assert.match(m.brainStatus,/Opponent strategy/);
-  m.nextPoint();m.update(0);assert.equal(calls,2);
+  waiting=requestStarted();m.nextPoint();m.update(0);await waiting;assert.equal(calls,2);
   m.reset();const before=m.snapshot();resolve(new Response(JSON.stringify({choice:1})));await new Promise(r=>setTimeout(r,0));
   assert.deepEqual(m.snapshot(),before);assert.doesNotMatch(m.brainStatus,/Patient soft game/);
  }finally{globalThis.fetch=original;}

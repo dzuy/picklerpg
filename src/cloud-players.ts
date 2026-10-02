@@ -1,3 +1,4 @@
+import {RosterOutbox} from './roster-outbox';
 import {premiumForPlay} from './premium';
 import {missingAppearancePacks} from './premium-appearance';
 import type {GameplayRecord} from './persistence/gameplay-record';
@@ -76,12 +77,12 @@ export class CloudPlayerSync{
   if(error)throw new Error('Could not save your team name. Please try again.');
   this.accountStatus(accountStateForUser(data.user));return name;
  }
- private signingOut=false;
+ private signingOut=false;private connecting=false;
  get accountId(){return this.ownerId}
  async signOut(){
   if(!this.client)throw new Error('Connect before signing out.');
   await this.queue;
-  if(browserStorage.getItem(CLOUD_DIRTY_KEY)==='1')throw new Error('Your player changes are not synced yet. Reconnect before signing out.');
+  if(browserStorage.getItem(CLOUD_DIRTY_KEY)==='1'||this.outbox().pending().length)throw new Error('Your player changes are not synced yet. Reconnect before signing out.');
   const {data:{session}}=await this.client.auth.getSession();
   if(session?.user.is_anonymous)throw new Error('Protect your progress before signing out.');
   await (await import('./pwa')).disableDevicePush();
@@ -118,6 +119,7 @@ export class CloudPlayerSync{
  async connect(local:PlayerLibrary):Promise<PlayerLibrary>{
   const url=import.meta.env.VITE_SUPABASE_URL,key=import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
   if(!url||!key){this.status('local');this.accountStatus({kind:'unavailable'});return structuredClone(local)}
+  const connectingVersion=this.changeVersion;this.connecting=true;
   this.status('connecting');this.accountStatus({kind:'connecting'});
   try{
    this.client=authClient()!;
@@ -130,6 +132,12 @@ export class CloudPlayerSync{
    if(!session){const signedIn=await this.client.auth.signInAnonymously();if(signedIn.error)throw signedIn.error;session=signedIn.data.session}
    if(!session)throw new Error('Guest session was not created.');this.ownerId=session.user.id;
    if(browserStorage.getItem(CLOUD_OWNER_KEY)&&browserStorage.getItem(CLOUD_OWNER_KEY)!==this.ownerId){local={version:1,activeId:null,players:[]};browserStorage.setItem('pickle-rpg-players-v1',JSON.stringify(local));browserStorage.removeItem(CLOUD_DIRTY_KEY)}
+   if(!browserStorage.getItem(CLOUD_OWNER_KEY)){
+    const unclaimed=new RosterOutbox(browserStorage,'unclaimed');
+    for(const op of unclaimed.pending()){this.outbox().adopt(op);unclaimed.acknowledge(op);}
+   }
+   const hadPending=this.outbox().pending().length>0;
+   await this.flushChanges();
    this.accountStatus(accountStateForUser(session.user));
    const response=await this.client.from('players').select('id,name,catchphrase,appearance,skills,handedness,is_active,is_public,published_skills').eq('owner_id',this.ownerId);
    if(response.error)throw response.error;
@@ -138,14 +146,17 @@ export class CloudPlayerSync{
    const remote:PlayerLibrary={version:1,activeId:active,players:remotePlayers};
    const previousOwner=browserStorage.getItem(CLOUD_OWNER_KEY);
    const current=previousOwner&&previousOwner!==this.ownerId?{version:1 as const,activeId:null,players:[]}:parseLibrary(browserStorage.getItem('pickle-rpg-players-v1'));
-   const needsUpload=!previousOwner||(previousOwner===this.ownerId&&browserStorage.getItem(CLOUD_DIRTY_KEY)==='1');
+   // First connection must also retain local players created before the outbox existed.
+   const needsUpload=!previousOwner||(!hadPending&&previousOwner===this.ownerId&&browserStorage.getItem(CLOUD_DIRTY_KEY)==='1');
    const budget=await accountSkillBudget();
    const merged=needsUpload?mergePlayerLibraries(current,remote):remote;
    merged.players=merged.players.map(p=>({...p,skills:normalizeSkillBudget(p.skills,budget)}));
+   if(connectingVersion!==this.changeVersion)throw Error('Your player changed while connecting. Reconnect to finish syncing.');
    browserStorage.setItem('pickle-rpg-players-v1',JSON.stringify(merged));
    if(needsUpload)await this.replaceCloudLibrary(merged);
+   if(connectingVersion!==this.changeVersion||this.outbox().pending().length)throw Error('Your player changed while connecting. Reconnect to finish syncing.');
    browserStorage.setItem(CLOUD_OWNER_KEY,this.ownerId);browserStorage.removeItem(CLOUD_DIRTY_KEY);this.status('saved');return structuredClone(merged);
-  }catch(error){console.warn('Cloud player sync unavailable.',error);this.client=null;this.ownerId=null;this.status('offline');this.accountStatus({kind:'unavailable'});return structuredClone(local)}
+  }catch(error){console.warn('Cloud player sync unavailable.',error);this.client=null;this.ownerId=null;this.status('offline');this.accountStatus({kind:'unavailable'});return readLocalPlayerLibrary()}finally{this.connecting=false;}
  }
  async protectProgress(email:string){
   if(!this.client)throw new Error('Cloud accounts are unavailable right now.');
@@ -163,22 +174,26 @@ export class CloudPlayerSync{
   this.accountStatus({kind:'pending',email:normalized});
  }
  private returnUrl(){return accountReturnUrl(new URL(location.href))}
+ private outbox(){return new RosterOutbox(browserStorage,this.ownerId??browserStorage.getItem(CLOUD_OWNER_KEY)??'unclaimed');}
  save(library:PlayerLibrary,change:LibraryChange){
   browserStorage.setItem(CLOUD_DIRTY_KEY,'1');
-  if(!this.client||!this.ownerId)return;
+  this.outbox().enqueue(library,change);
   const version=++this.changeVersion;
-  this.status('saving');this.queue=this.queue.then(()=>this.persistChange(library,change)).then(()=>{if(version===this.changeVersion){browserStorage.removeItem(CLOUD_DIRTY_KEY);this.status('saved')}}).catch(error=>{console.warn('Cloud player save failed.',error);this.status('offline')});
+  if(this.connecting||!this.client||!this.ownerId){this.status('offline');return;}
+  this.status('saving');
+  this.queue=this.queue.then(()=>this.flushChanges()).then(()=>{
+   if(version===this.changeVersion&&!this.outbox().pending().length){browserStorage.removeItem(CLOUD_DIRTY_KEY);this.status('saved');}
+  }).catch(error=>{console.warn('Cloud player save failed.',error);this.status('offline');});
  }
- private async persistChange(library:PlayerLibrary,change:LibraryChange){
-  const client=this.client!,ownerId=this.ownerId!;
-  const cleared=await client.from('players').update({is_active:false}).eq('owner_id',ownerId);if(cleared.error)throw cleared.error;
-  if(change.kind==='delete'){
-   const removed=await client.from('players').delete().eq('owner_id',ownerId).eq('id',change.playerId);if(removed.error)throw removed.error;
-  }else{
-   const player=library.players.find(candidate=>candidate.id===change.playerId);if(!player)return;
-   const saved=await client.from('players').upsert(rowFromPlayer(ownerId,player,library.activeId),{onConflict:'owner_id,id'});if(saved.error)throw saved.error;
+ private async flushChanges(){
+  if(!this.client||!this.ownerId)return;
+  const client=this.client,owner=this.ownerId,outbox=this.outbox();
+  for(const operation of outbox.pending()){
+   if(this.ownerId!==owner)throw Error('Reconnect to the account that edited these players.');
+   const {error}=await client.rpc('apply_roster_change',{p_change:operation});
+   if(error)throw error;
+   outbox.acknowledge(operation);
   }
-  if(library.activeId){const selected=await client.from('players').update({is_active:true}).eq('owner_id',ownerId).eq('id',library.activeId);if(selected.error)throw selected.error}
  }
  private async replaceCloudLibrary(library:PlayerLibrary){
   if(!library.players.length)return;

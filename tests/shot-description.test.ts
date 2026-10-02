@@ -40,10 +40,11 @@ test('remote description submits the interpreted attempt, and cancellation/stale
  const db=new MemoryRepository(),service=new MatchService(db,testers),s=await service.create(A,creation()),values=new Map<string,string>();
  const request:Transport=async<T>(_token,path,body)=>{return (path.endsWith('/describe-shot')?await service.describe(s.id,A,body):path.endsWith('/actions')?await service.act(s.id,A,body):await service.get(s.id,A)) as T;};
  const client=new RemoteSession(A,s.id,async()=>({owner:A,token:'test'}),request,{getItem:k=>values.get(k)??null,setItem:(k,v)=>{values.set(k,v)},removeItem:k=>{values.delete(k)}});await client.refresh();
- let resolve!:(value:Response)=>void;
- t.mock.method(globalThis,'fetch',()=>new Promise<Response>(r=>{resolve=r}));
- const controller=new AbortController(),cancelled=client.describe(text,point,controller.signal);controller.abort();resolve(Response.json(parsed));await assert.rejects(cancelled);assert.equal(db.receipts.size,0);
- const stale=client.describe(text,point,new AbortController().signal);client.state={...client.state!,version:99};resolve(Response.json(parsed));await assert.rejects(stale,/decision changed/);assert.equal(db.receipts.size,0);
+ let resolve!:(value:Response)=>void,started!:()=>void;
+ const requestStarted=()=>new Promise<void>(r=>{started=r});let waiting=requestStarted();
+ t.mock.method(globalThis,'fetch',()=>new Promise<Response>(r=>{resolve=r;started()}));
+ const controller=new AbortController(),cancelled=client.describe(text,point,controller.signal);await waiting;controller.abort();resolve(Response.json(parsed));await assert.rejects(cancelled);assert.equal(db.receipts.size,0);
+ waiting=requestStarted();const stale=client.describe(text,point,new AbortController().signal);await waiting;client.state={...client.state!,version:99};resolve(Response.json(parsed));await assert.rejects(stale,/decision changed/);assert.equal(db.receipts.size,0);
  client.state=s;t.mock.method(globalThis,'fetch',async(_url:unknown,options:RequestInit)=>{const {context}=JSON.parse(options.body as string);assert.equal(context.actingTeam,s.viewerTeam);assert.deepEqual(context.roster,s.display.players.map(p=>({id:p.id,name:s.roster[p.id].name,team:p.team})));return Response.json(parsed)});await client.describe(text,point,new AbortController().signal);assert.equal(db.receipts.size,1);assert.equal(client.pending,null);
 });
 

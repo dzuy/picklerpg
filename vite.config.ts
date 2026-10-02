@@ -17,7 +17,7 @@ function localMultiplayer(env:NodeJS.ProcessEnv):Plugin {
    const analytics=configuredAdminAnalyticsHandler(env);
    const adminUsers=configuredAdminUsersHandler(env);
    const provider=env.OPPONENT_PROVIDER??(env.OPENAI_API_KEY?'api':'codex');
-   const opponent=createOpponentHandler({provider,...(provider==='api'?{choose:(snapshot:unknown)=>decide(snapshot,{key:env.OPENAI_API_KEY,model:env.OPENAI_MODEL||'gpt-5.6-luna'})}:{})});
+   const opponent=createOpponentHandler({authorize:async()=>{},provider,...(provider==='api'?{choose:(snapshot:unknown)=>decide(snapshot,{key:env.OPENAI_API_KEY,model:env.OPENAI_MODEL||'gpt-5.6-luna'})}:{})});
    server.middlewares.use((req,res,next)=>{
     const pathname=new URL(req.url??'/', 'http://localhost').pathname;
     if(pathname==='/api/admin/users'||pathname.startsWith('/api/admin/users/')){void adminUsers(req,res);return;}

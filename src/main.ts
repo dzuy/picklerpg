@@ -251,7 +251,7 @@ installSoundSetting(settingsDialog,{checkbox:true});
 const endedGames=new WeakSet<object>();
 const endGameButton=document.createElement('button');endGameButton.type='button';endGameButton.className='settings-restart';endGameButton.textContent='End game';endGameButton.id='end-current-game';settingsDialog.append(endGameButton);
 endGameButton.addEventListener('click',()=>{
- if(!match.scoring.winner){try{localStore?.end(match.matchId);gameplaySync?.schedule()}catch(error){reportSaveError(error);return}endedGames.add(match.scoring);}
+ if(!match.scoring.winner){try{localStore?.end(match.matchId);gameplaySync?.schedule(2000,match.matchId)}catch(error){reportSaveError(error);return}endedGames.add(match.scoring);}
  voice.stop();match.state.paused=true;match.stopReplay();
  if(settingsCloseTimer)window.clearTimeout(settingsCloseTimer);
  settingsDialog.close();settingsDialog.classList.remove('is-closing');syncGameEnd();
@@ -647,7 +647,7 @@ function initializeResume(owner:string){
   if(owner!=='local'){gameplaySync=new GameplaySync(localStore,browserStorage,owner,record=>cloudPlayers.recordGameplay(record,owner));gameplaySync.schedule();}
   const saved=localStore.load(requestedGame??undefined);
   if(requestedGame&&!saved)throw new Error('This saved game is not available for this account on this browser.');
-  match.onCheckpoint=(c,played)=>{if(endedGames.has(match.scoring))return;try{localStore!.save(c,document.body.dataset.location as CourtLocation,played);gameplaySync?.schedule();
+  match.onCheckpoint=(c,played)=>{if(endedGames.has(match.scoring))return;try{localStore!.save(c,document.body.dataset.location as CourtLocation,played);gameplaySync?.schedule(2000,c.matchId);
  const game_mode=match.isLocalHuman?'local' as const:'solo' as const;
  Analytics.track('match_created',{match_id:c.matchId,game_mode},c.matchId);Analytics.track('match_started',{match_id:c.matchId,game_mode},c.matchId);
  for(const action of played??[]){if(action.shot.intent.actor!=='you'&&!match.isLocalHuman||match.playerAutonomy)continue;

@@ -3,6 +3,25 @@ import assert from 'node:assert/strict';
 import {Match} from '../src/match';
 import {OpenPlayStore} from '../src/persistence/open-play-store';
 const memory=()=>{const values=new Map<string,string>();return {getItem:(k:string)=>values.get(k)??null,setItem:(k:string,v:string)=>{values.set(k,v)},removeItem:(k:string)=>{values.delete(k)}}};
+test('saving the active game does not read or rewrite historical payloads',()=>{
+ const storage=memory(),writes:string[]=[],reads:string[]=[];
+ const tracked={...storage,getItem:(k:string)=>{reads.push(k);return storage.getItem(k)},setItem:(k:string,v:string)=>{writes.push(k);storage.setItem(k,v)}};
+ const store=new OpenPlayStore(tracked,'partitioned'),old=new Match(),current=new Match();
+ store.save(old.exportCheckpoint(),'forest');store.save(current.exportCheckpoint(),'forest');
+ writes.length=0;reads.length=0;store.save(current.exportCheckpoint(),'forest');
+ assert.ok(writes.every(k=>!k.endsWith(old.matchId)));assert.ok(reads.every(k=>!k.endsWith(old.matchId)));
+ storage.setItem(`${store.key}:game:${old.matchId}`,'broken history');
+ assert.doesNotThrow(()=>store.save(current.exportCheckpoint(),'forest'));
+ assert.equal(store.load(current.matchId)?.checkpoint.matchId,current.matchId);
+});
+test('old array migration retains the source when a payload write fails',()=>{
+ const storage=memory(),match=new Match(),game={checkpoint:match.exportCheckpoint(),court:'forest',updatedAt:new Date().toISOString(),archived:false,ended:false};
+ const raw=JSON.stringify([game]),key='pickle-open-play-v1:migration';storage.setItem(key,raw);
+ const failing=new OpenPlayStore({...storage,setItem:()=>{throw Error('quota')}},'migration');
+ assert.throws(()=>failing.list(),/Could not save/);assert.equal(storage.getItem(key),raw);
+ const recovered=new OpenPlayStore(storage,'migration');assert.equal(recovered.load(match.matchId)?.court,'forest');
+ assert.equal(JSON.parse(storage.getItem(key)!).version,2);
+});
 test('Open Play retains multiple games, exact committed turns and each court',()=>{
  const storage=memory(),store=new OpenPlayStore(storage,'a'),first=new Match(),second=new Match();
  first.partnerAutonomy=false;store.save(first.exportCheckpoint(),'venice');

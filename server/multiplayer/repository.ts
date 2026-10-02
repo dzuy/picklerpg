@@ -1,3 +1,4 @@
+import type {MatchSummary} from '../../src/multiplayer/protocol';
 import {type CourtLocation} from '../../src/locations';
 import type {ShotMixRow} from './shot-mix';
 import {loadStrategy} from './strategy';
@@ -12,6 +13,7 @@ export interface StoredMatch {muted_home?:boolean;muted_away?:boolean;ended_by?:
 export interface StoredReceipt {created_at?:string;match_id:string;action_id:string;actor_id:string;request_hash:string;from_version:number;to_version:number;checkpoint:MatchCheckpoint&{court?:CourtLocation};result:Pick<StoredMatch,'status'|'current_action_user_id'|'animation'|'last_result'> & {completed_at?:string|null;archived_home?:boolean;archived_away?:boolean}}
 export interface CommitInput {match:StoredMatch;actor:string;hash:string;actionId:string;expectedVersion:number;action:unknown;selection?:SelectionCapture}
 export interface MatchRepository {
+ summaries?(actor:string,filter:string,time:string|null,id:string|null):Promise<MatchSummary[]>;
  shotMixPage?(actor:string,before:string,cursorTime:string|null,cursorId:string|null):Promise<ShotMixRow[]>;
  strategy?(id:string,actor:string):Promise<MatchStrategy|null>;
  rivalries?(actor:string,matchIds:string[]):Promise<Record<string,unknown>>;
@@ -27,6 +29,7 @@ export interface MatchRepository {
 function databaseError(error:any):never{if(error?.code==='PT410')throw new ApiError(403,'blocked','This player is unavailable for new games.');if(['PT409','40001','23505'].includes(error?.code))throw conflict();if(error?.code==='P0002')throw missing();if(error?.code==='42501')throw new ApiError(403,'forbidden','That turn belongs to another player.');console.error('Match storage error code:',error?.code);throw new ApiError(503,'unavailable','Match storage is unavailable. Retry the same action.');}
 export class SupabaseMatchRepository implements MatchRepository {
  constructor(private client:SupabaseClient){}
+ async summaries(actor:string,filter:string,time:string|null,id:string|null){const {data,error}=await this.client.rpc('list_match_summaries',{p_actor:actor,p_filter:filter,p_before_time:time,p_before_id:id});if(error)databaseError(error);return data as MatchSummary[];}
  async shotMixPage(actor:string,before:string,cursorTime:string|null,cursorId:string|null){const {data,error}=await this.client.rpc('get_async_shot_mix_page',{p_actor:actor,p_before:before,p_cursor_time:cursorTime,p_cursor_id:cursorId});if(error)databaseError(error);return data as ShotMixRow[];}
  async strategy(id:string,actor:string){return loadStrategy(async(name,args)=>{const {data,error}=await this.client.rpc(name,args);if(error)databaseError(error);return data;},id,actor);}
  async rivalries(actor:string,matchIds:string[]){

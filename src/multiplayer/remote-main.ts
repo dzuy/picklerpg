@@ -1,3 +1,4 @@
+import type {MatchSummary,MatchSummaryPage} from './protocol';
 import {transferPendingAccountPlayer} from '../pending-account-player';
 import {FunThemeControl} from '../fun-theme-control';
 import {firstGameWelcome} from '../first-game-welcome';
@@ -306,13 +307,13 @@ function syncGuestGuide(){
  }
 }
 
-let games:PublicMatch[]=[],gameFilter='active',invitations:Invitation[]=[],selectedInvite:Invitation|null=null;let createTeam:TeamPicker|undefined,acceptTeam:TeamPicker|undefined,accepting=false;
+let games:MatchSummary[]=[],gameFilter='active',invitations:Invitation[]=[],selectedInvite:Invitation|null=null;let createTeam:TeamPicker|undefined,acceptTeam:TeamPicker|undefined,accepting=false;
 let display:GameState|null=null,shot:RallyShot|null=null,shownVersion=-1,animation:TurnAnimation[]=[],animationStart=0;
 let pointPauseRemaining=0;
 const pointCelebrating=()=>!!session?.state?.result&&(animation.length>0||pointPauseRemaining>0);
 function showLogin(){selectedInvite=null;el('remote-invite').hidden=true;leaveCourt();el('remote-setup').hidden=true;el('remote-password-reset').hidden=true;clearTarget();session?.dispose();session=null;account='';display=null;animation=[];el('remote-name-setup').hidden=true;el('remote-login').hidden=false;el('remote-lobby').hidden=true;el('remote-game').hidden=true;}
-function opponentName(s:PublicMatch){const id=s.accountIds?.[s.viewerTeam==='home'?'away':'home'];return teamDirectory?.teams.find(t=>t.id===id)?.manager?.trim()||config?.testers.find(t=>t.id===id)?.name?.trim()||(s.viewerTeam==='home'?s.invitedName?.trim():undefined);}
-function opponentLabel(s:PublicMatch){return opponentName(s)??'Opponent';}
+function opponentName(s:MatchSummary){const id=s.accountIds?.[s.viewerTeam==='home'?'away':'home'];return teamDirectory?.teams.find(t=>t.id===id)?.manager?.trim()||config?.testers.find(t=>t.id===id)?.name?.trim()||(s.viewerTeam==='home'?s.invitedName?.trim():undefined);}
+function opponentLabel(s:MatchSummary){return opponentName(s)??'Opponent';}
 function status(message:string){
  createStatus.textContent=el('remote-setup').hidden?'':message;
  inviteStatus.textContent=el('remote-invite').hidden?'':message;
@@ -531,15 +532,25 @@ async function refreshTeamDirectory(){
  }catch(e){teamDirectoryState='error';renderTeamLobby();status((e as Error).message);}
 }
 mountTurnPrompt(root);
-async function refreshLobbyCards(){
- if(accepting||!account||!config)return;
- const owner=account,c=await matchCredentials();
- try{
-  const loaded=await Promise.all([remoteRequest<PublicMatch[]>(c.token,'/api/matches'),remoteRequest<Invitation[]>(c.token,'/api/invitations')]);
-  if(account!==owner)return;
-  [games,invitations]=loaded;gamesLoadState('ready');renderGames();renderInvitations();
- }catch(error){if(account===owner&&el('remote-lobby').dataset.gamesState!=='ready')gamesLoadState('error');throw error;}
+let lobbyRefresh:Promise<void>|null=null,lobbyRefreshKey='',lobbyCursor:string|null=null,lobbyExpanded=false;
+function refreshLobbyCards(more=false):Promise<void>{
+ const key=JSON.stringify([account,gameFilter,more?lobbyCursor:null]);
+ if(lobbyRefresh)return key===lobbyRefreshKey?lobbyRefresh:lobbyRefresh.catch(()=>{}).then(()=>refreshLobbyCards(more));
+ lobbyRefreshKey=key;
+ lobbyRefresh=loadLobbyCards(more).finally(()=>{lobbyRefresh=null;});return lobbyRefresh;
 }
+async function loadLobbyCards(more:boolean){
+ if(accepting||!account||!config)return;
+ const owner=account,filter=gameFilter,c=await matchCredentials();if(c.owner!==owner)return;
+ const params=new URLSearchParams({filter});if(more&&lobbyCursor)params.set('cursor',lobbyCursor);
+ try{
+  const [page,invites]=await Promise.all([remoteRequest<MatchSummaryPage>(c.token,`/api/multiplayer/match-summaries?${params}`),remoteRequest<Invitation[]>(c.token,'/api/invitations')]);
+  if(account!==owner||gameFilter!==filter)return;
+  games=more?[...new Map([...games,...page.matches].map(g=>[g.id,g])).values()]:page.matches;
+  lobbyCursor=page.nextCursor;lobbyExpanded=more;invitations=invites;gamesLoadState('ready');renderGames();renderInvitations();
+ }catch(error){if(account===owner&&gameFilter===filter&&el('remote-lobby').dataset.gamesState!=='ready')gamesLoadState('error');throw error;}
+}
+
 function renderInvitations(){
  const host=el('remote-invitations'),waiting=el('remote-waiting-invitations');host.replaceChildren();waiting.replaceChildren();
  if(gameFilter==='completed'||gameFilter==='archived')return;
@@ -635,8 +646,9 @@ function renderGames(){
   footer.append(share);
   const archive=document.createElement('button');archive.className='remote-quiet remote-archive-action';archive.textContent=game.archived?'Restore game':'Archive game';archive.setAttribute('aria-label',`${game.archived?'Restore':'Archive'} game vs ${opponentLabel(game)}`);archive.title='Only changes your game list';archive.onclick=()=>{archive.disabled=true;void archiveGame(game.id,!game.archived).catch(e=>{status(e.message);archive.disabled=false})};entry.append(game.friendState==='pending'?pendingInviteCard(card,async()=>{const c=await matchCredentials();const challenge=await remoteRequest<{token:string}>(c.token,`/api/multiplayer/challenge-for-match/${game.id}`);return new URL(`/challenge/${challenge.token}`,publicOrigin()).href;},game.invitedName??'your friend',undefined,()=>shareMatch(game.id,true)):card,...(game.friendState==='pending'?[]:[footer]),archive);(game.friendState==='pending'?waiting:container).append(entry);
  }
+ if(lobbyCursor){const more=document.createElement('button');more.textContent='Load more games';more.className='remote-quiet';more.onclick=()=>{more.disabled=true;void refreshLobbyCards(true).catch(e=>{status(e.message);more.disabled=false;});};container.append(more);}
 }
-for(const button of Array.from(document.querySelectorAll<HTMLButtonElement>('[data-filter]')))button.onclick=()=>{gameFilter=button.dataset.filter!;for(const sibling of Array.from(document.querySelectorAll('[data-filter]')))sibling.setAttribute('aria-pressed',String(sibling===button));renderGames();renderInvitations();};
+for(const button of Array.from(document.querySelectorAll<HTMLButtonElement>('[data-filter]')))button.onclick=()=>{gameFilter=button.dataset.filter!;games=[];lobbyCursor=null;lobbyExpanded=false;gamesLoadState('loading');void (lobbyRefresh??Promise.resolve()).catch(()=>{}).then(()=>refreshLobbyCards()).catch(e=>status(e.message));for(const sibling of Array.from(document.querySelectorAll('[data-filter]')))sibling.setAttribute('aria-pressed',String(sibling===button));renderGames();renderInvitations();};
 async function create(){
  if(!createTeam)throw Error('Choose your team.');
  const membership=await premiumForPlay();if(funThemes.value!=='none'&&!ownsPack(membership.ownedPacks,'fun')){openPackUpgrade('fun',el('remote-create'));return;}if(!ownsPack(membership.ownedPacks,'court')&&isPremiumCourt(selectedCourt)){openPackUpgrade('court',el('remote-create'));return;}
@@ -731,7 +743,7 @@ setInterval(()=>{
   const waitingForFriend=session.state?.status==='active'&&session.state.friendState!=='cancelled'&&session.state.currentTeam!==session.state.viewerTeam;
   if(!session.busy&&(waitingForFriend||otherDue))void session.refresh();
  }
- else if(otherDue&&!el('remote-lobby').hidden)void refreshLobbyCards().catch(e=>status(e.message));
+ else if(otherDue&&!lobbyExpanded&&['active','turn'].includes(gameFilter)&&!el('remote-lobby').hidden)void refreshLobbyCards().catch(e=>status(e.message));
  else if(otherDue&&selectedInvite&&!accepting){const id=selectedInvite.id;void matchCredentials().then(c=>remoteRequest<Invitation>(c.token,`/api/invitations/${id}`)).then(i=>{if(selectedInvite?.id===id){if(i.status==='accepted'&&i.matchId)return open(i.matchId);if(i.status!==selectedInvite.status)return showInvitation(id);}}).catch(e=>status(e.message));}
 },LIVE_MATCH_POLL_MS);
 window.addEventListener('focus',()=>{if(session)void session.refresh();});window.addEventListener('online',()=>{if(session)void session.refresh();});

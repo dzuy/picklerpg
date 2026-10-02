@@ -18,7 +18,7 @@ test('production serves game assets and HTTPS-origin AI on one port',async()=>{
  await writeFile(join(root,'voice-capture-worklet.js'),'worklet');
  await writeFile(join(root,'sw.js'),'worker');
  await writeFile(join(root,'manifest.webmanifest'),'{}');
- const server=createProductionServer({root,apiHandler:createOpponentHandler({choose:async()=>({choice:0})})});
+ const server=createProductionServer({root,apiHandler:createOpponentHandler({authorize:async()=>{},choose:async()=>({choice:0})})});
  try{
   await new Promise<void>(resolve=>server.listen(0,'0.0.0.0',resolve));
   const port=server.address().port,url=`http://127.0.0.1:${port}`;

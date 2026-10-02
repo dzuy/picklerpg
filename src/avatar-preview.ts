@@ -1,3 +1,4 @@
+import {BoundedImageCache} from './bounded-image-cache';
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {createAthlete,disposeAthlete,setAthleteHandedness,poseAthleteForPortrait,poseAthleteForEditor,poseAthleteForRoster,animateRosterAthlete} from './athlete';
@@ -43,7 +44,8 @@ export class AvatarPreview {
 }
 /** One off-screen context renders real model thumbnails, shared by all option tiles. */
 export class AvatarThumbnails {
- private renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});private scene=new THREE.Scene();private camera=new THREE.PerspectiveCamera(32,1,.01,10);private cache=new Map<string,string>();
+ private renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});private scene=new THREE.Scene();private camera=new THREE.PerspectiveCamera(32,1,.01,10);private cache=new BoundedImageCache();
+ dispose(){this.cache.clear();this.renderer.dispose();this.renderer.forceContextLoss();}
  constructor(size=128){this.renderer.setSize(size,size);this.renderer.setPixelRatio(1);this.renderer.toneMapping=THREE.ACESFilmicToneMapping;light(this.scene)}
  get(appearance:Appearance,category:string,hand:'left'|'right'='right'){
   const key=JSON.stringify(appearance)+category+hand;if(this.cache.has(key))return this.cache.get(key)!;

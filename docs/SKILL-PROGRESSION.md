@@ -16,7 +16,7 @@ Installed in Supabase on September 21, 2026 with migration `202609210002_skill_b
 
 Creators configure a separate 35-point community starting build. Adding a player snapshots its appearance, identity, creator attribution and starting skills into the recipient's roster. The recipient may customize skills with their account budget, without changing the original or other copies. Later source edits, unpublishing, moderation or deletion do not change existing copies. Removing and re-adding a publicly available player takes a new snapshot.
 
-As of September 30, 2026, service-curated public builds may use up to 50 points to provide a 3.5–4.8 rating spread. These full builds are snapshotted when added and resolved from the saved copy for games. This does not increase account budgets or the 35-point creator publishing budget. Editing a saved community copy still uses the recipient's account budget. Existing copies keep their original skills; remove and re-add an available public player to receive the refreshed build. Migration `202610010001_curated_community_skills.sql` is installed in the configured main project.
+As of September 30, 2026, service-curated public builds may use up to 50 points to provide a 3.5–4.8 rating spread. These full builds are snapshotted when added and resolved from the saved copy for games. This does not increase account budgets or the 35-point creator publishing budget. Editing a saved community copy still uses the recipient's account budget. Existing copies keep their original skills; remove and re-add an available public player to receive the refreshed build. Migration `20261001000101_curated_community_skills.sql` is installed in the configured main project.
 
 ## Enforcement and rollout
 

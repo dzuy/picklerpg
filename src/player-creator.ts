@@ -384,7 +384,7 @@ export class PlayerCreator {
  private removePlayer(){
   if(this.loadError)return;
   const id=this.draft.id;if(!this.library.players.some(p=>p.id===id))return;
-  try{this.library=deletePlayer(browserStorage,this.library,id);this.onLibraryChange(structuredClone(this.library),{kind:'delete',playerId:id});this.pending=null;this.el('.creator-delete-confirm').hidden=true;(this.el('.creator-confirm') as HTMLDialogElement).close();this.onDelete(id);this.loadDraft(this.activePlayer??this.library.players[0]??newPlayer());this.showRoster();this.el('[data-roster-status]').textContent=this.library.players.length?'Player deleted.':''}catch{this.el('[data-status]').textContent='Could not delete the player. Your saved roster is unchanged.'}
+  try{this.library=deletePlayer(browserStorage,this.library,id);this.onLibraryChange(structuredClone(this.library),{kind:'delete',playerId:id});this.pending=null;this.el('.creator-delete-confirm').hidden=true;(this.el('.creator-confirm') as HTMLDialogElement).close();this.onDelete(id);this.loadDraft(this.activePlayer??this.library.players[0]??newPlayer());this.showRoster();this.el('[data-roster-status]').textContent=this.library.players.length?'Player deleted.':''}catch{this.el('[data-status]').textContent='Could not finish deleting the player. Reconnect and try again.'}
  }
  private fill(){
   this.el('#creator-title').innerHTML=this.library.players.some(p=>p.id===this.draft.id)?'Edit Your Player':'Create Your Player';
