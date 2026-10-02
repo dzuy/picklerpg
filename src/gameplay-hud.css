@@ -1,3 +1,5 @@
+@import './hud-button.css';
+
 /* Presentation-only HUD: retain the scene and the existing shot-panel behavior. */
 body.match-mode[data-screen=court] #app>.header{display:none}
 body.match-mode[data-panel=play][data-screen=court] #app main{height:100dvh;padding:0}
@@ -52,13 +54,6 @@ body.match-mode[data-panel=play][data-screen=court] .court-wrap{border:0;border-
 #app .open-play-replay:disabled,#app.remote-app #remote-replay:disabled{opacity:1}
 #app .open-play-replay:disabled .hud-button-symbol,#app.remote-app #remote-replay:disabled .hud-button-symbol{opacity:.35}
 #app .score-row-away{border-left-color:var(--pb-primary)}
-.hud-button-face{fill:var(--pb-surface);stroke:var(--pb-border-strong);stroke-width:1.5}
-.hud-button-symbol{color:var(--pb-text)}
-button:hover .hud-button-face, a:hover .hud-button-face{fill:var(--pb-selected);stroke:var(--pb-info-ink)}
-
-/* Court utility icons retain their full button hit area without a visible container. */
-.hud-button-art--bare .hud-button-face{display:none}
-.hud-button-art--bare .hud-button-symbol{color:var(--pb-white)}
 
 /* Gameplay exit shares the bare white treatment of court utility controls. */
 #app :is(#remote-back,.open-play-games-link){background:none;border:0;box-shadow:none}

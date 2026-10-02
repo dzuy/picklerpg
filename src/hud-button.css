@@ -1,0 +1,8 @@
+/* Shared icon appearance must be available before gameplay loads. */
+.hud-button-face{fill:var(--pb-surface);stroke:var(--pb-border-strong);stroke-width:1.5}
+.hud-button-symbol{color:var(--pb-text)}
+button:hover .hud-button-face, a:hover .hud-button-face{fill:var(--pb-selected);stroke:var(--pb-info-ink)}
+
+/* Court utility icons retain their full button hit area without a visible container. */
+.hud-button-art--bare .hud-button-face{display:none}
+.hud-button-art--bare .hud-button-symbol{color:var(--pb-white)}
