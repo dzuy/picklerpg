@@ -1,6 +1,6 @@
 import {playerId,validatePlayer,type DesignedPlayer,type PlayerLibrary} from './player-design';
 import type {LibraryChange} from './cloud-players';
-export interface RosterOperation {id:string;queuedAt:number;change:LibraryChange;player?:DesignedPlayer;activeId:string|null}
+export interface RosterOperation {id:string;queuedAt:number;expectedRevision?:number;previousOperation?:string;change:LibraryChange;player?:DesignedPlayer;activeId:string|null}
 let lastTime=0;
 /** One key per operation: acknowledgements cannot erase another tab's queued work. */
 export class RosterOutbox {
@@ -9,7 +9,7 @@ export class RosterOutbox {
  enqueue(library:PlayerLibrary,change:LibraryChange){
   const player=change.kind==='save'?library.players.find(p=>p.id===change.playerId):undefined;
   if(change.kind==='save'&&!player)throw Error('Your edited player could not be found. Save again.');
-  const op:RosterOperation={id:playerId(),queuedAt:lastTime=Math.max(Date.now(),lastTime+1),change,activeId:library.activeId,...(player?{player:validatePlayer(player)}:{})};
+  const op:RosterOperation={id:player?.saveOperation??playerId(),previousOperation:change.kind==='delete'?change.previousOperation:player?.previousSaveOperation,queuedAt:lastTime=Math.max(Date.now(),lastTime+1),change,expectedRevision:change.kind==='save'?Math.max(0,(player?.revision??1)-1):change.expectedRevision,activeId:library.activeId,...(player?{player:validatePlayer(player)}:{})};
   this.storage.setItem(this.prefix+op.id,JSON.stringify(op));return op;
  }
  pending(){

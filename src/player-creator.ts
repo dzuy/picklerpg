@@ -279,7 +279,10 @@ export class PlayerCreator {
   if(!editing){const next=this.activePlayer??this.library.players[0]??newPlayer();this.draft=structuredClone(next);this.baseline=JSON.stringify(this.draft);this.fill()}
   if(this.dialog.open&&this.dialog.dataset.view==='roster')this.showRoster();
  }
+ private syncMessage='';
  setCloudStatus(state:CloudSaveState){
+  this.syncMessage=state==='conflict'?'This player changed elsewhere. Your edits are kept on this device. Reload to see the latest saved player.':state==='offline'?'Your edits are saved on this device. Reconnect to sync them.':state==='saving'?'Syncing player changes…':state==='saved'?'Synced.':'';
+  this.el('[data-roster-status]').textContent=this.loadError||this.syncMessage;
   if(state==='saved'&&this.dialog.open)void this.refreshBudget();
  }
  createPlayer(){this.open();this.switchDraft(()=>{this.loadDraft(this.shuffledPlayer());this.showEditor()})}
@@ -303,7 +306,7 @@ export class PlayerCreator {
  }
  private showRoster(){
   this.dialog.dataset.view='roster';this.dialog.setAttribute('aria-labelledby','roster-title');
-  this.el('[data-roster-status]').textContent=this.loadError;
+  this.el('[data-roster-status]').textContent=this.loadError||this.syncMessage;
   this.el('[data-community-section]').append(this.community.element);
   const saved=this.el('[data-saved-roster]');saved.replaceChildren();
   this.el('[data-saved-section]').hidden=false;
@@ -384,7 +387,7 @@ export class PlayerCreator {
  private removePlayer(){
   if(this.loadError)return;
   const id=this.draft.id;if(!this.library.players.some(p=>p.id===id))return;
-  try{this.library=deletePlayer(browserStorage,this.library,id);this.onLibraryChange(structuredClone(this.library),{kind:'delete',playerId:id});this.pending=null;this.el('.creator-delete-confirm').hidden=true;(this.el('.creator-confirm') as HTMLDialogElement).close();this.onDelete(id);this.loadDraft(this.activePlayer??this.library.players[0]??newPlayer());this.showRoster();this.el('[data-roster-status]').textContent=this.library.players.length?'Player deleted.':''}catch{this.el('[data-status]').textContent='Could not finish deleting the player. Reconnect and try again.'}
+  try{this.library=deletePlayer(browserStorage,this.library,id);this.onLibraryChange(structuredClone(this.library),{kind:'delete',playerId:id,expectedRevision:this.draft.revision,previousOperation:this.draft.saveOperation});this.pending=null;this.el('.creator-delete-confirm').hidden=true;(this.el('.creator-confirm') as HTMLDialogElement).close();this.onDelete(id);this.loadDraft(this.activePlayer??this.library.players[0]??newPlayer());this.showRoster();this.el('[data-roster-status]').textContent=this.library.players.length?'Player deleted.':''}catch{this.el('[data-status]').textContent='Could not finish deleting the player. Reconnect and try again.'}
  }
  private fill(){
   this.el('#creator-title').innerHTML=this.library.players.some(p=>p.id===this.draft.id)?'Edit Your Player':'Create Your Player';
@@ -426,7 +429,7 @@ export class PlayerCreator {
    }
    this.library=savePlayer(browserStorage,this.library,this.draft,play||this.activateOnSave);this.draft=structuredClone(this.library.players.find(p=>p.id===this.draft.id)!);this.baseline=JSON.stringify(this.draft);this.fill();this.onLibraryChange(structuredClone(this.library),{kind:'save',playerId:this.draft.id});
    for(const key of Object.keys(APPEARANCE_OPTIONS) as (keyof typeof APPEARANCE_OPTIONS)[]){const value=String(this.draft.appearance[key]);if(previous?.appearance[key]!==this.draft.appearance[key])Analytics.track('cosmetic_equipped',{category:key,item_id:value,tier:((PREMIUM_APPEARANCE_OPTIONS as Record<string,readonly string[]|undefined>)[key]?.includes(value)?'premium':'standard')});}
-   this.pending=null;(this.el('.creator-confirm') as HTMLDialogElement).close();this.el('[data-status]').textContent='Player saved.';
+   this.pending=null;(this.el('.creator-confirm') as HTMLDialogElement).close();this.el('[data-status]').textContent='Saved on this device.';
    if(play){this.onPlay(structuredClone(this.draft));this.dialog.close()}else this.showRoster();
    if(!play&&this.afterSave(structuredClone(this.draft)))this.dialog.close();
    return true;

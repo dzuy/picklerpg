@@ -60,7 +60,7 @@ test('legacy saved players gain outfit defaults without losing their name, color
 test('new clothing and equipment choices persist and reject unknown options',()=>{
  const player=newPlayer('outfit');Object.assign(player.appearance,{top:'tank',bottom:'skirt',accessory:'watch',shoes:'#b76564',paddle:'#315d58',hat:'backwards'});
  let saved='';savePlayer({setItem:(_key,value)=>{saved=value}},parseLibrary(null),player,true);
- assert.deepEqual(parseLibrary(saved).players[0],player);
+ const restored=parseLibrary(saved).players[0];assert.ok(restored.saveOperation);assert.deepEqual(restored,{...player,revision:1,saveOperation:restored.saveOperation});
  assert.throws(()=>validatePlayer({...player,appearance:{...player.appearance,bottom:'invalid'}}));
 });
 

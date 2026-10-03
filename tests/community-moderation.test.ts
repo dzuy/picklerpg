@@ -24,7 +24,7 @@ test('only trusted admins can hide discovery; existing rosters, owner data and r
  assert.equal((await as(B,'select * from community_player_catalog(array[$1]::uuid[])',[id])).rows.length,1);
  assert.equal((await db.pool.query('select * from community_roster_for_owner($1,array[$2]::uuid[])',[B,id])).rows.length,1);
  await assert.rejects(as(C,'insert into community_player_selections values($1,$2)',[C,id]),/row-level security|no longer available/);
- await as(C,"update players set is_public=true,name='Still owned' where public_id=$1",[id]);
+ await as(C,"update players set revision=revision+1,is_public=true,name='Still owned' where public_id=$1",[id]);
  assert.equal((await as(C,'select * from community_player_catalog()')).rows.length,0);
  assert.equal((await as(C,'select name from players where public_id=$1',[id])).rows[0].name,'Still owned');
  await as(B,'delete from community_player_selections where public_id=$1',[id]);
