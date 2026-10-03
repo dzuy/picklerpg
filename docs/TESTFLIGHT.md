@@ -246,3 +246,11 @@ Xcode reported **Upload succeeded / EXPORT SUCCEEDED** at **22:00 Costa Rica tim
 Evidence remains local under `artifacts/testflight-20/`: archive/distribution verification, upload/build/design/test logs and testing notes. Archive `/tmp/PickleBash-TestFlight-1.0-20.xcarchive`; distribution `/tmp/PickleBash-TestFlight20-Distribution/App.ipa`; isolated source `/tmp/picklebash-testflight20-source`. Temporary paths are not durable backups.
 
 Apple processing completed for build `d3e2a0b7-6a2f-4a90-aaf5-21953e3696d7`. The build detail page confirms **PickleBash Internal**, one existing internal tester, and no individual testers. Testing notes were saved. Internal TestFlight installation is available; actual device installation/acceptance is not claimed. No external group was changed and no App Review submission occurred.
+
+## App Review resubmission — October 2, 2026 — 1.0 (20)
+
+The owner reported completing testing and explicitly requested submission, lifting the prior review hold. Submitted **iOS App 1.0 (20)** with the four existing in-app purchases (Court, Everything, Fun/Party and Style). App Store Connect confirmed **5 Items Submitted**, and all five items show **Waiting for Review**, submitted October 2 at **22:13 Costa Rica time**. Submission ID: `974094bf-16bc-4ef9-a8d9-ab3a41d94b9d`.
+
+Build 20 replaced build 18 in the version draft. Review notes identify build 20 and the roster save-conflict fix. Existing reviewer access and purchase metadata were retained. **Manual release remains selected**; this submission does not publish the app or enable ordinary-account purchases.
+
+[Apple review submission](https://appstoreconnect.apple.com/apps/6815925616/distribution/reviewsubmissions/details/974094bf-16bc-4ef9-a8d9-ab3a41d94b9d)
