@@ -1,6 +1,6 @@
 /** Native guest play and independently protected admin tools keep their existing access. */
 export function requiresWebBetaAccount(url:URL,native:boolean){
- return !native&&!/^\/admin(?:\/analytics)?\/?$/.test(url.pathname);
+ return !native&&!/^\/admin(?:\/(?:analytics|todos))?\/?$/.test(url.pathname);
 }
 
 export function registeredBetaUser(user:{is_anonymous?:boolean}|null|undefined){

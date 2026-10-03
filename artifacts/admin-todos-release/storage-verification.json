@@ -1,0 +1,16 @@
+{
+  "project": "vwdtfnljcjbyokdvjiea.supabase.co",
+  "seedCount": 30,
+  "finalCount": 30,
+  "steps": [
+    "add and fresh-client reload",
+    "edit and group persistence",
+    "complete",
+    "reopen",
+    "delete temporary item only",
+    "original tasks unchanged",
+    "repeated loads preserve seed and edits"
+  ],
+  "checkedAt": "2026-10-03T12:16:46.380Z",
+  "scope": "Production repository using existing service credential; owner browser/session API flow not exercised."
+}

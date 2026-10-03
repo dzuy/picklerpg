@@ -1,3 +1,4 @@
+export {configuredAdminTodosHandler} from './admin-todos';
 export {configuredOpponentAccess} from './opponent-access';
 export {configuredAdminUsersHandler} from './admin-users';
 export {configuredAdminAnalyticsHandler} from './admin-analytics';

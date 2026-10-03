@@ -10,7 +10,7 @@ test('web gameplay requires registration for direct, legacy, saved and invited e
   assert.equal(requiresWebBetaAccount(gameEntryUrl(url),false),true,path);
   assert.equal(requiresWebBetaAccount(gameEntryUrl(url),true),false,path);
  }
- for(const path of ['/admin','/admin/analytics'])assert.equal(requiresWebBetaAccount(new URL(path,'https://picklebash.app'),false),false);
+ for(const path of ['/admin','/admin/analytics','/admin/todos','/admin/todos/'])assert.equal(requiresWebBetaAccount(new URL(path,'https://picklebash.app'),false),false);
  assert.equal(entryRoute(new URL('https://picklebash.app/')),'home');
 });
 test('only explicitly registered sessions grant beta play',()=>{

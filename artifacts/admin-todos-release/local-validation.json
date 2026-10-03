@@ -1,0 +1,8 @@
+{
+  "tests": 920,
+  "failed": 0,
+  "productionBuild": "passed",
+  "typechecks": "passed",
+  "designChecks": "passed; existing palette contrast advisory",
+  "browserInteractionQA": "not run; in-app browser controls unavailable"
+}
