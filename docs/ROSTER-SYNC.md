@@ -9,3 +9,9 @@ Reconnect reads the server roster. It never uploads an entire cached roster over
 A running match retains its starting player snapshot. Restoring an overwritten roster player should use the intended match snapshot and the original player ID, with a conditional update against the currently inspected revision. Do not rewrite match history or create a duplicate identity.
 
 Validation: stale revisions, legacy direct writes, failed-save descendants, duplicate delivery, deletion, account isolation, durable conflict recovery, and unrelated saves are covered by regression tests. Release status is recorded separately; this document does not establish deployment state.
+
+## Release verification — October 2, 2026
+
+Released source `dd785ea` to production `main` after explicit approval. Applied migration `202610030001` to the production Supabase project and recorded its source in the migration ledger. The live frontend's shared sign-in bundle contains both the revision checks and durable conflict recovery; `/healthz` returned 200. The isolated production source passed all 916 tests and the production build (existing bundle-size warning only).
+
+Restored the affected dzuy player from the active Voltz match onto the same player ID; appearance and skills matched the snapshot. Backups remain local under `artifacts/roster-recovery/` and were not committed. The local roster visibly showed dzuy and “Synced.” A production transaction verified rejection of a legacy overwrite and a stale deletion, then rolled back; dzuy remained revision 1. No match records were rewritten. Older native clients still require a compatible application update before editing existing players.
