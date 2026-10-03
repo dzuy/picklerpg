@@ -1,0 +1,23 @@
+{
+  "url": "https://picklebash.app/admin/todos",
+  "health": 200,
+  "page": 200,
+  "noindex": true,
+  "noReferrer": true,
+  "todoChunk": "/assets/admin-todos-DlJ3xo2f.js",
+  "apiDenials": [
+    {
+      "kind": "unauthenticated",
+      "status": 401
+    },
+    {
+      "kind": "invalid token",
+      "status": 401
+    }
+  ],
+  "checkedAt": "2026-10-03T12:21:12.817Z",
+  "notExercised": [
+    "owner browser sign-in and UI CRUD",
+    "live authenticated guest/non-owner sessions; those authorization branches passed local server tests"
+  ]
+}

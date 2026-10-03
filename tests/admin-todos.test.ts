@@ -37,7 +37,7 @@ test('seed has unique valid tasks and records completed roster work separately f
  assert.ok(state.items.some(i=>i.id==='build20-roster'&&i.done));assert.ok(state.items.some(i=>i.group==='acceptance'&&!i.done));
 });
 test('real database: service-only access, concurrent one-time seed, atomic revisions and durable empty list',async()=>{
- const db=await database();
+ const db=await database(async pool=>{await pool.query('alter default privileges in schema public grant all on tables to service_role');});
  // Minimal PostgREST transport adapter: production repository calls run against real SQL.
  const client={from:(table:string)=>{
   assert.equal(table,'admin_todo_lists');let values:any=null,kind='read';const filters:Record<string,unknown>={};
@@ -50,6 +50,7 @@ test('real database: service-only access, concurrent one-time seed, atomic revis
   const chain:any={select:()=>chain,eq:(k:string,v:unknown)=>{filters[k]=v;return chain;},upsert:(v:unknown,opts:unknown)=>{assert.deepEqual(opts,{onConflict:'owner_id',ignoreDuplicates:true});values=v;kind='seed';return execute();},update:(v:unknown)=>{values=v;kind='save';return chain;},maybeSingle:execute,single:execute};return chain;
  }};
  try{
+  assert.equal((await db.pool.query("select has_table_privilege('service_role','public.admin_todo_lists','DELETE') as allowed")).rows[0].allowed,false);
   const repo=adminTodosRepository(client as any);const [a,b]=await Promise.all([repo.load(),repo.load()]);assert.deepEqual(a,b);assert.equal(a.items.length,INITIAL_ADMIN_TODOS.length);
   for(const role of ['anon','authenticated']){const c=await db.pool.connect();try{await c.query(`set role ${role}`);for(const sql of ['select * from public.admin_todo_lists',"insert into public.admin_todo_lists(owner_id,items) values('"+ADMIN_OWNER_ID+"','[]')","update public.admin_todo_lists set items='[]'",'delete from public.admin_todo_lists'])await assert.rejects(c.query(sql),/permission denied/);}finally{await c.query('reset role');c.release();}}
   const writes=await Promise.allSettled([repo.save(a.version,[item]),repo.save(a.version,[])]);assert.equal(writes.filter(r=>r.status==='fulfilled').length,1);assert.equal(writes.filter(r=>r.status==='rejected').length,1);
