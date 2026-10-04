@@ -1,4 +1,3 @@
-import './player-label.css';
 import {FunCourt} from './fun-court';
 import {funCelebration} from './fun-athlete';
 import {isCourtTheme,type CourtTheme} from './fun-themes';
