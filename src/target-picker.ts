@@ -1,3 +1,4 @@
+import './target-picker.css';
 import {attachShotPower,shotHoldDelay} from './shot-power-control';
 import './shot-power.css';
 import {PLAYER_PROFILES,ARCHETYPES} from './engine/player-profiles';
@@ -32,7 +33,8 @@ export interface TargetingSource {
 /** Court coordinates survive camera movement; selections belong to one contact. */
 export class CourtTargetPicker {
  private panel=document.createElement('section');
- private powerCleanup:Array<()=>void>=[];
+ private powerCleanup:Array<ReturnType<typeof attachShotPower>>=[];
+ private replayChoices:TargetChoice[]=[];
  private holdMs=shotHoldDelay(location.search);
  private point:{x:number;z:number;playerId?:PlayerId}|null=null;
  private context:unknown=null;
@@ -41,11 +43,11 @@ export class CourtTargetPicker {
  private shotDescription='';
  private interpretation:AbortController|null=null;
  get active(){return !!this.point&&!this.panel.hidden}
- constructor(private source:TargetingSource,private scene:CourtScene){
+ constructor(private source:TargetingSource,private scene:CourtScene,private presentation:{host?:HTMLElement;replay?:boolean}={}){
   this.panel.className='target-picker';this.panel.tabIndex=-1;this.panel.hidden=true;this.panel.setAttribute('aria-label','Court target shot picker');
-  document.body.append(this.panel);
+  (presentation.host??document.body).append(this.panel);if(presentation.host)this.panel.style.position='absolute';if(presentation.replay)this.panel.inert=true;
   scene.onCourtTap=point=>{
-   if(this.interpretation||!this.enabled||!this.source.team||!isOpposingTarget(point,this.source.team))return false;
+   if(this.presentation.replay||this.interpretation||!this.enabled||!this.source.team||!isOpposingTarget(point,this.source.team))return false;
    const serving=this.source.choices.some(choice=>choice.intent.type==='serve');
    if(!serving&&(Math.abs(point.x)>COURT.width/2||Math.abs(point.z)>COURT.length/2))return false;
    this.source.aim?.();if(this.context!==this.source.context||this.decision!==this.source.decision)this.shotDescription='';this.point=point;this.context=this.source.context;this.decision=this.source.decision;
@@ -55,7 +57,7 @@ export class CourtTargetPicker {
   let dismissPointer:number|null=null,suppressClick=false;
   document.addEventListener('pointerdown',event=>{
    suppressClick=false;
-   if(!this.active||(event.target instanceof Element&&event.target.closest('.target-wheel,.shot-power-popover')))return;
+   if(this.presentation.replay||!this.active||(event.target instanceof Element&&event.target.closest('.target-wheel,.shot-power-popover')))return;
    dismissPointer=event.pointerId;suppressClick=true;event.preventDefault();event.stopImmediatePropagation();this.clear();
   },true);
   document.addEventListener('pointerup',event=>{if(event.pointerId===dismissPointer){dismissPointer=null;event.preventDefault();event.stopImmediatePropagation()}},true);
@@ -63,6 +65,12 @@ export class CourtTargetPicker {
   document.addEventListener('click',event=>{if(suppressClick){suppressClick=false;event.preventDefault();event.stopImmediatePropagation()}},true);
   this.panel.addEventListener('keydown',event=>{if(event.key==='Escape'){event.stopPropagation();this.clear()}});
 
+ }
+ /** Replay automation uses the same menu rendering and hold-to-power control. */
+ present(point:TargetPoint){this.context=this.source.context;this.decision=this.source.decision;this.point=point;this.scene.setSelectedTarget(point);this.draw()}
+ demonstratePower(intent:ShotIntent,power:number){
+  const index=this.replayChoices.findIndex(choice=>choice.intent.type===intent.type&&choice.intent.technique===intent.technique&&JSON.stringify(choice.intent.spin)===JSON.stringify(intent.spin)&&choice.intent.pace===intent.pace);
+  this.powerCleanup[index]?.demonstrate(power);
  }
  clear(){this.powerCleanup.splice(0).forEach(cleanup=>cleanup());this.scene.setTargetAccuracy(null);this.interpretation?.abort();this.interpretation=null;this.point=null;this.panel.hidden=true;this.scene.setSelectedTarget(null);this.scene.setShotPreview(null)}
  sync(active:boolean){
@@ -80,6 +88,12 @@ export class CourtTargetPicker {
     this.panel.style.left=`${viewport.left+8}px`;
     this.panel.style.top=`${Math.max(viewport.top,viewport.top+viewport.height-this.panel.offsetHeight-4)}px`;
     return;
+   }
+   if(this.presentation.host){
+    const host=this.presentation.host;this.panel.style.width=`${Math.min(300,host.clientWidth-24)}px`;
+    const p=this.scene.projectTarget(this.point),rect=host.getBoundingClientRect(),width=this.panel.offsetWidth,height=this.panel.offsetHeight;
+    this.panel.style.left=`${Math.max(12,Math.min(host.clientWidth-width-12,p.x-rect.left-width/2))}px`;
+    this.panel.style.top=`${Math.max(12,Math.min(host.clientHeight-height-12,p.y-rect.top+24))}px`;return;
    }
    this.panel.style.removeProperty('width');
    const p=this.scene.projectTarget(this.point),width=this.panel.offsetWidth,height=this.panel.offsetHeight;
@@ -104,7 +118,7 @@ export class CourtTargetPicker {
    return [{...choice,label}];
   });
   choices.sort((a,b)=>Number(!!b.intent.technique)-Number(!!a.intent.technique));
-  if(!choices.length){this.clear();return}
+  if(!choices.length){this.clear();return}this.replayChoices=choices;
   const meter=(label:'Risk'|'Pressure',level:ShotAssessment['risk']|undefined,fill?:number)=>{
    const count=level==='High'?3:level==='Medium'?2:level==='Low'?1:0;
    const description=level?`${label}: ${level}`:`${label}: unavailable`;
@@ -167,9 +181,9 @@ export class CourtTargetPicker {
      try{if(!this.active||!this.source.enabled)throw Error('Wait for your turn.');this.source.play(power===undefined?choice:{...choice,intent:{...choice.intent,power}},this.point!);this.clear()}
      catch(error){this.draw();if(this.active)this.status((error as Error).message)}
     },
-   },this.holdMs));
+   },this.holdMs,this.presentation.host??document.body));
   }
-  this.sync(true);this.panel.focus({preventScroll:true});
+  this.sync(true);if(!this.presentation.replay)this.panel.focus({preventScroll:true});
  }
 }
 

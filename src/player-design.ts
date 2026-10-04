@@ -1,4 +1,4 @@
-import {cleanTrashTalk} from './multiplayer/trash-talk';
+import {cleanPublicPlayerText} from './public-player-text';
 import {isCourtTheme,type CourtTheme} from './fun-themes';
 import {SKILLS,type PlayerSkills} from './engine/model';
 import {PLAYER_PROFILES} from './engine/player-profiles';
@@ -15,7 +15,7 @@ export interface Appearance {
  shoeStyle:typeof APPEARANCE_OPTIONS.shoeStyle[number];glassesColor:string;lensColor:string;lensTranslucency?:number;
  skin:string;hair:string;jersey:string;bottomColor:string;hatColor:string;accent:string;shoes:string;paddle:string;
 }
-export interface DesignedPlayer {id:string;name:string;catchphrase?:string;isPublic?:boolean;publishedSkills?:PlayerSkills;appearance:Appearance;skills:PlayerSkills;handedness:'left'|'right'}
+export interface DesignedPlayer {revision?:number;saveOperation?:string;previousSaveOperation?:string;id:string;name:string;catchphrase?:string;isPublic?:boolean;publishedSkills?:PlayerSkills;appearance:Appearance;skills:PlayerSkills;handedness:'left'|'right'}
 export interface PlayerLibrary {version:1;activeId:string|null;players:DesignedPlayer[]}
 export const PLAYER_STORAGE_KEY='pickle-rpg-players-v1';
 export const DEFAULT_APPEARANCE:Appearance={outfit:'none',outfitColor:'#36936c',facialHair:'none',facialHairColor:'#493629',expression:'happy',paddleShape:'squarish',presentation:'boy',face:'oval',hairStyle:'short',hat:'cap',glasses:'none',glassesColor:'#25272d',lensColor:'#b7dce5',shoeStyle:'court',skin:'#dba67f',hair:'#493629',jersey:'#f3dc86',accent:'#214d43',hatColor:'#214d43',bottomColor:'#214d43',top:'jersey',bottom:'shorts',accessory:'wristband',shoes:'#214d43',paddle:'#214d43'};
@@ -47,9 +47,11 @@ function validatePlayerRecord(value:unknown,catchphraseLimit:number):DesignedPla
  for(const key of ['outfitColor','facialHairColor','lensColor','glassesColor','skin','hair','jersey','bottomColor','hatColor','accent','shoes','paddle'] as const)if(!(key==='lensColor'&&appearance[key]==='none')&&!/^#[0-9a-f]{6}$/i.test(appearance[key]))throw new Error('Choose a valid color.');
  for(const key of SKILLS)if(!Number.isInteger(p.skills[key])||p.skills[key]<0||p.skills[key]>100)throw new Error('Skills must be whole numbers from 0 to 100.');
  if(p.publishedSkills!==undefined)for(const key of SKILLS)if(!Number.isInteger(p.publishedSkills[key])||p.publishedSkills[key]<0||p.publishedSkills[key]>100)throw new Error('Invalid community skill build.');
- const name=cleanTrashTalk(p.name).slice(0,24),catchphrase=p.catchphrase?cleanTrashTalk(p.catchphrase).slice(0,catchphraseLimit):'';
+ if(p.revision!==undefined&&(!Number.isSafeInteger(p.revision)||p.revision<0))throw new Error('Invalid player revision.');
+ for(const value of [p.saveOperation,p.previousSaveOperation])if(value!==undefined&&(typeof value!=='string'||! /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(value)))throw new Error('Invalid player save identity.');
+ const name=cleanPublicPlayerText(p.name).slice(0,24),catchphrase=p.catchphrase?cleanPublicPlayerText(p.catchphrase).slice(0,catchphraseLimit):'';
  if(!name)throw new Error('Use a player name of 1–24 characters.');
- return {id:p.id,name,...(p.publishedSkills?{publishedSkills:{...p.publishedSkills}}:{}),...(p.isPublic!==undefined?{isPublic:p.isPublic}:{}),...(catchphrase?{catchphrase}:{}),handedness:p.handedness,appearance:{...(appearance.funOverrides?{funOverrides:[...appearance.funOverrides]}:{}),...(appearance.funTheme!==undefined?{funTheme:appearance.funTheme,funVariant:appearance.funVariant??0}:{}),...(appearance.funPaddle!==undefined?{funPaddle:appearance.funPaddle}:{}),outfit:appearance.outfit,outfitColor:appearance.outfitColor,...(appearance.lensTranslucency!==undefined?{lensTranslucency:appearance.lensTranslucency}:{}),facialHair:appearance.facialHair,facialHairColor:appearance.facialHairColor,expression:appearance.expression,paddleShape:appearance.paddleShape,shoeStyle:appearance.shoeStyle,glassesColor:appearance.glassesColor,lensColor:appearance.lensColor,presentation:appearance.presentation,face:p.appearance.face,hairStyle:p.appearance.hairStyle,hat:p.appearance.hat,glasses:p.appearance.glasses,skin:p.appearance.skin,hair:p.appearance.hair,jersey:p.appearance.jersey,accent:p.appearance.accent,bottomColor:appearance.bottomColor,hatColor:appearance.hatColor,top:appearance.top,bottom:appearance.bottom,accessory:appearance.accessory,shoes:appearance.shoes,paddle:appearance.paddle},skills:Object.fromEntries(SKILLS.map(key=>[key,p.skills[key]])) as PlayerSkills};
+ return {id:p.id,name,...(p.saveOperation?{saveOperation:p.saveOperation}:{}),...(p.previousSaveOperation?{previousSaveOperation:p.previousSaveOperation}:{}),...(p.revision!==undefined?{revision:p.revision}:{}),...(p.publishedSkills?{publishedSkills:{...p.publishedSkills}}:{}),...(p.isPublic!==undefined?{isPublic:p.isPublic}:{}),...(catchphrase?{catchphrase}:{}),handedness:p.handedness,appearance:{...(appearance.funOverrides?{funOverrides:[...appearance.funOverrides]}:{}),...(appearance.funTheme!==undefined?{funTheme:appearance.funTheme,funVariant:appearance.funVariant??0}:{}),...(appearance.funPaddle!==undefined?{funPaddle:appearance.funPaddle}:{}),outfit:appearance.outfit,outfitColor:appearance.outfitColor,...(appearance.lensTranslucency!==undefined?{lensTranslucency:appearance.lensTranslucency}:{}),facialHair:appearance.facialHair,facialHairColor:appearance.facialHairColor,expression:appearance.expression,paddleShape:appearance.paddleShape,shoeStyle:appearance.shoeStyle,glassesColor:appearance.glassesColor,lensColor:appearance.lensColor,presentation:appearance.presentation,face:p.appearance.face,hairStyle:p.appearance.hairStyle,hat:p.appearance.hat,glasses:p.appearance.glasses,skin:p.appearance.skin,hair:p.appearance.hair,jersey:p.appearance.jersey,accent:p.appearance.accent,bottomColor:appearance.bottomColor,hatColor:appearance.hatColor,top:appearance.top,bottom:appearance.bottom,accessory:appearance.accessory,shoes:appearance.shoes,paddle:appearance.paddle},skills:Object.fromEntries(SKILLS.map(key=>[key,p.skills[key]])) as PlayerSkills};
 }
 export function parseLibrary(raw:string|null):PlayerLibrary{
  if(raw===null)return {version:1,activeId:null,players:[]};
@@ -62,7 +64,7 @@ export function parseLibrary(raw:string|null):PlayerLibrary{
 }
 export function savePlayer(storage:Pick<Storage,'setItem'>,library:PlayerLibrary,draft:DesignedPlayer,activate=false):PlayerLibrary{
  if(draft.id.startsWith('community-'))throw new Error('Community Players can only be edited by their creator.');
- const player=validatePlayer(draft),players=library.players.filter(p=>p.id!==player.id);
+ const player=validatePlayer({...draft,revision:(draft.revision??0)+1,saveOperation:playerId(),previousSaveOperation:draft.saveOperation}),players=library.players.filter(p=>p.id!==player.id);
  if(players.length>=100)throw new Error('This roster is full (100 players).');
  const next:PlayerLibrary={version:1,activeId:activate?player.id:library.activeId,players:[...players,player]};
  // Commit to memory only after storage succeeds, so quota errors cannot lose data.

@@ -7,7 +7,7 @@ import {createOpponentHandler} from './opponent.mjs';
 
 const defaultRoot=fileURLToPath(new URL('../dist/',import.meta.url));
 const types={'.webmanifest':'application/manifest+json','.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json','.wasm':'application/wasm','.glb':'model/gltf-binary','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg','.webp':'image/webp','.svg':'image/svg+xml','.ico':'image/x-icon','.woff':'font/woff','.woff2':'font/woff2','.wav':'audio/wav','.mp3':'audio/mpeg'};
-export function createProductionServer({root=defaultRoot,apiHandler=createOpponentHandler({provider:'api'}),matchHandler=null,analyticsHandler=null,adminUsersHandler=null,playerCardHandler=null}={}){
+export function createProductionServer({root=defaultRoot,apiHandler=createOpponentHandler({provider:'api'}),matchHandler=null,analyticsHandler=null,adminUsersHandler=null,adminTodosHandler=null,playerCardHandler=null}={}){
  const directory=resolve(root);
  return createServer(async(req,res)=>{
   let pathname;
@@ -23,6 +23,7 @@ export function createProductionServer({root=defaultRoot,apiHandler=createOppone
   }
   if(pathname==='/api/invitations'||pathname.startsWith('/api/invitations/')||pathname==='/api/matches'||pathname.startsWith('/api/matches/')||pathname.startsWith('/api/multiplayer/')){if(!matchHandler){res.writeHead(503,{'Content-Type':'application/json'}).end(JSON.stringify({error:{code:'disabled',message:'Remote play is not enabled.'}}));return}await matchHandler(req,res);return}
   if(pathname==='/api/player-cards'){if(!playerCardHandler){res.writeHead(503,{'Content-Type':'application/json'}).end(JSON.stringify({error:{message:'Card publishing is not configured.'}}));return;}await playerCardHandler(req,res);return;}
+  if(pathname==='/api/admin/todos'){if(!adminTodosHandler){res.writeHead(503,{'Content-Type':'application/json','Cache-Control':'no-store'}).end(JSON.stringify({error:{code:'unavailable'}}));return;}await adminTodosHandler(req,res);return;}
   if(pathname==='/api/admin/analytics'){if(!analyticsHandler){res.writeHead(503,{'Content-Type':'application/json','Cache-Control':'no-store'}).end(JSON.stringify({error:{code:'unavailable'}}));return;}await analyticsHandler(req,res);return;}
   if(pathname==='/api/admin/users'||pathname.startsWith('/api/admin/users/')){if(!adminUsersHandler){res.writeHead(503,{'Content-Type':'application/json','Cache-Control':'no-store'}).end(JSON.stringify({error:{code:'unavailable'}}));return;}await adminUsersHandler(req,res);return;}
   if(pathname.startsWith('/api/')){req.url=pathname;await apiHandler(req,res);return}
@@ -30,7 +31,7 @@ export function createProductionServer({root=defaultRoot,apiHandler=createOppone
   if(pathname==='/healthz'){res.writeHead(200,{'Content-Type':'application/json'}).end(req.method==='HEAD'?undefined:'{"status":"ok"}');return}
   if(pathname.includes('\0')||pathname.split('/').some(part=>part.startsWith('.'))){res.writeHead(404).end();return}
   const legalPage=/^\/(privacy|tos|support)\/?$/.exec(pathname);
-  const file=resolve(directory,'.'+(legalPage?`/${legalPage[1]}.html`:pathname==='/'||/^\/play\/?$/.test(pathname)||/^\/admin(?:\/analytics)?\/?$/.test(pathname)||/^\/challenge\/[^/]{1,1024}$/.test(pathname)?'/index.html':pathname));
+  const file=resolve(directory,'.'+(legalPage?`/${legalPage[1]}.html`:pathname==='/'||/^\/play\/?$/.test(pathname)||/^\/admin(?:\/(?:analytics|todos))?\/?$/.test(pathname)||/^\/challenge\/[^/]{1,1024}$/.test(pathname)?'/index.html':pathname));
   if(!file.startsWith(directory+sep)){res.writeHead(404).end();return}
   try{
    const info=await stat(file);if(!info.isFile()){res.writeHead(404).end();return}
@@ -44,8 +45,8 @@ if(process.argv[1]&&pathToFileURL(resolve(process.argv[1])).href===import.meta.u
  await access(resolve(defaultRoot,'index.html'));
  const port=Number(process.env.PORT||5173);
  if(!Number.isInteger(port)||port<1||port>65535)throw new Error('PORT must be between 1 and 65535.');
- const {configuredMatchHandler,serverAnalytics,configuredAdminAnalyticsHandler,configuredPlayerCardHandler,configuredAdminUsersHandler}=await import('../dist-server/multiplayer.mjs');
- const server=createProductionServer({adminUsersHandler:configuredAdminUsersHandler(),playerCardHandler:configuredPlayerCardHandler({...process.env,RATE_LIMIT_STORE:process.env.RATE_LIMIT_STORE??'database'}),analyticsHandler:configuredAdminAnalyticsHandler(),matchHandler:configuredMatchHandler({...process.env,RATE_LIMIT_STORE:process.env.RATE_LIMIT_STORE??'database'})});
+ const {configuredOpponentAccess,configuredMatchHandler,serverAnalytics,configuredAdminAnalyticsHandler,configuredPlayerCardHandler,configuredAdminUsersHandler,configuredAdminTodosHandler}=await import('../dist-server/multiplayer.mjs');
+ const server=createProductionServer({apiHandler:createOpponentHandler({provider:'api',authorize:configuredOpponentAccess()}),adminUsersHandler:configuredAdminUsersHandler(),adminTodosHandler:configuredAdminTodosHandler(),playerCardHandler:configuredPlayerCardHandler({...process.env,RATE_LIMIT_STORE:process.env.RATE_LIMIT_STORE??'database'}),analyticsHandler:configuredAdminAnalyticsHandler(),matchHandler:configuredMatchHandler({...process.env,RATE_LIMIT_STORE:process.env.RATE_LIMIT_STORE??'database'})});
  server.requestTimeout=15000;server.headersTimeout=10000;
  server.listen(port,'0.0.0.0',()=>console.log(`Pickle RPG listening on 0.0.0.0:${port}`));
  for(const signal of ['SIGTERM','SIGINT'])process.on(signal,()=>{server.close(()=>{void serverAnalytics.shutdown().finally(()=>process.exit(0))});setTimeout(()=>process.exit(1),10000).unref()});

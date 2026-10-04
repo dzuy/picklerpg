@@ -17,3 +17,7 @@ Use [the Premium access definition](docs/PREMIUM.md) for Premium courts, cosmeti
 All new or revised court thumbnails must follow the approved straight-on, centered baseline perspective. Do not use a three-quarter, isometric, diagonally rotated, or top-down view. Keep the net and baselines horizontal, the centerline vertical, and the sidelines converging symmetrically into the background.
 
 Use the existing flat, stylized SVG illustration style and retain each court's distinctive scenery and colors. Follow the full [court thumbnail rules](docs/STYLE-GUIDE.md#court-thumbnails) and compare new artwork with the existing thumbnails before finishing.
+
+## Gameplay studio reuse
+
+Before adding gameplay UI or visuals to Rally Studio or another testing page, find and reuse the real gameplay feature, including its shared styles and behavior. Do not build studio-specific imitations of existing controls, name displays, or effects. Extract existing presentation into a shared module when necessary so gameplay and testing pages use the same implementation.

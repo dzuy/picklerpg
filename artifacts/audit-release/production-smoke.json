@@ -1,0 +1,43 @@
+{
+  "checkedAt": "2026-10-02T16:15:24.563Z",
+  "commit": "26f49c56208d49acf0e572d18fb828361d728c10",
+  "checks": [
+    {
+      "path": "/healthz",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "path": "/api/opponent",
+      "status": 401,
+      "expected": 401
+    },
+    {
+      "path": "/api/opponent",
+      "status": 401,
+      "expected": 401
+    },
+    {
+      "path": "/api/command",
+      "status": 401,
+      "expected": 401
+    },
+    {
+      "path": "/api/command",
+      "status": 401,
+      "expected": 401
+    },
+    {
+      "path": "/api/multiplayer/match-summaries?filter=active",
+      "status": 200,
+      "expected": 200
+    },
+    {
+      "path": "/api/command",
+      "status": 200,
+      "expected": 200
+    }
+  ],
+  "guestCommandValid": true,
+  "temporaryGuestDeleted": true
+}

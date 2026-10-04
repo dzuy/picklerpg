@@ -17,8 +17,12 @@ export class AccountSafetyService {
   if(!input||!REPORT_REASONS.includes(input.reason)||typeof input.details!=='string'||input.details.trim().length>500)throw new ApiError(400,'report','Choose a reason and use at most 500 characters.');
   const target=await this.target(actor,input);if(target===actor)throw new ApiError(400,'report','Choose another player.');
   let evidence:unknown=null;
-  if(input.messageId){if(!uuid(input.matchId)||!uuid(input.messageId))throw new ApiError(400,'report','Choose a valid message.');const {data:m,error}=await this.db.from('async_matches').select('home_user_id,away_user_id').eq('id',input.matchId).maybeSingle();this.check(error);if(!m||![m.home_user_id,m.away_user_id].includes(actor))throw new ApiError(404,'report','Message unavailable.');const {data:message,error:messageError}=await this.db.from('match_trash_talk').select('text,created_at').eq('match_id',input.matchId).eq('id',input.messageId).eq('sender_id',target).maybeSingle();this.check(messageError);if(!message)throw new ApiError(404,'report','Message unavailable.');evidence=message;}
-  if(input.matchId&&!input.messageId){const {data,error}=await this.db.from('match_trash_talk').select('text,created_at').eq('match_id',input.matchId).eq('sender_id',target).order('created_at',{ascending:false}).limit(10);this.check(error);evidence={matchId:input.matchId,messages:data};}
+  if(input.messageId&&!input.matchId)throw new ApiError(400,'report','Choose a valid message.');
+  if(input.matchId){
+   if(!uuid(input.matchId)||(input.messageId&&!uuid(input.messageId)))throw new ApiError(400,'report','Choose a valid message.');
+   const {data,error}=await this.db.rpc('player_chat_report_evidence',{p_match_id:input.matchId,p_actor:actor,p_message_id:input.messageId??null});
+   if(error?.code==='P0002')throw new ApiError(404,'report','Message unavailable.');this.check(error);evidence=data;
+  }
   if(input.publicId){const {data,error}=await this.db.from('players').select('name,catchphrase,appearance').eq('public_id',input.publicId).maybeSingle();this.check(error);evidence=data;}
   const {error}=await this.db.from('player_reports').insert({reporter_id:actor,target_id:target,public_id:input.publicId??null,reason:input.reason,details:input.details.trim(),evidence});this.check(error);return {ok:true};
  }

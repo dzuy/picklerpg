@@ -9,32 +9,13 @@ class MemoryStorage implements Storage {
  setItem(key:string,value:string){this.values.set(String(key),String(value))}
 }
 
-class FailoverStorage implements Storage {
- private failed=false;
- private readonly fallback=new MemoryStorage();
- constructor(private readonly primary:Storage){}
- get length(){return this.read(storage=>storage.length)}
- clear(){this.write(storage=>storage.clear())}
- getItem(key:string){return this.read(storage=>storage.getItem(key))}
- key(index:number){return this.read(storage=>storage.key(index))}
- removeItem(key:string){this.write(storage=>storage.removeItem(key))}
- setItem(key:string,value:string){this.write(storage=>storage.setItem(key,value))}
- private read<T>(operation:(storage:Storage)=>T):T{
-  if(!this.failed)try{return operation(this.primary)}catch{this.failed=true}
-  return operation(this.fallback);
- }
- private write(operation:(storage:Storage)=>void){
-  if(!this.failed)try{operation(this.primary);return}catch{this.failed=true}
-  operation(this.fallback);
- }
-}
-
+/** Once acquired, storage remains authoritative. A failed write must reach the caller. */
 export function createSafeStorage(read:()=>Storage):{storage:Storage;persistent:boolean}{
  try{
-  const storage=read(),probe='__picklebash_storage_probe__',previous=storage.getItem(probe);
-  storage.setItem(probe,'1');
-  if(previous===null)storage.removeItem(probe);else storage.setItem(probe,previous);
-  return {storage:new FailoverStorage(storage),persistent:true};
+  const storage=read();
+  // Reading does not require spare quota. A full store must not hide existing saves.
+  storage.getItem('__picklebash_storage_probe__');
+  return {storage,persistent:true};
  }catch{return {storage:new MemoryStorage(),persistent:false}}
 }
 

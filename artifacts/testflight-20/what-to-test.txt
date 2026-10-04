@@ -1,0 +1,10 @@
+This build fixes player edits reverting or disappearing from Your Team.
+
+Please test:
+• Edit a player's name, appearance, and skills, then save and reopen the roster.
+• Close and reopen the app and confirm the saved player remains correct.
+• Edit while offline, reconnect, and check the sync status.
+• Open the same roster on two devices and verify an older edit cannot overwrite the newer saved player.
+• Resume an existing game and confirm its original lineup is preserved.
+
+If a conflict appears, reload to see the latest saved player. The rejected edits are kept on that device for recovery.

@@ -155,9 +155,10 @@ test('a point-ending custom serve commits the deuce and winning score before ani
 
 test('restoration cancels an in-flight text interpretation without changing the new decision',async()=>{
  const m=Match.fromCheckpoint(receptionFixture());const before=m.exportCheckpoint();let reply:((r:Response)=>void)|undefined;
- const oldFetch=globalThis.fetch;globalThis.fetch=()=>new Promise<Response>(resolve=>{reply=resolve});
+ let started!:()=>void;const requestStarted=new Promise<void>(resolve=>{started=resolve});
+ const oldFetch=globalThis.fetch;globalThis.fetch=()=>new Promise<Response>(resolve=>{reply=resolve;started()});
  try{
-  const pending=m.queueReceptionCommand('a surprisingly crafty pickleball shot');m.restoreCheckpoint(before);
+  const pending=m.queueReceptionCommand('a surprisingly crafty pickleball shot');await requestStarted;m.restoreCheckpoint(before);
   reply!(new Response(JSON.stringify({shot:'drive',target:'middle',aim:'space',pace:'fast',spin:'none',spinDirection:'none',spinStrength:'medium'})));
   await assert.rejects(pending,/no longer available/);same(m,Match.fromCheckpoint(before));assert.equal(m.customBusy,false);
  }finally{globalThis.fetch=oldFetch;}

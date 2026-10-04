@@ -1,0 +1,16 @@
+/** Local sample-only preview. No .env, hosted identity, production APIs or real task data. */
+import {createServer} from 'vite';
+import {readFile,writeFile} from 'node:fs/promises';
+import {createAdminTodosHandler} from '../../server/multiplayer/admin-todos';
+import {ADMIN_OWNER_ID} from '../../server/multiplayer/admin-owner';
+import type {AdminTodoList} from '../../src/admin-todos-contract';
+const file='/tmp/picklebash-admin-todos-sample.json';
+let state:AdminTodoList;
+try{state=JSON.parse(await readFile(file,'utf8'));}catch{state={version:1,items:[{id:'sample',title:'Sample task — local preview',notes:'This preview uses sample tasks only. Add, edit, complete, reopen and delete to try the flow. Changes survive preview restarts.',group:'next',done:false}]};}
+const handler=createAdminTodosHandler({authenticate:async token=>token==='local-owner'?{id:ADMIN_OWNER_ID,is_anonymous:false}:token==='local-other'?{id:'other',is_anonymous:false}:null,repository:{load:async()=>structuredClone(state),save:async(version,items)=>{if(version!==state.version)throw Error('Stale preview write');state={version:version+1,items};await writeFile(file,JSON.stringify(state),{mode:0o600});return structuredClone(state);}}});
+const auth=`const listeners=[];const session=()=>{const role=localStorage.getItem('todo-preview-role')||'owner';return role==='out'?null:{access_token:'local-'+role,user:{id:role==='owner'?'${ADMIN_OWNER_ID}':'other',is_anonymous:false,user_metadata:{username:role==='owner'?'dzuy (sample preview)':'other (sample preview)'}}}};
+const client={auth:{getSession:async()=>({data:{session:session()}}),onAuthStateChange:f=>{listeners.push(f);return {data:{subscription:{unsubscribe(){}}}}},signOut:async()=>{window.todoPreviewRole('out');return {error:null}}}};
+window.todoPreviewRole=role=>{localStorage.setItem('todo-preview-role',role);listeners.forEach(f=>f(role==='out'?'SIGNED_OUT':'SIGNED_IN',session()))};
+export const authClient=()=>client;`;
+const server=await createServer({configFile:false,envFile:false,plugins:[{name:'todo-sample-preview',enforce:'pre',resolveId(id){if(/(?:^|\/)auth-session(?:\.ts)?$/.test(id))return '\0todo-auth';if(id.endsWith('/sign-in-dialog')||id.endsWith('/sign-in-dialog.ts'))return '\0todo-signin';},load(id){if(id==='\0todo-auth')return auth;if(id==='\0todo-signin')return 'export function signInDialog(done){window.todoPreviewRole("owner");done();}';},configureServer(s){s.middlewares.use((req,res,next)=>{if(req.url?.startsWith('/api/admin/todos')){void handler(req,res);return;}if(req.url?.startsWith('/api/')){res.writeHead(404).end();return;}if(req.url?.split('?')[0]==='/admin/todos'){res.setHeader('Content-Type','text/html');res.end('<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"></head><body><div style="padding:12px">Local sample preview · <button onclick="todoPreviewRole(\'owner\')">Owner</button> <button onclick="todoPreviewRole(\'other\')">Non-owner</button> <button onclick="todoPreviewRole(\'out\')">Signed out</button></div><div id="app"></div><script type="module" src="/src/admin-todos.ts"></script></body></html>');return;}next();});}}],server:{host:'127.0.0.1',port:5187,strictPort:true}});
+await server.listen();console.log('Sample-only To-do List: http://127.0.0.1:5187/admin/todos');

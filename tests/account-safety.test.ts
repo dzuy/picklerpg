@@ -17,7 +17,13 @@ test('match safety targets require membership and use the opponent derived by th
 });
 test('blocked chat suppresses feed and prevents retries from reusing old message receipts',async()=>{
  const {TrashTalkService}=await import('../server/multiplayer/trash-talk');
- const q={select(){return this},eq(){return this},maybeSingle:async()=>({data:{home_user_id:A,away_user_id:B},error:null})};
- const db:any={from:()=>q,rpc:async(name:string)=>{assert.equal(name,'players_blocked');return {data:true,error:null}}};const service=new TrashTalkService(db);
+ const db:any={rpc:async(name:string)=>name==='get_player_chat'?{data:{messages:[],blocked:true},error:null}:{data:null,error:{code:'PT410'}}};const service=new TrashTalkService(db);
  assert.deepEqual((await service.feed(A,B)).messages,[]);await assert.rejects(service.send(A,B,{id:A,text:'Hi'}),/unavailable/);
+});
+
+test('chat reports snapshot only server-authorized conversation evidence',async()=>{
+ let saved:any;const calls:any[]=[];
+ const db:any={rpc:async(name:string,args:any)=>{calls.push({name,args});return {data:{messages:[{text:'Reported message'}]},error:null}},from:(table:string)=>table==='async_matches'?{select(){return this},eq(){return this},maybeSingle:async()=>({data:{home_user_id:A,away_user_id:B},error:null})}:{insert:async(row:any)=>{saved=row;return {error:null}}}};
+ await new AccountSafetyService(db,async()=>null).report(A,{matchId:A,messageId:B,targetId:A,reason:'harassment',details:'Review this'});
+ assert.deepEqual(calls,[{name:'player_chat_report_evidence',args:{p_match_id:A,p_actor:A,p_message_id:B}}]);assert.equal(saved.target_id,B);assert.equal(saved.reporter_id,A);assert.deepEqual(saved.evidence,{messages:[{text:'Reported message'}]});
 });

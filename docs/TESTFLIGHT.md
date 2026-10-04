@@ -234,3 +234,43 @@ Build 18’s signed production archive and preserved App Store IPA passed signat
 Temporary release files: `/tmp/PickleBash-TestFlight-1.0-18.xcarchive`, `/tmp/PickleBash-TestFlight18-Distribution/App.ipa`, `/tmp/picklebash-testflight18-source`, `/tmp/picklebash-ios18-tests.log`, `/tmp/picklebash-ios18-production-sync.log`, `/tmp/picklebash-ios18-archive.log`, `/tmp/picklebash-ios18-upload.log`, `/tmp/picklebash-ios18-distribution.log`. These are not durable backups. Physical build-18 receipt-conflict/preflight checks, clean-receipt review-account purchase/restore, prior refund/revocation/fallback checks and native account-safety acceptance remain pending. Do not declare the app fully ready for public billing from metadata validation alone.
 
 Final Apple draft verification: **Items Ready to Submit (5)** contains **iOS App 1.0 (18)** and **In-App Purchases (4)**. The draft is still unsubmitted. Proof: [combined draft](../artifacts/billing/app-review-18-draft-ready.jpg).
+
+
+## Submission withdrawn — October 2, 2026
+
+The owner requested cancellation and explicitly deferred resubmission until after additional updates. The signed-in Codex browser confirmed iOS 1.0 build 18 was Waiting for Review, submitted October 1 at 6:18 PM. Removed version 1.0 from review and confirmed submission `a42d59e4-dfa9-4130-9260-75649b89e721` reached **Removed**. All five items show Removed: iOS App 1.0 (18), Style, Court, Fun/Party and Everything purchases. These items were removed from this review submission, not deleted from the app record.
+
+No replacement build was uploaded or resubmitted. **Hold native submission until the owner requests it after the additional updates.** Build 18 also needs the paid-route authentication compatibility change described in [the audit release record](AUDIT-RELEASE-2026-10-02.md). Evidence: [cancelled submission](../artifacts/audit-release/apple-submission-removed.jpg).
+
+
+## Resubmission candidate — October 2, 2026 — 1.0 (19)
+
+The owner requested a TestFlight build that could become a resubmission candidate. Uploaded production **1.0 (19)** from exact main revision `e945ff79a8ba94d975962d7881313546300a0bea`, using an isolated source snapshot. This includes the deployed paid-route bearer authentication compatibility fix, account/roster recovery and bounded history updates, the beta-entry native bypass, and shared account close-icon styling. Unfinished Rally Studio and other concurrent shared-checkout edits were excluded. The build/version values were passed as archive settings; the shared native project was not edited.
+
+All **914 tests passed** with two test workers. Production client/server compilation, Capacitor sync, design checks, signed Release archive, and App Store distribution export passed. Archive verification confirmed bundle `com.picklebash.app`, iPhone-only configuration, production backend/database/public purchase SDK/analytics with `VITE_APP_VERSION=1.0(19)`, platform-only encryption declaration, no development overrides, and no configured server secrets in bundled files. The initial restricted-shell signature check could not access the trust store; the same archive passed when verified against the Mac's signing trust store. Distribution signature verification passed with `aps-environment=production` and `get-task-allow=false`.
+
+Xcode reported **Upload succeeded / EXPORT SUCCEEDED** at **19:42 Costa Rica time**, October 2, and Apple reported that the package began processing. Export uses `app-store-connect` distribution without an internal-only restriction, so it can be selected later for review. Current App Store Connect build numbering could not be independently read because browser/API access was unavailable; Apple accepted the build-19 upload without a duplicate-number error. Processing completion, export-compliance status, saved testing notes and PickleBash Internal availability remain **unverified**. Local proposed testing notes were prepared but not saved to Apple. No external tester group or App Review submission was changed. The review-submission hold remains in effect pending a separate owner decision.
+
+Physical iPhone gameplay, offline/reconnect, native notifications/audio, account safety and purchase/restore acceptance remain pending. This is a candidate upload, not a claim of review readiness or public billing acceptance.
+
+Evidence: [archive/distribution verification](../artifacts/testflight-19/archive-verification.json), [upload log](../artifacts/testflight-19/upload.log), [tests](../artifacts/testflight-19/tests.log), [proposed testing notes](../artifacts/testflight-19/what-to-test.txt). Temporary archive `/tmp/PickleBash-TestFlight-1.0-19.xcarchive`; distribution IPA `/tmp/PickleBash-TestFlight19-Distribution/App.ipa`; isolated source `/tmp/picklebash-testflight19-source`. Temporary paths are not durable backups. This release record and evidence are local; no new source commit was needed for the version override.
+
+## TestFlight roster fix — October 2, 2026 — 1.0 (20)
+
+At the owner's request, built production **1.0 (20)** from exact main revision `9a6fb1b858da4dd765e326e92064389e5e4c50ac`. Main already contained the deployed roster revision fix; the isolated native source excludes unrelated shared-checkout work. App Store Connect was inspected before upload: 19 was the latest build and 20 was unused.
+
+The release source passed all **916 tests**. Production compilation/typechecks, Capacitor sync, design validation, signed iPhone archive and App Store distribution export passed. Archive verification confirms the roster revision/conflict-recovery code, production API/database/public purchase SDK/analytics with `1.0(20)`, platform-only encryption declaration, no development overrides or configured server secrets, and valid signatures. The distribution IPA has `aps-environment=production` and `get-task-allow=false`.
+
+Xcode reported **Upload succeeded / EXPORT SUCCEEDED** at **22:00 Costa Rica time**, October 2. App Store Connect independently showed build 20 processing. Final processing and group status follow below. No App Store review submission or public release is part of this update. Physical-device acceptance remains pending.
+
+Evidence remains local under `artifacts/testflight-20/`: archive/distribution verification, upload/build/design/test logs and testing notes. Archive `/tmp/PickleBash-TestFlight-1.0-20.xcarchive`; distribution `/tmp/PickleBash-TestFlight20-Distribution/App.ipa`; isolated source `/tmp/picklebash-testflight20-source`. Temporary paths are not durable backups.
+
+Apple processing completed for build `d3e2a0b7-6a2f-4a90-aaf5-21953e3696d7`. The build detail page confirms **PickleBash Internal**, one existing internal tester, and no individual testers. Testing notes were saved. Internal TestFlight installation is available; actual device installation/acceptance is not claimed. No external group was changed and no App Review submission occurred.
+
+## App Review resubmission — October 2, 2026 — 1.0 (20)
+
+The owner reported completing testing and explicitly requested submission, lifting the prior review hold. Submitted **iOS App 1.0 (20)** with the four existing in-app purchases (Court, Everything, Fun/Party and Style). App Store Connect confirmed **5 Items Submitted**, and all five items show **Waiting for Review**, submitted October 2 at **22:13 Costa Rica time**. Submission ID: `974094bf-16bc-4ef9-a8d9-ab3a41d94b9d`.
+
+Build 20 replaced build 18 in the version draft. Review notes identify build 20 and the roster save-conflict fix. Existing reviewer access and purchase metadata were retained. **Manual release remains selected**; this submission does not publish the app or enable ordinary-account purchases.
+
+[Apple review submission](https://appstoreconnect.apple.com/apps/6815925616/distribution/reviewsubmissions/details/974094bf-16bc-4ef9-a8d9-ab3a41d94b9d)

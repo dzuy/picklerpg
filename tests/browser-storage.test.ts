@@ -19,12 +19,12 @@ test('available browser storage is used after a non-destructive probe',()=>{
  safe.storage.setItem('match','one');assert.equal(storage.getItem('match'),'one');assert.equal(safe.storage.getItem('match'),'one');
 });
 
-test('storage that becomes blocked later switches to memory without throwing',()=>{
- const values=new Map<string,string>();let blocked=false;
- const check=()=>{if(blocked)throw new DOMException('The operation is insecure.','SecurityError')};
- const storage={get length(){check();return values.size},clear:()=>{check();values.clear()},getItem:(key:string)=>{check();return values.get(key)??null},key:(index:number)=>{check();return [...values.keys()][index]??null},removeItem:(key:string)=>{check();values.delete(key)},setItem:(key:string,value:string)=>{check();values.set(key,value)}} satisfies Storage;
- const safe=createSafeStorage(()=>storage);
- assert.equal(safe.persistent,true);blocked=true;
- safe.storage.setItem('match','temporary');
- assert.equal(safe.storage.getItem('match'),'temporary');assert.equal(safe.storage.length,1);
+test('quota failure preserves readable durable data and rejects the unsaved write',()=>{
+ const values=new Map([['saved','original']]);let full=false;
+ const storage={get length(){return values.size},clear:()=>values.clear(),getItem:(k:string)=>values.get(k)??null,key:(i:number)=>[...values.keys()][i]??null,removeItem:(k:string)=>{values.delete(k)},setItem:(k:string,v:string)=>{if(full)throw new DOMException('full','QuotaExceededError');values.set(k,v)}};
+ const safe=createSafeStorage(()=>storage);full=true;
+ assert.throws(()=>safe.storage.setItem('next','lost'),{name:'QuotaExceededError'});
+ assert.equal(safe.storage.getItem('saved'),'original');assert.equal(safe.storage.getItem('next'),null);
+ const restarted=createSafeStorage(()=>storage);assert.equal(restarted.persistent,true);assert.equal(restarted.storage.getItem('saved'),'original');
+ full=false;safe.storage.setItem('next','durable');assert.equal(values.get('next'),'durable');
 });

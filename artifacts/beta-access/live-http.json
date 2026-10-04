@@ -1,0 +1,35 @@
+[
+  {
+    "path": "/healthz",
+    "status": 200,
+    "contentType": "application/json",
+    "bytes": 15
+  },
+  {
+    "path": "/",
+    "status": 200,
+    "contentType": "text/html; charset=utf-8",
+    "bytes": 12801,
+    "betaCTA": true
+  },
+  {
+    "path": "/play",
+    "status": 200,
+    "contentType": "text/html; charset=utf-8",
+    "bytes": 12801
+  },
+  {
+    "path": "/images/homepage/bodybag.mp4",
+    "status": 200,
+    "contentType": "application/octet-stream",
+    "bytes": 1293061,
+    "exactAssetMatch": true
+  },
+  {
+    "path": "/images/homepage/character-creator.mp4",
+    "status": 200,
+    "contentType": "application/octet-stream",
+    "bytes": 1668845,
+    "exactAssetMatch": true
+  }
+]

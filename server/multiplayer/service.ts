@@ -1,3 +1,5 @@
+import type {MatchSummaryPage} from '../../src/multiplayer/protocol';
+import {uuid} from './validation';
 import {incomingShotLabel} from '../../src/incoming-shot';
 import {validateCommand} from '../../src/engine/custom-command';
 import {loadStrategyStory} from './strategy-story';
@@ -75,7 +77,15 @@ export class MatchService {
  }
  async get(id:string,actor:string){const row=await this.repository.get(id,actor);if(!row)throw missing();if(row.friend_state==='cancelled')throw new ApiError(410,'cancelled','This invitation has been cancelled.');const match=(await this.withRivalries([publicMatch(row,actor,this.testers)],actor))[0];if(match.status==='completed'&&!match.endedEarly&&this.repository.strategy){try{const summary=await this.repository.strategy(id,actor);if(summary)match.strategy=publicStrategy(summary);if(row.completed_at){const opponent=actor===row.home_user_id?row.away_user_id:row.home_user_id;if(opponent){const story=await loadStrategyStory(this.repository,actor,id,opponent,row.completed_at);if(story)match.strategyStory=story;}}}catch{console.warn('Match strategy unavailable');}}return match;}
  async list(actor:string){return this.withRivalries((await this.repository.list(actor)).filter(row=>row.friend_state!=='cancelled').map(row=>publicMatch(row,actor,this.testers)),actor);}
- private async withRivalries(matches:PublicMatch[],actor:string){
+ async summaries(actor:string,params:URLSearchParams):Promise<MatchSummaryPage>{
+  const filter=params.get('filter')??'active';if(!['active','turn','completed','archived'].includes(filter))throw new ApiError(400,'filter','Choose a game list.');
+  let time:string|null=null,id:string|null=null;const cursor=params.get('cursor');
+  if(cursor){try{if(cursor.length>256)throw Error();const value=JSON.parse(Buffer.from(cursor,'base64url').toString());if(typeof value.time!=='string'||!Number.isFinite(Date.parse(value.time))||!uuid(value.id))throw Error();time=value.time;id=value.id;}catch{throw new ApiError(400,'cursor','Refresh your game list.');}}
+  if(!this.repository.summaries)throw new ApiError(503,'unavailable','Game lists are temporarily unavailable.');
+  const rows=await this.repository.summaries(actor,filter,time,id),matches=rows.slice(0,50),last=matches.at(-1);
+  return {matches:await this.withRivalries(matches,actor),nextCursor:rows.length>50&&last?Buffer.from(JSON.stringify({time:last.createdAt,id:last.id})).toString('base64url'):null};
+ }
+ private async withRivalries<T extends {id:string;rivalry?:PublicMatch['rivalry']}>(matches:T[],actor:string){
   if(!this.repository.rivalries||!matches.length)return matches;
   try{
    const summaries=await this.repository.rivalries(actor,matches.map(m=>m.id));

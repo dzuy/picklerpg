@@ -14,9 +14,9 @@ test('curated public skills survive snapshots while ordinary creators retain the
   const {rows:[row]}=await db.pool.query('insert into players(owner_id,id,name,appearance,skills,handedness,is_public,published_skills) values($1,$2,$3,$4,$5,$6,true,$7) returning public_id',[A,player.id,player.name,player.appearance,player.skills,player.handedness,strong]);
   const c=await db.pool.connect();try{
    await c.query('set role authenticated');await c.query("select set_config('request.jwt.claim.sub',$1,false)",[A]);
-   await c.query("update players set name='Curated name' where public_id=$1",[row.public_id]);
-   await assert.rejects(c.query('update players set published_skills=$1 where public_id=$2',[communityRatedSkills('fast-hands',4.8),row.public_id]),/35 points/);
-   await assert.rejects(c.query('update players set skills=$1 where public_id=$2',[strong,row.public_id]),/account skill budget/);
+   await c.query("update players set revision=revision+1,name='Curated name' where public_id=$1",[row.public_id]);
+   await assert.rejects(c.query('update players set revision=revision+1,published_skills=$1 where public_id=$2',[communityRatedSkills('fast-hands',4.8),row.public_id]),/35 points/);
+   await assert.rejects(c.query('update players set revision=revision+1,skills=$1 where public_id=$2',[strong,row.public_id]),/account skill budget/);
    await c.query("select set_config('request.jwt.claim.sub',$1,false)",[B]);
    await c.query('insert into community_player_selections(owner_id,public_id) values($1,$2)',[B,row.public_id]);
    const saved=(await c.query('select * from community_player_catalog()')).rows[0];assert.deepEqual(saved.player.skills,strong);
@@ -35,16 +35,16 @@ test('community copies preserve their starting build across source edits, unpubl
  const id=inserted.rows[0].public_id;
  assert.equal((await as(B,'select * from community_player_catalog()')).rows.length,0);
  await assert.rejects(as(B,'insert into community_player_selections(owner_id,public_id) values($1,$2)',[B,id]));
- await as(A,'update players set is_public=true where id=$1',[player.id]);
+ await as(A,'update players set revision=revision+1,is_public=true where id=$1',[player.id]);
  const published=(await as(B,'select * from community_player_catalog()')).rows[0];assert.equal(published.creator_name,'Alex');assert.equal(published.player.name,'Thor');assert.equal(published.player.id,`community-${id}`);assert.equal(published.owner_id,undefined);
  assert.equal((await as(B,'select * from players where owner_id=$1',[A])).rows.length,0);
- assert.equal((await as(B,"update players set name='Stolen' where owner_id=$1",[A])).rowCount,0);
+ assert.equal((await as(B,"update players set revision=revision+1,name='Stolen' where owner_id=$1",[A])).rowCount,0);
  assert.equal((await as(B,'delete from players where owner_id=$1',[A])).rowCount,0);
  await as(B,'insert into community_player_selections(owner_id,public_id) values($1,$2)',[B,id]);assert.equal((await as(B,'select * from community_player_catalog()')).rows[0].added,true);
  assert.equal((await as(A,'select * from community_player_catalog()')).rows[0].added,false);
  const service=new MatchService(new PgRepository(db.pool),testers),input=creation();input.roster.you=validatePlayer(published.player);const match=await service.create(A,input);
- await as(A,"update players set name='Thor Updated' where id=$1",[player.id]);assert.equal((await as(B,'select * from community_player_catalog()')).rows[0].player.name,'Thor');assert.equal((await service.get(match.id,A)).roster.you.name,'Thor');
- await as(A,'update players set is_public=false where id=$1',[player.id]);assert.equal((await as(B,'select * from community_player_catalog()')).rows.length,1);
+ await as(A,"update players set revision=revision+1,name='Thor Updated' where id=$1",[player.id]);assert.equal((await as(B,'select * from community_player_catalog()')).rows[0].player.name,'Thor');assert.equal((await service.get(match.id,A)).roster.you.name,'Thor');
+ await as(A,'update players set revision=revision+1,is_public=false where id=$1',[player.id]);assert.equal((await as(B,'select * from community_player_catalog()')).rows.length,1);
  await as(A,'delete from players where id=$1',[player.id]);assert.equal((await as(B,'select * from community_player_selections')).rows.length,1);assert.equal((await service.get(match.id,A)).roster.you.name,'Thor');
  }finally{await db.close()}
 });

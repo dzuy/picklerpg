@@ -165,3 +165,9 @@ body:has(> .marketing){margin:0;background:var(--pb-bg)}
  .marketing-number{transition:rotate .25s ease,scale .25s ease}
  .marketing-features article:hover .marketing-number{rotate:-8deg;scale:1.1}
 }
+
+.marketing-clips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:36px;max-width:780px;margin:auto}
+.marketing-clips figure{margin:0;min-width:0;padding:20px;background:var(--pb-selected);border:1px solid var(--pb-border);border-radius:24px}
+.marketing-clips figcaption{padding-top:20px}
+.marketing-clips figcaption p{color:var(--pb-text-secondary);font-size:14px;margin-bottom:0}
+@media(max-width:600px){.marketing-clips{gap:24px;grid-template-columns:1fr;max-width:360px}}

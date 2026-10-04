@@ -18,7 +18,7 @@ test('production serves game assets and HTTPS-origin AI on one port',async()=>{
  await writeFile(join(root,'voice-capture-worklet.js'),'worklet');
  await writeFile(join(root,'sw.js'),'worker');
  await writeFile(join(root,'manifest.webmanifest'),'{}');
- const server=createProductionServer({root,apiHandler:createOpponentHandler({choose:async()=>({choice:0})})});
+ const server=createProductionServer({root,apiHandler:createOpponentHandler({authorize:async()=>{},choose:async()=>({choice:0})})});
  try{
   await new Promise<void>(resolve=>server.listen(0,'0.0.0.0',resolve));
   const port=server.address().port,url=`http://127.0.0.1:${port}`;
@@ -26,8 +26,9 @@ test('production serves game assets and HTTPS-origin AI on one port',async()=>{
   for(const path of ['/play','/play/','/play?openplay=1&match=abc']){const page=await fetch(url+path);assert.equal(page.status,200);assert.equal(page.headers.get('x-robots-tag'),'noindex, nofollow');assert.match(await page.text(),/Pickle RPG/);}
   assert.equal((await fetch(url+'/play/missing')).status,404);
   assert.equal((await fetch(url+'/healthz')).status,200);
-  for(const path of ['/admin','/admin/']){const page=await fetch(url+path);assert.equal(page.status,200);assert.equal(page.headers.get('x-robots-tag'),'noindex, nofollow');assert.equal(page.headers.get('referrer-policy'),'no-referrer');}
+  for(const path of ['/admin','/admin/','/admin/todos','/admin/todos/']){const page=await fetch(url+path);assert.equal(page.status,200);assert.equal(page.headers.get('x-robots-tag'),'noindex, nofollow');assert.equal(page.headers.get('referrer-policy'),'no-referrer');}
   assert.equal((await fetch(url+'/api/admin/users')).status,503);
+  assert.equal((await fetch(url+'/api/admin/todos')).status,503);
   assert.equal((await fetch(url+'/api/admin/users/abc')).status,503);
   const admin=await fetch(url+'/admin/analytics');assert.equal(admin.status,200);assert.equal(admin.headers.get('x-robots-tag'),'noindex, nofollow');assert.equal((await fetch(url+'/admin/analytics/')).status,200);assert.equal((await fetch(url+'/admin/unknown')).status,404);assert.equal((await fetch(url+'/api/admin/analytics')).status,503);
   const challenge=await fetch(url+'/challenge/'+'a'.repeat(43));assert.equal(challenge.status,200);assert.equal(challenge.headers.get('referrer-policy'),'no-referrer');assert.equal(challenge.headers.get('x-robots-tag'),'noindex, nofollow');assert.match(await challenge.text(),/Pickle RPG/);

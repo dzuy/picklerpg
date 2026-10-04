@@ -26,7 +26,7 @@ test('local reactions persist by owner and match, sanitize and replay at their o
  assert.equal(new LocalReactions(storage,()=>owner,()=>context).replay('match',2,4).length,1);
  owner='two';assert.equal(reactions.replay('match',2,4).length,0);owner='one';context={...context,id:'different'};assert.equal(reactions.replay('different',2,4).length,0);
  await assert.rejects(()=>reactions.request('','/api/matches/match/trash-talk',{id:'stale',text:'Hi'}));
- await assert.rejects(()=>reactions.request('','/api/matches/different/trash-talk',{id:'long',text:'x'.repeat(41)}));
+ await assert.rejects(()=>reactions.request('','/api/matches/different/trash-talk',{id:'long',text:'x'.repeat(501)}));
 });
 
 test('body bag replay includes the complete animation and scrubs using replay time',()=>{

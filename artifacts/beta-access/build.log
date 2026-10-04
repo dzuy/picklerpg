@@ -1,0 +1,78 @@
+
+> pickle-rpg@0.1.0 build
+> node scripts/check-migrations.mjs && tsc --noEmit && tsc -p tsconfig.server.json && vite build && node scripts/build-server.mjs
+
+Migration filenames have unique versions.
+vite v7.3.6 building client environment for production...
+transforming...
+✓ 319 modules transformed.
+rendering chunks...
+[esbuild css minify]
+▲ [WARNING] Expected identifier but found "var(" [css-syntax-error]
+
+    <stdin>:15:402:
+      15 │ ...-width:100%}.admin-toolbar strong{var(--pb-surface)-space:normal}}
+         ╵                                      ~~~~
+
+
+[esbuild css minify]
+▲ [WARNING] Expected identifier but found "var(" [css-syntax-error]
+
+    <stdin>:180:876:
+      180 │ ...flex:1}.admin-toolbar strong{var(--pb-surface)-space:nowrap}#a...
+          ╵                                 ~~~~
+
+
+▲ [WARNING] Expected identifier but found "var(" [css-syntax-error]
+
+    <stdin>:180:1690:
+      180 │ ...-pb-info-ink);font-size:11px;var(--pb-surface)-space:nowrap}.a...
+          ╵                                 ~~~~
+
+
+computing gzip size...
+dist/index.html                                                12.80 kB │ gzip:     4.19 kB
+dist/assets/voice-worker-DMS_wwEA.js                          527.17 kB
+dist/assets/ort-wasm-simd-threaded.asyncify-DMmc6YqF.wasm  23,567.05 kB │ gzip: 5,746.64 kB
+dist/assets/beta-access-B9-NzK6C.css                            1.26 kB │ gzip:     0.51 kB
+dist/assets/sign-in-dialog-CfvGG_Yk.css                         1.59 kB │ gzip:     0.50 kB
+dist/assets/admin-navigation-DwmUkz0E.css                       2.71 kB │ gzip:     0.83 kB
+dist/assets/pwa-BkMIishP.css                                    4.75 kB │ gzip:     1.31 kB
+dist/assets/admin-analytics-DtNmfHtb.css                       11.97 kB │ gzip:     3.29 kB
+dist/assets/admin-users-BiD4O-Wz.css                           15.93 kB │ gzip:     3.99 kB
+dist/assets/main-B9Ssh7gG.css                                  20.80 kB │ gzip:     4.82 kB
+dist/assets/index-DYTFYLJW.css                                 21.02 kB │ gzip:     4.94 kB
+dist/assets/remote-BuxulVCZ.css                                23.67 kB │ gzip:     4.94 kB
+dist/assets/lobby-DZDvXwY5.css                                 43.93 kB │ gzip:     7.00 kB
+dist/assets/target-picker-DB8HGCcx.css                         62.33 kB │ gzip:    11.82 kB
+dist/assets/remote-main-BTgYBQrW.css                           68.22 kB │ gzip:    10.20 kB
+dist/assets/friend-flow-2JL_Q90Y.css                          114.69 kB │ gzip:    17.03 kB
+dist/assets/style-DYkQz6Ar.css                                114.87 kB │ gzip:    20.07 kB
+dist/assets/beta-access-policy-DVzXL1z6.js                      0.25 kB │ gzip:     0.20 kB
+dist/assets/web-BN4VSqWc.js                                     0.84 kB │ gzip:     0.40 kB
+dist/assets/admin-navigation-BP9cjz0F.js                        1.05 kB │ gzip:     0.57 kB
+dist/assets/beta-access-DnKF-8oI.js                             2.22 kB │ gzip:     1.19 kB
+dist/assets/game-bootstrap-CWCyet7W.js                          2.27 kB │ gzip:     0.90 kB
+dist/assets/index-CFWhe8ut.js                                   4.71 kB │ gzip:     2.07 kB
+dist/assets/play-turn-badge-CEHxDI-U.js                         7.49 kB │ gzip:     3.20 kB
+dist/assets/admin-analytics-DvenWzbS.js                         8.11 kB │ gzip:     3.45 kB
+dist/assets/index-Chol8b9u.js                                   8.53 kB │ gzip:     3.23 kB
+dist/assets/admin-users-BXaN5LbR.js                             9.08 kB │ gzip:     3.82 kB
+dist/assets/index-DouOjPe2.js                                   9.24 kB │ gzip:     3.84 kB
+dist/assets/web-CUIWYmrn.js                                    10.13 kB │ gzip:     2.08 kB
+dist/assets/pwa-C08BYx1H.js                                    12.34 kB │ gzip:     4.43 kB
+dist/assets/friend-landing-BZndYVSF.js                         12.47 kB │ gzip:     4.10 kB
+dist/assets/sign-in-dialog-CPz_KYX7.js                         38.07 kB │ gzip:    13.58 kB
+dist/assets/style-BV0XaEQH.js                                  53.23 kB │ gzip:    16.01 kB
+dist/assets/remote-main-S0u8U2uz.js                           123.64 kB │ gzip:    38.75 kB
+dist/assets/main-CsUqYfnb.js                                  150.24 kB │ gzip:    46.44 kB
+dist/assets/view-focus-DvBhRqoN.js                            235.83 kB │ gzip:    63.02 kB
+dist/assets/target-picker-C6LHopik.js                         293.44 kB │ gzip:    99.98 kB
+dist/assets/module-WSx8viXK.js                                308.66 kB │ gzip:   100.78 kB
+dist/assets/friend-flow-B1knW_r0.js                           683.02 kB │ gzip:   182.79 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 5.20s

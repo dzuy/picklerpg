@@ -1,3 +1,4 @@
+import {RosterOutbox} from './roster-outbox';
 import {premiumForPlay} from './premium';
 import {missingAppearancePacks} from './premium-appearance';
 import type {GameplayRecord} from './persistence/gameplay-record';
@@ -11,15 +12,15 @@ import {type SupabaseClient,type User} from '@supabase/supabase-js';
 import {parseLibrary,validatePlayer,type DesignedPlayer,type PlayerLibrary} from './player-design';
 import {browserStorage,browserSessionStorage} from './browser-storage';
 
-export type LibraryChange={kind:'save';playerId:string}|{kind:'delete';playerId:string};
-export type CloudSaveState='local'|'connecting'|'saving'|'saved'|'offline';
+export type LibraryChange={kind:'save';playerId:string}|{kind:'delete';playerId:string;expectedRevision?:number;previousOperation?:string};
+export type CloudSaveState='local'|'connecting'|'saving'|'saved'|'offline'|'conflict';
 export type CloudAccountState={kind:'unavailable'|'connecting'|'guest'|'pending'|'authenticated';email?:string;playerName?:string;teamName?:string};
-type PlayerRow={id:string;name:string;catchphrase:string|null;appearance:unknown;skills:unknown;handedness:'left'|'right';is_active:boolean;is_public?:boolean;published_skills?:DesignedPlayer['skills']};
+type PlayerRow={revision?:number;id:string;name:string;catchphrase:string|null;appearance:unknown;skills:unknown;handedness:'left'|'right';is_active:boolean;is_public?:boolean;published_skills?:DesignedPlayer['skills']};
 const CLOUD_OWNER_KEY='pickle-rpg-cloud-owner-v1',CLOUD_DIRTY_KEY='pickle-rpg-cloud-dirty-v1';
 export const PENDING_ACCOUNT_PLAYER_KEY='picklebash-pending-account-player-v1';
 
 export function playerFromRow(row:PlayerRow):DesignedPlayer{
- return validatePlayer({id:row.id,name:row.name,...(row.published_skills?{publishedSkills:row.published_skills}:{}),isPublic:row.is_public??false,...(row.catchphrase?{catchphrase:row.catchphrase}:{}),appearance:row.appearance,skills:row.skills,handedness:row.handedness});
+ return validatePlayer({revision:row.revision,id:row.id,name:row.name,...(row.published_skills?{publishedSkills:row.published_skills}:{}),isPublic:row.is_public??false,...(row.catchphrase?{catchphrase:row.catchphrase}:{}),appearance:row.appearance,skills:row.skills,handedness:row.handedness});
 }
 function rowFromPlayer(ownerId:string,player:DesignedPlayer,activeId:string|null){return {owner_id:ownerId,id:player.id,name:player.name,is_public:player.isPublic===true,published_skills:player.publishedSkills??null,catchphrase:player.catchphrase??null,appearance:player.appearance,skills:player.skills,handedness:player.handedness,is_active:player.id===activeId}}
 
@@ -76,12 +77,12 @@ export class CloudPlayerSync{
   if(error)throw new Error('Could not save your team name. Please try again.');
   this.accountStatus(accountStateForUser(data.user));return name;
  }
- private signingOut=false;
+ private signingOut=false;private connecting=false;
  get accountId(){return this.ownerId}
  async signOut(){
   if(!this.client)throw new Error('Connect before signing out.');
   await this.queue;
-  if(browserStorage.getItem(CLOUD_DIRTY_KEY)==='1')throw new Error('Your player changes are not synced yet. Reconnect before signing out.');
+  if(browserStorage.getItem(CLOUD_DIRTY_KEY)==='1'||this.outbox().pending().length)throw new Error('Your player changes are not synced yet. Reconnect before signing out.');
   const {data:{session}}=await this.client.auth.getSession();
   if(session?.user.is_anonymous)throw new Error('Protect your progress before signing out.');
   await (await import('./pwa')).disableDevicePush();
@@ -118,6 +119,7 @@ export class CloudPlayerSync{
  async connect(local:PlayerLibrary):Promise<PlayerLibrary>{
   const url=import.meta.env.VITE_SUPABASE_URL,key=import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
   if(!url||!key){this.status('local');this.accountStatus({kind:'unavailable'});return structuredClone(local)}
+  const connectingVersion=this.changeVersion;this.connecting=true;
   this.status('connecting');this.accountStatus({kind:'connecting'});
   try{
    this.client=authClient()!;
@@ -130,22 +132,38 @@ export class CloudPlayerSync{
    if(!session){const signedIn=await this.client.auth.signInAnonymously();if(signedIn.error)throw signedIn.error;session=signedIn.data.session}
    if(!session)throw new Error('Guest session was not created.');this.ownerId=session.user.id;
    if(browserStorage.getItem(CLOUD_OWNER_KEY)&&browserStorage.getItem(CLOUD_OWNER_KEY)!==this.ownerId){local={version:1,activeId:null,players:[]};browserStorage.setItem('pickle-rpg-players-v1',JSON.stringify(local));browserStorage.removeItem(CLOUD_DIRTY_KEY)}
+   if(!browserStorage.getItem(CLOUD_OWNER_KEY)){
+    const unclaimed=new RosterOutbox(browserStorage,'unclaimed');
+    for(const op of unclaimed.pending()){this.outbox().adopt(op);unclaimed.acknowledge(op);}
+   }
+   await this.flushChanges();
    this.accountStatus(accountStateForUser(session.user));
-   const response=await this.client.from('players').select('id,name,catchphrase,appearance,skills,handedness,is_active,is_public,published_skills').eq('owner_id',this.ownerId);
+   const response=await this.client.from('players').select('id,name,catchphrase,appearance,skills,handedness,is_active,is_public,published_skills,revision').eq('owner_id',this.ownerId);
    if(response.error)throw response.error;
    const rows=(response.data??[]) as PlayerRow[];
    const remotePlayers=rows.map(playerFromRow),active=rows.find(row=>row.is_active)?.id??null;
    const remote:PlayerLibrary={version:1,activeId:active,players:remotePlayers};
    const previousOwner=browserStorage.getItem(CLOUD_OWNER_KEY);
    const current=previousOwner&&previousOwner!==this.ownerId?{version:1 as const,activeId:null,players:[]}:parseLibrary(browserStorage.getItem('pickle-rpg-players-v1'));
-   const needsUpload=!previousOwner||(previousOwner===this.ownerId&&browserStorage.getItem(CLOUD_DIRTY_KEY)==='1');
+   // Never upload an entire cached roster over cloud records. Keep the cache for
+   // recovery; only genuinely new, unclaimed players may be imported.
+   if(current.players.length&&!browserStorage.getItem(`pickle-roster-recovery-v1:${this.ownerId}`))browserStorage.setItem(`pickle-roster-recovery-v1:${this.ownerId}`,JSON.stringify(current));
+   if(!previousOwner){
+    for(const player of current.players.filter(p=>!remote.players.some(r=>r.id===p.id))){
+     const imported={...player,revision:1,saveOperation:undefined,previousSaveOperation:undefined};
+     this.outbox().enqueue({version:1,activeId:remote.activeId,players:[imported]},{kind:'save',playerId:player.id});
+     remote.players.push(imported);
+    }
+    await this.flushChanges();
+   }
    const budget=await accountSkillBudget();
-   const merged=needsUpload?mergePlayerLibraries(current,remote):remote;
+   const merged=remote;
    merged.players=merged.players.map(p=>({...p,skills:normalizeSkillBudget(p.skills,budget)}));
+   if(connectingVersion!==this.changeVersion)throw Error('Your player changed while connecting. Reconnect to finish syncing.');
    browserStorage.setItem('pickle-rpg-players-v1',JSON.stringify(merged));
-   if(needsUpload)await this.replaceCloudLibrary(merged);
-   browserStorage.setItem(CLOUD_OWNER_KEY,this.ownerId);browserStorage.removeItem(CLOUD_DIRTY_KEY);this.status('saved');return structuredClone(merged);
-  }catch(error){console.warn('Cloud player sync unavailable.',error);this.client=null;this.ownerId=null;this.status('offline');this.accountStatus({kind:'unavailable'});return structuredClone(local)}
+   if(connectingVersion!==this.changeVersion||this.outbox().pending().length)throw Error('Your player changed while connecting. Reconnect to finish syncing.');
+   browserStorage.setItem(CLOUD_OWNER_KEY,this.ownerId);browserStorage.removeItem(CLOUD_DIRTY_KEY);this.status(this.hasConflicts()?'conflict':'saved');return structuredClone(merged);
+  }catch(error){console.warn('Cloud player sync unavailable.',error);this.client=null;this.ownerId=null;this.status((error as {code?:string}).code==='P0001'?'conflict':'offline');this.accountStatus({kind:'unavailable'});return readLocalPlayerLibrary()}finally{this.connecting=false;}
  }
  async protectProgress(email:string){
   if(!this.client)throw new Error('Cloud accounts are unavailable right now.');
@@ -163,28 +181,37 @@ export class CloudPlayerSync{
   this.accountStatus({kind:'pending',email:normalized});
  }
  private returnUrl(){return accountReturnUrl(new URL(location.href))}
+ private outbox(){return new RosterOutbox(browserStorage,this.ownerId??browserStorage.getItem(CLOUD_OWNER_KEY)??'unclaimed');}
  save(library:PlayerLibrary,change:LibraryChange){
   browserStorage.setItem(CLOUD_DIRTY_KEY,'1');
-  if(!this.client||!this.ownerId)return;
+  this.outbox().enqueue(library,change);
   const version=++this.changeVersion;
-  this.status('saving');this.queue=this.queue.then(()=>this.persistChange(library,change)).then(()=>{if(version===this.changeVersion){browserStorage.removeItem(CLOUD_DIRTY_KEY);this.status('saved')}}).catch(error=>{console.warn('Cloud player save failed.',error);this.status('offline')});
+  if(this.connecting||!this.client||!this.ownerId){this.status('offline');return;}
+  this.status('saving');
+  this.queue=this.queue.then(()=>this.flushChanges()).then(()=>{
+   if(version===this.changeVersion&&!this.outbox().pending().length){browserStorage.removeItem(CLOUD_DIRTY_KEY);this.status(this.hasConflicts()?'conflict':'saved');}
+  }).catch(error=>{console.warn('Cloud player save failed.',error);this.status((error as {code?:string}).code==='P0001'?'conflict':'offline');});
  }
- private async persistChange(library:PlayerLibrary,change:LibraryChange){
-  const client=this.client!,ownerId=this.ownerId!;
-  const cleared=await client.from('players').update({is_active:false}).eq('owner_id',ownerId);if(cleared.error)throw cleared.error;
-  if(change.kind==='delete'){
-   const removed=await client.from('players').delete().eq('owner_id',ownerId).eq('id',change.playerId);if(removed.error)throw removed.error;
-  }else{
-   const player=library.players.find(candidate=>candidate.id===change.playerId);if(!player)return;
-   const saved=await client.from('players').upsert(rowFromPlayer(ownerId,player,library.activeId),{onConflict:'owner_id,id'});if(saved.error)throw saved.error;
+ private hasConflicts(){
+  const prefix=`pickle-roster-conflict-v1:${this.ownerId}:`;
+  for(let i=0;i<browserStorage.length;i++)if(browserStorage.key(i)?.startsWith(prefix))return true;
+  return false;
+ }
+ private async flushChanges(){
+  if(!this.client||!this.ownerId)return;
+  const client=this.client,owner=this.ownerId,outbox=this.outbox();
+  for(const operation of outbox.pending()){
+   if(this.ownerId!==owner)throw Error('Reconnect to the account that edited these players.');
+   const {error}=await client.rpc('apply_roster_change',{p_change:operation});
+   if(error){
+    if(error.code!=='P0001'||!error.message.includes('changed elsewhere'))throw error;
+    // Preserve the complete rejected operation before removing it from retries.
+    browserStorage.setItem(`pickle-roster-conflict-v1:${owner}:${operation.id}`,JSON.stringify(operation));
+   }
+   outbox.acknowledge(operation);
   }
-  if(library.activeId){const selected=await client.from('players').update({is_active:true}).eq('owner_id',ownerId).eq('id',library.activeId);if(selected.error)throw selected.error}
  }
- private async replaceCloudLibrary(library:PlayerLibrary){
-  if(!library.players.length)return;
-  const cleared=await this.client!.from('players').update({is_active:false}).eq('owner_id',this.ownerId!);if(cleared.error)throw cleared.error;
-  const result=await this.client!.from('players').upsert(library.players.map(player=>rowFromPlayer(this.ownerId!,player,library.activeId)),{onConflict:'owner_id,id'});if(result.error)throw result.error;
- }
+
 }
 
 export function readLocalPlayerLibrary(){return parseLibrary(browserStorage.getItem('pickle-rpg-players-v1'))}

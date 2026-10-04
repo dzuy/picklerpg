@@ -1,0 +1,26 @@
+{
+  "project": "drdvwfjkbyvfqnmxkksl",
+  "archiveRpc": false,
+  "createdPlayers": [
+    {
+      "id": "beta-test-1790970599304-0",
+      "name": "Beta Test 1",
+      "public_id": "b6652114-79c3-4f11-b4f4-03dc6777a7d5"
+    },
+    {
+      "id": "beta-test-1790970599304-1",
+      "name": "Beta Test 2",
+      "public_id": "4e9ba893-a7c3-4ef7-81e7-d783bf3d9265"
+    },
+    {
+      "id": "beta-test-1790970599304-2",
+      "name": "Beta Test 3",
+      "public_id": "8a778007-2b04-45d5-a187-307be1225c9c"
+    },
+    {
+      "id": "beta-test-1790970599304-3",
+      "name": "Beta Test 4",
+      "public_id": "f7ce86a9-7518-4023-8db0-4562e346dc7a"
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "passed": [
+    "real sandbox registration, confirmed session and actual game menu",
+    "registered-session direct /play",
+    "actual Supabase logout re-gates",
+    "real username/password sign-in returns to actual game",
+    "actual Open Play module mounted"
+  ],
+  "errors": [],
+  "badResponses": [
+    {
+      "path": "/api/multiplayer/push/config",
+      "status": 503
+    },
+    {
+      "path": "/api/multiplayer/push/config",
+      "status": 503
+    },
+    {
+      "path": "/api/multiplayer/push/config",
+      "status": 503
+    },
+    {
+      "path": "/api/multiplayer/premium",
+      "status": 503
+    },
+    {
+      "path": "/api/multiplayer/push/config",
+      "status": 503
+    },
+    {
+      "path": "/api/multiplayer/premium",
+      "status": 503
+    },
+    {
+      "path": "/api/multiplayer/config",
+      "status": 503
+    },
+    {
+      "path": "/api/multiplayer/teams",
+      "status": 503
+    }
+  ]
+}

@@ -9,7 +9,7 @@ import {createServer} from 'node:net';
 import type {CommitInput,MatchRepository,StoredMatch,StoredReceipt} from '../../server/multiplayer/repository';
 // Versions are constrained to JS safe integers by the production schema.
 types.setTypeParser(20,value=>Number(value));
-export async function database(beforeMigrations?:(pool:Pool)=>Promise<void>){
+export async function database(beforeMigrations?:(pool:Pool)=>Promise<void>,through?:string){
  const probe=createServer();await new Promise<void>((resolve,reject)=>{probe.once('error',reject);probe.listen(0,'127.0.0.1',resolve)});const port=(probe.address() as {port:number}).port;await new Promise<void>(resolve=>probe.close(()=>resolve()));
  const directory=await mkdtemp(join(tmpdir(),'pickle-remote-pg-'));
  const server=new EmbeddedPostgres({databaseDir:join(directory,'db'),user:'postgres',password:'local-test-only',port,persistent:true,postgresFlags:['-h','127.0.0.1','-k',directory],onLog:()=>{},onError:()=>{}});
@@ -31,7 +31,7 @@ export async function database(beforeMigrations?:(pool:Pool)=>Promise<void>){
  // Supabase provides this schema before application migrations run.
  await pool.query('create schema storage; create table storage.buckets(id text primary key,name text not null,public boolean not null default false,file_size_limit bigint,allowed_mime_types text[]);');
  if(beforeMigrations)await beforeMigrations(pool);
- for(const name of (await readdir(new URL('../../supabase/migrations/',import.meta.url))).sort())await pool.query(await readFile(new URL(`../../supabase/migrations/${name}`,import.meta.url),'utf8'));
+ for(const name of (await readdir(new URL('../../supabase/migrations/',import.meta.url))).sort().filter(name=>!through||name<=through))await pool.query(await readFile(new URL(`../../supabase/migrations/${name}`,import.meta.url),'utf8'));
  return {get pool(){return pool},async restart(){await drain();await server.stop();await server.start();pool=makePool();},async close(){await drain();await server.stop();await rm(directory,{recursive:true,force:true});}};
 }
 /** Test adapter exercises the exact production SQL functions using independent connections. */

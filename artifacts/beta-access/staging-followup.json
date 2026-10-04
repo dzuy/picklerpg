@@ -1,0 +1,7 @@
+{
+  "passed": [
+    "unconfirmed hosted account sign-in fails and gate remains",
+    "real sign-in retains challenge destination and loads actual challenge screen"
+  ],
+  "remaining": "Challenge acceptance cannot be exercised against this sandbox until its missing is_account_archived RPC is migrated."
+}

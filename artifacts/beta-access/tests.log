@@ -1,0 +1,235 @@
+TAP version 13
+# Subtest: safe defaults, retries and SDK exceptions cannot break gameplay
+ok 1 - safe defaults, retries and SDK exceptions cannot break gameplay
+  ---
+  duration_ms: 0.88425
+  type: 'test'
+  ...
+# Subtest: guest upgrade retains identity, account change resets before identify
+ok 2 - guest upgrade retains identity, account change resets before identify
+  ---
+  duration_ms: 0.789959
+  type: 'test'
+  ...
+# Subtest: multivariate values remain distinct from boolean enablement
+ok 3 - multivariate values remain distinct from boolean enablement
+  ---
+  duration_ms: 0.077167
+  type: 'test'
+  ...
+# Subtest: privacy excludes arbitrary properties and URL/auth attribution
+ok 4 - privacy excludes arbitrary properties and URL/auth attribution
+  ---
+  duration_ms: 0.277833
+  type: 'test'
+  ...
+# Subtest: authoritative event IDs are stable and partitioned by environment and actor
+ok 5 - authoritative event IDs are stable and partitioned by environment and actor
+  ---
+  duration_ms: 0.678625
+  type: 'test'
+  ...
+# Subtest: development backend cannot emit production events even with copied key
+ok 6 - development backend cannot emit production events even with copied key
+  ---
+  duration_ms: 0.106125
+  type: 'test'
+  ...
+# Subtest: once receipts survive reload and are scoped to the account
+ok 7 - once receipts survive reload and are scoped to the account
+  ---
+  duration_ms: 0.20725
+  type: 'test'
+  ...
+# Subtest: pre-initialization events follow initial identity but cannot cross an account switch
+ok 8 - pre-initialization events follow initial identity but cannot cross an account switch
+  ---
+  duration_ms: 0.142125
+  type: 'test'
+  ...
+# PostHog domain export deferred; existing receipts will be retried.
+# (node:82821) ExperimentalWarning: The MockTimers API is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: domain exporter retries failed delivery without losing facts and suppresses overlap duplicates
+ok 9 - domain exporter retries failed delivery without losing facts and suppresses overlap duplicates
+  ---
+  duration_ms: 18.279209
+  type: 'test'
+  ...
+# Subtest: backend delivery preserves committed time separately from ingestion clock adjustments
+ok 10 - backend delivery preserves committed time separately from ingestion clock adjustments
+  ---
+  duration_ms: 1.239041
+  type: 'test'
+  ...
+# Subtest: remote account recovery preserves only a valid internal match destination
+ok 11 - remote account recovery preserves only a valid internal match destination
+  ---
+  duration_ms: 1.537
+  type: 'test'
+  ...
+# Subtest: web gameplay requires registration for direct, legacy, saved and invited entries
+ok 12 - web gameplay requires registration for direct, legacy, saved and invited entries
+  ---
+  duration_ms: 2.218334
+  type: 'test'
+  ...
+# Subtest: only explicitly registered sessions grant beta play
+ok 13 - only explicitly registered sessions grant beta play
+  ---
+  duration_ms: 0.182792
+  type: 'test'
+  ...
+# Subtest: auth retains exact local destination without accepting an external redirect
+ok 14 - auth retains exact local destination without accepting an external redirect
+  ---
+  duration_ms: 0.834833
+  type: 'test'
+  ...
+# Subtest: public root remains marketing, including campaign links and section anchors
+ok 15 - public root remains marketing, including campaign links and section anchors
+  ---
+  duration_ms: 2.376625
+  type: 'test'
+  ...
+# Subtest: game, native launch, account callbacks and legacy bookmarks retain game entry
+ok 16 - game, native launch, account callbacks and legacy bookmarks retain game entry
+  ---
+  duration_ms: 0.303125
+  type: 'test'
+  ...
+# Subtest: migration preserves callback fragments, invite IDs and query parameters
+ok 17 - migration preserves callback fragments, invite IDs and query parameters
+  ---
+  duration_ms: 0.131917
+  type: 'test'
+  ...
+# Subtest: registration upgrades the authenticated identity, preserves metadata and never creates a replacement user
+ok 18 - registration upgrades the authenticated identity, preserves metadata and never creates a replacement user
+  ---
+  duration_ms: 3.194791
+  type: 'test'
+  ...
+# Subtest: creating a named challenge never creates or updates a recipient account
+ok 19 - creating a named challenge never creates or updates a recipient account
+  ---
+  duration_ms: 25.416416
+  type: 'test'
+  ...
+# Subtest: guest game setup defaults to solo while signed-in setup keeps friend play
+ok 20 - guest game setup defaults to solo while signed-in setup keeps friend play
+  ---
+  duration_ms: 0.705333
+  type: 'test'
+  ...
+# Subtest: friend actions require an account only for anonymous players
+ok 21 - friend actions require an account only for anonymous players
+  ---
+  duration_ms: 0.096791
+  type: 'test'
+  ...
+# Subtest: new invitation guests join anonymously and land in Games without account creation
+ok 22 - new invitation guests join anonymously and land in Games without account creation
+  ---
+  duration_ms: 3.86525
+  type: 'test'
+  ...
+# Subtest: accepted guest learns serve, wait, third shot then finishes, using committed match state
+ok 23 - accepted guest learns serve, wait, third shot then finishes, using committed match state
+  ---
+  duration_ms: 101.464375
+  type: 'test'
+  ...
+# Subtest: guest serve targeting keeps the normal options and blocks illegal box/body targets without submitting
+ok 24 - guest serve targeting keeps the normal options and blocks illegal box/body targets without submitting
+  ---
+  duration_ms: 7.023917
+  type: 'test'
+  ...
+# Subtest: password upgrade installs fresh tokens for the original player, never refreshes revoked guest tokens
+ok 25 - password upgrade installs fresh tokens for the original player, never refreshes revoked guest tokens
+  ---
+  duration_ms: 1.417333
+  type: 'test'
+  ...
+# Subtest: failed password sign-in retries without needing a guest session or registering twice
+ok 26 - failed password sign-in retries without needing a guest session or registering twice
+  ---
+  duration_ms: 0.378042
+  type: 'test'
+  ...
+# Subtest: a different account is never installed over the invited player
+ok 27 - a different account is never installed over the invited player
+  ---
+  duration_ms: 0.170875
+  type: 'test'
+  ...
+# Subtest: failed account creation keeps the original session untouched
+ok 28 - failed account creation keeps the original session untouched
+  ---
+  duration_ms: 0.112042
+  type: 'test'
+  ...
+# Subtest: authentication transfers the exact guest character before removing the pending copy
+ok 29 - authentication transfers the exact guest character before removing the pending copy
+  ---
+  duration_ms: 1.566625
+  type: 'test'
+  ...
+# Subtest: failed transfers retain the design and can be retried
+ok 30 - failed transfers retain the design and can be retried
+  ---
+  duration_ms: 0.330375
+  type: 'test'
+  ...
+# Subtest: accounts without a guest character keep the normal starter flow
+ok 31 - accounts without a guest character keep the normal starter flow
+  ---
+  duration_ms: 0.058292
+  type: 'test'
+  ...
+# Subtest: username sign-in resolves bob and verifies password
+ok 32 - username sign-in resolves bob and verifies password
+  ---
+  duration_ms: 1.416792
+  type: 'test'
+  ...
+# Subtest: username sign-in resolves @bob and verifies password
+ok 33 - username sign-in resolves @bob and verifies password
+  ---
+  duration_ms: 0.3825
+  type: 'test'
+  ...
+# Subtest: username sign-in resolves  BoB  and verifies password
+ok 34 - username sign-in resolves  BoB  and verifies password
+  ---
+  duration_ms: 0.416542
+  type: 'test'
+  ...
+# Subtest: email sign-in bypasses username lookup
+ok 35 - email sign-in bypasses username lookup
+  ---
+  duration_ms: 0.463083
+  type: 'test'
+  ...
+# Subtest: unknown usernames and wrong passwords have the same error and reveal no email
+ok 36 - unknown usernames and wrong passwords have the same error and reveal no email
+  ---
+  duration_ms: 0.4105
+  type: 'test'
+  ...
+# Subtest: empty, malformed, and oversized sign-in requests are rejected before authentication
+ok 37 - empty, malformed, and oversized sign-in requests are rejected before authentication
+  ---
+  duration_ms: 0.394458
+  type: 'test'
+  ...
+1..37
+# tests 37
+# suites 0
+# pass 37
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 840.384209

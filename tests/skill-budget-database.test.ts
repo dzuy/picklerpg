@@ -19,7 +19,7 @@ test('database enforces account/public budgets, protects rewards, and freezes ed
  const insert=(owner:string,skills:unknown)=>as(owner,'insert into players(owner_id,id,name,appearance,skills,handedness,is_public) values($1,$2,$3,$4,$5,$6,true) returning public_id',[owner,player.id,player.name,player.appearance,skills,player.handedness]);
  await assert.rejects(insert(A,maxed),/budget/);
  const {rows:[row]}=await insert(A,player.skills),id=row.public_id;
- await assert.rejects(as(A,'update players set published_skills=$1 where id=$2',[maxed,player.id]),/Creator community builds have 35 points/);
+ await assert.rejects(as(A,'update players set revision=revision+1,published_skills=$1 where id=$2',[maxed,player.id]),/Creator community builds have 35 points/);
  await as(B,'insert into community_player_selections(owner_id,public_id) values($1,$2)',[B,id]);
  const changed=allocateArea(allocateArea(player.skills,'Speed',5),'Power',9);
  await as(B,'select save_community_skills($1,$2)',[id,changed]);
@@ -27,7 +27,7 @@ test('database enforces account/public budgets, protects rewards, and freezes ed
  assert.equal((await as(C,'select * from community_player_catalog()')).rows[0].player.skills.drive,70);
  await assert.rejects(as(B,'select save_community_skills($1,$2)',[id,maxed]),/budget/);
  await assert.rejects(as(C,'select save_community_skills($1,$2)',[id,changed]),/roster first/);
- await as(A,"update players set name='Edited source',skills=$1 where id=$2",[changed,player.id]);
+ await as(A,"update players set revision=revision+1,name='Edited source',skills=$1 where id=$2",[changed,player.id]);
  assert.equal((await as(B,'select * from community_player_catalog()')).rows[0].player.name,player.name);
  const service=new MatchService(new PgRepository(db.pool),testers);
  for(let i=0;i<10;i++)await service.create(A,creation());

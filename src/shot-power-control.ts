@@ -5,7 +5,7 @@ export function shotHoldDelay(search:string):number{
  const value=raw===null?NaN:Number(raw);
  return Number.isFinite(value)&&value>=0&&value<=2000?value:SHOT_POWER_UI.holdMs;
 }
-export function attachShotPower(button:HTMLButtonElement,wheel:HTMLElement,label:string,callbacks:{begin?:()=>void;preview:(power:number)=>void;play:(power?:number)=>void;cancel:()=>void},holdMs:number){
+export function attachShotPower(button:HTMLButtonElement,wheel:HTMLElement,label:string,callbacks:{begin?:()=>void;preview:(power:number)=>void;play:(power?:number)=>void;cancel:()=>void},holdMs:number,popupHost:HTMLElement=document.body){
  let timer:ReturnType<typeof setTimeout>|undefined,pointer:number|null=null,startX=0,startY=0,openedX=0,active=false,suppressClick=false,hasMoved=false,value=50;
  let popup:HTMLDivElement|null=null,range:HTMLInputElement|null=null;
  const stopTimer=()=>{if(timer!==undefined)clearTimeout(timer);timer=undefined};
@@ -15,10 +15,12 @@ export function attachShotPower(button:HTMLButtonElement,wheel:HTMLElement,label
   active=true;value=50;hasMoved=false;button.classList.add('is-power-adjusting');
   popup=document.createElement('div');popup.className='shot-power-popover'+(keyboard?' is-keyboard':'');popup.setAttribute('role','group');popup.setAttribute('aria-label',`${label} control and power`);
   popup.innerHTML='<input type="range" min="0" max="100" step="0.1" value="50" aria-label="Control to power" aria-description="Arrow keys to adjust, Enter to play, Escape to cancel">';
-  document.body.append(popup);range=popup.querySelector('input')!;range.step=String(SHOT_POWER_UI.step);
+  popupHost.append(popup);range=popup.querySelector('input')!;range.step=String(SHOT_POWER_UI.step);
   const rect=button.getBoundingClientRect();popup.style.width=`${Math.max(0,rect.width-32)}px`;popup.style.left=`${rect.left+16}px`;
   // The surrounding picker fades away, leaving room above the shot for the meter.
-  popup.style.top=`${Math.max(8,rect.top-30)}px`;
+  const hostRect=popupHost===document.body?{left:0,top:0}:popupHost.getBoundingClientRect();
+  if(popupHost!==document.body)popup.style.position='absolute';
+  popup.style.left=`${rect.left-hostRect.left+16}px`;popup.style.top=`${Math.max(8,rect.top-hostRect.top-30)}px`;
   range.addEventListener('input',()=>{value=Number(range!.value);preview()});
   popup.addEventListener('keydown',event=>{
    if(event.key==='Escape'){event.preventDefault();event.stopPropagation();close();button.focus()}
@@ -58,5 +60,10 @@ export function attachShotPower(button:HTMLButtonElement,wheel:HTMLElement,label
  button.addEventListener('click',event=>{if(suppressClick){event.preventDefault();suppressClick=false;return}callbacks.play()});
  button.addEventListener('keydown',event=>{if(event.key==='ArrowRight'||event.key==='ArrowLeft'){event.preventDefault();callbacks.begin?.();close();open(true);range!.focus()}});
  wheel.addEventListener('scroll',()=>{if(active||timer!==undefined){pointer=null;suppressClick=true;close()}},true);
- return ()=>{pointer=null;close()};
+ return Object.assign(()=>{pointer=null;close()}, {
+  demonstrate(power:number){
+   if(!active){const list=button.closest<HTMLElement>('.target-shots');if(list)list.scrollTop=button.offsetTop-(list.firstElementChild as HTMLElement)?.offsetTop;open();if(popup)popup.inert=true;}
+   const next=Math.max(0,Math.min(100,power*100));if(next!==value){value=next;preview();}
+  },
+ });
 }

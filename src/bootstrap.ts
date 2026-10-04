@@ -1,5 +1,6 @@
 import {Capacitor} from '@capacitor/core';
 import {entryRoute,gameEntryUrl} from './entry-route';
+import {requiresWebBetaAccount} from './beta-access-policy';
 const url=new URL(location.href);
 if(entryRoute(url,Capacitor.isNativePlatform())==='game'){
  const destination=gameEntryUrl(url);
@@ -12,8 +13,11 @@ if(entryRoute(url,Capacitor.isNativePlatform())==='game'){
  const showEntryLoading=!remoteMatch&&!url.searchParams.has('game')&&!url.searchParams.has('configured');
  if(loading)loading.hidden=false;
  try{
-  await import('./game-bootstrap');
-  if(showEntryLoading)loading?.remove();
+  const allowed=!requiresWebBetaAccount(destination,Capacitor.isNativePlatform())||await (await import('./beta-access')).webBetaAccess(destination);
+  if(allowed){
+   await import('./game-bootstrap');
+   if(showEntryLoading)loading?.remove();
+  }
  }catch(error){
   if(loading){loading.hidden=false;loading.querySelector('span')!.textContent='Couldn’t load the game. Please refresh to try again.';}
   console.error('Game startup failed',error);

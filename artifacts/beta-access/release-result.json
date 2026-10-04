@@ -1,0 +1,36 @@
+{
+  "commit": "50fe6819201d6ad34a35ed0a78d336d720a7806b",
+  "deployment": "48cf413f-5a9e-4c08-9b83-9fdab2aeddae",
+  "status": "Active / Deployment successful",
+  "origin": "https://picklebash.app",
+  "tests": {
+    "passed": 914,
+    "failed": 0
+  },
+  "build": "passed client/server typecheck and production build",
+  "liveChecks": [
+    "homepage CTA and partner sneak-peek copy",
+    "signup gate",
+    "direct /play gate",
+    "dismissal stays gated",
+    "existing-player signin dialog",
+    "reload stays gated",
+    "health HTTP 200",
+    "optimized MP4s match local SHA-256 and decode/play in in-app browser"
+  ],
+  "sandboxChecks": [
+    "real confirmed signup to rendered solo court and first serve",
+    "existing username/password sign-in",
+    "anonymous and unconfirmed sessions remain gated",
+    "guest upgrade retains exact account UUID and custom player appearance/skills",
+    "challenge preserved through signup and accepted with transferred player",
+    "first invite turn persisted version 0 to 1",
+    "isolated release sign-in restored saved match"
+  ],
+  "limitations": [
+    "Physical iOS launch not run; native branch checked in browser",
+    "Production signup was not submitted; full account/game writes tested only in sandbox"
+  ],
+  "productionDatabaseChanged": false,
+  "nativeFilesChanged": false
+}

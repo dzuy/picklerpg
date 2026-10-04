@@ -1,0 +1,20 @@
+[
+  {
+    "currentTime": 0,
+    "paused": true,
+    "readyState": 0,
+    "source": "/images/homepage/gameplay.mp4"
+  },
+  {
+    "currentTime": 12.266667,
+    "paused": true,
+    "readyState": 4,
+    "source": "/images/homepage/bodybag.mp4"
+  },
+  {
+    "currentTime": 15.633333,
+    "paused": true,
+    "readyState": 4,
+    "source": "/images/homepage/character-creator.mp4"
+  }
+]

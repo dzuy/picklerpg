@@ -1,0 +1,50 @@
+{
+  "commit": "6d09babed43737778729baf1e5079a94e9d1999c",
+  "deployment": "b2099815-031a-40bc-9a5a-8e3aaadcccc0",
+  "deploymentStatus": "SUCCESS",
+  "migrations": [
+    "202610030002",
+    "202610030003"
+  ],
+  "live": {
+    "url": "https://picklebash.app/admin/todos",
+    "health": 200,
+    "page": 200,
+    "noindex": true,
+    "noReferrer": true,
+    "todoChunk": "/assets/admin-todos-DlJ3xo2f.js",
+    "apiDenials": [
+      {
+        "kind": "unauthenticated",
+        "status": 401
+      },
+      {
+        "kind": "invalid token",
+        "status": 401
+      }
+    ],
+    "checkedAt": "2026-10-03T12:25:34.777Z",
+    "notExercised": [
+      "owner browser sign-in and UI CRUD",
+      "live authenticated guest/non-owner sessions; those authorization branches passed local server tests"
+    ]
+  },
+  "finalStorage": {
+    "deleteItemThroughUpdate": "passed after service DELETE was revoked",
+    "originalTasksUnchanged": true,
+    "taskCount": 30,
+    "anonymousDirectTableRead": 401,
+    "ownerBrowserTested": false,
+    "liveAuthenticatedNonOwnerTested": false
+  },
+  "tests": {
+    "fullReleaseSuite": 920,
+    "failed": 0,
+    "followupPrivilegeTests": 4
+  },
+  "productionBuild": "passed",
+  "typechecks": "passed",
+  "designChecks": "passed with existing palette advisory",
+  "iosChanged": false,
+  "unrelatedChangesIncluded": false
+}

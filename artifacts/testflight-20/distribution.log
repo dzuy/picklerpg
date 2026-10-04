@@ -1,0 +1,4 @@
+2026-10-02 21:58:31.760 xcodebuild[53433:6586730] [MT] IDEDistribution: -[IDEDistributionLogging _createLoggingBundleAtPath:]: Created bundle at path "/var/folders/c_/_6jhn5_x0rv53z_3v8zw9btc0000gn/T/App_2026-10-02_21-58-31.760.xcdistributionlogs".
+Exported App to: /tmp/PickleBash-TestFlight20-Distribution
+** EXPORT SUCCEEDED **
+

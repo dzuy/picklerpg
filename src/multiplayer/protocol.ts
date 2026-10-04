@@ -35,3 +35,6 @@ export interface PublicMatch {
 export interface TurnAnimation {jump?:import('../engine/model').PlayerJump;recoveryDelay?:number;intent:ShotIntent;actor:PlayerId;duration:number;path:Vec3[];pathTimes?:number[];from:GameState['players'];to:GameState['players']}
 export interface ActionReceipt {actionId:string;fromVersion:number;toVersion:number;state:PublicMatch}
 export interface RemoteConfig {selfId:string;selfName?:string;creationEnabled:boolean;testers:Array<{id:string;name:string}>}
+
+export type MatchSummary=Pick<PublicMatch,'id'|'version'|'createdAt'|'completedAt'|'status'|'viewerTeam'|'currentTeam'|'accountIds'|'archived'|'endedEarly'|'friendState'|'invitedName'|'court'|'courtTheme'|'rules'|'score'|'roster'|'rivalry'>;
+export interface MatchSummaryPage {matches:MatchSummary[];nextCursor:string|null}

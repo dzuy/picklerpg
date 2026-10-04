@@ -1,0 +1,23 @@
+{
+  "timestamp": "2026-10-02T20:57:04.081Z",
+  "health": 200,
+  "phoneFrames": 3,
+  "earlyAccountStyles": {
+    "path": "assets/sign-in-dialog-DkDf2ZI8.css",
+    "sharedFace": true,
+    "sharedSymbol": true,
+    "sharedHover": true
+  },
+  "closeFixCommit": "679cf8c2264a55bd3e3a5a8cd428c9a7a12aeb3a",
+  "currentCommit": "cae0df124dce8140bd8b267594cffce87c8999d4",
+  "closeDeployment": "a9501d31-b8f8-4d4a-94db-4958645cc3fd",
+  "currentDeployment": "4b6db81e-e6cc-4028-b1ce-23a80523cc52",
+  "railwayCommitStatuses": "success for both exact commits",
+  "focusedTests": {
+    "passed": 13,
+    "failed": 0
+  },
+  "buildAndTypechecks": "passed",
+  "designChecks": "passed with existing contrast advisory",
+  "visualQA": "Not performed: supported Codex IAB tool unavailable in this follow-up. No alternate browser used."
+}

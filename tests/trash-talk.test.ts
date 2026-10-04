@@ -6,12 +6,12 @@ import {parseTrashTalk} from '../server/multiplayer/trash-talk';
 import {database,PgRepository} from './helpers/postgres';
 import {MatchService} from '../server/multiplayer/service';
 import {A,B,C,testers,creation,action} from './helpers/remote';
-test('trash talk filters whole words before storage and validates Unicode length',()=>{
- assert.equal(cleanTrashTalk('  SHIT! That fucking shot.  '),'!@#$%! That !@#$% shot.');
+test('trash talk preserves profanity before storage and validates Unicode length',()=>{
+ assert.equal(cleanTrashTalk('  SHIT! That fucking shot.  '),'SHIT! That fucking shot.');
  assert.equal(cleanTrashTalk('classic pass grass'), 'classic pass grass');
- assert.equal(cleanTrashTalk('ｆｕｃｋ sh\u200bit'),'!@#$% !@#$%');
+ assert.equal(cleanTrashTalk('ｆｕｃｋ sh\u200bit'),'fuck shit');
  assert.equal(parseTrashTalk({id:randomUUID(),text:'😎'.repeat(40)}).text.length,80);
- for(const text of ['', ' '.repeat(40),'a'.repeat(41)])assert.throws(()=>parseTrashTalk({id:randomUUID(),text}));
+ for(const text of ['', ' '.repeat(40),'a'.repeat(501)])assert.throws(()=>parseTrashTalk({id:randomUUID(),text}));
  assert.throws(()=>parseTrashTalk({id:'bad',text:'Hello'}));
 });
 test('replay ties messages to the next move, replaces bubbles, and supports scrubbing',()=>{

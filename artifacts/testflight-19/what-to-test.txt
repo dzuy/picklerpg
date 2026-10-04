@@ -1,0 +1,5 @@
+PickleBash 1.0 (19) — resubmission candidate
+
+Check solo and friend matches, including shot selection, saved-game resume, and reconnect after a connection interruption. Confirm player edits stay saved after relaunch. Verify the account dialog close button, sign-in, and guest save-progress flow. Check Store purchase/restore and the message when a purchase belongs to a different saved account. Verify notification taps, badges, paddle sounds, and background/foreground return on a physical iPhone.
+
+This build uses production services. Do not use production accounts for destructive test operations. App Review has not been submitted.

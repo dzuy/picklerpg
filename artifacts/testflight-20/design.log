@@ -1,0 +1,6 @@
+
+> pickle-rpg@0.1.0 check:design
+> node scripts/check-design-system.mjs
+
+Contrast note: on-primary on primary is 3.55:1 (normal-text target 4.5:1). Colors were not changed.
+Design system: 94 tokens resolved; all CSS references valid; 1 contrast notes. Contrast is advisory for intentionally chosen palettes.

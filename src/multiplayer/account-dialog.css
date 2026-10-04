@@ -1,3 +1,5 @@
+@import '../hud-button.css';
+
 /* Shared by account creation from Solo and Friends screens. */
 .friend-account-dialog>h1{padding-right:44px;margin:8px 0 12px}
 .friend-account-dialog>p{margin:0 0 18px}

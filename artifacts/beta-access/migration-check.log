@@ -1,0 +1,5 @@
+
+> pickle-rpg@0.1.0 check:migrations
+> node scripts/check-migrations.mjs
+
+Migration filenames have unique versions.

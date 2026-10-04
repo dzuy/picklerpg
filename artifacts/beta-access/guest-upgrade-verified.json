@@ -1,0 +1,53 @@
+{
+  "sameGuestId": true,
+  "isAnonymous": false,
+  "confirmed": true,
+  "players": [
+    {
+      "id": "beta-guest-iab",
+      "name": "Beta Guest Progress",
+      "appearance": {
+        "hat": "headband",
+        "top": "jersey",
+        "face": "round",
+        "hair": "#252429",
+        "skin": "#875338",
+        "shoes": "#754732",
+        "accent": "#e85860",
+        "bottom": "long-shorts",
+        "jersey": "#e85860",
+        "outfit": "none",
+        "paddle": "#fa6796",
+        "glasses": "square",
+        "hatColor": "#ed8d3c",
+        "accessory": "none",
+        "hairStyle": "ponytail",
+        "lensColor": "#f56794",
+        "shoeStyle": "high-top",
+        "expression": "happy",
+        "facialHair": "mustache",
+        "bottomColor": "#fff7ef",
+        "outfitColor": "#a6c64c",
+        "paddleShape": "squarish-stripes",
+        "glassesColor": "#80cdd2",
+        "presentation": "boy",
+        "facialHairColor": "#b85b34",
+        "lensTranslucency": 38
+      },
+      "skills": {
+        "dink": 76,
+        "drop": 44,
+        "drive": 49,
+        "hands": 100,
+        "reset": 89,
+        "serve": 94,
+        "return": 51,
+        "volley": 100,
+        "counter": 100,
+        "movement": 40,
+        "overhead": 97
+      },
+      "is_active": true
+    }
+  ]
+}

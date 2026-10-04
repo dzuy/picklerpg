@@ -11,6 +11,7 @@ class ElementStub {
  constructor(public rect={left:100,right:340,top:200,bottom:280,width:240,height:80}){}
  addEventListener(name:string,fn:(e:any)=>void){this.listeners.set(name,[...(this.listeners.get(name)??[]),fn])}
  fire(name:string,extra:Record<string,unknown>={}){const e={isPrimary:true,button:0,pointerId:1,clientX:220,clientY:240,preventDefault(){},stopPropagation(){},...extra};for(const fn of this.listeners.get(name)??[])fn(e)}
+ closest(){return null}
  setAttribute(){}setPointerCapture(){}focus(){}remove(){this.isConnected=false}
  getBoundingClientRect(){return this.rect}
  querySelector(selector:string){if(!this.children.has(selector))this.children.set(selector,new ElementStub());return this.children.get(selector)!}
@@ -67,4 +68,11 @@ test('dragging advances smoothly between the old five-percent steps',t=>{
  f.button.fire('pointermove',{clientX:224});const second=f.previews.at(-1)!;
  assert.ok(first>.5&&second>first&&second-first<.005);
  f.button.fire('pointerup');assert.equal(f.plays[0],second);
+});
+
+test('replay demonstration uses the real meter without committing a shot',t=>{
+ const f=fixture(t);f.cleanup.demonstrate(.8);
+ assert.ok(f.popup());assert.equal(f.previews.at(-1),.8);assert.deepEqual(f.plays,[]);
+ const count=f.previews.length;f.cleanup.demonstrate(.8);assert.equal(f.previews.length,count);
+ f.cleanup();assert.equal(f.popup()!.isConnected,false);
 });

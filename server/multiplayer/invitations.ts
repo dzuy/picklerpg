@@ -39,8 +39,8 @@ export class InvitationService {
   if(!input||Object.keys(input).some(k=>!['requestId','opponentId','team','court','scoring','target','courtTheme','playerTheme'].includes(k))||!uuid(input.requestId)||!uuid(input.opponentId)||input.opponentId===actor||!isCourtLocation(input.court)||!['rally-doubles','side-out-doubles'].includes(input.scoring))throw new ApiError(400,'invitation','Choose a player, team, court, and scoring.');
   if((input.courtTheme!==undefined&&!isCourtTheme(input.courtTheme))||(input.playerTheme!==undefined&&!isCourtTheme(input.playerTheme)))throw new ApiError(400,'theme','Choose a valid theme.');
   if(input.target!==undefined&&!isValidTargetScore(input.target))throw new ApiError(400,'invitation','Choose a points limit from 1 to 99.');
-  if(!this.matches.config(actor).creationEnabled||!this.names.has(input.opponentId))throw new ApiError(403,'invitation','This player cannot be invited.');
   await this.validateOpponent?.(input.opponentId);
+  if(!this.matches.config(actor).creationEnabled||!this.names.has(input.opponentId))throw new ApiError(403,'invitation','This player cannot be invited.');
   const parsed=parseTeam(input.team),normalized={...input,team:parsed},resolved=await this.resolveTeam(parsed,actor),team=(input.playerTheme&&input.playerTheme!=='none'?resolved.map(p=>({...p,appearance:applyFunTheme(p.appearance,input.playerTheme)})):resolved) as TeamSelection;const row=await this.repo.create({id:randomUUID(),creator_id:actor,recipient_id:input.opponentId,team,court:input.court,court_theme:input.courtTheme??'none',scoring:input.scoring,points_limit:input.target??3,status:'pending',created_at:new Date().toISOString(),match_id:null,request_id:input.requestId,request_hash:requestHash(normalized)});
   return this.created(row,actor);
  }
@@ -85,6 +85,7 @@ export class InvitationService {
  }
  async accept(id:string,actor:string,input:any){
   const r=await this.repo.get(id,actor);if(!r)throw missing();if(r.recipient_id!==actor)throw new ApiError(403,'invitation','Only the invited player can accept.');
+  await this.validateOpponent?.(r.creator_id);
   if(!input||Object.keys(input).some(k=>k!=='team'))throw new ApiError(400,'team','Choose your team.');const parsed=parseTeam(input.team),source=r.rematch_of?await this.matches.get(r.rematch_of,actor):null;
   const original=source?(source.viewerTeam==='home'?[source.roster.you,source.roster.partner]:[source.roster['opponent-left'],source.roster['opponent-right']]) as TeamSelection:null;
   const team=original??(r.status==='pending'?await this.resolveTeam(parsed,actor):parsed);

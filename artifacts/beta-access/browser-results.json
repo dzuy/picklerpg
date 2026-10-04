@@ -1,0 +1,24 @@
+{
+  "passed": [
+    "homepage CTA",
+    "muted opt-in videos",
+    "signup",
+    "dismissal/reentry",
+    "direct URL",
+    "reload",
+    "existing-user sign-in",
+    "invalid password",
+    "match return",
+    "invite return",
+    "anonymous gate and upgrade",
+    "sign-out reentry",
+    "mobile/desktop layout",
+    "browser back",
+    "sign-in dismissal and signup switch",
+    "native iOS guest entry bypass",
+    "both MP4s decode and play",
+    "one clip at a time",
+    "mobile clips layout"
+  ],
+  "errors": []
+}

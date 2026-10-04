@@ -1,0 +1,39 @@
+{
+  "timestamp": "2026-10-02T21:03:01.576Z",
+  "commit": "e945ff79a8ba94d975962d7881313546300a0bea",
+  "deployment": "a3fbb57f-b715-4e5e-880a-057561afc8a5",
+  "httpStatus": 200,
+  "phoneFrames": 3,
+  "videos": [
+    {
+      "autoplay": true,
+      "loop": true,
+      "muted": true,
+      "playsinline": true,
+      "controls": true,
+      "preload": "metadata",
+      "poster": "/images/homepage/gameplay.jpg"
+    },
+    {
+      "autoplay": true,
+      "loop": true,
+      "muted": true,
+      "playsinline": true,
+      "controls": true,
+      "preload": "metadata",
+      "poster": "/images/homepage/bodybag.jpg"
+    },
+    {
+      "autoplay": true,
+      "loop": true,
+      "muted": true,
+      "playsinline": true,
+      "controls": true,
+      "preload": "metadata",
+      "poster": "/images/homepage/character-creator.jpg"
+    }
+  ],
+  "browserPlayback": "Not verified: supported Codex IAB unavailable",
+  "tests": "6 passed",
+  "build": "passed"
+}

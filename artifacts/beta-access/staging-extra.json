@@ -1,0 +1,5 @@
+{
+  "passed": [],
+  "error": "Error: Timeout: document.body.dataset.screen===\"court\"",
+  "screen": "PickleBash\nLet's Play\n↗\nQuick Solo Match\n↗\n\nNot enough public players are available. Please try again."
+}

@@ -1,0 +1,11 @@
+// Local-only browser fixture: no hosted accounts, APIs, or gameplay writes.
+import {createServer} from 'vite';
+import {fileURLToPath} from 'node:url';
+const root=fileURLToPath(new URL('../../',import.meta.url));
+const auth=`const listeners=[];const read=()=>JSON.parse(localStorage.getItem('beta-fixture-session')||'null');
+const registered=()=>({access_token:'fixture',refresh_token:'fixture',user:{id:'beta-fixture',is_anonymous:false,user_metadata:{}}});
+const client={auth:{getSession:async()=>({data:{session:read()},error:null}),onAuthStateChange:f=>{listeners.push(f);return {data:{subscription:{unsubscribe(){}}}}},setSession:async()=>{const s=registered();localStorage.setItem('beta-fixture-session',JSON.stringify(s));listeners.forEach(f=>f('SIGNED_IN',s));return {error:null}},signOut:async()=>{localStorage.removeItem('beta-fixture-session');listeners.forEach(f=>f('SIGNED_OUT',null));return {error:null}}}};
+window.betaFixtureAuth=client;export const authClient=()=>client;
+export const playerPasswordSession=async()=>registered();
+export const matchCredentials=async()=>{const s=read();if(!s)throw Error('No session');return {owner:s.user.id,token:s.access_token}};`;
+const server=await createServer({root,configFile:false,envFile:false,define:{'import.meta.env.VITE_POSTHOG_KEY':'undefined','import.meta.env.VITE_SUPABASE_URL':'undefined'},plugins:[{name:'isolated-beta-fixtures',enforce:'pre',resolveId(id){if(/(?:^|\/)auth-session(?:\.ts)?$/.test(id))return '\0beta-auth';if(id==='./game-bootstrap')return '\0beta-game';},load(id){if(id==='\0beta-auth')return auth;if(id==='\0beta-game')return `document.body.dataset.screen='fixture-game';document.body.insertAdjacentHTML('beforeend','<h1 id="fixture-game">Game entry reached</h1>');`;},configureServer(s){s.middlewares.use((req,res,next)=>{if(!req.url.startsWith('/api/'))return next();res.setHeader('Content-Type','application/json');let body='';req.on('data',c=>body+=c);req.on('end',()=>{if(body.includes('wrong-password')){res.statusCode=401;res.end(JSON.stringify({error:{message:'Incorrect username or password.'}}));}else res.end(JSON.stringify({access_token:'fixture',refresh_token:'fixture'}));});});}}],server:{host:'127.0.0.1',port:5186,strictPort:true}});await server.listen();console.log('Isolated beta QA: http://127.0.0.1:5186');
